@@ -1,0 +1,339 @@
+/* Page publique du formulaire invités (/f/[slug]) */
+
+.gf {
+  min-height: 100dvh;
+  background: var(--gf-bg);
+  color: #1c1c1a;
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+  padding-bottom: 72px;
+}
+
+.gf-cover {
+  height: clamp(220px, 38vw, 460px);
+  background: var(--gf-deep) center / cover no-repeat;
+}
+
+.gf-wrap {
+  max-width: 680px;
+  margin: -72px auto 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.gf-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: clamp(24px, 5vw, 44px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.gf-hero {
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.gf-kicker {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--gf-accent);
+}
+
+.gf-hero h1 {
+  margin: 0;
+  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-weight: 400;
+  font-size: clamp(30px, 7vw, 46px);
+  line-height: 1.05;
+}
+
+.gf-date {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.gf-venue {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #4a4a45;
+}
+
+.gf-message {
+  margin: 4px 0 0;
+  max-width: 460px;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.gf-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1c1a;
+}
+
+.gf-head h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.gf-head p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4a4a45;
+}
+
+.gf-g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.gf-hint {
+  font-size: 13px;
+  font-weight: 400;
+  color: #4a4a45;
+}
+
+.gf-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #cfcdc5;
+  background: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  color: #1c1c1a;
+  box-sizing: border-box;
+}
+
+textarea.gf-input {
+  padding: 12px 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.gf-input::placeholder {
+  color: #8a8983;
+}
+
+.gf-input:focus {
+  outline: none;
+  border-color: var(--gf-accent);
+  box-shadow: 0 0 0 3px var(--gf-bg);
+}
+
+.gf-input.is-missing,
+.gf-row.is-missing {
+  border-color: #b42318;
+  box-shadow: 0 0 0 1px #b42318;
+}
+
+.gf-set {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gf-set legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 60px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 14px;
+  background: var(--gf-bg);
+  border: 1px solid transparent;
+}
+
+.gf-row > span:first-child {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gf-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gf-pill {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #cfcdc5;
+  background: #ffffff;
+  color: #1c1c1a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gf-pill.is-on {
+  background: var(--gf-accent);
+  border-color: var(--gf-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.gf-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--gf-bg);
+}
+
+.gf-box-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gf-check {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.gf-check > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid var(--gf-accent);
+  background: #ffffff;
+}
+
+.gf-check.is-on > span {
+  background: var(--gf-accent);
+}
+
+.gf-missing {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fde0de;
+  color: #7a1f17;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gf-send {
+  min-height: 56px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--gf-accent);
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gf-send:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.gf-done {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--gf-bg);
+  text-align: center;
+}
+
+.gf-done strong {
+  font-size: 18px;
+}
+
+.gf-done span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4a4a45;
+}
+
+.gf-foot {
+  text-align: center;
+  font-size: 13px;
+  color: #4a4a45;
+}
+
+.gf-foot b {
+  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-weight: 400;
+}
+
+.gf-state {
+  max-width: 520px;
+  margin: 18vh auto 0;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .gf-g2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gf-pill {
+    min-width: 80px;
+  }
+}
+
+.gf-pills.is-missing .gf-pill {
+  border-color: #b42318;
+}
