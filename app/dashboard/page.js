@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, flushPendingBrief } from "@/lib/supabase";
+import { SITE_URL } from "@/lib/site";
 
 /*
  * Page d'attente du tableau de bord : connexion, lecture du brief du compte,
@@ -72,10 +73,10 @@ export default function Dashboard() {
 
   return (
     <div className="shell">
-      <aside className="panel" aria-hidden="true">
-        <div className="panel-logo">Merry</div>
-        <div className="panel-word">Ton mariage.</div>
-        <div className="panel-caption">Merry - Experience Crafting Group</div>
+      <aside className="panel">
+        <a className="panel-logo" href={SITE_URL} aria-label="Merry, retour au site">Merry</a>
+        <div className="panel-word" aria-hidden="true">Ton mariage.</div>
+        <div className="panel-caption" aria-hidden="true">Merry - Experience Crafting Group</div>
       </aside>
       <main className="stage">
         {!supabase ? (

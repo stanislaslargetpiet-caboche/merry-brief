@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createAccountAndBrief } from "@/lib/supabase";
+import { SITE_URL } from "@/lib/site";
 
 /* ------------------------------------------------------------------ */
 /*  Contenu des écrans (source : canvas « Merry · Carte brief »,        */
@@ -161,6 +162,14 @@ function ArrowLeft() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
 }
@@ -550,10 +559,10 @@ export default function Brief() {
 
   return (
     <div className="shell">
-      <aside className="panel" aria-hidden="true">
-        <div className="panel-logo">Merry</div>
-        <div className="panel-word">{finished ? "Bienvenue." : PANEL_WORDS[step]}</div>
-        <div className="panel-caption">Merry - Experience Crafting Group</div>
+      <aside className="panel">
+        <a className="panel-logo" href={SITE_URL} aria-label="Merry, retour au site">Merry</a>
+        <div className="panel-word" aria-hidden="true">{finished ? "Bienvenue." : PANEL_WORDS[step]}</div>
+        <div className="panel-caption" aria-hidden="true">Merry - Experience Crafting Group</div>
       </aside>
 
       <main className="stage">
@@ -580,6 +589,7 @@ export default function Brief() {
             {status === "done" ? (
               <a className="btn" href={DASHBOARD_URL}>Accéder au dashboard</a>
             ) : null}
+            <a className="skip" href={SITE_URL}>Retour au site</a>
           </section>
         ) : (
           <>
@@ -591,6 +601,9 @@ export default function Brief() {
                 <span style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
               </div>
               <div className="counter">{step + 1} / {TOTAL}</div>
+              <a className="close" href={SITE_URL} aria-label="Retour au site Merry" title="Retour au site (tes réponses sont gardées)">
+                <CloseIcon />
+              </a>
             </div>
 
             <section className="card" key={step}>
