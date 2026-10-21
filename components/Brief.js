@@ -614,7 +614,7 @@ export default function Brief() {
                 ) : step === 6 ? (
                   <button type="button" className="skip" onClick={() => { set("honeymoon_vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
                 ) : step === 9 ? (
-                  <a className="skip" href={`${DASHBOARD_URL}?login=1`}>Déjà un compte ? Se connecter</a>
+                  <a className="skip" href="/connexion">Déjà un compte ? Se connecter</a>
                 ) : <span />}
                 {isLast ? (
                   <button type="button" className="btn" onClick={submit} disabled={!canContinue || status === "sending"}>

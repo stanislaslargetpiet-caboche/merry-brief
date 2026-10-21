@@ -41,6 +41,7 @@ function Frame({ children }) {
 
   useEffect(() => {
     if (dash.status === "signedout") router.replace(`/connexion?next=${encodeURIComponent(pathname)}`);
+    if (dash.status === "mustreset") window.location.replace("/connexion?reset=1");
   }, [dash.status, pathname, router]);
 
   useEffect(() => {
