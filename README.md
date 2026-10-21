@@ -38,6 +38,7 @@ Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Au
 - `/` : le parcours en dix écrans, puis l'écran de bienvenue.
 - `/connexion` : connexion au tableau de bord (bouton « Connexion » du site), mot de passe oublié, et création d'accès pour un organisateur invité (`/connexion?invitation=…`).
 - `/dashboard` : le tableau de bord (voir la section 8).
+- `/f/<adresse>` : le formulaire invités public (voir la section 9).
 
 ## 6. Lire les briefs
 
@@ -57,6 +58,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/invites` | Liste des invités (une ligne par personne), groupes, réponse par moment du mariage, colonnes ajoutées, tout se modifie en cliquant |
 | `/dashboard/invites/importer` | Import d'Excel, CSV ou texte collé, détection des doublons ; photos et PDF lus par l'IA si la clé est configurée |
 | `/dashboard/invites/exporter` | Export Excel, CSV ou PDF, colonnes au choix (raccourcis traiteur, faire-part, plan de table) |
+| `/dashboard/invites/formulaire` | Réglages du formulaire invités : questions (non demandé, facultatif, obligatoire, intitulés modifiables), moments affichés, questions ajoutées, photo d'en-tête, petit mot, date limite, thème, lien à copier |
 | `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
 | `/dashboard/budget/paiement/[poste]` | Noter un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
@@ -89,3 +91,17 @@ Tout le contenu est en haut de `components/Brief.js` (listes `STAGES`, `TEAMS`, 
 - L'adresse `bonjour@merry.fr` existe (message d'erreur).
 - L'envoi de l'invitation à la moitié se fait par lien, depuis le tableau de bord (voir point 7).
 - `supabase/dashboard.sql` a été collé dans Supabase avant de déployer le tableau de bord.
+
+## 9. Formulaire invités
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (2f et 2g), validés le 21 octobre 2026.
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/formulaire.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `guest_forms`, le dossier de stockage public `merry-covers` pour les photos d'en-tête et deux fonctions ouvertes sans compte. Tant qu'il n'est pas lancé, le reste du tableau de bord fonctionne et la page de réglages explique quoi faire.
+
+**Principe** : un formulaire par mariage, créé à la première visite de « Formulaire invités ». Le lien (`https://<ton domaine>/f/stanislas-et-margue-k7q2`) se colle dans un groupe WhatsApp ou Facebook. Les réglages s'enregistrent tout seuls.
+
+**Réponses** : chaque envoi passe par `merry_form_submit`. Un invité déjà dans la liste est reconnu par son prénom et son nom (sans tenir compte des majuscules) : sa ligne est complétée, sinon il est ajouté sans groupe. L'accompagnant devient un invité « +1 », avec les mêmes réponses aux moments ; son adresse est celle de l'invité si « Même adresse postale » est coché. Régime et allergies vont dans la colonne Régime. Enfants, hébergement, le petit mot et les questions ajoutées deviennent des colonnes de la liste (créées au premier envoi, au nom de la question).
+
+**Garde-fous** : les visiteurs ne lisent aucune table, seulement le contenu du formulaire. Textes tronqués, réponse limitée à 20 Ko, 3 000 invités au plus par mariage. Il n'y a pas de captcha : un lien qui circule largement peut recevoir des réponses fantaisistes, que les organisateurs suppriment dans la liste.
+
+**Pas encore fait** : envoi d'un mail de confirmation à l'invité, modification d'une réponse par un lien personnel, une adresse à la carte (le lien finit par quatre caractères tirés au hasard).
