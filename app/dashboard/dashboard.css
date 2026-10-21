@@ -2418,6 +2418,212 @@ button.d-rsvp:hover {
   background: #f4f3ef;
 }
 
+/* ---------- Budget : répartition, dépenses, outils ---------- */
+
+.d-repart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+}
+
+.d-repart-head > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-repart-head strong {
+  font-size: 15px;
+}
+
+.d-repart-head small {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-add-spend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px 0 5px;
+  border-radius: 999px;
+  border: 1.5px dashed #b9b7ae;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.d-add-spend > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--d-lime);
+}
+
+.d-row-tools {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.d-pill-person {
+  padding-left: 5px;
+}
+
+.d-note-ok {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--d-limetint);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .d-hide-mobile {
+    display: none;
+  }
+
+  .d-repart-head {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Rétroplanning : commentaires ---------- */
+
+.d-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--d-panel);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.d-bubble.is-empty {
+  background: transparent;
+  color: #a3a198;
+}
+
+.d-bubble.is-empty:hover,
+.d-task:hover .d-bubble.is-empty {
+  color: var(--d-ink);
+  background: var(--d-panel);
+}
+
+.d-bubble.is-open {
+  background: var(--d-ink);
+  color: #ffffff;
+}
+
+.d-thread {
+  flex-basis: 100%;
+  margin: 4px 0 4px 72px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fafaf8;
+  border: 1px solid var(--d-line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-comment {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.d-comment-ghost {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--d-panel);
+}
+
+.d-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.d-comment-head span {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-comment-head .d-link {
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.d-comment-body p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.d-comment-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.d-comment-form .d-input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px;
+}
+
+.d-send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--d-ink);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.d-send[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (max-width: 700px) {
+  .d-thread {
+    margin-left: 0;
+  }
+}
+
 /* ---------- Formulaire invités (réglages) ---------- */
 
 .d-grid-side.d-form-grid-side {

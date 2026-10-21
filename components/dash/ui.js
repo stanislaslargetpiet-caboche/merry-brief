@@ -213,13 +213,15 @@ export function Modal({ title, onClose, children, footer, wide }) {
   );
 }
 
-export function Field({ label, children, hint, full }) {
+// group : pour une rangée de boutons (pas un <label>, qui activerait le premier bouton au clic)
+export function Field({ label, children, hint, full, group }) {
+  const Tag = group ? "div" : "label";
   return (
-    <label className={`d-field${full ? " is-full" : ""}`}>
+    <Tag className={`d-field${full ? " is-full" : ""}`} {...(group ? { role: "group", "aria-label": label } : {})}>
       <span className="d-field-label">{label}</span>
       {children}
       {hint ? <span className="d-field-hint">{hint}</span> : null}
-    </label>
+    </Tag>
   );
 }
 

@@ -611,3 +611,49 @@ end;
 $$;
 revoke all on function public.merry_bootstrap() from public, anon;
 grant execute on function public.merry_bootstrap() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Commentaires sous les tâches du rétroplanning (ajouté le 21 oct. 2026)
+-- Chaque organisateur lit tout le fil, écrit en son nom et ne supprime que les siens.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'tasks_wedding_id_id_key') then
+    alter table public.tasks add constraint tasks_wedding_id_id_key unique (wedding_id, id);
+  end if;
+end $$;
+
+create table if not exists public.task_comments (
+  id              uuid primary key default gen_random_uuid(),
+  wedding_id      uuid not null references public.weddings (id) on delete cascade,
+  task_id         uuid not null,
+  author_id       uuid,                       -- wedding_members.id
+  body            text not null check (char_length(btrim(body)) between 1 and 2000),
+  created_at      timestamptz not null default now(),
+  unique (wedding_id, id),
+  foreign key (wedding_id, task_id) references public.tasks (wedding_id, id) on delete cascade,
+  foreign key (wedding_id, author_id) references public.wedding_members (wedding_id, id) on delete set null (author_id)
+);
+create index if not exists task_comments_task_idx on public.task_comments (task_id);
+create index if not exists task_comments_wedding_idx on public.task_comments (wedding_id);
+
+alter table public.task_comments enable row level security;
+revoke all on public.task_comments from anon;
+revoke update on public.task_comments from authenticated;
+
+drop policy if exists "commentaires: lecture" on public.task_comments;
+create policy "commentaires: lecture" on public.task_comments for select to authenticated
+  using (public.is_wedding_member(wedding_id));
+
+drop policy if exists "commentaires: écrire en son nom" on public.task_comments;
+create policy "commentaires: écrire en son nom" on public.task_comments for insert to authenticated
+  with check (
+    public.is_wedding_member(wedding_id)
+    and author_id = (select m.id from public.wedding_members m
+                     where m.wedding_id = task_comments.wedding_id and m.user_id = auth.uid())
+  );
+
+drop policy if exists "commentaires: supprimer les siens" on public.task_comments;
+create policy "commentaires: supprimer les siens" on public.task_comments for delete to authenticated
+  using (author_id in (select m.id from public.wedding_members m where m.user_id = auth.uid()));
