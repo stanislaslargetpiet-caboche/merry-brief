@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessIcon } from "./icons";
+import { refineIcon } from "@/lib/dash/aiIcon";
 import { Btn, Field, Modal } from "./ui";
 
 // Créer ou modifier un poste de budget : budget prévu, prestataire, devis signé et son lien.
@@ -45,11 +46,13 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       quote_signed_at: quote !== null ? form.signed || todayIso() : null,
     };
     let itemId = item?.id;
-    if (item) await dash.update("budget_items", item.id, patch);
+    const renamed = !item || item.label !== patch.label;
+    if (item) await dash.update("budget_items", item.id, renamed ? { ...patch, icon: guessIcon(patch.label) } : patch);
     else {
       itemId = uid();
       await dash.insert("budget_items", { id: itemId, ...patch, icon: guessIcon(form.label), position: items.length });
     }
+    if (renamed) refineIcon(dash, "budget_items", itemId, patch.label, guessIcon(patch.label));
     const url = form.quoteUrl.trim();
     if (url && /^https?:\/\//i.test(url)) {
       if (quoteDoc) await dash.update("documents", quoteDoc.id, { url, vendor_id: vendorId });
