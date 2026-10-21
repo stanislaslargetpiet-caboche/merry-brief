@@ -1,138 +1,200 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase, flushPendingBrief } from "@/lib/supabase";
-import { SITE_URL } from "@/lib/site";
+import Link from "next/link";
+import { useState } from "react";
+import { useData } from "@/lib/dash/store";
+import { budgetTotals, chosenKpis, guestStats, kpiContext, paymentTitle, taskStats, upcomingTasks } from "@/lib/dash/model";
+import { dayMonth, daysUntil, euros, longDate, shortDate } from "@/lib/dash/format";
+import { Icon, Tile, guessIcon } from "@/components/dash/icons";
+import { Bar, KpiBar, PersonChip, Section } from "@/components/dash/ui";
+import TaskRow from "@/components/dash/TaskRow";
+import WeddingModal from "@/components/dash/WeddingModal";
 
-/*
- * Page d'attente du tableau de bord : connexion, lecture du brief du compte,
- * et premier aperçu. Le vrai dashboard (budget, invités, prestataires)
- * viendra remplacer cette page.
- */
+export default function Accueil() {
+  const data = useData();
+  const [editWedding, setEditWedding] = useState(false);
+  const { wedding, members, items, payments } = data;
 
-const LABELS = {
-  stage: { debut: "Au tout début", regarde: "On commence à s'y pencher", lieu_recherche: "Recherche du lieu", lieu_reserve: "Lieu réservé", details: "Derniers détails" },
-  team: { nous_deux: "Juste vous deux", nous_parents: "Vous et vos parents", nous_planner: "Vous et un wedding planner", planner_seul: "Un wedding planner" },
-  guests: { "<50": "Moins de 50 invités", "50-100": "50 à 100 invités", "100-150": "100 à 150 invités", "150-200": "150 à 200 invités", ">200": "Plus de 200 invités" },
-  budget: { "<15k": "Moins de 15 000 €", "15-30k": "15 000 à 30 000 €", "30-50k": "30 000 à 50 000 €", ">50k": "Plus de 50 000 €", aucune_idee: "Budget à définir" },
-};
+  const g = guestStats(data);
+  const b = budgetTotals(data);
+  const t = taskStats(data);
+  const ctx = kpiContext(data);
+  const kpis = chosenKpis(data, "accueil").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [brief, setBrief] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const days = daysUntil(wedding.wedding_date);
+  const title = [wedding.partner1, wedding.partner2].filter(Boolean).join(" & ");
 
-  async function load() {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-    const { data } = await supabase.auth.getUser();
-    setUser(data?.user || null);
-    if (data?.user) {
-      // Brouillon laissé en attente d'une confirmation d'email ?
-      try {
-        const pending = window.localStorage.getItem("merry-brief-pending");
-        if (pending) {
-          const res = await flushPendingBrief(JSON.parse(pending));
-          if (res.ok) window.localStorage.removeItem("merry-brief-pending");
-        }
-      } catch {
-        /* ignore */
-      }
-      const { data: rows } = await supabase.from("briefs").select("*").order("created_at", { ascending: false }).limit(1);
-      setBrief(rows?.[0] || null);
-    }
-    setLoading(false);
-  }
+  const week = data.tasks.filter((x) => !x.done && x.due_date && daysUntil(x.due_date) <= 7);
+  const shown = week.length ? week.sort((a, z) => a.due_date.localeCompare(z.due_date)).slice(0, 5) : upcomingTasks(data, 3);
 
-  useEffect(() => {
-    load();
-  }, []);
+  const next = b.nextPayment;
+  const nextItem = next ? items.find((i) => i.id === next.budget_item_id) : null;
+  const nextPayer = next?.payer_id ? members.find((m) => m.id === next.payer_id) : null;
 
-  async function signIn(e) {
-    e.preventDefault();
-    setError("");
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) {
-      setError("Email ou mot de passe incorrect.");
-      return;
-    }
-    setLoading(true);
-    load();
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    setUser(null);
-    setBrief(null);
-  }
+  // Bien démarrer
+  const partner = members.find((m) => m.role === "couple" && m.id !== data.meId);
+  const parents = members.filter((m) => m.role === "parents");
+  const pendingParents = parents.filter((m) => !m.user_id);
+  const steps = [
+    { label: "Remplir le brief", done: !!(data.brief || wedding.brief_id), href: data.brief || wedding.brief_id ? "/dashboard/brief" : "/" },
+    partner ? { label: `Inviter ${partner.display_name}`, done: !!partner.user_id, href: "#organisateurs" } : { label: "Inviter votre moitié", done: false, href: "#organisateurs" },
+    parents.length
+      ? { label: pendingParents.length ? `Inviter les ${pendingParents[0].display_name.charAt(0).toLowerCase()}${pendingParents[0].display_name.slice(1)}` : "Inviter les parents", done: !pendingParents.length, href: "#organisateurs" }
+      : { label: "Inviter vos parents", done: false, href: "#organisateurs" },
+    { label: "Importer les listes d'invités", done: g.total >= 10, href: "/dashboard/invites/importer" },
+    { label: "Compléter les adresses", done: g.total > 0 && g.addresses / g.total >= 0.9, href: "/dashboard/invites" },
+    { label: "Fixer le budget", done: wedding.budget_total !== null && wedding.budget_total !== undefined, href: "/dashboard/budget" },
+    { label: "Signer un premier devis", done: b.signed > 0, href: "/dashboard/budget" },
+  ].sort((a, z) => Number(a.done) - Number(z.done));
+  const doneSteps = steps.filter((s) => s.done).length;
 
   return (
-    <div className="shell">
-      <aside className="panel">
-        <a className="panel-logo" href={SITE_URL} aria-label="Merry, retour au site">Merry</a>
-        <div className="panel-word" aria-hidden="true">Ton mariage.</div>
-        <div className="panel-caption" aria-hidden="true">Merry - Experience Crafting Group</div>
-      </aside>
-      <main className="stage">
-        {!supabase ? (
-          <section className="card">
-            <h1 className="question">Tableau de bord</h1>
-            <p className="help">Supabase n'est pas configuré sur cet environnement. Ajoute les variables dans .env.local pour activer les comptes.</p>
-          </section>
-        ) : loading ? (
-          <section className="card"><p className="help">Chargement…</p></section>
-        ) : !user ? (
-          <section className="card">
-            <div className="eyebrow">Connexion</div>
-            <h1 className="question">Content de te revoir.</h1>
-            <form onSubmit={signIn} className="fields">
-              <div className="field full">
-                <label htmlFor="login-email">Email</label>
-                <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-              </div>
-              <div className="field full">
-                <label htmlFor="login-password">Mot de passe</label>
-                <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-              </div>
-              {error ? <p className="error">{error}</p> : null}
-              <div className="actions" style={{ gridColumn: "1 / -1" }}>
-                <a className="skip" href="/">Pas encore de compte ? Commencer</a>
-                <button type="submit" className="btn">Se connecter</button>
-              </div>
-            </form>
-          </section>
-        ) : (
-          <section className="card">
-            <div className="eyebrow">Tableau de bord</div>
-            <h1 className="question">
-              {brief ? `${brief.first_name} et ${brief.partner_first_name}` : "Bienvenue"}
-            </h1>
-            {brief ? (
-              <>
-                <p className="help">
-                  {LABELS.stage[brief.stage] || brief.stage} · {LABELS.team[brief.team] || brief.team} · {LABELS.guests[brief.guests] || brief.guests} · {LABELS.budget[brief.budget] || brief.budget}
-                  {brief.region ? ` · ${brief.region}` : ""}
-                  {brief.wedding_date ? ` · ${new Date(brief.wedding_date).toLocaleDateString("fr-FR")}` : ""}
-                </p>
-                <div className="choices">
-                  {(brief.vibes || []).map((v) => <span key={v} className="chip" aria-pressed="true">{v}</span>)}
-                </div>
-                <p className="help">Le budget, la liste d'invités et les premières propositions de lieux arrivent ici. En attendant, Camille lit votre brief.</p>
-              </>
-            ) : (
-              <p className="help">Aucun brief trouvé pour ce compte. <a href="/">Remplir le brief</a>.</p>
-            )}
-            <div className="actions">
-              <button type="button" className="skip" onClick={signOut}>Se déconnecter</button>
+    <>
+      <div className="d-home-head">
+        <div style={{ minWidth: 0 }}>
+          <h1 className="d-title" style={{ fontSize: "clamp(26px, 6.4vw, 36px)" }}>
+            {title}
+          </h1>
+          <div className="d-home-meta">
+            <button type="button" className="d-pill" onClick={() => setEditWedding(true)}>
+              <Icon name="calendar" size={14} />
+              {wedding.wedding_date ? longDate(wedding.wedding_date) : "Choisir la date"}
+            </button>
+            <button type="button" className="d-pill" onClick={() => setEditWedding(true)}>
+              <Icon name="pin" size={14} />
+              {wedding.venue || wedding.region || "Ajouter le lieu"}
+            </button>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
+          {days !== null && days >= 0 ? (
+            <div className="d-countdown">
+              <strong>J-{days}</strong>
+              <span>
+                avant le
+                <br />
+                grand jour
+              </span>
             </div>
+          ) : null}
+          <Link href="/dashboard/brief" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+            Votre brief <Icon name="chev" size={16} sw={2} />
+          </Link>
+        </div>
+      </div>
+
+      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/accueil" />
+
+      <div className="d-grid-side">
+        <div className="d-col" style={{ gap: 28 }}>
+          <div className="d-col">
+            <Section title="Organiser" />
+            <div className="d-g3">
+              <Link href="/dashboard/invites" className="d-module">
+                <span className="d-module-title">
+                  <Tile name="users" size={40} bg="#ffffff" />
+                  Invités
+                </span>
+                <span className="d-module-sub">{g.total ? `${g.attente} réponse${g.attente > 1 ? "s" : ""} en attente` : "Commencez la liste"}</span>
+              </Link>
+              <Link href="/dashboard/retroplanning" className="d-module">
+                <span className="d-module-title">
+                  <Tile name="calendar" size={40} bg="#ffffff" />
+                  Rétroplanning
+                </span>
+                <span className="d-module-sub">
+                  {t.overdue ? `${t.overdue} tâche${t.overdue > 1 ? "s" : ""} en retard` : t.week ? `${t.week} tâche${t.week > 1 ? "s" : ""} cette semaine` : "Rien d'urgent cette semaine"}
+                </span>
+              </Link>
+              <Link href="/dashboard/budget" className="d-module">
+                <span className="d-module-title">
+                  <Tile name="wallet" size={40} bg="#ffffff" />
+                  Budget
+                </span>
+                <span className="d-module-sub">{next?.due_date ? `Prochain paiement le ${shortDate(next.due_date)}` : b.paid ? `${euros(b.paid)} payés` : "Ajoutez vos premiers devis"}</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="d-col">
+            <Section title={week.length ? "Cette semaine" : "Prochaines tâches"} right={<Link href="/dashboard/retroplanning" className="d-link">Tout le rétroplanning</Link>} />
+            {shown.length ? (
+              <div className="d-tasks">
+                {shown.map((task) => (
+                  <TaskRow key={task.id} task={task} />
+                ))}
+              </div>
+            ) : (
+              <div className="d-empty">
+                <p>Rien d'urgent. Profitez-en !</p>
+              </div>
+            )}
+          </div>
+
+          <div className="d-col">
+            <Section title="Bientôt" />
+            <div className="d-g3">
+              {[
+                ["boutique", "Prestataires"],
+                ["ecran", "Site de mariage"],
+                ["cadeau", "Liste & cagnotte"],
+              ].map(([icon, label]) => (
+                <div key={label} className="d-module is-soon">
+                  <Tile name={icon} size={36} bg="#ffffff" fill="#ffffff" />
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="d-col">
+          <section className="d-card">
+            <h2>Bien démarrer</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Bar value={(doneSteps / steps.length) * 100} />
+              <span className="d-small d-muted">
+                {doneSteps}/{steps.length}
+              </span>
+            </div>
+            <ul className="d-checklist">
+              {steps.map((s) => (
+                <li key={s.label} className={s.done ? "is-done" : ""}>
+                  <a href={s.href}>
+                    <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                    <span style={{ flex: 1 }}>{s.label}</span>
+                    <Icon name="chev" size={16} sw={2} />
+                  </a>
+                </li>
+              ))}
+            </ul>
           </section>
-        )}
-      </main>
-    </div>
+
+          {next && nextItem ? (
+            <section className="d-card is-panel">
+              <span className="d-small d-muted">Prochain paiement</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Tile name={nextItem.icon || guessIcon(nextItem.label)} size={40} bg="#ffffff" />
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                  <strong style={{ fontSize: 15 }}>{paymentTitle(nextItem, next)}</strong>
+                  <span className="d-small d-muted">{next.due_date ? dayMonth(next.due_date) : "Sans date"}</span>
+                </div>
+                <span className="d-amount" style={{ fontSize: 19 }}>
+                  {euros(next.amount)}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                {nextPayer ? <PersonChip members={[nextPayer]} /> : <span className="d-small d-muted">Payeur à choisir</span>}
+                <Link className="d-btn d-btn-primary d-btn-small" href={`/dashboard/budget/paiement/${nextItem.id}?echeance=${next.id}`}>
+                  Marquer payé
+                </Link>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+
+      {editWedding ? <WeddingModal onClose={() => setEditWedding(false)} /> : null}
+    </>
   );
 }
