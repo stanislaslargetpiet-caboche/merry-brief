@@ -18,6 +18,7 @@ export default function Accueil() {
   const g = guestStats(data);
   const b = budgetTotals(data);
   const t = taskStats(data);
+  const nFolders = (data.folders || []).length + (data.documents.some((d) => !d.folder_id) ? 1 : 0);
   const ctx = kpiContext(data);
   const kpis = chosenKpis(data, "accueil").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
 
@@ -112,6 +113,15 @@ export default function Accueil() {
                   Budget
                 </span>
                 <span className="d-module-sub">{next?.due_date ? `Prochain paiement le ${shortDate(next.due_date)}` : b.paid ? `${euros(b.paid)} payés` : "Ajoutez vos premiers devis"}</span>
+              </Link>
+              <Link href="/dashboard/documents" className="d-module">
+                <span className="d-module-title">
+                  <Tile name="dossier" size={40} bg="#ffffff" />
+                  Documents
+                </span>
+                <span className="d-module-sub">
+                  {data.documents.length ? `${data.documents.length} document${data.documents.length > 1 ? "s" : ""} dans ${nFolders} dossier${nFolders > 1 ? "s" : ""}` : "Devis, mairie, cérémonie : tout au même endroit"}
+                </span>
               </Link>
             </div>
           </div>

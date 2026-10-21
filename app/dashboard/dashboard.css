@@ -3041,3 +3041,244 @@ button.d-rsvp:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Documents ---------- */
+
+.d-folders .d-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--d-line);
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--d-ink);
+  text-decoration: none;
+  min-width: 0;
+  min-height: 180px;
+  box-sizing: border-box;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-folders .d-folder:hover {
+  border-color: var(--d-border);
+  background: #fcfcfa;
+}
+
+.d-folders .d-folder.is-new {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  border: 1.5px dashed #b9b7ae;
+}
+
+.d-folders .d-folder.is-new:hover {
+  border-color: var(--d-ink);
+  background: var(--d-limetint);
+}
+
+.d-folder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.d-folder-text strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-folder-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  min-height: 26px;
+}
+
+.d-doc-budget {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--d-limetint);
+  color: var(--d-ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.d-folder-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.d-folder-meta {
+  display: block;
+  margin-top: 6px;
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-docs-list {
+  border: 1px solid var(--d-line);
+  border-radius: 20px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.d-docrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px 100px 70px 40px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+
+.d-docrow + .d-docrow {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-docrow.is-head {
+  min-height: 0;
+  padding: 10px 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
+
+.d-docrow-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.d-docrow-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.d-docrow-name {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.d-docrow-name:hover {
+  text-decoration: underline;
+}
+
+.d-docrow-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-docrow-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-docrow-date,
+.d-docrow-size {
+  font-size: 13px;
+  color: var(--d-muted);
+  white-space: nowrap;
+}
+
+.d-docrow-size {
+  text-align: right;
+}
+
+.d-docdrop {
+  background: var(--d-panel);
+  padding: 24px;
+  gap: 8px;
+}
+
+.d-docdrop.is-compact {
+  padding: 16px;
+}
+
+.d-docdrop strong {
+  font-size: 15px;
+}
+
+.d-docdrop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.d-pop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-pop-item.is-danger {
+  color: var(--d-red-ink);
+}
+
+.d-swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.d-swatch.is-on {
+  border-color: var(--d-ink);
+}
+
+@media (max-width: 900px) {
+  .d-docrow {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .d-docrow-by,
+  .d-docrow-size,
+  .d-docrow.is-head {
+    display: none;
+  }
+}

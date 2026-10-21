@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/invites", label: "Invités", icon: "users" },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", icon: "wallet" },
+  { href: "/dashboard/documents", label: "Documents", icon: "folder" },
 ];
 const SOON = ["Prestataires", "Site de mariage", "Liste & cagnotte"];
 

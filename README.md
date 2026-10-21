@@ -63,6 +63,8 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
 | `/dashboard/budget/paiement/[poste]` | Noter un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
 | `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact, résumé des échanges, fil des messages (envoi par la messagerie), documents, paiements |
+| `/dashboard/documents` | Dossiers partagés (Factures et devis, Mairie, Préparation religieuse…), recherche, documents ajoutés récemment (voir la section 10) |
+| `/dashboard/documents/[id]` | Un dossier : dépôt de fichiers par glisser-déposer, liste des documents, renommer, déplacer, supprimer |
 | `/dashboard/indicateurs/accueil` et `/budget` | Choix des indicateurs (cinq au maximum) |
 
 **Installer** : Supabase > SQL Editor > New query, colle `supabase/dashboard.sql`, Run (après `schema.sql`, le fichier peut être relancé sans risque). Au premier passage, chaque compte reçoit un mariage créé à partir de son brief : organisateurs, moments, groupes, postes de budget et rétroplanning type.
@@ -77,7 +79,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 
 **Démo** : `/dashboard?demo=1` affiche le mariage d'exemple de la maquette, enregistré seulement dans le navigateur (`?demo=0` pour en sortir). En local sans `.env.local`, la démo s'affiche directement.
 
-**Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, dépôt de fichiers (les devis et factures sont des liens), résumé des échanges écrit par l'IA.
+**Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, résumé des échanges écrit par l'IA. Les devis et factures du budget restent des liens ; les fichiers eux-mêmes se déposent dans le bloc Documents (section 10).
 
 **Relier Squarespace** : le bouton « Connexion » du site pointe vers `https://<ton domaine>/connexion`.
 
@@ -105,3 +107,15 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (2f et 
 **Garde-fous** : les visiteurs ne lisent aucune table, seulement le contenu du formulaire. Textes tronqués, réponse limitée à 20 Ko, 3 000 invités au plus par mariage. Il n'y a pas de captcha : un lien qui circule largement peut recevoir des réponses fantaisistes, que les organisateurs suppriment dans la liste.
 
 **Pas encore fait** : envoi d'un mail de confirmation à l'invité, modification d'une réponse par un lien personnel, une adresse à la carte (le lien finit par quatre caractères tirés au hasard).
+
+## 10. Documents
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (5 et 5b), validés le 21 octobre 2026.
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/documents.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `document_folders`, ajoute à `documents` les colonnes des fichiers déposés (dossier, chemin de stockage, taille, type, qui l'a ajouté) et le stockage privé `merry-documents`. Tant qu'il n'est pas lancé, la page Documents explique quoi faire et le reste du tableau de bord fonctionne.
+
+**Principe** : les organisateurs créent des dossiers (suggestions au premier clic : Factures et devis, Mairie, Préparation religieuse, Lieu et traiteur…) et y déposent des fichiers, 25 Mo au plus chacun. Chaque fichier est rangé dans le stockage sous `<wedding_id>/<dossier>/…` ; seuls les organisateurs du mariage peuvent le lire, par un lien signé valable une heure. Tous les organisateurs ont les mêmes droits : ajouter, renommer, déplacer, supprimer. Supprimer un dossier supprime ses fichiers.
+
+**Relié au budget** : les devis et factures ajoutés depuis le budget ou la fiche d'un prestataire (des liens) apparaissent aussi dans Documents, dans le pseudo-dossier « Devis et factures du budget » tant qu'ils ne sont pas déplacés, avec la pastille « Dans le budget ». Un fichier déposé peut être déplacé vers ce pseudo-dossier seulement s'il est déjà rattaché à un prestataire.
+
+**Pas encore fait** : rattacher un fichier déposé à un prestataire ou à un poste depuis la page Documents (passe encore par le budget), dossiers privés au couple, partage d'un dossier au conseiller, aperçu des fichiers dans la page.
