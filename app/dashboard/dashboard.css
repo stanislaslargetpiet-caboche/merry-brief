@@ -2150,3 +2150,270 @@ button.d-rsvp:hover {
     font-size: 34px;
   }
 }
+
+/* ---------- Moments du mariage ---------- */
+
+.d-icon-btn.is-flat {
+  background: transparent;
+}
+
+.d-icon-btn.is-flat:hover {
+  background: var(--d-panel);
+}
+
+.d-icon-btn[disabled] {
+  opacity: 0.3;
+  cursor: default;
+  background: transparent;
+}
+
+.d-icon-btn.is-danger {
+  color: #9b2c2c;
+}
+
+.d-icon-btn.is-danger:hover {
+  background: #fdeceb;
+}
+
+.d-moments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-moment {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.6fr) minmax(0, 0.8fr) auto auto;
+  align-items: end;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.d-moment + .d-moment {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-moment-move {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-moment-move .d-icon-btn {
+  width: 28px;
+  height: 22px;
+}
+
+.d-moment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.d-moment-field > span {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-moment-count {
+  white-space: nowrap;
+  padding-bottom: 12px;
+}
+
+.d-moment .d-icon-btn.is-danger {
+  margin-bottom: 4px;
+}
+
+.d-moment-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--d-panel);
+}
+
+.d-moment-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.d-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--d-line);
+}
+
+.d-seg button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--d-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.d-seg button.is-on {
+  background: var(--d-ink);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .d-moment {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .d-moment .is-short {
+    grid-column: 2;
+  }
+
+  .d-moment-count {
+    display: none;
+  }
+}
+
+/* ---------- Import ---------- */
+
+.d-drop-big {
+  border: 1.5px dashed #b9b7ae;
+  border-radius: 20px;
+  padding: 28px 24px;
+  background: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.d-drop-big.is-over {
+  border-color: var(--d-ink);
+  background: var(--d-limetint);
+}
+
+.d-drop-big strong {
+  font-size: 18px;
+}
+
+.d-drop-big p {
+  margin: 0;
+  max-width: 560px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}
+
+.d-file-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.d-file-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--d-line);
+  background: #ffffff;
+  min-width: 0;
+}
+
+.d-file-chip .d-file-badge {
+  width: 40px;
+  height: 40px;
+}
+
+.d-import-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--d-panel);
+  font-size: 13px;
+}
+
+.d-import-settings > span {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.d-import-settings .d-select {
+  min-height: 34px;
+  width: auto;
+}
+
+.d-selbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.d-selbar .d-selbar-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.d-selbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.d-selbar button.is-danger {
+  border: 0;
+  background: #ffffff;
+  color: #9b2c2c;
+}
+
+.d-check {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--d-ink);
+  cursor: pointer;
+}
+
+.d-guests td.d-col-check,
+.d-guests th.d-col-check {
+  width: 28px;
+  padding-left: 16px;
+}
+
+.d-row-selected td {
+  background: #f4f3ef;
+}
