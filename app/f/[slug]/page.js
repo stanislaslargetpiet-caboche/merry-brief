@@ -106,7 +106,8 @@ export default function GuestFormPage() {
     );
   }
 
-  const couple = [form.partner1, form.partner2].filter(Boolean).join(" & ");
+  const couple = (form.title || "").trim() || [form.partner1, form.partner2].filter(Boolean).join(" & ");
+  const globalPresence = form.presence_mode === "global";
   const events = form.events || [];
   const withPlus = mode("plusun") !== "off" && plus === "oui";
 
@@ -120,7 +121,10 @@ export default function GuestFormPage() {
     need("email", EMAIL_RE.test(me.email.trim()), "Mail");
     if (mode("tel") === "req") need("phone", me.phone.trim(), label("tel"));
     if (mode("adresse") === "req") need("address", me.address.trim(), label("adresse"));
-    if (mode("presence") === "req") for (const e of events) need(`ev:${e.id}`, answers[e.id], e.name);
+    if (mode("presence") === "req") {
+      if (globalPresence) need("ev:all", answers.all, "Serez-vous des nôtres ?");
+      else for (const e of events) need(`ev:${e.id}`, answers[e.id], e.name);
+    }
     if (mode("plusun") === "req") need("plus", plus, label("plusun"));
     if (withPlus) {
       need("p_first_name", other.first_name.trim(), "Prénom de l'accompagnant");
@@ -158,7 +162,7 @@ export default function GuestFormPage() {
       address: me.address,
       diet: me.diet,
       allergies: me.allergies,
-      answers,
+      answers: globalPresence ? Object.fromEntries(events.map((e) => [e.id, answers.all]).filter(([, v]) => v)) : answers,
       plus_one: withPlus
         ? { first_name: other.first_name, last_name: other.last_name, email: other.email, phone: other.phone, address: other.address, same_address: other.same_address, diet: other.diet, allergies: other.allergies }
         : null,
@@ -276,7 +280,14 @@ export default function GuestFormPage() {
                 </label>
               ) : null}
 
-              {mode("presence") !== "off" && events.length ? (
+              {mode("presence") !== "off" && globalPresence ? (
+                <fieldset className="gf-set">
+                  <legend>Serez-vous des nôtres ?{star("presence")}</legend>
+                  <Pills options={YESNO} value={answers.all || null} label="Serez-vous des nôtres ?" missing={isMissing("ev:all")} onChange={(v) => setAnswers((a) => ({ ...a, all: v }))} />
+                </fieldset>
+              ) : null}
+
+              {mode("presence") !== "off" && !globalPresence && events.length ? (
                 <fieldset className="gf-set">
                   <legend>Serez-vous des nôtres ?{star("presence")}</legend>
                   {events.map((e) => (

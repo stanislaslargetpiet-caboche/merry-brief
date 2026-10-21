@@ -9,6 +9,7 @@ import {
   FORM_THEMES,
   LOCKED_FIELDS,
   MESSAGE_MAX,
+  TITLE_MAX,
   PRESET_FIELDS,
   defaultForm,
   formTheme,
@@ -98,6 +99,8 @@ export default function FormulaireInvites() {
   const [newOptions, setNewOptions] = useState("");
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const timer = useRef(null);
   const latest = useRef(form);
   const fileInput = useRef(null);
@@ -159,10 +162,15 @@ export default function FormulaireInvites() {
   const presenceOn = form.fields.find((f) => f.key === "presence")?.mode !== "off";
   const events = data.events;
   const inForm = events.filter((e) => form.event_ids.includes(e.id));
-  const outForm = events.filter((e) => !form.event_ids.includes(e.id));
   const active = [...LOCKED_FIELDS.map((f) => ({ ...f, mode: "req" })), ...form.fields.filter((f) => f.mode !== "off"), ...form.custom.map((c) => ({ ...c, mode: c.req ? "req" : "opt" }))];
   const url = formUrl(form.slug);
   const coupleName = [data.wedding.partner1, data.wedding.partner2].filter(Boolean).join(" & ");
+  const pageTitle = (form.title || "").trim() || coupleName;
+  const saveTitle = () => {
+    const t = titleDraft.trim().slice(0, TITLE_MAX);
+    if (t) change({ title: t });
+    setEditingTitle(false);
+  };
 
   async function pickCover(e) {
     const file = e.target.files?.[0];
@@ -274,36 +282,52 @@ export default function FormulaireInvites() {
                   </div>
                   {f.key === "presence" && presenceOn ? (
                     <div className="d-fq-moments">
-                      <div>
-                        <strong>Sur quels moments vos invités répondent-ils ?</strong>
-                        <span>Cliquez sur un moment pour l'ajouter au formulaire ou l'en retirer.</span>
+                      <strong style={{ fontSize: 14 }}>Comment vos invités répondent-ils ?</strong>
+                      <div className="d-fq-modes">
+                        {[
+                          { id: "global", label: "Une seule question pour tout le mariage", hint: "« Serez-vous des nôtres ? » Oui ou non, une fois." },
+                          { id: "moments", label: "Une question par moment", hint: "L'invité répond oui ou non pour chacun des moments que vous choisissez." },
+                        ].map((m) => (
+                          <button key={m.id} type="button" className={`d-choice${form.presence_mode === m.id ? " is-on" : ""}`} aria-pressed={form.presence_mode === m.id} onClick={() => change({ presence_mode: m.id })}>
+                            <span className="d-radio" />
+                            <span className="d-choice-text">
+                              <strong style={{ fontSize: 14 }}>{m.label}</strong>
+                              <span>{m.hint}</span>
+                            </span>
+                          </button>
+                        ))}
                       </div>
-                      <div className="d-filters">
-                        {events.map((e) => {
-                          const on = form.event_ids.includes(e.id);
-                          return (
-                            <button
-                              key={e.id}
-                              type="button"
-                              className={`d-pill${on ? " is-on" : ""}`}
-                              style={on ? { background: "var(--d-limetint)" } : undefined}
-                              aria-pressed={on}
-                              onClick={() => change((x) => ({ event_ids: on ? x.event_ids.filter((id) => id !== e.id) : events.map((ev) => ev.id).filter((id) => id === e.id || x.event_ids.includes(id)) }))}
-                            >
-                              <Icon name={on ? "check" : "plus"} size={13} sw={on ? 2.4 : 2} />
-                              {e.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p>
-                        <strong>Dans le formulaire :</strong> {inForm.length ? inForm.map((e) => e.name).join(", ") : "aucun moment"}. L'invité répond oui ou non pour chacun.
-                      </p>
-                      {outForm.length ? (
-                        <p className="d-muted">
-                          <strong style={{ color: "var(--d-ink)" }}>Pas dans le formulaire :</strong> {outForm.map((e) => e.name).join(", ")}. Pratique pour un moment réservé à quelques proches : tout le monde reçoit le même lien, donc tout le monde verrait la question. Ces réponses-là se notent directement dans la liste des invités.
-                        </p>
-                      ) : null}
+                      {form.presence_mode === "moments" ? (
+                        <>
+                          <div>
+                            <strong>Sur quels moments ?</strong>
+                            <span>Cliquez sur un moment pour l'ajouter au formulaire ou l'en retirer.</span>
+                          </div>
+                          <div className="d-filters">
+                            {events.map((e) => {
+                              const on = form.event_ids.includes(e.id);
+                              return (
+                                <button
+                                  key={e.id}
+                                  type="button"
+                                  className={`d-pill${on ? " is-on" : ""}`}
+                                  style={on ? { background: "var(--d-limetint)" } : undefined}
+                                  aria-pressed={on}
+                                  onClick={() => change((x) => ({ event_ids: on ? x.event_ids.filter((id) => id !== e.id) : events.map((ev) => ev.id).filter((id) => id === e.id || x.event_ids.includes(id)) }))}
+                                >
+                                  <Icon name={on ? "check" : "plus"} size={13} sw={on ? 2.4 : 2} />
+                                  {e.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p>
+                            <strong>Dans le formulaire :</strong> {inForm.length ? inForm.map((e) => e.name).join(", ") : "aucun moment"}. L'invité répond oui ou non pour chacun.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="d-muted">La réponse vaut pour {inForm.length ? inForm.map((e) => e.name.toLowerCase()).join(", ") : "tous les moments"} dans votre liste.</p>
+                      )}
                     </div>
                   ) : null}
                 </div>
@@ -387,6 +411,42 @@ export default function FormulaireInvites() {
           <section className="d-card">
             <h2>L'apparence</h2>
             <div className="d-field">
+              <span className="d-field-label">Titre de la page</span>
+              <span className="d-field-hint">En grand en haut du formulaire, sous la photo.</span>
+              {editingTitle ? (
+                <span className="d-fq-edit">
+                  <input
+                    className="d-input"
+                    value={titleDraft}
+                    autoFocus
+                    maxLength={TITLE_MAX}
+                    aria-label="Titre de la page"
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveTitle();
+                      }
+                      if (e.key === "Escape") setEditingTitle(false);
+                    }}
+                  />
+                  <Btn small onClick={saveTitle}>
+                    Valider
+                  </Btn>
+                  <button type="button" className="d-link" onClick={() => setEditingTitle(false)}>
+                    Annuler
+                  </button>
+                </span>
+              ) : (
+                <div className="d-ftitle">
+                  <span>{pageTitle}</span>
+                  <Btn kind="strong" small icon="pencil" onClick={() => { setTitleDraft(pageTitle); setEditingTitle(true); }}>
+                    Modifier
+                  </Btn>
+                </div>
+              )}
+            </div>
+            <div className="d-field">
               <span className="d-field-label">Photo d'en-tête</span>
               <button type="button" className="d-fcover" onClick={() => fileInput.current?.click()} disabled={uploading} style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")` } : undefined}>
                 {form.cover_url ? (
@@ -435,7 +495,7 @@ export default function FormulaireInvites() {
               <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center / cover url("${form.cover_url}")` : theme.deep }} />
               <div className="d-fpreview-body">
                 <span style={{ color: theme.accent }}>Save the date</span>
-                <strong>{coupleName}</strong>
+                <strong>{pageTitle}</strong>
                 <em>{[data.wedding.wedding_date ? longDate(data.wedding.wedding_date) : null, data.wedding.venue].filter(Boolean).join(" · ")}</em>
                 {form.message ? <p>{form.message}</p> : null}
                 {active.slice(0, 5).map((f) => (

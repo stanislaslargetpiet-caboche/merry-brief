@@ -247,7 +247,7 @@ export default function Invites() {
         title="Les invités."
         actions={
           <>
-            <Btn kind="strong" icon="link" href="/dashboard/invites/formulaire">
+            <Btn kind="lime" icon="link" href="/dashboard/invites/formulaire">
               Formulaire invités
             </Btn>
             <Btn kind="strong" icon="download" href="/dashboard/invites/exporter">
