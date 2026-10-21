@@ -266,6 +266,7 @@ h1.question {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .field.full {
@@ -287,6 +288,23 @@ h1.question {
   background: var(--ground);
   font-size: 15px;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Safari iOS donne au champ date une largeur minimale et un style natif qui
+   le font déborder de la carte : on le remet au gabarit des autres champs. */
+.field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  text-align: left;
+  color: var(--ink);
+}
+
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
 }
 
 .field input:focus,
@@ -480,28 +498,42 @@ h1.question {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
   }
-  .panel-logo {
-    align-self: center;
-  }
+  /* Sur mobile, le panneau devient un bandeau : logo, puis le mot de l'étape. */
   .panel {
     min-height: 0;
-    padding: 16px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    padding: 14px 16px 18px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 6px;
   }
-  .panel-word,
+  .panel-logo {
+    align-self: flex-start;
+    font-size: 18px;
+  }
+  .panel-word {
+    display: block;
+    font-size: clamp(28px, 8.6vw, 40px);
+    line-height: 1.02;
+  }
   .panel-caption {
     display: none;
   }
   .stage {
     padding: 16px;
+    gap: 16px;
   }
   .card {
     padding: 22px 18px;
   }
   .fields {
     grid-template-columns: 1fr;
+  }
+  /* 16 px minimum : en dessous, l'iPhone zoome tout seul sur le champ touché. */
+  .field input,
+  .field textarea,
+  .search input {
+    font-size: 16px;
   }
 }
 
