@@ -6,15 +6,15 @@ import { useEffect, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
 import { SITE_URL } from "@/lib/site";
 import { Icon } from "./icons";
-import { Avatar } from "./ui";
+import { Avatar, Popover } from "./ui";
 import Organisers from "./Organisers";
 
 const NAV = [
-  { href: "/dashboard", label: "Accueil", icon: "home", exact: true },
-  { href: "/dashboard/invites", label: "Invités", icon: "users" },
-  { href: "/dashboard/retroplanning", label: "Rétroplanning", icon: "calendar" },
-  { href: "/dashboard/budget", label: "Budget", icon: "wallet" },
-  { href: "/dashboard/documents", label: "Documents", icon: "folder" },
+  { href: "/dashboard", label: "Accueil", short: "Accueil", icon: "home", exact: true },
+  { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
+  { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
+  { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet" },
+  { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
 ];
 const SOON = ["Prestataires", "Site de mariage", "Liste & cagnotte"];
 
@@ -67,9 +67,82 @@ function Frame({ children }) {
   const data = dash.data;
   const members = data?.members || [];
   const pending = members.filter((m) => !m.user_id);
+  const [menu, setMenu] = useState(false);
 
   return (
     <div className="d-root">
+      {/* Téléphone : en-tête compact en haut, onglets en bas */}
+      <header className="d-topbar">
+        <Link href="/dashboard" className="d-logo">
+          Merry
+        </Link>
+        {data ? (
+          <div className="d-topbar-right">
+            <button type="button" className="d-topbar-faces" onClick={() => setShowOrganisers(true)} aria-label="Voir les organisateurs">
+              {members.slice(0, 4).map((m, i) => (
+                <span key={m.id} style={{ marginLeft: i ? -8 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
+                  <Avatar member={m} size={28} ring="#cbff75" />
+                </span>
+              ))}
+              {pending.length ? <span className="d-topbar-dot" aria-hidden="true" /> : null}
+            </button>
+            <span className="d-anchor">
+              <button type="button" className="d-topbar-menu" onClick={() => setMenu((o) => !o)} aria-label="Menu" aria-expanded={menu}>
+                <Icon name="dots" size={18} sw={2.2} />
+              </button>
+              <Popover open={menu} onClose={() => setMenu(false)} align="right">
+                {data?.weddings?.length > 1
+                  ? data.weddings.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        className={`d-pop-item${w.id === data.wedding.id ? " is-on" : ""}`}
+                        onClick={() => {
+                          setMenu(false);
+                          dash.switchWedding(w.id);
+                        }}
+                      >
+                        {w.name || "Mariage"}
+                        {w.id === data.wedding.id ? <Icon name="check" size={14} sw={2.2} /> : null}
+                      </button>
+                    ))
+                  : null}
+                <button
+                  type="button"
+                  className="d-pop-item"
+                  onClick={() => {
+                    setMenu(false);
+                    setShowOrganisers(true);
+                  }}
+                >
+                  Organisateurs
+                </button>
+                <a className="d-pop-item" href={SITE_URL}>
+                  Retour au site
+                </a>
+                <button type="button" className="d-pop-item" onClick={dash.signOut}>
+                  Se déconnecter
+                </button>
+              </Popover>
+            </span>
+          </div>
+        ) : null}
+      </header>
+
+      <nav className="d-tabbar" aria-label="Navigation du tableau de bord">
+        {NAV.map((n) => {
+          const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+          return (
+            <Link key={n.href} href={n.href} className={`d-tab-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
+              <span className="d-tab-icon">
+                <Icon name={n.icon} size={20} sw={on ? 2.2 : 1.8} />
+              </span>
+              {n.short}
+            </Link>
+          );
+        })}
+      </nav>
+
       <nav className="d-nav" aria-label="Navigation du tableau de bord">
         <Link href="/dashboard" className="d-logo">
           Merry
@@ -93,11 +166,6 @@ function Frame({ children }) {
               </Link>
             );
           })}
-          {data ? (
-            <button type="button" className="d-nav-item d-nav-mobile-only" onClick={() => setShowOrganisers(true)}>
-              Organisateurs
-            </button>
-          ) : null}
         </div>
         <div className="d-nav-soon">
           <div className="d-nav-caption">Bientôt</div>
@@ -141,7 +209,7 @@ function Frame({ children }) {
         {dash.mode === "demo" && dash.status === "ready" ? (
           <div className="d-demo">
             <span>
-              <strong>Mode démo.</strong> Données d'exemple, enregistrées seulement dans ce navigateur.
+              <strong>Mode démo.</strong> <span className="d-desk-only">Données d'exemple, enregistrées seulement dans ce navigateur.</span>
             </span>
             <button type="button" onClick={dash.resetDemo}>
               Remettre à zéro

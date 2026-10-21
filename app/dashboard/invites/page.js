@@ -216,6 +216,64 @@ function AddColumn({ onClose }) {
   );
 }
 
+// Téléphone : un invité par carte, les réponses sur une ligne, les coordonnées repliées
+function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
+  const dash = useDash();
+  const [open, setOpen] = useState(false);
+  const r = idx.get(g.id) || {};
+  const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
+  const custom = g.custom || {};
+  const saveCustom = (f, v) => {
+    const next = { ...custom };
+    if (v) next[f.id] = v;
+    else delete next[f.id];
+    dash.update("guests", g.id, { custom: next });
+  };
+  return (
+    <div className="d-gcard">
+      <div className="d-gcard-top">
+        <div className="d-gcard-name">
+          <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", g.id, splitName(v))} />
+          <span className="d-guest-sub">
+            {g.age ? <span>{g.age} ans</span> : null}
+            {host && !fullName(g) ? <span>À nommer</span> : null}
+            <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
+          </span>
+        </div>
+        <button type="button" className={`d-gcard-more${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Masquer les coordonnées" : "Voir les coordonnées"}>
+          <Icon name={open ? "chevDown" : "chev"} size={18} sw={2} />
+        </button>
+      </div>
+      <div className="d-gcard-rsvps">
+        {events.map((ev) => (
+          <span key={ev.id} className="d-gcard-rsvp">
+            <small>{ev.short_name}</small>
+            <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} />
+          </span>
+        ))}
+      </div>
+      {open ? (
+        <div className="d-gcard-details">
+          <small>Régime</small>
+          <InlineEdit value={g.diet} label="régime" onSave={(v) => dash.update("guests", g.id, { diet: v })} />
+          <small>Adresse</small>
+          <InlineEdit value={g.address} label="adresse" multiline onSave={(v) => dash.update("guests", g.id, { address: v })} />
+          <small>Mail</small>
+          <InlineEdit value={g.email} label="mail" onSave={(v) => dash.update("guests", g.id, { email: v })} />
+          <small>Téléphone</small>
+          <InlineEdit value={g.phone} label="téléphone" onSave={(v) => dash.update("guests", g.id, { phone: v })} />
+          {fields.map((f) => (
+            <span key={f.id} style={{ display: "contents" }}>
+              <small>{f.name}</small>
+              <InlineEdit value={custom[f.id]} label={f.name} onSave={(v) => saveCustom(f, v)} />
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Invites() {
   const dash = useDash();
   const data = dash.data;
@@ -267,29 +325,29 @@ export default function Invites() {
 
       <div className="d-col" style={{ gap: 14 }}>
         <div className="d-filters" style={{ justifyContent: "space-between" }}>
-        <div className="d-filters">
-        <div className="d-tabs" role="tablist" aria-label="Moments du mariage">
-          <button type="button" role="tab" aria-selected={!eventFilter} className={`d-tab${!eventFilter ? " is-on" : ""}`} onClick={() => setEventFilter(null)}>
-            Tous
-          </button>
-          {events.map((ev) => (
-            <button key={ev.id} type="button" role="tab" aria-selected={eventFilter === ev.id} className={`d-tab${eventFilter === ev.id ? " is-on" : ""}`} onClick={() => setEventFilter(ev.id)}>
-              {ev.name}
+          <div className="d-filters d-scroll-x">
+            <div className="d-tabs" role="tablist" aria-label="Moments du mariage">
+              <button type="button" role="tab" aria-selected={!eventFilter} className={`d-tab${!eventFilter ? " is-on" : ""}`} onClick={() => setEventFilter(null)}>
+                Tous
+              </button>
+              {events.map((ev) => (
+                <button key={ev.id} type="button" role="tab" aria-selected={eventFilter === ev.id} className={`d-tab${eventFilter === ev.id ? " is-on" : ""}`} onClick={() => setEventFilter(ev.id)}>
+                  {ev.name}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="d-pill is-dashed" onClick={() => setMoments(true)} aria-label="Modifier les moments" title="Modifier les moments">
+              <Icon name="pencil" size={14} sw={2} />
+              <span className="d-desk-only">Modifier les moments</span>
             </button>
-          ))}
-        </div>
-          <button type="button" className="d-pill is-dashed" onClick={() => setMoments(true)}>
-            <Icon name="pencil" size={14} sw={2} />
-            Modifier les moments
-          </button>
-        </div>
+          </div>
           <label className="d-search">
             <Icon name="search" size={15} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
           </label>
         </div>
         <div className="d-filters" style={{ justifyContent: "space-between" }}>
-          <div className="d-filters">
+          <div className="d-filters d-scroll-x">
             <button type="button" className={`d-pill${!groupFilter ? " is-on" : ""}`} onClick={() => setGroupFilter(null)}>
               Tous · {base.length}
             </button>
@@ -310,7 +368,7 @@ export default function Invites() {
               );
             })}
           </div>
-          <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
+          <button type="button" className="d-pill is-dashed d-desk-only" onClick={() => setAddingCol(true)}>
             <Icon name="plus" size={14} sw={2} />
             Ajouter une colonne
           </button>
@@ -318,7 +376,16 @@ export default function Invites() {
       </div>
 
       {guests.length ? (
-        <div className="d-table-wrap">
+        <div className="d-cards d-mob-only">
+          {shown.map((g) => (
+            <GuestCard key={g.id} guest={g} events={events} groups={groups} fields={fields} idx={idx} byId={byId} groupById={groupById} />
+          ))}
+          {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
+        </div>
+      ) : null}
+
+      {guests.length ? (
+        <div className="d-table-wrap d-desk-only">
           <table className="d-table d-guests">
             <thead>
               <tr>
@@ -417,9 +484,11 @@ export default function Invites() {
           <span>
             {shown.length} invité{shown.length > 1 ? "s" : ""} affiché{shown.length > 1 ? "s" : ""} sur {guests.length}
           </span>
-          <span>·</span>
-          <Icon name="pencil" size={14} />
-          <span>cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail, téléphone</span>
+          <span className="d-hint d-desk-only">·</span>
+          <span className="d-hint d-desk-only">
+            <Icon name="pencil" size={14} />
+            cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail, téléphone
+          </span>
         </div>
       ) : null}
 

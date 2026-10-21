@@ -91,7 +91,7 @@ export default function Prestataire() {
         </div>
       </div>
 
-      <div className="d-grid-side" style={{ gridTemplateColumns: "minmax(0, 1fr) 340px" }}>
+      <div className="d-grid-side d-grid-vendor">
         <div className="d-col">
           <section className="d-card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>

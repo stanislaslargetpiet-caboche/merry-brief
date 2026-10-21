@@ -114,7 +114,7 @@ export function OkPill({ children = "Payés", small }) {
 
 export function KpiBar({ items, plusHref, compact }) {
   return (
-    <div className={`d-stats${compact ? " is-compact" : ""}`} style={{ "--cols": items.length + (plusHref ? 1 : 0) }}>
+    <div className={`d-stats${compact ? " is-compact" : ""}`} data-n={items.length} style={{ "--cols": items.length + (plusHref ? 1 : 0) }}>
       {items.map((it) => (
         <div key={it.id || it.label} className="d-stat">
           <span className="d-stat-value">

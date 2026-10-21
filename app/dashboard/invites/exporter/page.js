@@ -107,7 +107,7 @@ table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;back
   return (
     <>
       <PageHeader back={{ href: "/dashboard/invites", label: "Les invités" }} title="Exporter la liste." />
-      <div className="d-grid-side" style={{ gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)" }}>
+      <div className="d-grid-side d-grid-export">
         <section className="d-card">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h2>Colonnes à exporter</h2>

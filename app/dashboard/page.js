@@ -72,8 +72,7 @@ export default function Accueil() {
             <div className="d-countdown">
               <strong>J-{days}</strong>
               <span>
-                avant le
-                <br />
+                avant le <br />
                 grand jour
               </span>
             </div>
@@ -143,7 +142,7 @@ export default function Accueil() {
 
           <div className="d-col">
             <Section title="Bientôt" />
-            <div className="d-g3">
+            <div className="d-g3 d-soon-grid">
               {[
                 ["boutique", "Prestataires"],
                 ["ecran", "Site de mariage"],

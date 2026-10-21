@@ -107,7 +107,7 @@ export default function Budget() {
 
       <section className="d-card" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
-        <p className="d-muted" style={{ margin: "-6px 0 0", maxWidth: 760, lineHeight: 1.5 }}>
+        <p className="d-muted d-hide-mobile" style={{ margin: "-6px 0 0", maxWidth: 760, lineHeight: 1.5 }}>
           À gauche, ce que chacun a déjà payé. À droite, où va l'argent. Chaque dépense ajoutée avec le + s'inscrit dans son poste, dans le tableau en dessous.
         </p>
         <div className="d-split">
@@ -214,7 +214,81 @@ export default function Budget() {
 
       <div className="d-col">
         <Section title="Par poste" right={<span className="d-small d-muted d-hide-mobile">Le crayon modifie un poste, la corbeille le supprime</span>} />
-        <div className="d-table-wrap">
+
+        <div className="d-cards d-mob-only">
+          {items.map((it) => {
+            const f = itemFinance(it, payments);
+            const v = vendorById.get(it.vendor_id);
+            return (
+              <div key={it.id} className="d-pcard">
+                <div className="d-pcard-top">
+                  <Tile name={it.icon || guessIcon(it.label)} />
+                  <span className="d-pcard-text">
+                    <button type="button" onClick={() => setEditing(it)} title="Modifier le poste">
+                      {it.label}
+                    </button>
+                    {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : null}
+                  </span>
+                  <span className="d-pcard-amounts">
+                    {f.quote !== null ? (
+                      <>
+                        <strong>{euros(f.quote)}</strong>
+                        <small>budget {f.budgeted !== null ? euros(f.budgeted) : "–"}</small>
+                      </>
+                    ) : (
+                      <>
+                        <strong>{f.budgeted !== null ? euros(f.budgeted) : "–"}</strong>
+                        <small>budget</small>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="d-pcard-foot">
+                  {f.quote !== null ? <Variance value={f.variance} /> : <span />}
+                  {f.fullyPaid ? (
+                    <span className="d-status is-done">
+                      <Icon name="check" size={12} sw={2.4} />
+                      Tout payé
+                    </span>
+                  ) : f.quote !== null && f.paid === 0 ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
+                      Noter un paiement
+                    </Link>
+                  ) : f.next ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo">
+                      {dueLabel(f.next, wedding.wedding_date)}
+                    </Link>
+                  ) : f.quote !== null ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}`} className="d-status is-todo">
+                      Reste {euros(f.remaining)}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="d-link"
+                      onClick={() => {
+                        setQuoteFocus(true);
+                        setEditing(it);
+                      }}
+                    >
+                      Ajouter un devis
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div className="d-pcard-total">
+            <span>
+              Total <strong>{euros(b.sumBudgeted)}</strong>
+            </span>
+            <small>
+              {euros(b.engaged)} engagés · {euros(b.paid)} payés
+            </small>
+          </div>
+        </div>
+
+        <div className="d-table-wrap d-desk-only">
           <table className="d-table">
             <thead>
               <tr>

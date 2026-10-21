@@ -58,7 +58,7 @@ export default function Documents() {
         </div>
       ) : null}
 
-      <div className="d-card is-panel" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
+      <div className="d-card is-panel d-filterbar" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
         <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
           <strong style={{ fontSize: 26, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{documents.length}</strong>
           <span className="d-small d-muted">
