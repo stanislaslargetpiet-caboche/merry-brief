@@ -7,18 +7,38 @@ import { INVITE_KEY } from "@/lib/dash/store";
 
 /*
  * Connexion au tableau de bord, depuis le bouton « Connexion » du site.
- * Gère aussi le lien d'invitation d'un organisateur (?invitation=…) et
- * le mot de passe oublié.
+ * Gère aussi le lien d'invitation d'un organisateur (?invitation=…) : on
+ * montre le mariage concerné et on ne rejoint qu'après confirmation.
  */
+
+const TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function safeNext(raw) {
   // Uniquement des chemins internes au tableau de bord
   return raw && /^\/dashboard(\/|$|\?)/.test(raw) ? raw : "/dashboard";
 }
 
+function readToken() {
+  try {
+    const t = window.localStorage.getItem(INVITE_KEY);
+    return t && TOKEN_RE.test(t) ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function dropToken() {
+  try {
+    window.localStorage.removeItem(INVITE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function Connexion() {
-  const [mode, setMode] = useState("login"); // login | signup | forgot | reset | sent | confirm
-  const [invited, setInvited] = useState(false);
+  const [mode, setMode] = useState("login"); // login | signup | forgot | reset | sent | confirm | join | badlink
+  const [token, setToken] = useState(null);
+  const [invite, setInvite] = useState(null); // { partner1, partner2, invited_as }
   const [next, setNext] = useState("/dashboard");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,30 +46,69 @@ export default function Connexion() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function showJoin(t) {
+    const { data } = await supabase.rpc("merry_invite_info", { token: t });
+    if (data && data.length) {
+      setInvite(data[0]);
+      setMode("join");
+    } else {
+      dropToken();
+      setMode("badlink");
+    }
+  }
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNext(safeNext(params.get("next")));
-    const token = params.get("invitation");
-    if (token && /^[0-9a-f-]{36}$/i.test(token)) {
+    let t = params.get("invitation");
+    if (t && TOKEN_RE.test(t)) {
       try {
-        window.localStorage.setItem(INVITE_KEY, token);
+        window.localStorage.setItem(INVITE_KEY, t);
       } catch {
         /* ignore */
       }
-      setInvited(true);
-      setMode("signup");
-    }
+      // Le lien ne reste pas dans la barre d'adresse ni dans l'historique
+      params.delete("invitation");
+      const q = params.toString();
+      window.history.replaceState(null, "", `/connexion${q ? `?${q}` : ""}${window.location.hash}`);
+    } else t = readToken();
+    setToken(t);
+    if (t) setMode("signup");
     if (!supabase) return undefined;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setMode("reset");
     });
-    // Déjà connecté : direction le tableau de bord (sauf retour de « mot de passe oublié »)
     supabase.auth.getSession().then(({ data }) => {
       const recovering = window.location.hash.includes("type=recovery");
-      if (data?.session && !recovering) window.location.replace(safeNext(params.get("next")));
+      if (!data?.session || recovering) return;
+      if (t) showJoin(t);
+      else window.location.replace(safeNext(params.get("next")));
     });
     return () => sub?.subscription?.unsubscribe();
   }, []);
+
+  function afterAuth() {
+    if (token) showJoin(token);
+    else window.location.replace(next);
+  }
+
+  async function join() {
+    setBusy(true);
+    setError("");
+    const { data: w, error: err } = await supabase.rpc("merry_join", { token });
+    setBusy(false);
+    dropToken();
+    if (err || !w) {
+      setMode("badlink");
+      return;
+    }
+    try {
+      window.localStorage.setItem("merry-wedding", w);
+    } catch {
+      /* ignore */
+    }
+    window.location.replace("/dashboard");
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -59,13 +118,17 @@ export default function Connexion() {
       if (mode === "login") {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw new Error("Email ou mot de passe incorrect.");
-        window.location.replace(next);
+        afterAuth();
       } else if (mode === "signup") {
         if (password.length < 8) throw new Error("Le mot de passe doit faire au moins 8 caractères.");
-        const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName } } });
+        const { data, error: err } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { first_name: firstName }, emailRedirectTo: `${window.location.origin}/connexion` },
+        });
         if (err) throw new Error(/registered|already/i.test(err.message) ? "Ce mail a déjà un compte : connectez-vous." : "La création du compte n'a pas marché. Réessayez.");
         if (!data.session) setMode("confirm");
-        else window.location.replace("/dashboard");
+        else afterAuth();
       } else if (mode === "forgot") {
         await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/connexion` });
         setMode("sent");
@@ -82,13 +145,16 @@ export default function Connexion() {
     }
   }
 
+  const couple = invite ? [invite.partner1, invite.partner2].filter(Boolean).join(" et ") : "";
   const titles = {
     login: "Content de te revoir.",
-    signup: invited ? "Rejoins l'organisation." : "Crée ton accès.",
+    signup: token ? "Rejoins l'organisation." : "Crée ton accès.",
     forgot: "Mot de passe oublié.",
     reset: "Nouveau mot de passe.",
     sent: "Regarde ta boîte mail.",
     confirm: "Plus qu'un clic.",
+    join: `Le mariage de ${couple}.`,
+    badlink: "Ce lien ne marche plus.",
   };
 
   return (
@@ -106,7 +172,7 @@ export default function Connexion() {
       </aside>
       <main className="stage">
         <section className="card">
-          <div className="eyebrow">{mode === "signup" && invited ? "Invitation" : "Connexion"}</div>
+          <div className="eyebrow">{token && mode !== "login" ? "Invitation" : "Connexion"}</div>
           <h1 className="question">{titles[mode]}</h1>
 
           {!supabase ? (
@@ -118,15 +184,45 @@ export default function Connexion() {
                 </a>
               </div>
             </>
+          ) : mode === "join" ? (
+            <>
+              <p className="help">
+                Tu es invité{invite?.invited_as ? ` en tant que « ${invite.invited_as} »` : ""} à organiser ce mariage sur Merry, avec les mêmes droits que le couple : invités, rétroplanning et budget.
+              </p>
+              <div className="actions">
+                <button
+                  type="button"
+                  className="skip"
+                  onClick={() => {
+                    dropToken();
+                    window.location.replace("/dashboard");
+                  }}
+                >
+                  Pas maintenant
+                </button>
+                <button type="button" className="btn" onClick={join} disabled={busy}>
+                  Rejoindre
+                </button>
+              </div>
+            </>
+          ) : mode === "badlink" ? (
+            <>
+              <p className="help">Ce lien d'invitation a déjà servi ou a été remplacé. Demande un nouveau lien à la personne qui t'a invité.</p>
+              <div className="actions">
+                <a className="btn" href="/dashboard">
+                  Aller au tableau de bord
+                </a>
+              </div>
+            </>
           ) : mode === "sent" ? (
             <p className="help">Si un compte existe pour {email}, un lien pour choisir un nouveau mot de passe vient d'arriver.</p>
           ) : mode === "confirm" ? (
-            <p className="help">Un mail de confirmation est parti à {email}. Clique sur le lien, puis reviens te connecter : tu arriveras directement sur le tableau de bord.</p>
+            <p className="help">Un mail de confirmation est parti à {email}. Clique sur le lien : tu reviendras ici pour rejoindre l'organisation.</p>
           ) : (
             <form onSubmit={submit} className="fields">
-              {mode === "signup" && invited ? (
+              {mode === "signup" && token ? (
                 <p className="help" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                  On t'a invité à organiser un mariage sur Merry. Crée ton accès : tu verras les invités, le rétroplanning et le budget.
+                  On t'a invité à organiser un mariage sur Merry. Crée ton accès, ou connecte-toi si tu as déjà un compte.
                 </p>
               ) : null}
               {mode === "signup" ? (
@@ -177,7 +273,7 @@ export default function Connexion() {
             </form>
           )}
 
-          {mode === "login" ? (
+          {mode === "login" && !token ? (
             <p className="footnote">
               Pas encore de compte ? <a href="/">Raconte-nous ton mariage</a>, Merry prépare ton tableau de bord.
             </p>

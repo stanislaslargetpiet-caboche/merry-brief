@@ -33,8 +33,10 @@ function dueLabel(p, weddingDate) {
   return `${p.label} ${when}`;
 }
 
+// Une cellule qui commence par = + - @ serait lue comme une formule par Excel
 function csvCell(v) {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  if (typeof v !== "number" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

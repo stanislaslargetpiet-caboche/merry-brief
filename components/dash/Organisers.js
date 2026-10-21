@@ -75,6 +75,20 @@ export default function Organisers({ onClose }) {
               </strong>
               <span className="d-small d-muted">{m.user_id ? "A accès au tableau de bord" : m.email ? `Invitation en attente · ${m.email}` : "Invitation en attente"}</span>
             </div>
+            {m.id === meId && dash.mode === "live" && members.filter((x) => x.user_id).length > 1 ? (
+              <button
+                type="button"
+                className="d-link"
+                style={{ color: "var(--d-muted)" }}
+                onClick={async () => {
+                  if (!window.confirm("Quitter l'organisation de ce mariage ? Il faudra un nouveau lien pour revenir.")) return;
+                  const res = await dash.leaveWedding();
+                  if (!res.ok) dash.setToast({ kind: "error", text: "Impossible de quitter ce mariage pour l'instant." });
+                }}
+              >
+                Quitter ce mariage
+              </button>
+            ) : null}
             {!m.user_id ? (
               <div className="d-org-actions">
                 <Btn kind="ghost" small icon={copied === m.id ? "check" : "copy"} onClick={() => copy(m)}>

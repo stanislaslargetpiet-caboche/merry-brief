@@ -8,8 +8,10 @@ import { RSVP } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
 
+// Une cellule qui commence par = + - @ serait lue comme une formule par Excel
 function csvCell(v) {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  if (typeof v !== "number" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

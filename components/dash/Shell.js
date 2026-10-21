@@ -72,6 +72,15 @@ function Frame({ children }) {
         <Link href="/dashboard" className="d-logo">
           Merry
         </Link>
+        {data?.weddings?.length > 1 ? (
+          <select className="d-select d-wedding-switch" value={data.wedding.id} onChange={(e) => dash.switchWedding(e.target.value)} aria-label="Changer de mariage">
+            {data.weddings.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name || "Mariage"}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <div className="d-nav-main">
           {NAV.map((n) => {
             const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);

@@ -195,7 +195,7 @@ create table if not exists public.documents (
   vendor_id       uuid,
   kind            text not null default 'autre' check (kind in ('devis', 'facture', 'autre')),
   name            text not null,
-  url             text not null,
+  url             text not null check (url ~* '^https?://'),
   created_at      timestamptz not null default now(),
   foreign key (wedding_id, budget_item_id) references public.budget_items (wedding_id, id) on delete cascade,
   foreign key (wedding_id, vendor_id) references public.vendors (wedding_id, id) on delete cascade
@@ -227,6 +227,14 @@ create table if not exists public.kpi_prefs (
   primary key (user_id, wedding_id, scope)
 );
 
+-- Lecture des listes par l'IA : compteur d'appels par compte et par jour (limite côté serveur)
+create table if not exists public.ai_usage (
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  day             date not null default current_date,
+  calls           integer not null default 0,
+  primary key (user_id, day)
+);
+
 -- ---------------------------------------------------------------------------
 -- Droits : un organisateur voit et modifie tout ce qui concerne ses mariages
 -- ---------------------------------------------------------------------------
@@ -243,7 +251,7 @@ as $$
     where m.wedding_id = w and m.user_id = auth.uid()
   );
 $$;
-revoke all on function public.is_wedding_member(uuid) from public;
+revoke all on function public.is_wedding_member(uuid) from public, anon;
 grant execute on function public.is_wedding_member(uuid) to authenticated;
 
 alter table public.weddings        enable row level security;
@@ -260,6 +268,7 @@ alter table public.payments        enable row level security;
 alter table public.documents       enable row level security;
 alter table public.vendor_messages enable row level security;
 alter table public.kpi_prefs       enable row level security;
+alter table public.ai_usage        enable row level security;  -- aucune règle : accessible seulement par merry_ai_tick()
 
 -- Mariage : lecture et modification par ses organisateurs. La création passe par merry_bootstrap().
 drop policy if exists "mariage: lecture" on public.weddings;
@@ -268,6 +277,10 @@ create policy "mariage: lecture" on public.weddings for select to authenticated
 drop policy if exists "mariage: modification" on public.weddings;
 create policy "mariage: modification" on public.weddings for update to authenticated
   using (public.is_wedding_member(id)) with check (public.is_wedding_member(id));
+
+-- Le lien vers le brief et l'auteur du mariage ne se modifient pas depuis l'appli.
+revoke insert, update, delete on public.weddings from authenticated, anon;
+grant update (partner1, partner2, wedding_date, venue, region, budget_total) on public.weddings to authenticated;
 
 -- Organisateurs : visibles et gérables par les autres organisateurs du même mariage.
 drop policy if exists "organisateurs: lecture" on public.wedding_members;
@@ -281,7 +294,7 @@ create policy "organisateurs: modification" on public.wedding_members for update
   using (public.is_wedding_member(wedding_id)) with check (public.is_wedding_member(wedding_id));
 drop policy if exists "organisateurs: retrait" on public.wedding_members;
 create policy "organisateurs: retrait" on public.wedding_members for delete to authenticated
-  using (public.is_wedding_member(wedding_id) and user_id is distinct from auth.uid());
+  using (public.is_wedding_member(wedding_id) and user_id is null);
 
 -- Le compte rattaché et le jeton d'invitation ne se modifient que par les fonctions
 -- ci-dessous : personne ne peut s'ajouter lui-même à un mariage ni y ajouter quelqu'un d'autre.
@@ -310,10 +323,26 @@ create policy "indicateurs: les siens" on public.kpi_prefs for all to authentica
   using (user_id = auth.uid() and public.is_wedding_member(wedding_id))
   with check (user_id = auth.uid() and public.is_wedding_member(wedding_id));
 
--- Les organisateurs invités lisent aussi le brief du mariage.
+-- Les organisateurs lisent les réponses du brief (sans les colonnes de suivi interne
+-- status, owner, notes) par cette fonction.
 drop policy if exists "brief: lecture par les organisateurs" on public.briefs;
-create policy "brief: lecture par les organisateurs" on public.briefs for select to authenticated
-  using (exists (select 1 from public.weddings w where w.brief_id = briefs.id and public.is_wedding_member(w.id)));
+
+create or replace function public.merry_brief(w uuid)
+returns table (stage text, team text, first_name text, partner_first_name text, wedding_date date,
+               region text, guests text, format text, vibes text[], budget text, help text[])
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select b.stage, b.team, b.first_name, b.partner_first_name, b.wedding_date,
+         b.region, b.guests, b.format, b.vibes, b.budget, b.help
+    from public.weddings wd
+    join public.briefs b on b.id = wd.brief_id
+   where wd.id = w and public.is_wedding_member(w);
+$$;
+revoke all on function public.merry_brief(uuid) from public, anon;
+grant execute on function public.merry_brief(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Rejoindre un mariage avec un lien d'invitation
@@ -345,12 +374,73 @@ begin
   end if;
   update public.wedding_members
      set user_id = me, joined_at = now(), invite_token = gen_random_uuid()
-   where id = target.id;
+   where id = target.id and user_id is null;
+  if not found then
+    return null;
+  end if;
   return target.wedding_id;
 end;
 $$;
-revoke all on function public.merry_join(uuid) from public;
+revoke all on function public.merry_join(uuid) from public, anon;
 grant execute on function public.merry_join(uuid) to authenticated;
+
+-- Ce qu'on montre avant de rejoindre : les prénoms du couple, rien d'autre
+create or replace function public.merry_invite_info(token uuid)
+returns table (partner1 text, partner2 text, invited_as text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select w.partner1, w.partner2, m.display_name
+    from public.wedding_members m
+    join public.weddings w on w.id = m.wedding_id
+   where m.invite_token = token and m.user_id is null and auth.uid() is not null;
+$$;
+revoke all on function public.merry_invite_info(uuid) from public, anon;
+grant execute on function public.merry_invite_info(uuid) to authenticated;
+
+-- Quitter un mariage (impossible pour le dernier organisateur qui a un compte)
+create or replace function public.merry_leave(w uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_wedding_member(w) then
+    raise exception 'Mariage introuvable';
+  end if;
+  if (select count(*) from public.wedding_members where wedding_id = w and user_id is not null) < 2 then
+    raise exception 'Dernier organisateur';
+  end if;
+  delete from public.wedding_members where wedding_id = w and user_id = auth.uid();
+end;
+$$;
+revoke all on function public.merry_leave(uuid) from public, anon;
+grant execute on function public.merry_leave(uuid) to authenticated;
+
+-- Compte un appel à l'IA ; refuse les comptes sans mariage. Renvoie le nombre d'appels du jour.
+create or replace function public.merry_ai_tick()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n integer;
+begin
+  if auth.uid() is null or not exists (select 1 from public.wedding_members where user_id = auth.uid()) then
+    raise exception 'Réservé aux organisateurs';
+  end if;
+  insert into public.ai_usage (user_id, day, calls) values (auth.uid(), current_date, 1)
+  on conflict (user_id, day) do update set calls = public.ai_usage.calls + 1
+  returning calls into n;
+  return n;
+end;
+$$;
+revoke all on function public.merry_ai_tick() from public, anon;
+grant execute on function public.merry_ai_tick() to authenticated;
 
 -- Nouveau jeton (si un lien a circulé par erreur)
 create or replace function public.merry_renew_invite(member uuid)
@@ -371,7 +461,7 @@ begin
   return t;
 end;
 $$;
-revoke all on function public.merry_renew_invite(uuid) from public;
+revoke all on function public.merry_renew_invite(uuid) from public, anon;
 grant execute on function public.merry_renew_invite(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -519,5 +609,5 @@ begin
   return w;
 end;
 $$;
-revoke all on function public.merry_bootstrap() from public;
+revoke all on function public.merry_bootstrap() from public, anon;
 grant execute on function public.merry_bootstrap() to authenticated;

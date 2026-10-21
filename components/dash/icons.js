@@ -65,7 +65,7 @@ const DUO_ICONS = {
 export const DUO_KEYS = Object.keys(DUO_ICONS);
 
 export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, className, style }) {
-  const inner = LINE_ICONS[name] || LINE_ICONS.plus;
+  const inner = Object.hasOwn(LINE_ICONS, name) ? LINE_ICONS[name] : LINE_ICONS.plus;
   return (
     <svg
       width={size}
@@ -85,7 +85,7 @@ export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, class
 }
 
 export function DuoIcon({ name, size = 20, fill = "var(--d-lime)", stroke = "#1c1c1a", sw = 1.6 }) {
-  const inner = (DUO_ICONS[name] || DUO_ICONS.autre).replaceAll("FILL", fill);
+  const inner = (Object.hasOwn(DUO_ICONS, name) ? DUO_ICONS[name] : DUO_ICONS.autre).replaceAll("FILL", fill);
   return (
     <svg
       width={size}

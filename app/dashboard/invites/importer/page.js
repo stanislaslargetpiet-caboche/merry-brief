@@ -36,6 +36,20 @@ function readAsBase64(file) {
   });
 }
 
+// Photo réduite à 1600 px (JPEG) : assez pour lire une liste, et sous la limite d'envoi de Vercel
+async function shrinkImage(file) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.82).split(",")[1];
+}
+
+const MAX_PDF = 3 * 1024 * 1024;
+const MAX_TEXT = 60000;
+
 function rowsToText(rows) {
   return rows.map((r) => r.map((c) => (c === null || c === undefined ? "" : String(c).replace(/\t/g, " "))).join("\t")).join("\n");
 }
@@ -65,21 +79,27 @@ export default function Importer() {
         const { readSheet } = await import("read-excel-file/browser");
         const rows = await readSheet(file);
         Object.assign(entry, parseRows(rows));
-        entry.ai = { kind: "text", content: rowsToText(rows) };
+        entry.ai = { kind: "text", content: rowsToText(rows).slice(0, MAX_TEXT) };
         entry.note = `${rows.length} lignes`;
       } else if (kind === "csv" || kind === "txt") {
         const text = await file.text();
         Object.assign(entry, parseText(text));
-        entry.ai = { kind: "text", content: text };
+        entry.ai = { kind: "text", content: text.slice(0, MAX_TEXT) };
         entry.note = kind === "txt" ? "Notes" : `${text.split("\n").filter(Boolean).length} lignes`;
       } else {
-        entry.ai = { kind: kind === "pdf" ? "pdf" : "image", mime: file.type || "application/pdf", content: await readAsBase64(file) };
+        if (kind === "pdf" && file.size > MAX_PDF) throw new Error("PDF trop lourd");
+        entry.ai = kind === "pdf" ? { kind: "pdf", mime: "application/pdf", content: await readAsBase64(file) } : { kind: "image", mime: "image/jpeg", content: await shrinkImage(file) };
         entry.status = "ia";
         entry.note = kind === "pdf" ? "PDF" : "Photo d'une liste";
       }
     } catch (e) {
       entry.status = "erreur";
-      entry.note = e.message === "Format non reconnu" ? "Format non reconnu (Excel, CSV, PDF, photo ou texte)" : "Impossible de lire ce fichier";
+      entry.note =
+        e.message === "Format non reconnu"
+          ? "Format non reconnu (Excel, CSV, PDF, photo ou texte)"
+          : e.message === "PDF trop lourd"
+            ? "PDF trop lourd (3 Mo au plus) : envoyez une photo ou un export Excel"
+            : "Impossible de lire ce fichier";
     }
     return entry;
   }
@@ -103,54 +123,53 @@ export default function Importer() {
     readWithAi([entry]);
   }
 
-  // Avec la clé IA (et un compte connecté), Merry relit tout : photos, PDF et listes en vrac.
+  // Avec la clé IA (et un compte connecté), Merry relit chaque fichier : photos, PDF et listes en vrac.
   async function readWithAi(entries) {
-    if (dash.mode !== "live" || !supabase || !entries.length) {
-      setFiles((x) => x.map((f) => (entries.some((e) => e.id === f.id) && f.status === "ia" ? { ...f, status: "erreur", note: "La lecture des photos et PDF arrive bientôt. En attendant : Excel, CSV ou texte collé." } : f)));
+    const todo = entries.filter((e) => e.ai && e.status !== "erreur");
+    const noAi = (f) => (f.kind === "img" || f.kind === "pdf" ? { ...f, status: "erreur", note: "La lecture des photos et PDF arrive bientôt. En attendant : Excel, CSV ou texte collé." } : { ...f, status: "lue" });
+    if (dash.mode !== "live" || !supabase || !todo.length) {
+      setFiles((x) => x.map((f) => (todo.some((e) => e.id === f.id) ? noAi(f) : f)));
       return;
     }
     const { data: sess } = await supabase.auth.getSession();
     const token = sess?.session?.access_token;
-    setFiles((x) => x.map((f) => (entries.some((e) => e.id === f.id) ? { ...f, status: "encours" } : f)));
-    try {
-      const res = await fetch("/api/import-invites", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          sources: entries.filter((e) => e.ai).map((e) => ({ name: e.name, ...e.ai })),
-          groups: groups.map((g) => g.name),
-          fields: fields.map((f) => f.name),
-        }),
-      });
-      if (!res.ok) throw Object.assign(new Error("ai"), { status: res.status });
-      const out = await res.json();
-      const groupByName = new Map(groups.map((g) => [normalize(g.name), g.id]));
-      setFiles((x) =>
-        x.map((f) => {
-          const e = entries.find((en) => en.id === f.id);
-          if (!e) return f;
-          const mine = out.guests.filter((g) => !g.source || normalize(g.source) === normalize(e.name) || entries.length === 1);
-          return {
-            ...f,
-            status: "lue",
-            byAi: true,
-            guests: mine.map((g) => ({ ...g, extra: g.extra || {}, group_id: g.group ? groupByName.get(normalize(g.group)) || null : null })),
-            extraColumns: out.extraColumns || [],
-            note: `${f.note ? `${f.note} · ` : ""}lue par Merry`,
-          };
-        }),
-      );
-    } catch (e) {
-      // Pas de clé IA : on garde la lecture locale, et on prévient pour les photos et PDF
-      setFiles((x) =>
-        x.map((f) =>
-          entries.some((en) => en.id === f.id)
-            ? f.kind === "img" || f.kind === "pdf"
-              ? { ...f, status: "erreur", note: e.status === 501 ? "La lecture des photos et PDF arrive bientôt. En attendant : Excel, CSV ou texte collé." : "Merry n'a pas pu lire ce fichier. Réessayez." }
-              : { ...f, status: "lue" }
-            : f,
-        ),
-      );
+    const groupByName = new Map(groups.map((g) => [normalize(g.name), g.id]));
+    for (const e of todo) {
+      setFiles((x) => x.map((f) => (f.id === e.id ? { ...f, status: "encours" } : f)));
+      try {
+        const res = await fetch("/api/import-invites", {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+          body: JSON.stringify({ source: { name: e.name, ...e.ai }, groups: groups.map((g) => g.name), fields: fields.map((f) => f.name) }),
+        });
+        if (!res.ok) throw Object.assign(new Error("ai"), { status: res.status });
+        const out = await res.json();
+        setFiles((x) =>
+          x.map((f) =>
+            f.id === e.id
+              ? {
+                  ...f,
+                  status: "lue",
+                  byAi: true,
+                  guests: (out.guests || []).map((g) => ({ ...g, extra: g.extra || {}, group_id: g.group ? groupByName.get(normalize(g.group)) || null : null })),
+                  extraColumns: out.extraColumns || [],
+                  note: `${f.note ? `${f.note} · ` : ""}lue par Merry`,
+                }
+              : f,
+          ),
+        );
+      } catch (err) {
+        // Sans clé IA (501) on garde la lecture locale ; sinon on explique ce qui bloque
+        setFiles((x) =>
+          x.map((f) => {
+            if (f.id !== e.id) return f;
+            if (err.status === 501) return noAi(f);
+            if (f.kind !== "img" && f.kind !== "pdf") return { ...f, status: "lue" };
+            const note = err.status === 429 ? "Limite de lectures du jour atteinte : réessayez demain." : err.status === 413 ? "Fichier trop lourd pour être lu." : "Merry n'a pas pu lire ce fichier. Réessayez.";
+            return { ...f, status: "erreur", note };
+          }),
+        );
+      }
     }
   }
 

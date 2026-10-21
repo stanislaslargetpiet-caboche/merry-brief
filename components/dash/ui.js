@@ -191,7 +191,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
     };
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
-    ref.current?.querySelector("input, textarea, select, button")?.focus();
+    (ref.current?.querySelector(".d-modal-body input, .d-modal-body textarea, .d-modal-body select") || ref.current?.querySelector("button"))?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       prev?.focus?.();
