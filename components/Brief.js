@@ -568,7 +568,6 @@ export default function Brief() {
             ) : (
               <p className="help">
                 Votre tableau de bord est ouvert : le brief, le budget, la liste d'invités et les premiers lieux à comparer vous attendent.
-                {data.partner_email.trim() ? ` ${data.partner_first_name.trim() || "Ta moitié"} a reçu son invitation par mail.` : ""}
               </p>
             )}
             <div className="advisor">

@@ -44,7 +44,7 @@ Supabase > Table Editor > `briefs`. Les colonnes `status`, `owner` et `notes` so
 
 ## 7. L'email de la moitié
 
-`partner_email` est enregistré avec le brief. L'invitation elle-même (créer le second accès au même tableau de bord) n'est pas encore envoyée : elle demande la clé `service_role` côté serveur (`auth.admin.inviteUserByEmail`) et sera ajoutée avec le tableau de bord. L'écran de bienvenue annonce déjà l'invitation : si tu publies avant que ce soit branché, retire cette phrase dans `components/Brief.js`.
+`partner_email` est enregistré avec le brief. L'invitation elle-même (créer le second accès au même tableau de bord) n'est pas encore envoyée : elle demande la clé `service_role` côté serveur (`auth.admin.inviteUserByEmail`) et sera ajoutée avec le tableau de bord. L'écran de bienvenue ne l'annonce pas encore : ajoute la phrase quand l'envoi sera branché.
 
 ## Modifier les questions et les couleurs
 
@@ -54,4 +54,4 @@ Tout le contenu est en haut de `components/Brief.js` (listes `STAGES`, `TEAMS`, 
 
 - Les pages `https://www.merry.fr/cgu` et `https://www.merry.fr/confidentialite` existent (liens sur l'écran compte).
 - L'adresse `bonjour@merry.fr` existe (message d'erreur).
-- La phrase sur l'invitation de la moitié (voir point 7).
+- L'envoi de l'invitation à la moitié n'est pas encore branché (voir point 7).
