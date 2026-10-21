@@ -36,7 +36,8 @@ Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Au
 ## 5. Pages
 
 - `/` : le parcours en dix écrans, puis l'écran de bienvenue.
-- `/dashboard` : page d'attente du tableau de bord. Connexion (email et mot de passe), lecture du brief du compte, premier aperçu. C'est cette page que le vrai tableau de bord viendra remplacer.
+- `/connexion` : connexion au tableau de bord (bouton « Connexion » du site), mot de passe oublié, et création d'accès pour un organisateur invité (`/connexion?invitation=…`).
+- `/dashboard` : le tableau de bord (voir la section 8).
 
 ## 6. Lire les briefs
 
@@ -44,7 +45,37 @@ Supabase > Table Editor > `briefs`. Les colonnes `status`, `owner` et `notes` so
 
 ## 7. L'email de la moitié
 
-`partner_email` est enregistré avec le brief. L'invitation elle-même (créer le second accès au même tableau de bord) n'est pas encore envoyée : elle demande la clé `service_role` côté serveur (`auth.admin.inviteUserByEmail`) et sera ajoutée avec le tableau de bord. L'écran de bienvenue ne l'annonce pas encore : ajoute la phrase quand l'envoi sera branché.
+`partner_email` est enregistré avec le brief. Au premier passage sur le tableau de bord, la moitié devient organisatrice « en attente » : son lien personnel se copie ou s'envoie par mail depuis « Inviter un organisateur ». Merry n'envoie pas encore de mail lui-même.
+
+## 8. Tableau de bord
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, validée le 21 octobre 2026.
+
+| Page | Contenu |
+|---|---|
+| `/dashboard` | Accueil : compte à rebours, indicateurs au choix, modules, tâches de la semaine, « Bien démarrer », prochain paiement |
+| `/dashboard/invites` | Liste des invités (une ligne par personne), groupes, réponse par moment du mariage, colonnes ajoutées, tout se modifie en cliquant |
+| `/dashboard/invites/importer` | Import d'Excel, CSV ou texte collé, détection des doublons ; photos et PDF lus par l'IA si la clé est configurée |
+| `/dashboard/invites/exporter` | Export Excel, CSV ou PDF, colonnes au choix (raccourcis traiteur, faire-part, plan de table) |
+| `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
+| `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
+| `/dashboard/budget/paiement/[poste]` | Noter un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
+| `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact, résumé des échanges, fil des messages (envoi par la messagerie), documents, paiements |
+| `/dashboard/indicateurs/accueil` et `/budget` | Choix des indicateurs (cinq au maximum) |
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/dashboard.sql`, Run (après `schema.sql`, le fichier peut être relancé sans risque). Au premier passage, chaque compte reçoit un mariage créé à partir de son brief : organisateurs, moments, groupes, postes de budget et rétroplanning type.
+
+**Organisateurs** : le couple, les parents, un témoin… ont tous les mêmes droits. Chacun reçoit un lien personnel (`/connexion?invitation=…`), utilisable une seule fois. Les règles d'accès sont dans la base (RLS) : un compte ne voit que les mariages dont il est organisateur.
+
+**Supabase > Authentication > URL Configuration** : ajoute `https://<ton domaine>/connexion` dans Redirect URLs (lien « mot de passe oublié »).
+
+**Import par l'IA (facultatif)** : ajoute `ANTHROPIC_API_KEY` dans Vercel (Settings > Environment Variables). Sans clé, l'import lit Excel, CSV et texte collé, et indique que les photos et PDF arrivent bientôt. `MERRY_AI_MODEL` permet de changer de modèle.
+
+**Démo** : `/dashboard?demo=1` affiche le mariage d'exemple de la maquette, enregistré seulement dans le navigateur (`?demo=0` pour en sortir). En local sans `.env.local`, la démo s'affiche directement.
+
+**Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, dépôt de fichiers (les devis et factures sont des liens), résumé des échanges écrit par l'IA.
+
+**Relier Squarespace** : le bouton « Connexion » du site pointe vers `https://<ton domaine>/connexion`.
 
 ## Modifier les questions et les couleurs
 
@@ -54,4 +85,5 @@ Tout le contenu est en haut de `components/Brief.js` (listes `STAGES`, `TEAMS`, 
 
 - Les pages `https://www.merry.fr/cgu` et `https://www.merry.fr/confidentialite` existent (liens sur l'écran compte).
 - L'adresse `bonjour@merry.fr` existe (message d'erreur).
-- L'envoi de l'invitation à la moitié n'est pas encore branché (voir point 7).
+- L'envoi de l'invitation à la moitié se fait par lien, depuis le tableau de bord (voir point 7).
+- `supabase/dashboard.sql` a été collé dans Supabase avant de déployer le tableau de bord.
