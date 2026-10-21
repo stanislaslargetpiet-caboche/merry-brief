@@ -166,6 +166,37 @@ export default function FormulaireInvites() {
   const url = formUrl(form.slug);
   const coupleName = [data.wedding.partner1, data.wedding.partner2].filter(Boolean).join(" & ");
   const pageTitle = (form.title || "").trim() || coupleName;
+  const coverPos = Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50;
+  const modeOf = (key) => form.fields.find((f) => f.key === key)?.mode || "off";
+  const labelOf = (key) => form.fields.find((f) => f.key === key)?.label || key;
+  // Même ordre que la page invité
+  const previewItems = [
+    { id: "prenom", label: "Prénom", req: true },
+    { id: "nom", label: "Nom", req: true },
+    { id: "mail", label: "Mail", req: true },
+    modeOf("tel") !== "off" ? { id: "tel", label: labelOf("tel"), req: modeOf("tel") === "req" } : null,
+    modeOf("adresse") !== "off" ? { id: "adresse", label: labelOf("adresse"), req: modeOf("adresse") === "req" } : null,
+    ...(modeOf("presence") === "off"
+      ? []
+      : form.presence_mode === "global"
+        ? [{ id: "presence", label: "Serez-vous des nôtres ?", req: modeOf("presence") === "req", pills: ["Oui", "Non"] }]
+        : inForm.map((e) => ({ id: `ev-${e.id}`, label: e.name, req: modeOf("presence") === "req", pills: ["Oui", "Non"] }))),
+    modeOf("plusun") !== "off" ? { id: "plusun", label: "Venez-vous accompagné(e) ?", req: modeOf("plusun") === "req", pills: ["Oui", "Non"] } : null,
+    modeOf("regime") !== "off" ? { id: "regime", label: labelOf("regime"), req: modeOf("regime") === "req", pills: ["Aucun", "Végétarien", "Sans gluten"] } : null,
+    modeOf("enfants") !== "off" ? { id: "enfants", label: labelOf("enfants"), req: modeOf("enfants") === "req" } : null,
+    modeOf("hebergement") !== "off" ? { id: "hebergement", label: labelOf("hebergement"), req: modeOf("hebergement") === "req", pills: ["Oui", "Non"] } : null,
+    ...form.custom.map((c) => ({ id: c.id, label: c.label, req: !!c.req, pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 3) : null })),
+    modeOf("mot") !== "off" ? { id: "mot", label: labelOf("mot"), req: modeOf("mot") === "req", tall: true } : null,
+  ].filter(Boolean);
+  // Enregistre d'abord, pour que la page invité montre la dernière version
+  const openGuestPage = async () => {
+    const win = window.open("", "_blank");
+    clearTimeout(timer.current);
+    await save(latest.current);
+    const target = `/f/${latest.current.slug}`;
+    if (win) win.location.href = target;
+    else window.location.href = target;
+  };
   const saveTitle = () => {
     const t = titleDraft.trim().slice(0, TITLE_MAX);
     if (t) change({ title: t });
@@ -448,7 +479,7 @@ export default function FormulaireInvites() {
             </div>
             <div className="d-field">
               <span className="d-field-label">Photo d'en-tête</span>
-              <button type="button" className="d-fcover" onClick={() => fileInput.current?.click()} disabled={uploading} style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")` } : undefined}>
+              <button type="button" className="d-fcover" onClick={() => fileInput.current?.click()} disabled={uploading} style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${coverPos}%` } : undefined}>
                 {form.cover_url ? (
                   <span className="d-fcover-change">{uploading ? "Envoi…" : "Changer la photo"}</span>
                 ) : (
@@ -461,9 +492,20 @@ export default function FormulaireInvites() {
               </button>
               <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickCover} />
               {form.cover_url ? (
-                <button type="button" className="d-link" style={{ alignSelf: "flex-start" }} onClick={() => change({ cover_url: null })}>
-                  Retirer la photo
-                </button>
+                <>
+                  <label className="d-fcrop">
+                    <span className="d-field-label">Cadrage</span>
+                    <span className="d-field-hint">Faites glisser pour remonter ou descendre la photo. C'est aussi l'image qui s'affiche quand vous partagez le lien.</span>
+                    <span className="d-fcrop-row">
+                      <span className="d-small d-muted">Haut</span>
+                      <input type="range" min="0" max="100" step="1" value={coverPos} aria-label="Cadrage vertical de la photo" onChange={(e) => change({ cover_position: Number(e.target.value) })} />
+                      <span className="d-small d-muted">Bas</span>
+                    </span>
+                  </label>
+                  <button type="button" className="d-link" style={{ alignSelf: "flex-start" }} onClick={() => change({ cover_url: null, cover_position: 50 })}>
+                    Retirer la photo
+                  </button>
+                </>
               ) : null}
             </div>
             <label className="d-field">
@@ -492,22 +534,33 @@ export default function FormulaireInvites() {
             </div>
 
             <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">
-              <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center / cover url("${form.cover_url}")` : theme.deep }} />
+              <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center ${coverPos}% / cover no-repeat url("${form.cover_url}")` : theme.deep }} />
               <div className="d-fpreview-body">
                 <span style={{ color: theme.accent }}>Save the date</span>
                 <strong>{pageTitle}</strong>
                 <em>{[data.wedding.wedding_date ? longDate(data.wedding.wedding_date) : null, data.wedding.venue].filter(Boolean).join(" · ")}</em>
                 {form.message ? <p>{form.message}</p> : null}
-                {active.slice(0, 5).map((f) => (
-                  <div key={f.key || f.id} className="d-fpreview-line">
-                    <small>{f.label}</small>
-                    <i />
+                {previewItems.map((f) => (
+                  <div key={f.id} className="d-fpreview-line">
+                    <small>
+                      {f.label}
+                      {f.req ? " *" : ""}
+                    </small>
+                    {f.pills ? (
+                      <span className="d-fpreview-pills">
+                        {f.pills.map((x) => (
+                          <u key={x}>{x}</u>
+                        ))}
+                      </span>
+                    ) : (
+                      <i style={f.tall ? { height: 40 } : undefined} />
+                    )}
                   </div>
                 ))}
                 <b style={{ background: theme.accent }} />
               </div>
             </div>
-            <Btn kind="ghost" href={`/f/${form.slug}`} target="_blank" className="d-btn-block">
+            <Btn kind="ghost" onClick={openGuestPage} className="d-btn-block">
               Visualiser la page invité
             </Btn>
           </section>

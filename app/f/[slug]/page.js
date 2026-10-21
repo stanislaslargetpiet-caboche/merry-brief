@@ -226,7 +226,7 @@ export default function GuestFormPage() {
 
   return (
     <main className="gf" style={style}>
-      <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />
+      <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50}%` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />
       <div className="gf-wrap">
         <section className="gf-card gf-hero">
           <div className="gf-kicker">Save the date</div>

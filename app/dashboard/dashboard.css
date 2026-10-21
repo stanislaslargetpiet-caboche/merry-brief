@@ -2866,6 +2866,32 @@ button.d-rsvp:hover {
   text-align: center;
 }
 
+.d-fcover.has-photo,
+.d-fcover[style*="background-image"] {
+  aspect-ratio: 1200 / 630;
+  min-height: 0;
+  border-style: solid;
+  border-color: var(--d-line);
+}
+
+.d-fcrop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.d-fcrop-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.d-fcrop-row input {
+  flex: 1;
+  min-height: 44px;
+  accent-color: var(--d-ink);
+}
+
 .d-fcover-change {
   padding: 8px 14px;
   border-radius: 999px;
@@ -2983,6 +3009,21 @@ button.d-rsvp:hover {
   display: block;
   height: 22px;
   border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid rgba(28, 28, 26, 0.12);
+}
+
+.d-fpreview-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.d-fpreview-pills u {
+  text-decoration: none;
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 999px;
   background: #ffffff;
   border: 1px solid rgba(28, 28, 26, 0.12);
 }
