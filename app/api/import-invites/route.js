@@ -1,7 +1,8 @@
-// Lecture des listes d'invités par l'IA (photos, PDF, listes en vrac).
+// Lecture des listes d'invités par l'IA, quel que soit le format : chaque fichier arrive
+// découpé en parties (40 lignes de tableau, une page de PDF, une photo).
 // Réservée aux organisateurs connectés. Nécessite ANTHROPIC_API_KEY côté serveur
 // (Vercel > Settings > Environment Variables) ; sans clé, l'appli lit seulement
-// les fichiers Excel, CSV et le texte collé.
+// les tableaux (Excel, CSV, Word) et le texte collé, colonne par colonne.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,8 +12,24 @@ export const maxDuration = 60;
 // Vercel refuse les requêtes de plus de 4,5 Mo : l'appli réduit les photos et limite les PDF à 3 Mo.
 const MAX_BYTES = 4.4 * 1024 * 1024;
 const MAX_TEXT = 60000;
-const DAILY_LIMIT = 30; // lectures par compte et par jour
+const DAILY_LIMIT = 200; // parties lues par compte et par jour (une liste de 200 lignes = 5 parties)
 const MODEL = process.env.MERRY_AI_MODEL || "claude-sonnet-5-5";
+const API = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
+
+const SYSTEM = `Tu lis des listes d'invités de mariage telles que les couples et leurs familles les tiennent : tableaux Excel plus ou moins rangés, exports CSV, documents Word, PDF, photos de listes écrites à la main, notes de téléphone, mails copiés.
+
+Ton travail : retrouver chaque personne invitée et l'enregistrer avec l'outil, une entrée par personne.
+
+Comment lire :
+- L'en-tête peut être absent, sur une autre ligne que la première, ou en anglais. Les colonnes peuvent être dans n'importe quel ordre. Déduis le sens d'une colonne de son contenu (un mail, un téléphone, une adresse, un âge).
+- Une ligne peut contenir plusieurs personnes : « M. et Mme Jean Dupont » = Jean Dupont + Mme Dupont (prénom inconnu : first_name vide, uncertain, note « Prénom à compléter ») ; « Jean et Marie Dupont » = deux personnes ; « Pierre Martin + 1 » ou « et sa compagne » = Pierre Martin + une entrée vide avec plus_one_of ; « Famille Leroy (4) » sans les prénoms = 4 entrées avec last_name Leroy, first_name vide, uncertain, note « Famille Leroy : prénoms à compléter » ; « les enfants Léo (8 ans) et Jade » = deux entrées avec leur âge si indiqué.
+- Les titres de section (« Côté Marie », « Amis du marié », « Famille de Paul », nom de la feuille) donnent le groupe des personnes qui suivent. Choisis le groupe existant qui correspond quand c'est évident, sinon écris le groupe tel quel.
+- Ignore ce qui n'est pas une personne invitée : titres, totaux, sous-totaux, dates, numéros de table seuls, lignes vides, prestataires.
+- Retire les titres (M., Mme, Dr, Me) des prénoms. Mets les noms en casse normale (« DUPONT » → « Dupont »).
+- Les colonnes utiles qui ne sont ni nom, groupe, âge, régime, adresse, mail ou téléphone (table, hébergement, navette, réponse, cadeau…) vont dans extra, avec le nom de la colonne comme clé.
+- Une adresse répartie sur plusieurs colonnes (rue, code postal, ville) devient une seule adresse.
+
+Ne devine jamais : n'invente ni nom, ni prénom, ni information absente. Omets les champs vides. Marque uncertain (avec une note courte) quand un nom est mal lisible, incomplet ou ambigu.`;
 
 const TOOL = {
   name: "enregistrer_invites",
@@ -27,7 +44,7 @@ const TOOL = {
           properties: {
             first_name: { type: "string" },
             last_name: { type: "string" },
-            group: { type: ["string", "null"], description: "Un des groupes existants si le document l'indique clairement, sinon null" },
+            group: { type: ["string", "null"], description: "Le groupe existant qui correspond (section, côté, feuille), sinon le groupe tel qu'écrit, sinon null" },
             age: { type: ["integer", "null"], description: "Seulement pour les enfants" },
             diet: { type: ["string", "null"], description: "Régime ou allergie : végétarien, sans gluten, halal…" },
             address: { type: ["string", "null"] },
@@ -71,14 +88,21 @@ export async function POST(req) {
   // Un fichier par appel : la réponse reste courte et sous la limite de temps de Vercel
   const s = body.source || {};
   const name = String(s.name || "liste").slice(0, 120);
+  const where = s.label ? ` (${String(s.label).slice(0, 60)})` : "";
   const content = [];
+  if (s.context) {
+    content.push({
+      type: "text",
+      text: `Premières lignes du fichier, pour comprendre les colonnes (elles ont déjà été lues, n'enregistre pas ces personnes) :\n${String(s.context).slice(0, 4000)}`,
+    });
+  }
   if (s.kind === "text") {
-    content.push({ type: "text", text: `Fichier « ${name} » :\n${String(s.content || "").slice(0, MAX_TEXT)}` });
+    content.push({ type: "text", text: `Fichier « ${name} »${where} :\n${String(s.content || "").slice(0, MAX_TEXT)}` });
   } else if (s.kind === "image" && /^image\/(png|jpeg|gif|webp)$/.test(s.mime)) {
-    content.push({ type: "text", text: `Fichier « ${name} » (photo) :` });
+    content.push({ type: "text", text: `Fichier « ${name} »${where} (photo) :` });
     content.push({ type: "image", source: { type: "base64", media_type: s.mime, data: String(s.content || "") } });
   } else if (s.kind === "pdf") {
-    content.push({ type: "text", text: `Fichier « ${name} » (PDF) :` });
+    content.push({ type: "text", text: `Fichier « ${name} »${where} (PDF) :` });
     content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: String(s.content || "") } });
   } else {
     return Response.json({ error: "bad_request" }, { status: 400 });
@@ -87,29 +111,34 @@ export async function POST(req) {
   const fields = (body.fields || []).map(String).slice(0, 30);
   content.push({
     type: "text",
-    text:
-      `Lis ces listes d'invités de mariage et enregistre chaque personne avec l'outil, une entrée par personne (un couple = deux entrées, un enfant = une entrée avec son âge si indiqué, un « +1 » sans nom = une entrée vide avec plus_one_of). ` +
-      `Groupes existants : ${groups.join(", ") || "aucun"}. Colonnes déjà présentes : ${fields.join(", ") || "aucune"}. ` +
-      `Ne devine pas : omets les champs qui ne sont pas écrits, et marque uncertain quand un nom est mal lisible. N'invente aucun invité.`,
+    text: `Groupes existants : ${groups.join(", ") || "aucun"}. Colonnes déjà présentes dans la liste du couple : ${fields.join(", ") || "aucune"}. Enregistre maintenant chaque personne invitée de ce passage.`,
   });
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 8000,
-      tools: [TOOL],
-      tool_choice: { type: "tool", name: TOOL.name },
-      messages: [{ role: "user", content }],
-    }),
-  });
+  const call = () =>
+    fetch(`${API}/v1/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 8000,
+        system: SYSTEM,
+        tools: [TOOL],
+        tool_choice: { type: "tool", name: TOOL.name },
+        messages: [{ role: "user", content }],
+      }),
+    });
+  let res = await call();
+  // Service surchargé : un second essai
+  if (res.status === 429 || res.status >= 500) {
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await call();
+  }
   if (!res.ok) {
     console.error("[merry] import IA", res.status, await res.text().catch(() => ""));
     return Response.json({ error: "ai_failed" }, { status: 502 });
   }
   const out = await res.json();
-  const call = (out.content || []).find((c) => c.type === "tool_use");
-  if (!call) return Response.json({ error: "ai_failed" }, { status: 502 });
-  return Response.json({ guests: call.input.guests || [], extraColumns: call.input.extra_columns || [] });
+  const used = (out.content || []).find((c) => c.type === "tool_use");
+  if (!used) return Response.json({ error: "ai_failed" }, { status: 502 });
+  return Response.json({ guests: used.input.guests || [], extraColumns: used.input.extra_columns || [], truncated: out.stop_reason === "max_tokens" });
 }

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { guestStats, responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize, pctLabel } from "@/lib/dash/format";
+import { chosenKpis, kpiContext, responseIndex, guestLabel } from "@/lib/dash/model";
+import { fullName, normalize } from "@/lib/dash/format";
 import { RSVP_ORDER, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpChip } from "@/components/dash/ui";
+import MomentsModal from "@/components/dash/MomentsModal";
 
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
@@ -165,7 +166,7 @@ function AddGuests({ onClose }) {
             <option value="">Sans groupe</option>
           </select>
         </Field>
-        <Field label="Invités à">
+        <Field label="Invités à" group>
           <div className="d-filters">
             {events.map((ev) => {
               const on = invitedTo.includes(ev.id);
@@ -219,13 +220,15 @@ export default function Invites() {
   const dash = useDash();
   const data = dash.data;
   const { guests, groups, events, fields } = data;
-  const [eventFilter, setEventFilter] = useState(null);
+  const [eventPick, setEventFilter] = useState(null);
+  const [moments, setMoments] = useState(false);
   const [groupFilter, setGroupFilter] = useState(null);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
 
-  const st = guestStats(data);
+  // Un moment supprimé ne reste pas sélectionné
+  const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
   const idx = useMemo(() => responseIndex(data.responses), [data.responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
@@ -235,13 +238,8 @@ export default function Invites() {
   const q = normalize(query);
   const shown = base.filter((g) => (!groupFilter || g.group_id === groupFilter) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q)));
 
-  const stats = [
-    { label: "Invités", value: String(st.total) },
-    { label: "Ont dit oui", value: String(st.oui), sub: `(${pctLabel(st.oui, st.total)})` },
-    { label: "Ont dit non", value: String(st.non), sub: `(${pctLabel(st.non, st.total)})` },
-    { label: "En attente", value: String(st.attente), sub: `(${pctLabel(st.attente, st.total)})` },
-    { label: "Adresses reçues", value: String(st.addresses), sub: `(${pctLabel(st.addresses, st.total)})` },
-  ];
+  const ctx = kpiContext(data);
+  const stats = chosenKpis(data, "invites").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
 
   return (
     <>
@@ -262,10 +260,11 @@ export default function Invites() {
         }
       />
 
-      <KpiBar items={stats} />
+      <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
 
       <div className="d-col" style={{ gap: 14 }}>
         <div className="d-filters" style={{ justifyContent: "space-between" }}>
+        <div className="d-filters">
         <div className="d-tabs" role="tablist" aria-label="Moments du mariage">
           <button type="button" role="tab" aria-selected={!eventFilter} className={`d-tab${!eventFilter ? " is-on" : ""}`} onClick={() => setEventFilter(null)}>
             Tous
@@ -275,6 +274,11 @@ export default function Invites() {
               {ev.name}
             </button>
           ))}
+        </div>
+          <button type="button" className="d-pill is-dashed" onClick={() => setMoments(true)}>
+            <Icon name="pencil" size={14} sw={2} />
+            Modifier les moments
+          </button>
         </div>
           <label className="d-search">
             <Icon name="search" size={15} />
@@ -322,6 +326,7 @@ export default function Invites() {
                 <th>Régime</th>
                 <th>Adresse</th>
                 <th>Mail</th>
+                <th>Téléphone</th>
                 {fields.map((f) => (
                   <th key={f.id} className="d-col-custom">
                     <FieldHeader field={f} />
@@ -364,6 +369,9 @@ export default function Invites() {
                     </td>
                     <td>
                       <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => dash.update("guests", g.id, { email: v })} className="d-cell-clip" />
+                    </td>
+                    <td>
+                      <InlineEdit value={g.phone} label="téléphone" width={130} onSave={(v) => dash.update("guests", g.id, { phone: v })} className="d-cell-clip" />
                     </td>
                     {fields.map((f) => (
                       <td key={f.id} className="d-col-custom">
@@ -408,12 +416,13 @@ export default function Invites() {
           </span>
           <span>·</span>
           <Icon name="pencil" size={14} />
-          <span>cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail</span>
+          <span>cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail, téléphone</span>
         </div>
       ) : null}
 
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <AddColumn onClose={() => setAddingCol(false)} /> : null}
+      {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
     </>
   );
 }

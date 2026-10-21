@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { budgetTotals, chosenKpis, itemFinance, kpiContext, paidByMember, paymentTitle } from "@/lib/dash/model";
+import { budgetTotals, chosenKpis, itemFinance, kpiContext, paidByPayer, paymentTitle } from "@/lib/dash/model";
 import { euros, monthShort, parseAmount, shortDate, toDate } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Btn, Donut, InlineEdit, KpiBar, OkPill, PageHeader, PersonChip, Section } from "@/components/dash/ui";
 import PosteModal from "@/components/dash/PosteModal";
+import DepenseModal from "@/components/dash/DepenseModal";
 
 function Variance({ value, big }) {
   if (value === null || value === undefined) return null;
@@ -46,6 +47,7 @@ export default function Budget() {
   const { items, members, vendors, documents, wedding, payments, guests } = data;
   const [editing, setEditing] = useState(null); // item | "new"
   const [quoteFocus, setQuoteFocus] = useState(false);
+  const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
 
   const b = budgetTotals(data);
   const ctx = kpiContext(data);
@@ -54,10 +56,9 @@ export default function Budget() {
   const vendorById = new Map(vendors.map((v) => [v.id, v]));
   const itemById = new Map(items.map((i) => [i.id, i]));
 
-  // Répartition
-  const payers = members.filter((m) => Number(m.contribution || 0) > 0 || paidByMember(data, m.id) > 0);
-  const payerList = payers.length ? payers : members;
-  const contribTotal = b.contribTotal || b.initial;
+  // Répartition : qui a déjà payé quoi, et où va l'argent
+  const byPayer = paidByPayer(data);
+  const paying = byPayer.filter((x) => x.amount > 0);
   const signed = items.filter((i) => i.quote_amount !== null && i.quote_amount !== undefined).sort((a, z) => Number(z.quote_amount) - Number(a.quote_amount));
 
   const upcoming = b.upcoming.slice(0, 4);
@@ -95,7 +96,7 @@ export default function Budget() {
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
-            <Btn icon="plus" onClick={() => setEditing("new")}>
+            <Btn icon="plus" onClick={() => setAdding(true)}>
               Ajouter une dépense
             </Btn>
           </>
@@ -106,44 +107,50 @@ export default function Budget() {
 
       <section className="d-card" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
+        <p className="d-muted" style={{ margin: "-6px 0 0", maxWidth: 760, lineHeight: 1.5 }}>
+          À gauche, ce que chacun a déjà payé. À droite, où va l'argent. Chaque dépense ajoutée avec le + s'inscrit dans son poste, dans le tableau en dessous.
+        </p>
         <div className="d-split">
           <div className="d-col" style={{ gap: 14 }}>
-            <span className="d-small" style={{ fontWeight: 600, color: "#43423c", fontSize: 14 }}>
-              Par payeur
-            </span>
+            <div className="d-repart-head">
+              <span>
+                <strong>Qui a payé quoi</strong>
+                <small>Les dépenses déjà réglées, par personne</small>
+              </span>
+              <button type="button" className="d-add-spend" onClick={() => setAdding(true)}>
+                <span>
+                  <Icon name="plus" size={14} sw={2.4} />
+                </span>
+                Ajouter une dépense
+              </button>
+            </div>
             <div className="d-repart">
-              <Donut
-                segments={payerList.map((m) => ({ value: Number(m.contribution || 0), color: pastel(m.color).mid }))}
-                center={euros(contribTotal)}
-                sub={b.contribTotal ? "budget" : "à répartir"}
-              />
+              <Donut segments={paying.map((x) => ({ value: x.amount, color: pastel(x.member.color).mid }))} center={euros(b.paid)} sub="déjà payés" />
               <ul className="d-legend">
-                {payerList.map((m) => (
-                  <li key={m.id}>
-                    <span className="d-swatch" style={{ background: pastel(m.color).mid }} />
+                {byPayer.map((x) => (
+                  <li key={x.member.id}>
+                    <span className="d-swatch" style={{ background: x.amount ? pastel(x.member.color).mid : "#efeee9" }} />
                     <span className="d-legend-text">
-                      <span>{m.display_name}</span>
-                      <small>{euros(paidByMember(data, m.id))} déjà payés</small>
+                      <span>{x.member.display_name}</span>
+                      <small>
+                        {x.count
+                          ? `${x.count} paiement${x.count > 1 ? "s" : ""} · ${Math.round((x.amount * 100) / (b.paid || 1))} %`
+                          : "Rien payé pour l'instant"}
+                      </small>
                     </span>
-                    <span className="d-legend-amount">
-                      <InlineEdit
-                        value={m.contribution !== null && m.contribution !== undefined ? String(Math.round(m.contribution)) : ""}
-                        display={m.contribution ? euros(m.contribution) : null}
-                        placeholder="À définir"
-                        label={`participation de ${m.display_name}`}
-                        width={100}
-                        onSave={(v) => dash.update("wedding_members", m.id, { contribution: parseAmount(v) })}
-                      />
-                    </span>
+                    <span className="d-legend-amount">{euros(x.amount)}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
           <div className="d-col" style={{ gap: 14 }}>
-            <span className="d-small" style={{ fontWeight: 600, color: "#43423c", fontSize: 14 }}>
-              Par poste (devis signés)
-            </span>
+            <div className="d-repart-head">
+              <span>
+                <strong>Où va l'argent</strong>
+                <small>Les devis signés, par poste</small>
+              </span>
+            </div>
             {signed.length ? (
               <div className="d-repart">
                 <Donut segments={signed.map((it, i) => ({ value: Number(it.quote_amount), color: POSTE_COLORS[i % POSTE_COLORS.length] }))} center={euros(b.engaged)} sub="engagés" />
@@ -206,7 +213,7 @@ export default function Budget() {
       ) : null}
 
       <div className="d-col">
-        <Section title="Par poste" />
+        <Section title="Par poste" right={<span className="d-small d-muted d-hide-mobile">Le crayon modifie un poste, la corbeille le supprime</span>} />
         <div className="d-table-wrap">
           <table className="d-table">
             <thead>
@@ -219,6 +226,7 @@ export default function Budget() {
                 <th>Payé par</th>
                 <th>Documents</th>
                 <th aria-label="Statut" />
+                <th aria-label="Modifier ou supprimer" />
               </tr>
             </thead>
             <tbody>
@@ -344,6 +352,25 @@ export default function Budget() {
                         </button>
                       )}
                     </td>
+                    <td className="is-num">
+                      <span className="d-row-tools">
+                        <button type="button" className="d-icon-btn is-flat" onClick={() => setEditing(it)} aria-label={`Modifier ${it.label}`} title="Modifier le poste">
+                          <Icon name="pencil" size={15} sw={2} />
+                        </button>
+                        <button
+                          type="button"
+                          className="d-icon-btn is-flat is-danger"
+                          onClick={() => {
+                            const n = payments.filter((p) => p.budget_item_id === it.id).length;
+                            if (window.confirm(`Supprimer le poste « ${it.label} »${n ? ` et ses ${n} paiement${n > 1 ? "s" : ""}` : ""} ?`)) dash.remove("budget_items", it.id);
+                          }}
+                          aria-label={`Supprimer ${it.label}`}
+                          title="Supprimer le poste"
+                        >
+                          <Icon name="trash" size={15} sw={2} />
+                        </button>
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
@@ -359,10 +386,16 @@ export default function Budget() {
                   </div>
                 </td>
                 <td className="is-num">{b.perGuest !== null ? euros(b.perGuest) : "–"}</td>
-                <td colSpan={4}>{euros(b.paid)} payés</td>
+                <td colSpan={5}>{euros(b.paid)} payés</td>
               </tr>
             </tfoot>
           </table>
+        </div>
+        <div>
+          <button type="button" className="d-pill is-dashed" onClick={() => setEditing("new")}>
+            <Icon name="plus" size={14} sw={2} />
+            Ajouter un poste
+          </button>
         </div>
         {b.initial && Math.round(b.sumBudgeted) !== Math.round(b.initial) ? (
           <p className="d-small d-muted" style={{ margin: 0 }}>
@@ -371,6 +404,7 @@ export default function Budget() {
         ) : null}
       </div>
 
+      {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
       {editing ? (
         <PosteModal
           item={editing === "new" ? null : editing}

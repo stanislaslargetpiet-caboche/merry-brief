@@ -3,13 +3,14 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { KPI_CATALOG, KPI_DEFAULTS, KPI_MAX, kpiContext, kpiDef } from "@/lib/dash/model";
+import { KPI_DEFAULTS, KPI_MAX, kpiCatalog, kpiContext, kpiDef } from "@/lib/dash/model";
 import { Icon } from "@/components/dash/icons";
 import { Btn, OkPill, PageHeader, Section } from "@/components/dash/ui";
 
 const BACK = {
   accueil: { href: "/dashboard", label: "Accueil", preview: "Aperçu de l'accueil" },
   budget: { href: "/dashboard/budget", label: "Le budget", preview: "Aperçu du budget" },
+  invites: { href: "/dashboard/invites", label: "Les invités", preview: "Aperçu des invités" },
 };
 
 export default function Indicateurs() {
@@ -19,7 +20,8 @@ export default function Indicateurs() {
   const data = dash.data;
   const conf = BACK[scope] || BACK.accueil;
   const sc = BACK[scope] ? scope : "accueil";
-  const initial = data.kpiPrefs?.[sc]?.length ? data.kpiPrefs[sc] : KPI_DEFAULTS[sc];
+  // Un indicateur d'un moment supprimé disparaît de la sélection
+  const initial = (data.kpiPrefs?.[sc]?.length ? data.kpiPrefs[sc] : KPI_DEFAULTS[sc]).filter((id) => kpiDef(sc, id, data));
   const [chosen, setChosen] = useState(initial);
   const ctx = kpiContext(data);
 
@@ -40,7 +42,7 @@ export default function Indicateurs() {
         </div>
         <div className="d-stats" style={{ "--cols": Math.max(chosen.length, 1), padding: 12, gap: 10 }}>
           {chosen.map((id) => {
-            const def = kpiDef(sc, id);
+            const def = kpiDef(sc, id, data);
             if (!def) return null;
             const val = def.get(ctx);
             return (
@@ -62,7 +64,7 @@ export default function Indicateurs() {
 
       <Section title="Indicateurs disponibles" right={<span className="d-small d-muted">{chosen.length} sur {KPI_MAX} choisis</span>} />
 
-      {KPI_CATALOG[sc].map((fam) => (
+      {kpiCatalog(sc, data).map((fam) => (
         <div key={fam.family} className="d-col" style={{ gap: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div>
           <div className="d-g3">
