@@ -166,7 +166,7 @@ function AddGuests({ onClose }) {
             <option value="">Sans groupe</option>
           </select>
         </Field>
-        <Field label="Invités à">
+        <Field label="Invités à" group>
           <div className="d-filters">
             {events.map((ev) => {
               const on = invitedTo.includes(ev.id);

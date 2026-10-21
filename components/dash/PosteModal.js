@@ -62,7 +62,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
 
   return (
     <Modal
-      title={item ? item.label : "Ajouter une dépense"}
+      title={item ? item.label : "Ajouter un poste"}
       onClose={onClose}
       footer={
         <>
