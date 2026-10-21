@@ -409,17 +409,6 @@ export default function Invites() {
         </div>
       )}
 
-      {guests.length ? (
-        <div className="d-table-foot">
-          <span>
-            {shown.length} invité{shown.length > 1 ? "s" : ""} affiché{shown.length > 1 ? "s" : ""} sur {guests.length}
-          </span>
-          <span>·</span>
-          <Icon name="pencil" size={14} />
-          <span>cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail, téléphone</span>
-        </div>
-      ) : null}
-
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <AddColumn onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { shortDate, daysUntil, todayIso } from "@/lib/dash/format";
 import { isBoth } from "@/lib/dash/model";
+import { refineIcon } from "@/lib/dash/aiIcon";
 import { Tile, Icon, guessIcon } from "./icons";
 import { Avatar, Btn, Checkbox, Field, PersonChip } from "./ui";
 
@@ -105,10 +106,14 @@ export function TaskForm({ task, onDone, onDelete }) {
   async function save(e) {
     e.preventDefault();
     if (!title.trim()) return;
-    const patch = { title: title.trim(), due_date: due || null, assignees, icon: task?.icon && task.title === title.trim() ? task.icon : guessIcon(title) };
+    const renamed = !task || task.title !== title.trim();
+    const patch = { title: title.trim(), due_date: due || null, assignees, icon: !renamed && task?.icon ? task.icon : guessIcon(title) };
+    let id = task?.id;
     if (task) await dash.update("tasks", task.id, patch);
-    else await dash.insert("tasks", { ...patch, done: false, added_by_merry: false, position: dash.data.tasks.length });
+    else [{ id }] = await dash.insert("tasks", { ...patch, done: false, added_by_merry: false, position: dash.data.tasks.length });
     onDone();
+    // L'IA affine l'icône d'après le thème de la tâche
+    if (renamed) refineIcon(dash, "tasks", id, patch.title, patch.icon);
   }
 
   return (
