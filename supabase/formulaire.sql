@@ -24,6 +24,10 @@ create table if not exists public.guest_forms (
   updated_at      timestamptz not null default now()
 );
 
+-- Ajouts du 21 octobre 2026 (titre de la page, une seule question de présence)
+alter table public.guest_forms add column if not exists title text check (title is null or length(title) <= 60);
+alter table public.guest_forms add column if not exists presence_mode text not null default 'moments' check (presence_mode in ('moments', 'global'));
+
 alter table public.guest_forms enable row level security;
 
 drop policy if exists "organisateurs: tout" on public.guest_forms;
@@ -33,9 +37,9 @@ create policy "organisateurs: tout" on public.guest_forms for all to authenticat
 
 -- Le compteur de réponses ne s'écrit que par merry_form_submit.
 revoke insert, update on public.guest_forms from authenticated, anon;
-grant insert (wedding_id, slug, published, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
+grant insert (wedding_id, slug, published, title, presence_mode, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
   on public.guest_forms to authenticated;
-grant update (wedding_id, slug, published, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
+grant update (wedding_id, slug, published, title, presence_mode, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
   on public.guest_forms to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -92,6 +96,8 @@ as $$
            'partner2', w.partner2,
            'wedding_date', w.wedding_date,
            'venue', w.venue,
+           'title', f.title,
+           'presence_mode', f.presence_mode,
            'message', f.message,
            'theme', f.theme,
            'cover_url', f.cover_url,
