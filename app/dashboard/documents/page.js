@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDash } from "@/lib/dash/store";
 import { allFolders, fileSize, findFolder, folderDocs, sortRecent, totalBytes } from "@/lib/dash/documents";
-import { daysUntil, longDate, normalize } from "@/lib/dash/format";
+import { normalize } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader, Section } from "@/components/dash/ui";
 import { DocumentRow, DropZone, FolderCard, FolderModal } from "@/components/dash/Documents";
@@ -13,15 +13,13 @@ export default function Documents() {
   const dash = useDash();
   const data = dash.data;
   const router = useRouter();
-  const { documents, members, wedding, meId, documentsSetup } = data;
+  const { documents, members, meId, documentsSetup } = data;
   const [creating, setCreating] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [query, setQuery] = useState("");
   const [mine, setMine] = useState(false);
 
   const folders = useMemo(() => allFolders(data), [data]);
-  const days = daysUntil(wedding.wedding_date);
-  const kicker = [wedding.wedding_date ? longDate(wedding.wedding_date) : null, days !== null && days >= 0 ? `J-${days}` : null].filter(Boolean).join(" · ");
 
   const q = normalize(query.trim());
   const searching = q.length > 0 || mine;
@@ -35,7 +33,6 @@ export default function Documents() {
   return (
     <>
       <PageHeader
-        kicker={kicker || null}
         title="Vos documents."
         actions={
           <>

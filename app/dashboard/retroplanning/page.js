@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
-import { daysUntil, longDate } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
@@ -16,7 +15,6 @@ export default function Retroplanning() {
   const [showDone, setShowDone] = useState(true);
 
   const st = taskStats(data);
-  const days = daysUntil(wedding.wedding_date);
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
@@ -36,12 +34,10 @@ export default function Retroplanning() {
     }
   }
 
-  const kicker = [wedding.wedding_date ? longDate(wedding.wedding_date) : null, days !== null && days >= 0 ? `J-${days}` : null].filter(Boolean).join(" · ");
 
   return (
     <>
       <PageHeader
-        kicker={kicker || null}
         title="Le rétroplanning."
         actions={
           <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
