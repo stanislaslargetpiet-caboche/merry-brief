@@ -8,6 +8,7 @@ import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
 import { itemFinance } from "@/lib/dash/model";
 import { euros, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessIcon } from "./icons";
+import { refineIcon } from "@/lib/dash/aiIcon";
 import { Avatar, Btn, Field, Modal } from "./ui";
 import { Icon } from "./icons";
 import { fileSize } from "@/lib/dash/documents";
@@ -47,6 +48,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
     if (isNew) {
       id = uid();
       await dash.insert("budget_items", { id, label: newLabel.trim(), icon: guessIcon(newLabel), position: items.length });
+      refineIcon(dash, "budget_items", id, newLabel.trim(), guessIcon(newLabel));
     }
     await dash.insert("payments", { budget_item_id: id, label, amount: value, paid_at: paidAt || todayIso(), payer_id: payerId || null, due_date: null, note: note.trim().slice(0, 500) || null });
     if (file) {

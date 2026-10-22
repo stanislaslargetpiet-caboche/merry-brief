@@ -118,29 +118,39 @@ export function Tile({ name, size = 36, bg = "#f4f3ef", fill }) {
 }
 
 // Devine l'icône d'une tâche ou d'un poste à partir de son libellé
+// Icône d'une tâche ou d'un poste d'après ses mots (sans accents, mots entiers).
+// L'IA affine ensuite le choix quand elle est activée (lib/dash/aiIcon.js).
 const GUESS = [
-  [/traiteur|repas|menu|brunch|cocktail|d[îi]ner|g[âa]teau|vin/i, "traiteur"],
-  [/lieu|salle|domaine|ch[âa]teau/i, "lieu"],
-  [/photo|vid[ée]o|film/i, "photo"],
-  [/dj|musique|groupe|orchestre|playlist|son/i, "musique"],
-  [/fleur|d[ée]co|fleuriste/i, "fleurs"],
-  [/robe|costume|tenue|essayage|chaussure/i, "tenues"],
-  [/alliance|bague/i, "alliances"],
-  [/faire-part|save-the-date|papeterie|enveloppe|carton|menu imprim/i, "enveloppe"],
-  [/coiff|maquill|beaut/i, "beaute"],
-  [/impr[ée]vu|divers/i, "imprevus"],
-  [/mairie|dossier|civil|papier|administratif/i, "mairie"],
-  [/plan de table|table/i, "table"],
-  [/d[ée]roul[ée]|horaire|planning/i, "horloge"],
-  [/chambre|h[ôo]tel|h[ée]bergement|g[îi]te|nuit/i, "lit"],
-  [/adresse/i, "adresse"],
-  [/invit|relance|liste/i, "users"],
-  [/budget|payer|paiement|acompte|solde/i, "wallet"],
-  [/cadeau|liste de mariage|cagnotte/i, "cadeau"],
-  [/site/i, "ecran"],
+  [/\b(liste de mariage|cagnotte|cadeaux?)\b/, "cadeau"],
+  [/\b(plan de table|placement|tables?)\b/, "table"],
+  [/\b(faire-part|save[- ]the[- ]date|papeterie|enveloppes?|cartons?|menus? imprimes?|marque-places?)\b/, "enveloppe"],
+  [/\b(alliances?|bagues?|bijoux)\b/, "alliances"],
+  [/\b(photos?|photographes?|videos?|videastes?|films?|album)\b/, "photo"],
+  [/\b(dj|musique|musiciens?|groupe de musique|orchestre|playlist|danse|chanson|sono)\b/, "musique"],
+  [/\b(fleurs?|fleuriste|deco|decoration|bouquets?|scenographie)\b/, "fleurs"],
+  [/\b(robes?|costumes?|tenues?|essayages?|chaussures?|voile|accessoires?)\b/, "tenues"],
+  [/\b(coiff\w*|maquill\w*|beaute|manucure|soins?)\b/, "beaute"],
+  [/\b(mairie|dossier|administratif|papiers?|officiant|ceremonie|eglise|cure|bans|publication des bans)\b/, "mairie"],
+  [/\b(deroule|horaires?|planning du jour|timing|retro-?planning)\b/, "horloge"],
+  [/\b(chambres?|hotels?|hebergements?|gites?|logements?|nuitees?)\b/, "lit"],
+  [/\b(adresses?)\b/, "adresse"],
+  [/\b(budget|payer|paiements?|acomptes?|soldes?|virement|compte commun)\b/, "wallet"],
+  [/\b(traiteurs?|repas|menus?|brunch|cocktail|diner|dejeuner|gateau|vins?|champagne|boissons?|degustation|bar)\b/, "traiteur"],
+  [/\b(lieu|salle|domaine|chateau|mas|bastide|visite du lieu)\b/, "lieu"],
+  [/\b(site|formulaire|application|appli)\b/, "ecran"],
+  [/\b(rappels?|annonces?)\b/, "cloche"],
+  [/\b(invites?|liste|relancer|relances?|temoins?|enfants d'honneur|familles?)\b/, "users"],
+  [/\b(date|rendez-vous|calendrier)\b/, "calendar"],
+  [/\b(imprevus?|divers|assurance)\b/, "imprevus"],
 ];
 
+export const ICON_KEYS = ["traiteur", "lieu", "photo", "musique", "fleurs", "tenues", "alliances", "enveloppe", "beaute", "imprevus", "mairie", "table", "horloge", "lit", "adresse", "users", "wallet", "cadeau", "ecran", "cloche", "calendar", "autre"];
+
 export function guessIcon(label) {
-  for (const [re, key] of GUESS) if (re.test(label || "")) return key;
+  const t = String(label || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  for (const [re, key] of GUESS) if (re.test(t)) return key;
   return "autre";
 }

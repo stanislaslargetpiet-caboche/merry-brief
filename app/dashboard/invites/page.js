@@ -767,7 +767,6 @@ export default function Invites() {
         </div>
       )}
 
-
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
