@@ -79,7 +79,8 @@ export default function Retroplanning() {
         <span style={{ flex: "1 1 160px", maxWidth: 230, display: "flex" }}>
           <Bar value={st.total ? (st.done / st.total) * 100 : 0} />
         </span>
-        <div className="d-filters d-scroll-x" style={{ marginLeft: "auto" }}>
+        <div className="d-desk-only" style={{ marginLeft: "auto" }}>
+        <div className="d-filters d-scroll-x">
           <button type="button" className={`d-pill${!who ? " is-on" : ""}`} onClick={() => setWho(null)}>
             Tout
           </button>
@@ -93,9 +94,12 @@ export default function Retroplanning() {
             {showDone ? "Masquer les tâches faites" : "Afficher les tâches faites"}
           </button>
         </div>
+        </div>
       </div>
 
-      <Timeline data={data} onPinClick={() => setDates("edit")} />
+      <div className="d-desk-only">
+        <Timeline data={data} onPinClick={() => setDates("edit")} />
+      </div>
 
       {adding ? (
         <div className="d-tasks" style={{ padding: 14 }}>
@@ -130,7 +134,7 @@ export default function Retroplanning() {
           ) : null}
         </div>
 
-        <div className="d-col">
+        <div className="d-col d-desk-only">
           {payments.length ? (
             <section className="d-card">
               <h2>Paiements à venir</h2>

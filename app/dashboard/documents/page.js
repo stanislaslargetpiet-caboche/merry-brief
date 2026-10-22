@@ -118,7 +118,7 @@ export default function Documents() {
           </div>
 
           {recent.length ? (
-            <div className="d-col" style={{ gap: 12 }}>
+            <div className="d-col d-desk-only" style={{ gap: 12 }}>
               <Section title="Ajoutés récemment" />
               <div className="d-docs-list">
                 {recent.map((d) => (

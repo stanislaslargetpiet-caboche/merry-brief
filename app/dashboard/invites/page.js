@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
 import { kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
@@ -205,6 +206,12 @@ function RowMenu({ guest, label }) {
         <Icon name="dots" size={16} sw={2.4} />
       </button>
       <Popover open={open} onClose={() => setOpen(false)} align="right">
+        <Link href={`/dashboard/invites/${guest.id}`} className="d-pop-item">
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Icon name="external" size={14} />
+            Voir la fiche
+          </span>
+        </Link>
         <button
           type="button"
           className="d-pop-item is-danger"
@@ -479,6 +486,9 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, sel
             <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
           </span>
         </div>
+        <Link href={`/dashboard/invites/${g.id}`} className="d-icon-btn" aria-label={`Voir la fiche de ${guestLabel(g, byId) || "cet invité"}`} title="Voir la fiche">
+          <Icon name="external" size={16} sw={2} />
+        </Link>
         <button type="button" className={`d-gcard-more${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Masquer les coordonnées" : "Voir les coordonnées"}>
           <Icon name={open ? "chevDown" : "chev"} size={18} sw={2} />
         </button>

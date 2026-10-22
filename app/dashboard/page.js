@@ -150,6 +150,7 @@ export default function Accueil() {
       {head}
 
       {!quoteFiles ? (
+      <div className="d-desk-only">
       <div className="d-import-banner">
         <span className="d-import-banner-icon">
           <Icon name="file" size={24} sw={1.8} />
@@ -177,13 +178,14 @@ export default function Accueil() {
           <Icon name="x" size={14} />
         </button>
       </div>
+      </div>
       ) : null}
 
       <KpiBar items={kpis} plusHref="/dashboard/indicateurs/accueil" />
 
       <div className="d-grid-side">
         <div className="d-col" style={{ gap: 28 }}>
-          <div className="d-col">
+          <div className="d-col d-desk-only">
             <Section title="Organiser" />
             <div className="d-g3">
               <Link href="/dashboard/invites" className="d-module">
@@ -236,7 +238,7 @@ export default function Accueil() {
             )}
           </div>
 
-          <div className="d-col">
+          <div className="d-col d-desk-only">
             <Section title="Bientôt" />
             <div className="d-g3 d-soon-grid">
               {[
@@ -256,7 +258,7 @@ export default function Accueil() {
 
         <div className="d-col">
           {doneSteps < steps.length ? (
-            <section className="d-card">
+            <section className="d-card d-desk-only">
               <h2>Bien démarrer</h2>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Bar value={(doneSteps / steps.length) * 100} />

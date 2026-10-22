@@ -505,7 +505,7 @@ export default function Budget() {
 
       <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
 
-      <section className="d-card" style={{ padding: "24px 24px 26px" }}>
+      <section className="d-card d-desk-only" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
         <div className="d-split">
           <div className="d-col" style={{ gap: 14 }}>
@@ -572,7 +572,7 @@ export default function Budget() {
       </section>
 
       {upcoming.length ? (
-        <div className="d-col">
+        <div className="d-col d-desk-only">
           <Section title="Prochains paiements" />
           <div className="d-g4">
             {upcoming.map((p) => {
