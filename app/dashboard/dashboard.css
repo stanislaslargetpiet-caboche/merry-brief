@@ -135,6 +135,76 @@
   gap: 14px;
 }
 
+/* Rendez-vous avec Stan (Calendly) : deux boutons noirs, deux designs */
+.d-help {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-help-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.d-help-btn:hover {
+  background: #33332f;
+}
+
+.d-help-btn:focus-visible {
+  outline: 2px solid var(--d-ink);
+  outline-offset: 3px;
+}
+
+/* Design 1 : pilule noire pleine, libellé centré */
+.d-help-btn.is-demo {
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 999px;
+}
+
+/* Design 2 : coins moins ronds, pastille lime à gauche, libellé sur deux lignes */
+.d-help-btn.is-advisor {
+  padding: 4px 14px 4px 4px;
+  border-radius: 16px;
+  font-size: 13.5px;
+}
+
+/* Contour noir seul, fond transparent : le vert de la barre apparaît */
+.d-help-btn.is-whatsapp {
+  justify-content: center;
+  padding: 0 14px;
+  border: 1.5px solid var(--d-ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--d-ink);
+}
+
+.d-help-btn.is-whatsapp:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.d-help-badge {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--d-lime);
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .d-team {
   background: #ffffff;
   border-radius: 16px;
@@ -192,6 +262,42 @@
   border: 0;
   padding: 0;
   cursor: pointer;
+}
+
+/* Écrans peu hauts (portables) : barre latérale resserrée pour que tout tienne sans défiler */
+@media (min-width: 701px) and (max-height: 860px) {
+  .d-nav {
+    padding: 16px 16px;
+    gap: 12px;
+  }
+  .d-nav-item {
+    min-height: 38px;
+  }
+  .d-nav-soon-item {
+    min-height: 30px;
+  }
+  .d-nav-caption {
+    padding-bottom: 2px;
+  }
+  .d-nav-bottom {
+    gap: 10px;
+  }
+  .d-help {
+    gap: 6px;
+  }
+  .d-help-btn {
+    min-height: 40px;
+  }
+  .d-help-btn.is-advisor {
+    padding: 2px 12px 2px 2px;
+  }
+  .d-help-badge {
+    flex-basis: 36px;
+  }
+  .d-team {
+    padding: 12px;
+    gap: 8px;
+  }
 }
 
 /* ---------- Zone principale ---------- */
