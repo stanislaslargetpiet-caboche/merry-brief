@@ -9,6 +9,7 @@ import { guestKey } from "@/lib/dash/importParse";
 import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { Icon } from "@/components/dash/icons";
+import { RSVP } from "@/lib/dash/theme";
 import { Btn, GroupChip, InlineEdit, PageHeader, Popover, Section } from "@/components/dash/ui";
 
 const MAX_FILES = 15;
@@ -29,6 +30,34 @@ function failureText(code) {
   if (code === "tick" || code === "auth") return "Votre session a expiré ou la base n'est pas à jour : reconnectez-vous puis réessayez.";
   if (code === "too_big") return "Fichier trop lourd : envoyez-le en plusieurs fois.";
   return "Merry n'a pas pu lire ce fichier. Réessayez dans un instant.";
+}
+
+// Une cellule compte si elle contient autre chose qu'un tiret ou un blanc
+function hasValue(v) {
+  const t = String(v ?? "").trim();
+  return t !== "" && !/^[-–—_.]+$/.test(t);
+}
+
+// Pastille Oui / Non / À confirmer : mêmes pastels que le tableau des invités
+function YnChip({ value, onClick, label }) {
+  const s = value === "oui" ? RSVP.oui : value === "non" ? RSVP.non : RSVP.attente;
+  const text = value === "oui" ? "Oui" : value === "non" ? "Non" : "À confirmer";
+  return (
+    <button type="button" className="d-rsvp d-yn" style={{ background: s.bg, color: s.ink, fontWeight: s.weight }} onClick={onClick} aria-label={`${label} : ${text}, modifier`} title="Cliquer pour changer">
+      {value === "oui" ? <Icon name="check" size={12} sw={2.4} /> : null}
+      {text}
+    </button>
+  );
+}
+
+// Compteur coloré du bandeau de synthèse
+function Count({ status, n, children }) {
+  const s = RSVP[status];
+  return (
+    <span className="d-rsvp" style={{ background: s.bg, color: s.ink, fontWeight: s.weight }}>
+      {n} {children}
+    </span>
+  );
 }
 
 // Groupe d'une ligne de l'aperçu : un clic propose les autres groupes
@@ -122,9 +151,10 @@ export default function Importer() {
   const [showPaste, setShowPaste] = useState(false);
   const [over, setOver] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [defaultGroup, setDefaultGroup] = useState(groups[0]?.id || "");
-  const [invitedTo, setInvitedTo] = useState(events.map((e) => e.id));
   const [extraOn, setExtraOn] = useState({});
+  const [view, setView] = useState("all"); // all | todo : lignes incomplètes seulement
+  const [showHow, setShowHow] = useState(false);
+  const tableRef = useRef(null);
   const [edits, setEdits] = useState({}); // rowId -> champs corrigés
   const [removed, setRemoved] = useState({}); // rowId -> true
   const [selected, setSelected] = useState({}); // rowId -> true
@@ -203,6 +233,7 @@ export default function Importer() {
     patchFile(entry.id, { status: "encours", parts: { done: 0, total: units.length } });
     let guide = "";
     let lastCode = null;
+    let lastMessage = "";
 
     async function one(i) {
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -230,6 +261,7 @@ export default function Importer() {
           if (!res.ok) {
             const j = await res.json().catch(() => ({}));
             lastCode = j.error || String(res.status);
+            if (j.message) lastMessage = j.message;
             if (res.status === 401 || res.status === 403) {
               attempt = 1; // inutile de réessayer
             }
@@ -262,7 +294,7 @@ export default function Importer() {
     }
     const ok = results.filter((r) => r && !r.failed);
     if (stop === "quota" && !ok.length) return fallbackLocal(entry, "Limite de lectures du jour atteinte : réessayez demain.");
-    if (!ok.length) return fallbackLocal(entry, failureText(lastCode));
+    if (!ok.length) return fallbackLocal(entry, lastMessage || failureText(lastCode));
     if (ok.length < units.length && entry.local?.guests.length) return fallbackLocal(entry, "Lu en partie par l'IA : Merry a lu le tableau colonne par colonne.");
     const found = ok.flatMap((r) => r.guests || []).map((g) => ({ ...g, extra: g.extra || {} }));
     patchFile(entry.id, {
@@ -353,6 +385,7 @@ export default function Importer() {
           const v = yesNo((row.extra || {})[c]);
           if (v) row.presence[ev.id] = v;
         }
+        row.toName = !dup && !named && (row.plus_one_of || row.plusOneOfIndex !== undefined);
         row.check = !dup && (row.uncertain || (!named && !row.plus_one_of && row.plusOneOfIndex === undefined));
         out.push(row);
       });
@@ -364,23 +397,40 @@ export default function Importer() {
   const dups = active.filter((r) => r.dup);
   const news = active.filter((r) => !r.dup);
   const checks = active.filter((r) => r.check);
+  const toName = active.filter((r) => r.toName);
+  const todo = active.filter((r) => r.check || r.toName); // lignes incomplètes
   const removedCount = rows.length - active.length;
-  const selectedIds = active.filter((r) => selected[r.id]).map((r) => r.id);
   const reading = files.some((f) => f.status === "lecture" || f.status === "encours");
-  const extraColumns = [...new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]))].filter(
-    (c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)),
-  );
-  const mappedEvents = events.filter((e) => [...eventForColumn.values()].includes(e));
-  const shownExtra = extraColumns.filter((c) => extraOn[c] !== false);
-  const groupById = new Map(groups.map((g) => [g.id, g]));
 
-  // Colonnes de présence : un moment du mariage reconnu, ou toute colonne remplie en Oui / Non
-  const dataColumns = [...eventForColumn.keys(), ...shownExtra].map((c) => {
-    const vals = active.map((r) => (r.extra || {})[c]).filter((v) => v !== undefined && v !== "");
-    const yn = vals.length > 0 && vals.every((v) => yesNo(v));
+  // Le document ne génère que les colonnes qui contiennent quelque chose : Régime, Adresse, Mail, Téléphone et colonnes ajoutées
+  const has = (get) => active.some((r) => hasValue(get(r)));
+  const showDiet = has((r) => r.diet);
+  const showAddress = has((r) => r.address);
+  const showMail = has((r) => r.email);
+  const showPhone = has((r) => r.phone);
+  const filled = (c) => has((r) => (r.extra || {})[c]);
+  const allNames = [...new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]))];
+  const extraColumns = allNames.filter((c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)) && filled(c));
+  const found = [...[...eventForColumn.keys()].filter(filled), ...extraColumns];
+  const info = found.map((c) => {
+    const vals = active.map((r) => (r.extra || {})[c]).filter(hasValue);
     const ev = eventForColumn.get(c);
-    return { key: c, label: ev ? ev.short_name || ev.name : c, yn, ev };
+    return { key: c, label: ev ? ev.short_name || ev.name : c, yn: vals.length > 0 && vals.every((v) => yesNo(v)), ev, count: vals.length, off: !ev && extraOn[c] === false };
   });
+  const dataColumns = info.filter((c) => !c.off); // colonnes affichées dans l'aperçu
+  const shownExtra = extraColumns.filter((c) => extraOn[c] !== false);
+  // Sans moment reconnu dans le document, tout le monde est invité à tout ; sinon seulement aux moments que le document décrit
+  const mappedEvents = dataColumns.filter((c) => c.ev).map((c) => c.ev);
+  const invitedTo = (mappedEvents.length ? mappedEvents : events).map((e) => e.id);
+  const groupById = new Map(groups.map((g) => [g.id, g]));
+  // « +1 de Brune » : on sait de qui il s'agit sans quitter la ligne
+  const nameOf = (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim();
+  const hostOf = (r) => {
+    if (r.plus_one_of) return String(r.plus_one_of);
+    if (r.plusOneOfIndex === undefined) return "";
+    const host = rows.find((x) => x.id === `${r.id.split(":")[0]}:${r.plusOneOfIndex}`);
+    return host ? nameOf(host) : "";
+  };
   const ynCounts = (c) => {
     let oui = 0;
     let non = 0;
@@ -391,8 +441,10 @@ export default function Importer() {
     }
     return { oui, non, blank: active.length - oui - non };
   };
-  const plusOnes = active.filter((r) => r.plusOneOfIndex !== undefined || r.plus_one_of).length;
   const understood = files.flatMap((f) => f.columns || []).slice(0, 6);
+  const notes = [...new Set(files.filter((f) => f.status === "lue" && f.why).map((f) => f.why))];
+  const shown = view === "todo" && todo.length ? todo : active;
+  const selectedIds = active.filter((r) => selected[r.id]).map((r) => r.id);
   const toggleYn = (r, c) => {
     const cur = yesNo((r.extra || {})[c]);
     const next = cur === "oui" ? "Non" : cur === "non" ? "" : "Oui";
@@ -408,7 +460,12 @@ export default function Importer() {
       return n;
     });
   };
-  const allSelected = active.length > 0 && selectedIds.length === active.length;
+  const allSelected = shown.length > 0 && shown.every((r) => selected[r.id]);
+  const showTodo = () => {
+    setView("todo");
+    setSelected({});
+    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   async function commit() {
     setSaving(true);
@@ -441,7 +498,7 @@ export default function Importer() {
         address: r.address || null,
         email: r.email || null,
         phone: r.phone || null,
-        group_id: r.group_id === "none" ? null : r.group_id || defaultGroup || null,
+        group_id: r.group_id === "none" ? null : r.group_id || null,
         custom: toCustom(r.extra),
         position: pos++,
         _row: r,
@@ -555,39 +612,34 @@ export default function Importer() {
         <div className="d-file-chips">
           {files.map((f) => {
             const [label, bg, ink] = badgeOf(f.kind);
+            const n = rows.filter((r) => r.id.startsWith(`${f.id}:`)).length;
             const meta =
               f.status === "lue"
-                ? `${f.note ? `${f.note} · ` : ""}${plural(f.guests.length, "nom", "noms")}`
+                ? plural(n, "personne", "personnes")
                 : f.status === "encours" && f.parts?.total > 1
-                  ? `${f.note || ""} · partie ${Math.min(f.parts.done + 1, f.parts.total)} sur ${f.parts.total}`
+                  ? `partie ${Math.min(f.parts.done + 1, f.parts.total)} sur ${f.parts.total}`
                   : f.status === "erreur"
                     ? f.why
-                    : f.note || "Lecture…";
+                    : "Lecture…";
             return (
-              <div key={f.id} className="d-file-chip">
+              <div key={f.id} className={`d-file-chip${f.status === "erreur" ? " is-error" : ""}`}>
                 <span className="d-file-badge" style={{ background: bg, color: ink }}>
                   {label}
                 </span>
-                <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                  <strong style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.name}>
-                    {f.name}
-                  </strong>
-                  <span className="d-small-muted" style={f.status === "erreur" ? { color: "#9b2c2c" } : undefined}>
-                    {meta}
-                  </span>
-                  {f.status === "lue" && f.why ? <span className="d-small-muted">{f.why}</span> : null}
+                <span className="d-file-chip-text">
+                  <strong title={f.name}>{f.name}</strong>
+                  <span className="d-small-muted">{meta}</span>
                 </span>
                 {f.status === "lue" ? (
-                  <span className="d-okpill is-small">
-                    <Icon name="check" size={12} sw={2.4} />
-                    Lue
+                  <span className="d-file-state is-ok" title="Lue" aria-label="Lue">
+                    <Icon name="check" size={13} sw={2.6} />
                   </span>
                 ) : f.status === "erreur" ? (
                   <span className="d-status" style={{ background: "#fde0de", color: "#9b2c2c" }}>
                     Non lue
                   </span>
                 ) : (
-                  <span className="d-status is-todo">Merry lit…</span>
+                  <span className="d-file-state is-busy" title="Merry lit…" aria-label="Merry lit…" />
                 )}
                 <button type="button" className="d-icon-btn is-flat" aria-label={`Retirer ${f.name}`} onClick={() => (f.job ? imports.remove(f.id) : setFiles((x) => x.filter((y) => y.id !== f.id)))}>
                   <Icon name="x" size={14} sw={2.2} />
@@ -623,84 +675,124 @@ export default function Importer() {
 
       {rows.length ? (
         <>
-          <div className="d-understood">
-            <div className="d-understood-head">
-              <span className="d-okpill is-small">
-                <Icon name="check" size={12} sw={2.4} />
-                {reading ? "Aperçu" : "Lue"}
-              </span>
-              <strong>
-                Merry a repéré {plural(active.length, "personne", "personnes")}
-                {plusOnes ? `, dont ${plural(plusOnes, "+1 à nommer", "+1 à nommer")}` : ""}.
-              </strong>
+          <div className={`d-readout${todo.length ? "" : " is-clean"}`}>
+            <div className="d-readout-top">
+              <span className={`d-readout-mark${reading ? " is-busy" : ""}`}>{reading ? null : <Icon name="check" size={16} sw={2.6} />}</span>
+              <div className="d-readout-title">
+                <strong>
+                  {reading ? "Lecture en cours" : "Liste lue"} : {plural(active.length, "personne", "personnes")}
+                </strong>
+                {dups.length ? <span className="d-small d-muted">{plural(dups.length, "est déjà dans votre liste et sera fusionnée", "sont déjà dans votre liste et seront fusionnées")}</span> : null}
+              </div>
+              <Btn onClick={commit} disabled={saving || reading || !active.length}>
+                {reading ? "Merry lit encore…" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+              </Btn>
             </div>
-            {dataColumns.some((c) => c.yn) || understood.length ? (
-              <ul className="d-understood-list">
-                {dataColumns
-                  .filter((c) => c.yn)
-                  .map((c) => {
-                    const n = ynCounts(c.key);
-                    return (
-                      <li key={c.key}>
-                        <strong>{c.label}</strong> complété{c.ev ? " et relié à « Invités à »" : ""} : {n.oui} oui · {n.non} non{n.blank ? ` · ${n.blank} à confirmer` : ""}
-                      </li>
-                    );
-                  })}
-                {understood.map((u, i) => (
-                  <li key={`u${i}`} className="d-muted">
-                    « {u.source} » : {u.meaning}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {checks.length ? <span className="d-small d-muted">{plural(checks.length, "ligne est", "lignes sont")} à vérifier, signalées en rouge ci-dessous.</span> : null}
-          </div>
-          <Section
-            title="Aperçu"
-            right={
-              <span className="d-small d-muted" style={{ whiteSpace: "nowrap" }}>
-                {plural(active.length, "trouvé", "trouvés")} · {plural(news.length, "nouveau", "nouveaux")} · {dups.length} à fusionner · {checks.length} à vérifier
-              </span>
-            }
-          />
-          <div className="d-import-settings">
-            <span>
-              <span className="d-muted">Groupe par défaut</span>
-              <select className="d-select" value={defaultGroup} onChange={(e) => setDefaultGroup(e.target.value)} aria-label="Groupe par défaut">
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-                <option value="">Sans groupe</option>
-              </select>
-            </span>
-            <span>
-              <span className="d-muted">Invités à</span>
-              {events.map((ev) => {
-                const on = invitedTo.includes(ev.id);
-                return (
-                  <button key={ev.id} type="button" className={`d-pill${on ? " is-on" : ""}`} style={{ minHeight: 30, padding: "0 10px" }} aria-pressed={on} onClick={() => setInvitedTo((x) => (on ? x.filter((i) => i !== ev.id) : [...x, ev.id]))}>
-                    {on ? <Icon name="check" size={12} sw={2.4} /> : null}
-                    {ev.short_name}
-                  </button>
-                );
-              })}
-            </span>
-            {extraColumns.length ? (
-              <span>
-                <span className="d-muted">{extraColumns.length > 1 ? "Nouvelles colonnes" : "Nouvelle colonne"}</span>
-                {extraColumns.map((c) => {
-                  const on = extraOn[c] !== false;
+
+            {info.length ? (
+              <div className="d-readout-cols">
+                {info.map((c) => {
+                  const n = c.yn ? ynCounts(c.key) : null;
                   return (
-                    <button key={c} type="button" className={`d-pill${on ? " is-on" : ""}`} style={{ minHeight: 30, padding: "0 10px", ...(on ? { background: "var(--d-limetint)" } : {}) }} onClick={() => setExtraOn((x) => ({ ...x, [c]: !on }))} aria-pressed={on}>
-                      {on ? <Icon name="check" size={12} sw={2.4} /> : null}
-                      {c}
-                    </button>
+                    <div key={c.key} className={`d-readout-col${c.off ? " is-off" : ""}`}>
+                      <strong>{c.label}</strong>
+                      {n ? (
+                        <span className="d-readout-counts">
+                          {n.oui ? (
+                            <Count status="oui" n={n.oui}>
+                              oui
+                            </Count>
+                          ) : null}
+                          {n.non ? (
+                            <Count status="non" n={n.non}>
+                              non
+                            </Count>
+                          ) : null}
+                          {n.blank ? (
+                            <Count status="attente" n={n.blank}>
+                              à confirmer
+                            </Count>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="d-small d-muted">{plural(c.count, "valeur", "valeurs")}</span>
+                      )}
+                      {!c.ev ? (
+                        <button type="button" className={`d-pill d-pill-sm${c.off ? "" : " is-on"}`} aria-pressed={!c.off} onClick={() => setExtraOn((x) => ({ ...x, [c.key]: c.off }))} title={c.off ? "Ajouter cette colonne à votre liste" : "Ne pas ajouter cette colonne"}>
+                          {c.off ? "Ignorée" : "Nouvelle colonne"}
+                          {c.off ? null : <Icon name="check" size={12} sw={2.4} />}
+                        </button>
+                      ) : null}
+                    </div>
                   );
                 })}
-              </span>
+              </div>
             ) : null}
+
+            {todo.length ? (
+              <div className="d-readout-todo">
+                <span className="d-readout-alert" aria-hidden="true">
+                  !
+                </span>
+                <span className="d-readout-todo-text">
+                  <strong>{plural(todo.length, "ligne incomplète", "lignes incomplètes")}</strong>
+                  <span className="d-small d-muted">{[checks.length ? `${checks.length} à vérifier` : "", toName.length ? `${toName.length} +1 à nommer` : ""].filter(Boolean).join(" · ")}</span>
+                </span>
+                <Btn kind="ghost" small onClick={showTodo}>
+                  Voir les lignes incomplètes
+                </Btn>
+              </div>
+            ) : reading ? null : (
+              <div className="d-readout-todo is-ok">
+                <span className="d-small">Aucune ligne à vérifier.</span>
+              </div>
+            )}
+
+            {notes.length || understood.length ? (
+              <div className="d-readout-foot">
+                {notes.map((t, i) => (
+                  <span key={i} className="d-small d-muted">
+                    {t}
+                  </span>
+                ))}
+                {understood.length ? (
+                  <button type="button" className="d-link" style={{ fontSize: 12 }} onClick={() => setShowHow((v) => !v)}>
+                    {showHow ? "Masquer comment Merry a lu le fichier" : "Comment Merry a lu le fichier"}
+                  </button>
+                ) : null}
+                {showHow && understood.length ? (
+                  <ul className="d-readout-how">
+                    {understood.map((u, i) => (
+                      <li key={i}>
+                        « {u.source} » : {u.meaning}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div ref={tableRef} style={{ scrollMarginTop: 16 }}>
+            <Section
+              title="Aperçu"
+              right={
+                todo.length ? (
+                  <span className="d-seg" role="group" aria-label="Lignes affichées">
+                    <button type="button" className={`d-pill d-pill-sm${shown === active ? " is-on" : ""}`} aria-pressed={shown === active} onClick={() => (setView("all"), setSelected({}))}>
+                      Toutes ({active.length})
+                    </button>
+                    <button type="button" className={`d-pill d-pill-sm${shown !== active ? " is-on" : ""}`} aria-pressed={shown !== active} onClick={showTodo}>
+                      Incomplètes ({todo.length})
+                    </button>
+                  </span>
+                ) : (
+                  <span className="d-small d-muted" style={{ whiteSpace: "nowrap" }}>
+                    {plural(active.length, "ligne", "lignes")}
+                  </span>
+                )
+              }
+            />
           </div>
 
           {selectedIds.length ? (
@@ -732,10 +824,10 @@ export default function Importer() {
                     />
                   </th>
                   <th>Invités</th>
-                  <th>Régime</th>
-                  <th>Adresse</th>
-                  <th>Mail</th>
-                  <th>Téléphone</th>
+                  {showDiet ? <th>Régime</th> : null}
+                  {showAddress ? <th>Adresse</th> : null}
+                  {showMail ? <th>Mail</th> : null}
+                  {showPhone ? <th>Téléphone</th> : null}
                   {dataColumns.map((c) => (
                     <th key={c.key} className="d-col-custom">
                       {c.label}
@@ -746,8 +838,8 @@ export default function Importer() {
                 </tr>
               </thead>
               <tbody>
-                {active.map((r, rowIndex) => {
-                  const group = groupById.get(r.group_id || (r.dup ? r.dup.group_id : defaultGroup));
+                {shown.map((r, rowIndex) => {
+                  const group = groupById.get(r.group_id || (r.dup ? r.dup.group_id : null));
                   const label = `${r.first_name || ""} ${r.last_name || ""}`.trim();
                   const isSel = !!selected[r.id];
                   return (
@@ -759,7 +851,7 @@ export default function Importer() {
                         <div className="d-guest-name">
                           <InlineEdit
                             value={label}
-                            placeholder={r.plusOneOfIndex !== undefined || r.plus_one_of ? "+1 à nommer" : "Sans nom"}
+                            placeholder={r.plusOneOfIndex !== undefined || r.plus_one_of ? (hostOf(r) ? `+1 de ${hostOf(r)}` : "+1 à nommer") : "Sans nom"}
                             label="nom"
                             width={170}
                             onSave={(v) => {
@@ -773,30 +865,32 @@ export default function Importer() {
                           </span>
                         </div>
                       </td>
-                      <td>
-                        <InlineEdit value={r.diet} label="régime" width={110} onSave={(v) => edit(r.id, { diet: v })} className="d-cell-clip" />
-                      </td>
-                      <td>
-                        <InlineEdit value={r.address} label="adresse" width={200} onSave={(v) => edit(r.id, { address: v })} className="d-cell-clip" />
-                      </td>
-                      <td>
-                        <InlineEdit value={r.email} label="mail" width={170} onSave={(v) => edit(r.id, { email: v })} className="d-cell-clip" />
-                      </td>
-                      <td>
-                        <InlineEdit value={r.phone} label="téléphone" width={130} onSave={(v) => edit(r.id, { phone: v })} className="d-cell-clip" />
-                      </td>
+                      {showDiet ? (
+                        <td>
+                          <InlineEdit value={r.diet} label="régime" width={110} onSave={(v) => edit(r.id, { diet: v })} className="d-cell-clip" />
+                        </td>
+                      ) : null}
+                      {showAddress ? (
+                        <td>
+                          <InlineEdit value={r.address} label="adresse" width={200} onSave={(v) => edit(r.id, { address: v })} className="d-cell-clip" />
+                        </td>
+                      ) : null}
+                      {showMail ? (
+                        <td>
+                          <InlineEdit value={r.email} label="mail" width={170} onSave={(v) => edit(r.id, { email: v })} className="d-cell-clip" />
+                        </td>
+                      ) : null}
+                      {showPhone ? (
+                        <td>
+                          <InlineEdit value={r.phone} label="téléphone" width={130} onSave={(v) => edit(r.id, { phone: v })} className="d-cell-clip" />
+                        </td>
+                      ) : null}
                       {dataColumns.map((c) => {
                         const v = (r.extra || {})[c.key];
                         const yn = yesNo(v);
                         return (
                           <td key={c.key} className="d-col-custom">
-                            {c.yn ? (
-                              <button type="button" className={`d-yn${yn === "oui" ? " is-yes" : yn === "non" ? " is-no" : ""}`} onClick={() => toggleYn(r, c.key)} aria-label={`${c.label} : ${yn === "oui" ? "oui" : yn === "non" ? "non" : "à confirmer"}, modifier`}>
-                                {yn === "oui" ? "Oui" : yn === "non" ? "Non" : "?"}
-                              </button>
-                            ) : (
-                              v || "–"
-                            )}
+                            {c.yn ? <YnChip value={yn} label={c.label} onClick={() => toggleYn(r, c.key)} /> : hasValue(v) ? v : <span className="d-muted">–</span>}
                           </td>
                         );
                       })}
@@ -816,6 +910,8 @@ export default function Importer() {
                               </span>
                               {r.note ? <span className="d-small-muted">{r.note}</span> : null}
                             </>
+                          ) : r.toName ? (
+                            <span className="d-status is-todo">+1 à nommer</span>
                           ) : (
                             <span className="d-okpill is-small">
                               <Icon name="plus" size={12} sw={2.4} />
@@ -848,7 +944,7 @@ export default function Importer() {
                 Annuler
               </Btn>
               <Btn onClick={commit} disabled={saving || reading || !active.length}>
-                {reading ? "Merry lit encore…" : news.length ? `Ajouter ${plural(news.length, "invité", "invités")}` : "Fusionner les doublons"}
+                {reading ? "Merry lit encore…" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
               </Btn>
             </div>
           </div>

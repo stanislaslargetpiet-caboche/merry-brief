@@ -3255,29 +3255,6 @@ button.d-rsvp:hover {
   height: 40px;
 }
 
-.d-import-settings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 22px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: var(--d-panel);
-  font-size: 13px;
-}
-
-.d-import-settings > span {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.d-import-settings .d-select {
-  min-height: 34px;
-  width: auto;
-}
-
 .d-selbar {
   display: flex;
   flex-wrap: wrap;
@@ -5115,5 +5092,244 @@ button.d-group-none {
   .d-keydate-date {
     width: 100%;
     align-items: flex-start;
+  }
+}
+
+/* ---------- Import d'une liste : fiches de fichiers, bandeau de synthèse, aperçu ---------- */
+
+.d-file-chip.is-error {
+  border-color: #f3c5c1;
+  background: #fff8f7;
+}
+
+.d-file-chip-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-file-chip-text strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-file-state {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-file-state.is-ok {
+  background: var(--d-ok-bg);
+  color: var(--d-ok-ink);
+}
+
+.d-file-state.is-busy {
+  background: var(--d-lime);
+  animation: d-pulse 1.4s ease-in-out infinite;
+}
+
+.d-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--d-limetint);
+  border: 1px solid #e3f1c3;
+}
+
+.d-readout-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.d-readout-mark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--d-lime);
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-readout-mark.is-busy {
+  animation: d-pulse 1.4s ease-in-out infinite;
+}
+
+.d-readout-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-readout-title strong {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.d-readout-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-readout-col {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(28, 28, 26, 0.06);
+  font-size: 13px;
+}
+
+.d-readout-col.is-off {
+  opacity: 0.6;
+}
+
+.d-readout-counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.d-pill.d-pill-sm {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.d-readout-col .d-pill.is-on {
+  border: 1px solid #cfe5a5;
+  background: var(--d-limetint);
+  color: var(--d-ok-ink);
+}
+
+.d-readout-todo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff7ec;
+  border: 1px solid var(--d-orange-bg);
+}
+
+.d-readout-todo.is-ok {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: transparent;
+  color: var(--d-muted);
+}
+
+.d-readout-alert {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--d-orange-bg);
+  color: var(--d-orange-ink);
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-readout-todo-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.d-readout-todo-text strong {
+  font-size: 14px;
+}
+
+.d-readout-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.d-readout-how {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--d-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-seg {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.d-rsvp.d-yn {
+  min-height: 26px;
+}
+
+.d-row-in {
+  animation: d-row-in 0.4s ease both;
+}
+
+@keyframes d-row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-row-in,
+  .d-file-state.is-busy,
+  .d-readout-mark.is-busy {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .d-readout {
+    padding: 14px;
+  }
+
+  .d-readout-top {
+    flex-wrap: wrap;
+  }
+
+  .d-readout-top .d-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .d-readout-todo {
+    flex-wrap: wrap;
+  }
+
+  .d-readout-todo .d-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
