@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./icons";
 import { pastel, RSVP } from "@/lib/dash/theme";
 
@@ -73,7 +74,15 @@ export function PersonChip({ members, label, color }) {
 }
 
 export function GroupChip({ group, onClick, small = true }) {
-  if (!group) return <span className="d-group d-group-none">Sans groupe</span>;
+  if (!group) {
+    return onClick ? (
+      <button type="button" className="d-group d-group-none" onClick={onClick}>
+        Sans groupe
+      </button>
+    ) : (
+      <span className="d-group d-group-none">Sans groupe</span>
+    );
+  }
   const p = pastel(group.color);
   const Tag = onClick ? "button" : "span";
   return (
@@ -226,26 +235,63 @@ export function Field({ label, children, hint, full, group }) {
 }
 
 // Menu déroulant ancré sous un élément ; se ferme au clic extérieur ou sur Échap
+// Menu flottant ancré à son parent. Il est affiché hors du tableau (position fixe dans .d-root) :
+// les cellules du tableau coupent ce qui dépasse, et le menu restait invisible ou inaccessible.
 export function Popover({ open, onClose, children, align = "left", className = "" }) {
+  const anchorRef = useRef(null);
   const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+
+  const place = useCallback(() => {
+    const anchor = anchorRef.current?.parentElement;
+    const pop = ref.current;
+    if (!anchor || !pop) return;
+    const r = anchor.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    const h = pop.offsetHeight;
+    const roomBelow = window.innerHeight - r.bottom;
+    const top = roomBelow < h + 12 && r.top > h + 12 ? r.top - h - 6 : r.bottom + 6;
+    const left = Math.max(8, Math.min(align === "right" ? r.right - w : r.left, window.innerWidth - w - 8));
+    setPos((p) => (p && Math.abs(p.top - top) < 0.5 && Math.abs(p.left - left) < 0.5 ? p : { top, left }));
+  }, [align]);
+
+  useLayoutEffect(() => {
+    if (open) place();
+    else setPos(null);
+  }, [open, place, children]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (e) => {
-      if (ref.current && !ref.current.contains(e.target) && !ref.current.parentElement?.contains(e.target)) onClose();
+      const anchor = anchorRef.current?.parentElement;
+      if (ref.current && !ref.current.contains(e.target) && !(anchor && anchor.contains(e.target))) onClose();
     };
     const onKey = (e) => e.key === "Escape" && onClose();
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
     };
-  }, [open, onClose]);
-  if (!open) return null;
+  }, [open, onClose, place]);
+
+  const marker = <span ref={anchorRef} hidden />;
+  if (!open) return marker;
+  const host = document.querySelector(".d-root") || document.body;
   return (
-    <div ref={ref} className={`d-pop d-pop-${align} ${className}`} role="menu">
-      {children}
-    </div>
+    <>
+      {marker}
+      {createPortal(
+        <div ref={ref} className={`d-pop d-pop-fixed ${className}`} role="menu" style={{ top: pos ? pos.top : 0, left: pos ? pos.left : 0, visibility: pos ? "visible" : "hidden" }}>
+          {children}
+        </div>,
+        host,
+      )}
+    </>
   );
 }
 
