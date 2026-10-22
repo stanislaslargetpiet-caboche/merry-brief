@@ -5,6 +5,7 @@ import { useDash } from "@/lib/dash/store";
 import { PASTEL_KEYS } from "@/lib/dash/theme";
 import { uid } from "@/lib/dash/format";
 import { Icon } from "./icons";
+import { supabase } from "@/lib/supabase";
 import { Avatar, Btn, Field, Modal } from "./ui";
 
 function inviteLink(token) {
@@ -18,6 +19,8 @@ export default function Organisers({ onClose }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [copied, setCopied] = useState(null);
+  const [sending, setSending] = useState(null);
+  const [sent, setSent] = useState({});
 
   const couple = [wedding.partner1, wedding.partner2].filter(Boolean).join(" et ");
 
@@ -55,10 +58,42 @@ export default function Organisers({ onClose }) {
     }
   }
 
-  function mailto(m) {
+  // Repli si l'envoi automatique n'est pas disponible (démo, service de mail non configuré)
+  function openMailClient(m, email) {
     const subject = `Rejoins l'organisation du mariage de ${couple} sur Merry`;
     const body = `Bonjour,\n\nOn organise notre mariage sur Merry : invités, rétroplanning et budget au même endroit. Tu y as le même accès que nous.\n\nPour nous rejoindre, crée ton accès ici :\n${inviteLink(m.invite_token)}\n\nÀ très vite !`;
-    return `mailto:${encodeURIComponent(m.email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${encodeURIComponent(email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  async function sendMail(m) {
+    let email = (m.email || "").trim();
+    if (!email) {
+      email = (window.prompt(`À quelle adresse envoyer l'invitation de ${m.display_name} ?`) || "").trim();
+      if (!email) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        dash.setToast({ kind: "error", text: "Cette adresse mail ne semble pas valide." });
+        return;
+      }
+      await dash.update("wedding_members", m.id, { email });
+    }
+    if (dash.mode !== "live" || !supabase) return openMailClient(m, email);
+    setSending(m.id);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch("/api/inviter", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
+        body: JSON.stringify({ memberId: m.id }),
+      });
+      if (res.status === 501) return openMailClient(m, email);
+      if (!res.ok) throw new Error(String(res.status));
+      setSent((s) => ({ ...s, [m.id]: true }));
+      dash.setToast({ kind: "ok", text: `Invitation envoyée à ${email}.` });
+    } catch {
+      dash.setToast({ kind: "error", text: "L'invitation n'a pas pu partir. Copiez le lien et envoyez-le vous-même." });
+    } finally {
+      setSending(null);
+    }
   }
 
   return (
@@ -94,8 +129,8 @@ export default function Organisers({ onClose }) {
                 <Btn kind="ghost" small icon={copied === m.id ? "check" : "copy"} onClick={() => copy(m)}>
                   {copied === m.id ? "Lien copié" : "Copier le lien"}
                 </Btn>
-                <Btn kind="ghost" small icon="mail" href={mailto(m)}>
-                  Envoyer par mail
+                <Btn kind="ghost" small icon={sent[m.id] ? "check" : "mail"} onClick={() => sendMail(m)} disabled={sending === m.id}>
+                  {sending === m.id ? "Envoi…" : sent[m.id] ? "Invitation envoyée" : "Envoyer par mail"}
                 </Btn>
                 <button
                   type="button"
