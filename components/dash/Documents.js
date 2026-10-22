@@ -3,13 +3,16 @@
 // Bloc Documents : fenêtre de dossier, zone de dépôt, ligne de document.
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
-import { BUDGET_FOLDER, FOLDER_SUGGESTIONS, docTitle, docType, fileSize, nextFolderColor } from "@/lib/dash/documents";
+import { BUDGET_FOLDER, FOLDER_SUGGESTIONS, docTitle, docType, fileSize, linkName, nextFolderColor, normalizeLink } from "@/lib/dash/documents";
+import { posteName } from "@/lib/dash/model";
+import { currentDevice } from "@/lib/dash/retro";
 import { shortDate } from "@/lib/dash/format";
 import { pastel, PASTEL_KEYS } from "@/lib/dash/theme";
 import { Icon } from "./icons";
 import { Avatar, Btn, Field, Modal, Popover } from "./ui";
+import { ScanModal } from "./Scan";
 
 // Créer ou renommer un dossier
 export function FolderModal({ folder, onClose, onCreated }) {
@@ -86,12 +89,83 @@ export function FolderModal({ folder, onClose, onCreated }) {
   );
 }
 
-// Zone de dépôt : glisser des fichiers ou cliquer pour les choisir
-export function DropZone({ folderId, compact, onDone }) {
+// Coller l'adresse d'un fichier rangé ailleurs (Drive, Dropbox, iCloud, WeTransfer…) : Merry garde le lien
+function LinkModal({ folderId, onClose, onDone }) {
+  const dash = useDash();
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [touched, setTouched] = useState(false);
+  const clean = normalizeLink(url);
+  const shownName = name || (clean ? linkName(clean) : "");
+
+  const save = async (e) => {
+    e?.preventDefault();
+    if (!clean) {
+      setTouched(true);
+      return;
+    }
+    if (dash.mode === "live" && !dash.data.documentsSetup) {
+      dash.setToast({ kind: "error", text: "Le stockage des documents n'est pas encore installé : lancez supabase/documents.sql dans Supabase." });
+      return;
+    }
+    await dash.insert("documents", {
+      folder_id: folderId,
+      budget_item_id: null,
+      vendor_id: null,
+      kind: "autre",
+      name: shownName.trim().slice(0, 120) || "Lien",
+      url: clean,
+      storage_path: null,
+      size_bytes: null,
+      mime: null,
+      added_by: dash.data.meId || null,
+      created_at: new Date().toISOString(),
+    });
+    dash.setToast({ kind: "ok", text: "Lien ajouté." });
+    onDone?.();
+    onClose();
+  };
+
+  return (
+    <Modal
+      title="Ajouter un lien"
+      onClose={onClose}
+      footer={
+        <>
+          <Btn kind="ghost" onClick={onClose}>
+            Annuler
+          </Btn>
+          <Btn icon="link" onClick={save} disabled={!url.trim()}>
+            Ajouter le lien
+          </Btn>
+        </>
+      }
+    >
+      <form onSubmit={save} className="d-col" style={{ gap: 16 }}>
+        <Field label="Adresse du fichier" hint={touched && !clean ? "Collez une adresse web complète, par exemple https://drive.google.com/…" : "Google Drive, Dropbox, iCloud, OneDrive, WeTransfer… Pensez à autoriser l'accès à vos co-organisateurs."}>
+          <input className="d-input" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/…" autoFocus aria-invalid={touched && !clean} />
+        </Field>
+        <Field label="Nom">
+          <input className="d-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={shownName || "Dossier de mariage, devis du traiteur…"} maxLength={120} />
+        </Field>
+      </form>
+    </Modal>
+  );
+}
+
+// Ajouter un document : on choisit d'où il vient (ordinateur ou téléphone, lien, papier à scanner)
+export function DropZone({ folderId, folderName, onDone }) {
   const dash = useDash();
   const input = useRef(null);
+  const camera = useRef(null);
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(null);
+  const [linking, setLinking] = useState(false);
+  const [scan, setScan] = useState(null);
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    setPhone(currentDevice() === "telephone");
+  }, []);
 
   const send = async (files) => {
     const list = Array.from(files || []).filter(Boolean);
@@ -117,7 +191,7 @@ export function DropZone({ folderId, compact, onDone }) {
 
   return (
     <div
-      className={`d-drop-big d-docdrop${over ? " is-over" : ""}${compact ? " is-compact" : ""}`}
+      className={`d-drop-big d-docdrop d-source${over ? " is-over" : ""}`}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);
@@ -129,23 +203,60 @@ export function DropZone({ folderId, compact, onDone }) {
         send(e.dataTransfer.files);
       }}
     >
-      <input ref={input} type="file" multiple hidden onChange={(e) => send(e.target.files)} />
-      <span className="d-docdrop-icon">
-        <Icon name="upload" size={20} sw={2} />
-      </span>
+      <input ref={input} type="file" multiple hidden onChange={(e) => (send(e.target.files), (e.target.value = ""))} aria-label="Choisir des fichiers" />
+      {/* Sur téléphone, « capture » ouvre l'appareil photo ; sur ordinateur, un sélecteur d'images */}
+      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          e.target.value = "";
+          if (files.length) setScan(files);
+        }} aria-label="Photographier un papier" />
       {busy ? (
         <strong>
           Envoi {busy.done + 1 > busy.total ? busy.total : busy.done + 1} sur {busy.total}…
         </strong>
       ) : (
         <>
-          <strong>Glissez vos fichiers ici, ou choisissez-les sur votre ordinateur</strong>
-          <p>PDF, images, Word, Excel · {fileSize(DOCUMENT_MAX_BYTES)} par fichier</p>
-          <Btn kind="ghost" small icon="upload" onClick={() => input.current?.click()}>
-            Choisir des fichiers
-          </Btn>
+          <div className="d-source-head">
+            <strong>D'où vient le document ?</strong>
+            <p>PDF, images, Word, Excel · {fileSize(DOCUMENT_MAX_BYTES)} par fichier</p>
+          </div>
+          <div className="d-source-grid">
+            <div className="d-source-card">
+              <span className="d-docdrop-icon">
+                <Icon name="upload" size={20} sw={2} />
+              </span>
+              <strong>{phone ? "Depuis le téléphone" : "Depuis cet ordinateur"}</strong>
+              <p>{phone ? "Photothèque, Fichiers, Google Drive, iCloud." : "Glissez vos fichiers ici, ou parcourez vos dossiers."}</p>
+              <Btn kind="ghost" small onClick={() => input.current?.click()}>
+                Choisir des fichiers
+              </Btn>
+            </div>
+            <div className="d-source-card">
+              <span className="d-docdrop-icon">
+                <Icon name="link" size={20} sw={2} />
+              </span>
+              <strong>Drive, Dropbox ou un lien</strong>
+              <p>Collez l'adresse du fichier : Merry garde le lien, sans copie.</p>
+              <Btn kind="ghost" small onClick={() => setLinking(true)}>
+                Coller un lien
+              </Btn>
+            </div>
+            <div className="d-source-card is-scan">
+              <span className="d-docdrop-icon">
+                <Icon name="camera" size={20} sw={2} />
+              </span>
+              <strong>Scanner un papier</strong>
+              <p>{phone ? "Appareil photo, plusieurs pages en un seul PDF." : "Plusieurs photos ou images réunies en un seul PDF. Sur téléphone, l'appareil photo s'ouvre directement."}</p>
+              <Btn small onClick={() => camera.current?.click()}>
+                Scanner
+              </Btn>
+            </div>
+          </div>
+          {phone ? null : <p className="d-source-note">Sur téléphone, « Choisir des fichiers » ouvre aussi Fichiers, la photothèque, Google Drive et iCloud.</p>}
         </>
       )}
+      {linking ? <LinkModal folderId={folderId} onClose={() => setLinking(false)} onDone={onDone} /> : null}
+      {scan ? <ScanModal initial={scan} folderId={folderId} folderName={folderName} onClose={() => setScan(null)} onDone={onDone} /> : null}
     </div>
   );
 }
@@ -196,7 +307,7 @@ export function DocumentRow({ doc, showFolder, folderName }) {
     dash.setToast({ kind: "ok", text: "Document supprimé." });
   };
 
-  const sub = [vendor?.name || item?.label, showFolder ? folderName : null].filter(Boolean).join(" · ");
+  const sub = [vendor?.name || (item ? posteName(item) : null), showFolder ? folderName : null].filter(Boolean).join(" · ");
 
   return (
     <div className="d-docrow">
