@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { budgetTotals, chosenKpis, guestStats, kpiContext, paymentTitle, taskStats, upcomingTasks } from "@/lib/dash/model";
 import { dayMonth, daysUntil, euros, longDate, shortDate } from "@/lib/dash/format";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Bar, KpiBar, PersonChip, Section } from "@/components/dash/ui";
+import { Bar, Btn, KpiBar, PersonChip, Section } from "@/components/dash/ui";
 import TaskRow from "@/components/dash/TaskRow";
 import WeddingModal from "@/components/dash/WeddingModal";
 
@@ -17,6 +17,16 @@ export default function Accueil() {
 
   const g = guestStats(data);
   const b = budgetTotals(data);
+  // Bandeau « Importer mes documents » : affiché tant que des postes n'ont pas de devis, sauf s'il a été fermé
+  const [bannerOff, setBannerOff] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("merry-import-banner") === "off") setBannerOff(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const quoteFiles = bannerOff || (items.length > 0 && b.signed >= items.length);
   const t = taskStats(data);
   const nFolders = (data.folders || []).length + (data.documents.some((d) => !d.folder_id) ? 1 : 0);
   const ctx = kpiContext(data);
@@ -76,6 +86,36 @@ export default function Accueil() {
           </Link>
         </div>
       </div>
+
+      {!quoteFiles ? (
+      <div className="d-import-banner">
+        <span className="d-import-banner-icon">
+          <Icon name="file" size={24} sw={1.8} />
+        </span>
+        <div className="d-import-banner-text">
+          <strong>Des prestataires déjà réservés ?</strong>
+          <span>Importez vos devis signés et vos factures réglées. Merry remplit le budget, les échéances et qui a payé quoi.</span>
+        </div>
+        <Btn icon="upload" href="/dashboard/budget/importer">
+          Importer mes documents
+        </Btn>
+        <button
+          type="button"
+          className="d-icon-btn"
+          aria-label="Masquer ce bandeau"
+          onClick={() => {
+            setBannerOff(true);
+            try {
+              window.localStorage.setItem("merry-import-banner", "off");
+            } catch {
+              /* ignore */
+            }
+          }}
+        >
+          <Icon name="x" size={14} />
+        </button>
+      </div>
+      ) : null}
 
       <KpiBar items={kpis} plusHref="/dashboard/indicateurs/accueil" />
 

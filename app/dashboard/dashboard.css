@@ -4372,3 +4372,389 @@ button.d-rsvp:hover {
   text-transform: uppercase;
   color: var(--d-muted);
 }
+
+/* ------------------------------------------------------------------ */
+/* Import des devis et factures (questions une par une)                */
+/* ------------------------------------------------------------------ */
+
+.d-imp {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.d-imp-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--d-panel, #f6f5f1);
+  font-size: 13px;
+  color: var(--d-muted);
+}
+.d-imp-counter strong {
+  color: var(--d-ink);
+  font-weight: 600;
+}
+.d-imp-drop {
+  font: inherit;
+  color: var(--d-ink);
+  border: 2px dashed #c9c7bd;
+  border-radius: 24px;
+  padding: 52px 24px;
+  background: #fbfbf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: center;
+}
+.d-imp-drop.is-over {
+  border-color: var(--d-ink);
+  background: #f4f3ef;
+}
+.d-imp-drop strong {
+  font-size: 18px;
+  font-weight: 600;
+}
+.d-imp-drop > span:last-child {
+  font-size: 14px;
+  color: var(--d-muted);
+}
+.d-imp-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: var(--d-lime);
+  margin-bottom: 4px;
+}
+.d-imp-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.d-imp-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+}
+.d-imp-file-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.d-imp-ext {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 46px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e4e2dc;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8c4229;
+}
+.d-imp-file .d-imp-ext {
+  width: 32px;
+  height: 36px;
+}
+.d-imp-progress {
+  display: flex;
+  gap: 6px;
+}
+.d-imp-progress span {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--d-line);
+}
+.d-imp-progress span.is-on {
+  background: #9b9a93;
+}
+.d-imp-progress span.is-done {
+  background: var(--d-ink);
+}
+.d-imp-doc {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--d-panel, #f6f5f1);
+}
+.d-imp-docname {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.d-imp-docmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+.d-imp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.d-imp-q {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.d-imp-option {
+  font: inherit;
+  color: var(--d-ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+.d-imp-option.is-on,
+.d-imp-payer.is-on {
+  border: 2px solid var(--d-ink);
+}
+.d-imp-option:hover,
+.d-imp-payer:hover {
+  border-color: var(--d-ink);
+}
+.d-imp-guess {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--d-lime);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.d-imp-payers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 520px) {
+  .d-imp-payers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .d-imp-q {
+    font-size: 24px;
+  }
+}
+.d-imp-payer {
+  font: inherit;
+  color: var(--d-ink);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+.d-imp-q-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--d-panel, #f6f5f1);
+  font-size: 14px;
+}
+.d-imp-fields {
+  border: 1px solid var(--d-line);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.d-imp-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 10px 8px 18px;
+  box-sizing: border-box;
+}
+.d-imp-field + .d-imp-field {
+  border-top: 1px solid var(--d-line);
+}
+.d-imp-field.is-flag {
+  background: #fffaf0;
+}
+.d-imp-field-label {
+  flex: 0 0 130px;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+.d-imp-field-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.d-imp-flag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #7a4a06;
+  font-size: 11px;
+  font-weight: 600;
+}
+.d-imp-validate {
+  min-height: 56px;
+  font-size: 16px;
+}
+.d-imp-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.d-imp-nav button {
+  font: inherit;
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--d-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.d-imp-nav button:disabled {
+  visibility: hidden;
+}
+.d-imp-fin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  padding-top: 12px;
+}
+.d-imp-fin h2 {
+  margin: 0;
+  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-weight: 400;
+  font-size: clamp(24px, 6.4vw, 30px);
+}
+.d-imp-fin-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  background: var(--d-lime);
+}
+.d-imp-fin-stats {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--d-panel, #f6f5f1);
+  text-align: left;
+}
+.d-imp-fin-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.d-imp-fin-stats span,
+.d-imp-fin-stats small {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+.d-imp-fin-stats strong {
+  font-size: 26px;
+  font-weight: 300;
+}
+@media (max-width: 520px) {
+  .d-imp-fin-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Bandeau d'accueil : importer ses devis */
+.d-import-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+  border-radius: 20px;
+  border: 1px solid var(--d-line);
+  background: #ffffff;
+}
+.d-import-banner-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--d-lime);
+}
+.d-import-banner-text {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.d-import-banner-text strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+.d-import-banner-text span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}

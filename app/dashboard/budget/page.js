@@ -100,8 +100,11 @@ export default function Budget() {
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
-            <Btn icon="plus" onClick={() => setAdding(true)}>
+            <Btn kind="strong" icon="plus" onClick={() => setAdding(true)}>
               Ajouter une dépense
+            </Btn>
+            <Btn icon="upload" href="/dashboard/budget/importer">
+              Importer devis et factures
             </Btn>
           </>
         }

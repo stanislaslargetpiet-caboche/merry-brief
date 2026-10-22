@@ -61,6 +61,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/invites/formulaire` | Réglages du formulaire invités : questions (non demandé, facultatif, obligatoire, intitulés modifiables), moments affichés, questions ajoutées, photo d'en-tête, petit mot, date limite, thème, lien à copier |
 | `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
+| `/dashboard/budget/importer` | Import des devis signés et des factures réglées : Merry lit chaque document, puis trois questions par document (devis ou facture, qui a payé, on a bien lu ?) avant de remplir le poste, le prestataire, les paiements, les échéances et le dossier « Factures et devis ». Un devis non signé est seulement rangé, pour la comparaison |
 | `/dashboard/budget/paiement/[poste]` | Effectuer un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
 | `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact (rempli par l'IA depuis un devis ou une facture : interlocuteur, téléphone, mail, site, RIB, montant du devis, échéances), résumé des échanges, fil des messages, documents (import ou choix dans Documents), bouton « Effectuer un paiement » |
 | `/dashboard/documents` | Dossiers partagés (Factures et devis, Mairie, Préparation religieuse…), recherche, documents ajoutés récemment (voir la section 10) |
@@ -80,6 +81,8 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 **À savoir** : les colonnes de suivi de `briefs` (`status`, `owner`, `notes`) restent lisibles par le couple qui a rempli le brief (règle d'origine de `schema.sql`). Les organisateurs invités, eux, ne lisent le brief que par la fonction `merry_brief`, sans ces colonnes. Avant d'écrire des remarques sensibles dans `notes`, il faudra les déplacer dans une table interne.
 
 **Démo** : `/dashboard?demo=1` affiche le mariage d'exemple de la maquette, enregistré seulement dans le navigateur (`?demo=0` pour en sortir). En local sans `.env.local`, la démo s'affiche directement.
+
+**Devis et factures (lecture par l'IA)** : même clé `ANTHROPIC_API_KEY` et même compteur quotidien que l'import des invités (route `/api/read-quote`, un document par appel, PDF de 3 Mo au plus, quatre premières pages au-delà). Sans clé, le couple remplit lui-même les montants à l'étape « On a bien lu ? ». Le RIB lu sur le document est gardé dans la fiche du prestataire (colonnes de `supabase/colonnes.sql`). L'Accueil affiche un bandeau « Des prestataires déjà réservés ? » tant que des postes n'ont pas de devis (fermable).
 
 **Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, résumé des échanges écrit par l'IA. Les devis et factures du budget restent des liens ; les fichiers eux-mêmes se déposent dans le bloc Documents (section 10).
 
