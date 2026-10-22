@@ -311,9 +311,6 @@ export default function Invites() {
             <Btn kind="strong" icon="download" href="/dashboard/invites/exporter">
               Exporter
             </Btn>
-            <Btn kind="ghost" icon="plus" onClick={() => setAdding(true)}>
-              Ajouter des invités
-            </Btn>
             <Btn icon="sparkle" href="/dashboard/invites/importer">
               Importer une liste
             </Btn>
@@ -374,6 +371,14 @@ export default function Invites() {
           </button>
         </div>
       </div>
+
+      {guests.length ? (
+        <div style={{ display: "flex" }}>
+          <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
+            Ajouter des invités
+          </Btn>
+        </div>
+      ) : null}
 
       {guests.length ? (
         <div className="d-cards d-mob-only">
