@@ -302,7 +302,7 @@ function AddGuests({ onClose }) {
 }
 
 // Téléphone : un invité par carte, les réponses sur une ligne, les coordonnées repliées
-function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
+function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, selected, onToggle }) {
   const dash = useDash();
   const [open, setOpen] = useState(false);
   const r = idx.get(g.id) || {};
@@ -315,8 +315,9 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
     dash.update("guests", g.id, { custom: next });
   };
   return (
-    <div className="d-gcard">
+    <div className={`d-gcard${selected ? " is-selected" : ""}`}>
       <div className="d-gcard-top">
+        <input type="checkbox" className="d-check" checked={!!selected} onChange={onToggle} aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`} style={{ marginTop: 3 }} />
         <div className="d-gcard-name">
           <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", g.id, splitName(v))} />
           <span className="d-guest-sub">
@@ -381,11 +382,57 @@ export default function Invites() {
   const q = normalize(query);
   const shown = base.filter((g) => (!groupFilter || g.group_id === groupFilter) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q)));
 
+  // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris)
+  const [selected, setSelected] = useState({});
+  const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
+  const toggle = (id) => setSelected((x) => ({ ...x, [id]: !x[id] }));
+  const selIds = shown.filter((g) => selected[g.id]).map((g) => g.id);
+  const allSelected = shown.length > 0 && selIds.length === shown.length;
+  const selectAll = () => setSelected(Object.fromEntries(shown.map((g) => [g.id, true])));
+  const clearSel = () => {
+    setSelected({});
+    setBulkMenu(null);
+  };
+  const ok = (text) => dash.setToast({ kind: "ok", text });
+  const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
+
+  async function bulkRemove() {
+    const everyone = selIds.length === guests.length;
+    const msg = everyone
+      ? `Supprimer toute la liste (${n(selIds.length, "invité", "invités")}) ? Leurs réponses seront effacées. Cette action est définitive.`
+      : `Retirer ${n(selIds.length, "invité", "invités")} de la liste ? Leurs réponses seront effacées.`;
+    if (!window.confirm(msg)) return;
+    const ids = selIds;
+    clearSel();
+    if (await dash.removeGuests(ids)) ok(`${n(ids.length, "invité retiré", "invités retirés")}.`);
+  }
+  async function bulkGroup(groupId) {
+    const ids = selIds;
+    const name = groupId ? groupById.get(groupId)?.name : null;
+    clearSel();
+    if (await dash.updateGuests(ids, { group_id: groupId })) ok(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`);
+  }
+  async function bulkMoment(ev, invite) {
+    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
+    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
+    clearSel();
+    if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
+  }
+
   const ctx = kpiContext(data);
   const stats = chosenKpis(data, "invites").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
+    {
+      key: "select",
+      label: "",
+      fixed: true,
+      noResize: true,
+      render: (g) => (
+        <input type="checkbox" className="d-check" checked={!!selected[g.id]} onChange={() => toggle(g.id)} aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`} />
+      ),
+    },
     {
       key: "name",
       label: "Invités",
@@ -434,6 +481,20 @@ export default function Invites() {
   function headFor(c) {
     if (c.custom) return <FieldHeader field={c.field} />;
     if (c.key === "tools") return c.label;
+    if (c.key === "select") {
+      return (
+        <input
+          type="checkbox"
+          className="d-check"
+          checked={allSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = selIds.length > 0 && !allSelected;
+          }}
+          onChange={() => (allSelected ? clearSel() : selectAll())}
+          aria-label="Tout sélectionner"
+        />
+      );
+    }
     if (c.event) {
       const ev = c.event;
       const n = (data.responses || []).filter((r) => r.event_id === ev.id && r.status !== "non_invite").length;
@@ -588,9 +649,72 @@ export default function Invites() {
       ) : null}
 
       {guests.length ? (
+        selIds.length ? (
+          <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
+            <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
+            <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
+              {!allSelected ? (
+                <button type="button" onClick={selectAll}>
+                  Tout sélectionner ({shown.length})
+                </button>
+              ) : null}
+              <span className="d-anchor">
+                <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
+                  Changer de groupe
+                </button>
+                <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
+                  {groups.map((g) => (
+                    <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
+                      <GroupChip group={g} />
+                    </button>
+                  ))}
+                  <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
+                    <span className="d-pop-label">Sans groupe</span>
+                  </button>
+                </Popover>
+              </span>
+              {events.length ? (
+                <span className="d-anchor">
+                  <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
+                    Moments
+                  </button>
+                  <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
+                    {events.map((ev) => (
+                      <span key={ev.id} style={{ display: "contents" }}>
+                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
+                          <span className="d-pop-label">Inviter à {ev.name}</span>
+                        </button>
+                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
+                          <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
+                        </button>
+                      </span>
+                    ))}
+                  </Popover>
+                </span>
+              ) : null}
+              <button type="button" onClick={clearSel}>
+                Tout désélectionner
+              </button>
+              <button type="button" className="is-danger" onClick={bulkRemove}>
+                <Icon name="trash" size={14} sw={2} />
+                {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
+              </button>
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
+              <Icon name="check" size={14} sw={2.2} />
+              Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
+            </button>
+          </div>
+        )
+      ) : null}
+
+      {guests.length ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} groups={groups} fields={fields} idx={idx} byId={byId} groupById={groupById} />
+            <GuestCard key={g.id} guest={g} events={events} groups={groups} fields={fields} idx={idx} byId={byId} groupById={groupById} selected={!!selected[g.id]} onToggle={() => toggle(g.id)} />
           ))}
           {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
         </div>
@@ -617,7 +741,7 @@ export default function Invites() {
                 const r = idx.get(g.id) || {};
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
-                  <tr key={g.id}>
+                  <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined}>
                     {cols.columns.map((c) => (
                       <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
                         {c.render(g, r, host)}
