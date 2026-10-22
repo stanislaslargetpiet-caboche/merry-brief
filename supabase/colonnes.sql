@@ -16,3 +16,8 @@ alter table public.guest_fields add column if not exists options text[] not null
 
 -- Paiements : un petit descriptif libre (« Acompte fleurs, chèque remis en main propre »)
 alter table public.payments add column if not exists note text check (note is null or length(note) <= 500);
+
+-- Prestataires : coordonnées bancaires, pour payer de son côté depuis « Noter un paiement »
+alter table public.vendors add column if not exists iban text check (iban is null or length(iban) <= 48);
+alter table public.vendors add column if not exists bic text check (bic is null or length(bic) <= 16);
+alter table public.vendors add column if not exists account_holder text check (account_holder is null or length(account_holder) <= 120);

@@ -4327,3 +4327,48 @@ button.d-rsvp:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Étapes du paiement */
+.d-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.d-steps-line {
+  flex: 1;
+  height: 1px;
+  background: var(--d-line);
+}
+
+.d-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--d-line);
+  color: var(--d-muted);
+  font-size: 12px;
+}
+
+.d-step.is-on {
+  background: var(--d-ink);
+  color: #ffffff;
+}
+
+.d-step.is-done {
+  background: var(--d-lime);
+  color: var(--d-ink);
+}
+
+.d-rib-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
