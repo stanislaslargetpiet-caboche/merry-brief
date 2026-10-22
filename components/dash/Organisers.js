@@ -22,6 +22,7 @@ export default function Organisers({ onClose }) {
   const [sending, setSending] = useState(null);
   const [sent, setSent] = useState({});
 
+  const meName = (members.find((x) => x.id === meId)?.display_name || "").trim();
   const couple = [wedding.partner1, wedding.partner2].filter(Boolean).join(" et ");
 
   async function add(e) {
@@ -61,7 +62,7 @@ export default function Organisers({ onClose }) {
   // Repli si l'envoi automatique n'est pas disponible (démo, service de mail non configuré)
   function openMailClient(m, email) {
     const subject = `Rejoins l'organisation du mariage de ${couple} sur Merry`;
-    const body = `Bonjour,\n\nOn organise notre mariage sur Merry : invités, rétroplanning et budget au même endroit. Tu y as le même accès que nous.\n\nPour nous rejoindre, crée ton accès ici :\n${inviteLink(m.invite_token)}\n\nÀ très vite !`;
+    const body = `Hello !\n\nJe t'invite à rejoindre Merry pour organiser notre événement.\n\n${inviteLink(m.invite_token)}${meName ? `\n\n${meName}` : ""}`;
     window.location.href = `mailto:${encodeURIComponent(email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 

@@ -44,18 +44,21 @@ export async function POST(req) {
   const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", member.wedding_id).maybeSingle();
   const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ") || "nos proches";
 
+  // Signature : le prénom de l'organisateur qui envoie l'invitation
+  const { data: me } = await sb.from("wedding_members").select("display_name").eq("wedding_id", member.wedding_id).eq("user_id", user.user.id).maybeSingle();
+  const sender = String(me?.display_name || user.user.user_metadata?.first_name || "").trim();
+
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const link = `${proto}://${host}/connexion?invitation=${member.invite_token}`;
 
   const subject = `Rejoins l'organisation du mariage de ${couple} sur Merry`;
-  const text = `Bonjour,\n\nOn organise notre mariage sur Merry : invités, rétroplanning et budget au même endroit. Tu y as le même accès que nous.\n\nPour nous rejoindre, crée ton accès ici :\n${link}\n\nÀ très vite !`;
+  const text = `Hello !\n\nJe t'invite à rejoindre Merry pour organiser notre événement.\n\n${link}${sender ? `\n\n${sender}` : ""}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111">
-<p>Bonjour,</p>
-<p>On organise notre mariage sur Merry : invités, rétroplanning et budget au même endroit. Tu y as le même accès que nous.</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">Créer mon accès</a></p>
-<p style="font-size:13px;color:#666">Ce lien ne sert qu'une fois. S'il ne s'ouvre pas, copie-le dans ton navigateur :<br>${esc(link)}</p>
-<p>À très vite !</p></div>`;
+<p>Hello !</p>
+<p>Je t'invite à rejoindre Merry pour organiser notre événement.</p>
+<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">Rejoindre Merry</a></p>
+${sender ? `<p>${esc(sender)}</p>\n` : ""}<p style="font-size:13px;color:#666">Ce lien ne sert qu'une fois. S'il ne s'ouvre pas, copie-le dans ton navigateur :<br>${esc(link)}</p></div>`;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
