@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { longDate } from "@/lib/dash/format";
 import { signedVendorChoices } from "@/lib/dash/links";
-import { GUEST_COUNTS, LIST_STATES, MOMENT_CHOICES, VENDOR_CHOICES, buildTasks, countTasks, currentDevice, defaultAnswers, missingEvents, savedAnswers, whenLabel } from "@/lib/dash/retro";
+import { MOMENT_CHOICES, VENDOR_CHOICES, buildTasks, countTasks, currentDevice, defaultAnswers, missingEvents, savedAnswers, whenLabel } from "@/lib/dash/retro";
 import { Icon, Tile } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
 
@@ -124,8 +124,6 @@ export default function GenererRetroplanning() {
   const date = data.wedding?.wedding_date;
   const noVendor = a.vendors.length === 0;
   const nSigned = signedVendorChoices(data).length;
-  const nGuests = (data.guests || []).length;
-  const briefGuests = GUEST_COUNTS.find((g) => g.id === data.brief?.guests && g.id !== "inconnu")?.label.toLowerCase();
 
   async function generate() {
     if (busy) return;
@@ -157,7 +155,7 @@ export default function GenererRetroplanning() {
           ) : null
         }
       />
-      <p className="d-lead">Quatre questions pour que Merry ne vous propose que ce qui reste à faire.</p>
+      <p className="d-lead">Deux questions pour que Merry ne vous propose que ce qui reste à faire.</p>
 
       {restored ? (
         <div className="d-restored" style={{ maxWidth: 880 }} role="status">
@@ -178,7 +176,18 @@ export default function GenererRetroplanning() {
       ) : null}
 
       <div className="d-col" style={{ gap: 20, maxWidth: 880 }}>
-        <Question n={1} title="Quels prestataires avez-vous déjà réservés ?" hint={`Merry saute leurs recherches et ne garde que les derniers points à confirmer avec eux.${nSigned ? " Ceux de vos devis signés sont déjà cochés." : ""}`}>
+        <Question n={1} title="Quelles grandes dates prévoyez-vous ?" hint="Chacune a ses tâches (dossier de mairie, menu du brunch…) et devient une colonne de réponses dans vos invités.">
+          <div className="d-chip-row">
+            {MOMENT_CHOICES.map((m) => (
+              <button key={m.id} type="button" className={`d-pill d-pill-lg${a.moments.includes(m.id) ? " is-on" : ""}`} aria-pressed={a.moments.includes(m.id)} onClick={() => toggle("moments", m.id)}>
+                {a.moments.includes(m.id) ? <Icon name="check" size={14} sw={2.4} /> : null}
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </Question>
+
+        <Question n={2} title="Quels prestataires avez-vous déjà réservés ?" hint={`Merry saute leurs recherches et ne garde que les derniers points à confirmer avec eux.${nSigned ? " Ceux de vos devis signés sont déjà cochés." : ""}`}>
           <div className="d-chip-row">
             {VENDOR_CHOICES.map((v) => (
               <button key={v.id} type="button" className={`d-pill d-pill-lg${a.vendors.includes(v.id) ? " is-on" : ""}`} aria-pressed={a.vendors.includes(v.id)} onClick={() => toggle("vendors", v.id)}>
@@ -189,50 +198,6 @@ export default function GenererRetroplanning() {
             <button type="button" className={`d-pill d-pill-lg${noVendor ? " is-on" : ""}`} aria-pressed={noVendor} onClick={() => upd((x) => ({ ...x, vendors: [] }))}>
               Aucun pour l'instant
             </button>
-          </div>
-        </Question>
-
-        <Question n={2} title="Combien d'invités environ ?" hint="Au-delà de 150, Merry ajoute le transport des invités." known={a.guests === data.brief?.guests ? briefGuests : null}>
-          <div className="d-chip-row">
-            {GUEST_COUNTS.map((g) => (
-              <button key={g.id} type="button" className={`d-pill d-pill-lg${a.guests === g.id ? " is-on" : ""}`} aria-pressed={a.guests === g.id} onClick={() => upd((x) => ({ ...x, guests: g.id }))}>
-                {a.guests === g.id ? <Icon name="check" size={14} sw={2.4} /> : null}
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </Question>
-
-        <Question n={3} title="Avez-vous déjà une liste d'invités ?" hint={
-            nGuests ? (
-              <>
-                Votre liste contient déjà <strong style={{ color: "var(--d-ink)" }}>{nGuests} invité{nGuests > 1 ? "s" : ""}</strong>. Selon votre réponse, Merry place la collecte des adresses et l'envoi des faire-part.
-              </>
-            ) : (
-              "Selon votre réponse, Merry place la collecte des adresses et l'envoi des faire-part au bon moment."
-            )
-          }>
-          <div className="d-chip-row">
-            {LIST_STATES.map((s) => (
-              <button key={s.id} type="button" className={`d-pill d-pill-lg${a.list === s.id ? " is-on" : ""}`} aria-pressed={a.list === s.id} onClick={() => upd((x) => ({ ...x, list: s.id }))}>
-                {a.list === s.id ? <Icon name="check" size={14} sw={2.4} /> : null}
-                {s.label}
-              </button>
-            ))}
-            <Link href="/dashboard/invites/importer" className="d-link" style={{ alignSelf: "center" }}>
-              Importer ma liste maintenant
-            </Link>
-          </div>
-        </Question>
-
-        <Question n={4} title="Quels moments prévoyez-vous ?" hint="Chacun a ses tâches (dossier de mairie, menu du brunch…) et devient une colonne de réponses dans vos invités.">
-          <div className="d-chip-row">
-            {MOMENT_CHOICES.map((m) => (
-              <button key={m.id} type="button" className={`d-pill d-pill-lg${a.moments.includes(m.id) ? " is-on" : ""}`} aria-pressed={a.moments.includes(m.id)} onClick={() => toggle("moments", m.id)}>
-                {a.moments.includes(m.id) ? <Icon name="check" size={14} sw={2.4} /> : null}
-                {m.label}
-              </button>
-            ))}
           </div>
         </Question>
 
