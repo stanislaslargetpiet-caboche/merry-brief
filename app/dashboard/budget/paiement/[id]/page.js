@@ -28,6 +28,7 @@ export default function Paiement() {
   const [split, setSplit] = useState(false);
   const [date, setDate] = useState(todayIso());
   const [method, setMethod] = useState("virement");
+  const [note, setNote] = useState("");
   const [invoice, setInvoice] = useState("");
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState({ label: "Solde", amount: "", due: "" });
@@ -71,12 +72,13 @@ export default function Paiement() {
       return { pid, amount: i === payers.length - 1 ? Math.round((amount - base * (payers.length - 1)) * 100) / 100 : base };
     });
     if (echeance) {
-      await dash.update("payments", echeance.id, { paid_at: date, payer_id: shares[0].pid, amount: shares[0].amount, method });
-      if (shares.length > 1) await dash.insert("payments", shares.slice(1).map((s) => ({ budget_item_id: item.id, label: echeance.label, amount: s.amount, due_date: echeance.due_date, paid_at: date, payer_id: s.pid, method })));
+      const noteVal = note.trim().slice(0, 500) || null;
+      await dash.update("payments", echeance.id, { paid_at: date, payer_id: shares[0].pid, amount: shares[0].amount, method, note: noteVal });
+      if (shares.length > 1) await dash.insert("payments", shares.slice(1).map((s) => ({ budget_item_id: item.id, label: echeance.label, amount: s.amount, due_date: echeance.due_date, paid_at: date, payer_id: s.pid, method, note: noteVal })));
     } else {
       await dash.insert(
         "payments",
-        shares.map((s) => ({ budget_item_id: item.id, label: choice === "reste" ? "Solde" : f.paid ? "Paiement" : "Acompte", amount: s.amount, due_date: date, paid_at: date, payer_id: s.pid, method })),
+        shares.map((s) => ({ budget_item_id: item.id, label: choice === "reste" ? "Solde" : f.paid ? "Paiement" : "Acompte", amount: s.amount, due_date: date, paid_at: date, payer_id: s.pid, method, note: note.trim().slice(0, 500) || null })),
       );
     }
     const url = invoice.trim();
@@ -198,6 +200,9 @@ export default function Paiement() {
               ))}
             </select>
           </Field>
+          <Field label="Descriptif (facultatif)" full>
+            <textarea className="d-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre…" />
+          </Field>
           <Field label="Lien de la facture (facultatif)" full>
             <input className="d-input" type="url" value={invoice} onChange={(e) => setInvoice(e.target.value)} placeholder="https://" />
           </Field>
@@ -236,6 +241,7 @@ export default function Paiement() {
                     {p.paid_at ? `Payé le ${shortDate(p.paid_at)}` : p.due_date ? `Prévu le ${shortDate(p.due_date)}` : "Sans date"}
                     {payer ? ` · ${payer.display_name}` : ""}
                   </small>
+                  {p.note ? <small style={{ display: "block", color: "var(--d-ink)", marginTop: 2 }}>{p.note}</small> : null}
                 </div>
                 <span className="d-amount" style={{ fontSize: 14 }}>
                   {euros(p.amount)}

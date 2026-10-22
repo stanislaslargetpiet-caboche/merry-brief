@@ -23,6 +23,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const [paidAt, setPaidAt] = useState(todayIso());
   const [payerId, setPayerId] = useState(meId || members[0]?.id || null);
   const [url, setUrl] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   const isNew = itemId === "new" || !items.length;
@@ -42,7 +43,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
       id = uid();
       await dash.insert("budget_items", { id, label: newLabel.trim(), icon: guessIcon(newLabel), position: items.length });
     }
-    await dash.insert("payments", { budget_item_id: id, label, amount: value, paid_at: paidAt || todayIso(), payer_id: payerId || null, due_date: null });
+    await dash.insert("payments", { budget_item_id: id, label, amount: value, paid_at: paidAt || todayIso(), payer_id: payerId || null, due_date: null, note: note.trim().slice(0, 500) || null });
     if (url.trim()) await dash.insert("documents", { budget_item_id: id, vendor_id: item?.vendor_id || null, kind: "facture", name: `Facture · ${label}`, url: url.trim() });
     dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${isNew ? newLabel.trim() : item.label}.` });
     onClose();
@@ -110,6 +111,9 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
               </button>
             ))}
           </div>
+        </Field>
+        <Field label="Descriptif (facultatif)" full>
+          <textarea className="d-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre, remise de 10 % négociée…" />
         </Field>
         <Field label="Lien de la facture (facultatif)" full hint={badUrl ? "Le lien doit commencer par https://" : "Drive, Dropbox, pièce jointe d'un mail… n'importe quel lien."}>
           <input className="d-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
