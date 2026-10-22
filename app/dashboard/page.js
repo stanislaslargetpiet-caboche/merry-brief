@@ -38,7 +38,6 @@ export default function Accueil() {
     { label: "Remplir le brief", done: !!(data.brief || wedding.brief_id), href: data.brief || wedding.brief_id ? "/dashboard/brief" : "/" },
     partner ? { label: `Inviter ${partner.display_name}`, done: !!partner.user_id, href: "#organisateurs" } : { label: "Inviter votre moitié", done: false, href: "#organisateurs" },
     { label: "Importer les listes d'invités", done: g.total >= 10, href: "/dashboard/invites/importer" },
-    { label: "Compléter les adresses", done: g.total > 0 && g.addresses / g.total >= 0.9, href: "/dashboard/invites" },
     { label: "Fixer le budget", done: wedding.budget_total !== null && wedding.budget_total !== undefined, href: "/dashboard/budget" },
     { label: "Signer un premier devis", done: b.signed > 0, href: "/dashboard/budget" },
   ].sort((a, z) => Number(a.done) - Number(z.done));
