@@ -187,6 +187,30 @@ export default function Paiement() {
           {split && payers.length > 1 ? <span className="d-small d-muted">{payers.length} parts de {euros(amount / payers.length)}</span> : null}
         </div>
 
+        <div className="d-col" style={{ gap: 10 }}>
+          <strong style={{ fontSize: 14 }}>Comment payer ?</strong>
+          <div className="d-g2 d-payway">
+            <div className="d-choice is-on" aria-current="true">
+              <span className="d-radio" />
+              <Icon name="bank" size={20} sw={1.7} />
+              <span className="d-choice-text">
+                <strong>De votre côté</strong>
+                <span>Virement, carte, chèque… vous réglez {vendor ? vendor.name : "le prestataire"} comme d'habitude et vous notez le paiement ici.</span>
+              </span>
+            </div>
+            <div className="d-choice is-off" aria-disabled="true" title="Pas encore disponible">
+              <span className="d-radio" />
+              <Icon name="lock" size={20} sw={1.7} />
+              <span className="d-choice-text">
+                <strong>
+                  Payer par Merry <span className="d-badge" style={{ marginLeft: 6 }}>Bientôt</span>
+                </strong>
+                <span>En deux clics depuis le tableau de bord, le reçu rangé tout seul.</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="d-form-grid">
           <Field label="Payé le">
             <input className="d-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -224,7 +248,7 @@ export default function Paiement() {
           Noter le paiement de {euros(amount)}
         </Btn>
         <p className="d-small d-muted" style={{ margin: 0, textAlign: "center" }}>
-          Vous réglez le prestataire comme d'habitude, Merry garde la trace. Le paiement directement depuis Merry arrive bientôt.
+          Merry garde la trace de ce que vous avez payé ; il n'encaisse rien.
         </p>
       </section>
 

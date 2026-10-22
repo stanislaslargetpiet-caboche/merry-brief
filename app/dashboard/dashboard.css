@@ -4290,3 +4290,40 @@ button.d-rsvp:hover {
   white-space: nowrap;
   max-width: 260px;
 }
+
+/* Façon de payer : l'option Merry n'est pas encore ouverte */
+.d-payway .d-choice {
+  align-items: flex-start;
+}
+
+.d-payway .d-choice > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.d-choice.is-off {
+  background: var(--d-panel);
+  border-color: var(--d-panel);
+  color: var(--d-muted);
+  cursor: not-allowed;
+}
+
+.d-choice.is-off .d-radio {
+  border-color: #cfccc3;
+  background: #ffffff;
+}
+
+.d-choice.is-off strong {
+  color: var(--d-muted);
+}
+
+.d-choice.is-off .d-badge {
+  background: #e4e2dc;
+  color: #4d4c46;
+}
+
+@media (max-width: 700px) {
+  .d-payway {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
