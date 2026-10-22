@@ -3264,6 +3264,21 @@ button.d-rsvp:hover {
   }
 }
 
+.d-groups-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.d-group-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 0;
+  box-shadow: inset 0 0 0 1.5px rgba(28, 28, 26, 0.15);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
 /* ---------- Import ---------- */
 
 .d-drop-big {
@@ -3373,6 +3388,109 @@ button.d-rsvp:hover {
 
 .d-row-selected td {
   background: #f4f3ef;
+}
+
+.d-pill.is-off {
+  border: 1.5px solid #9b2c2c;
+  color: #9b2c2c;
+  background: #fde0de;
+  font-weight: 600;
+}
+
+.d-bulk-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-bulk-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-bulk-row:first-child {
+  border-top: none;
+}
+
+.d-bulk-row > .d-check {
+  margin-top: 3px;
+}
+
+.d-bulk-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.d-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.d-note.is-empty {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px dashed rgba(28, 28, 26, 0.25);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.d-note-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.d-note-input {
+  border: none;
+  background: transparent;
+  resize: vertical;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 0;
+  min-height: 48px;
+}
+
+.d-note-input:focus {
+  outline: none;
+}
+
+.d-note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.d-note-meta {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.d-note-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(28, 28, 26, 0.08);
+  cursor: pointer;
+  color: inherit;
 }
 
 /* ---------- Budget : répartition, dépenses, outils ---------- */

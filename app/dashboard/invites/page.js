@@ -1,15 +1,99 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
+import { columnValues } from "@/lib/dash/codes";
 import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpMenu } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
+import GroupsModal from "@/components/dash/GroupsModal";
+import BulkEditModal from "@/components/dash/BulkEditModal";
+import GuestsNote from "@/components/dash/GuestsNote";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
+
+// Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
+// si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
+function fieldFilterValues(field, guests) {
+  if (field.kind !== "choice") return columnValues(guests, field.id);
+  return (field.options || []).map((o) => ({ key: normalize(o), label: o, n: guests.filter((g) => normalize((g.custom || {})[field.id] || "") === normalize(o)).length }));
+}
+
+// Filtre « par colonne » : choisir d'abord la colonne, puis la valeur
+function ColumnFilter({ fields, guests, value, onChange }) {
+  const [open, setOpen] = useState(null); // null fermé | "field" | "value"
+  const [field, setField] = useState(null);
+  const options = field ? fieldFilterValues(field, guests) : [];
+  const close = () => {
+    setOpen(null);
+    setField(null);
+  };
+  if (value) {
+    return (
+      <span className="d-pill is-on" style={{ gap: 8 }}>
+        {value.fieldName} : {value.label}
+        <button type="button" className="d-icon-btn" style={{ width: 18, height: 18 }} onClick={() => onChange(null)} aria-label="Retirer ce filtre">
+          <Icon name="x" size={12} sw={2.4} />
+        </button>
+      </span>
+    );
+  }
+  return (
+    <span className="d-anchor">
+      <button type="button" className="d-pill is-dashed" onClick={() => setOpen(open ? null : "field")} aria-haspopup="menu" aria-expanded={!!open}>
+        <Icon name="search" size={13} sw={2.2} />
+        Filtrer par colonne
+      </button>
+      <Popover open={open === "field"} onClose={close}>
+        {fields.length ? (
+          fields.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className="d-pop-item"
+              onClick={() => {
+                setField(f);
+                setOpen("value");
+              }}
+            >
+              <span className="d-pop-label">{f.name}</span>
+            </button>
+          ))
+        ) : (
+          <span className="d-pop-label d-muted d-small" style={{ padding: "4px 8px" }}>
+            Pas encore de colonne à filtrer.
+          </span>
+        )}
+      </Popover>
+      <Popover open={open === "value"} onClose={close}>
+        {options.length ? (
+          options.map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              className="d-pop-item"
+              onClick={() => {
+                onChange({ fieldId: field.id, fieldName: field.name, key: o.key, label: o.label });
+                close();
+              }}
+            >
+              <span className="d-pop-label">
+                {o.label} · {o.n}
+              </span>
+            </button>
+          ))
+        ) : (
+          <span className="d-pop-label d-muted d-small" style={{ padding: "4px 8px" }}>
+            Pas encore de valeur pour cette colonne.
+          </span>
+        )}
+      </Popover>
+    </span>
+  );
+}
 
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
@@ -345,33 +429,51 @@ export default function Invites() {
   const { guests, groups, events, fields, wedding } = data;
   const [eventPick, setEventFilter] = useState(null);
   const [moments, setMoments] = useState(false);
+  const [groupsModal, setGroupsModal] = useState(false);
   const [groupFilter, setGroupFilter] = useState(null);
+  const [fieldFilter, setFieldFilter] = useState(null);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState(false);
 
   // Un moment supprimé ne reste pas sélectionné
   const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
+  // Une colonne supprimée ne reste pas filtrée
+  const activeFieldFilter = fieldFilter && fields.some((f) => f.id === fieldFilter.fieldId) ? fieldFilter : null;
   const idx = useMemo(() => responseIndex(data.responses), [data.responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
   const inEvent = (g) => !eventFilter || ((idx.get(g.id) || {})[eventFilter] || "non_invite") !== "non_invite";
+  const inFieldFilter = (g) => !activeFieldFilter || normalize((g.custom || {})[activeFieldFilter.fieldId] || "") === activeFieldFilter.key;
   const base = guests.filter(inEvent);
   const q = normalize(query);
-  const shown = base.filter((g) => (!groupFilter || g.group_id === groupFilter) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q)));
+  const shown = base.filter((g) => (!groupFilter || g.group_id === groupFilter) && inFieldFilter(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q)));
 
-  // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris)
+  // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris),
+  // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
   const [selected, setSelected] = useState({});
-  const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
+  const lastClickRef = useRef(null);
   const toggle = (id) => setSelected((x) => ({ ...x, [id]: !x[id] }));
+  const toggleWithRange = (id, index, shiftKey) => {
+    if (shiftKey && lastClickRef.current !== null) {
+      const [a, b] = [lastClickRef.current, index].sort((x, y) => x - y);
+      const turnOn = !selected[id];
+      setSelected((x) => {
+        const next = { ...x };
+        for (let i = a; i <= b; i += 1) next[shown[i].id] = turnOn;
+        return next;
+      });
+    } else {
+      toggle(id);
+    }
+    lastClickRef.current = index;
+  };
   const selIds = shown.filter((g) => selected[g.id]).map((g) => g.id);
   const allSelected = shown.length > 0 && selIds.length === shown.length;
   const selectAll = () => setSelected(Object.fromEntries(shown.map((g) => [g.id, true])));
-  const clearSel = () => {
-    setSelected({});
-    setBulkMenu(null);
-  };
+  const clearSel = () => setSelected({});
   const ok = (text) => dash.setToast({ kind: "ok", text });
   const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
 
@@ -385,18 +487,6 @@ export default function Invites() {
     clearSel();
     if (await dash.removeGuests(ids)) ok(`${n(ids.length, "invité retiré", "invités retirés")}.`);
   }
-  async function bulkGroup(groupId) {
-    const ids = selIds;
-    const name = groupId ? groupById.get(groupId)?.name : null;
-    clearSel();
-    if (await dash.updateGuests(ids, { group_id: groupId })) ok(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`);
-  }
-  async function bulkMoment(ev, invite) {
-    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
-    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
-    clearSel();
-    if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
-  }
 
   const stats = kpiItems(data, "invites");
 
@@ -407,8 +497,19 @@ export default function Invites() {
       label: "",
       fixed: true,
       noResize: true,
-      render: (g) => (
-        <input type="checkbox" className="d-check" checked={!!selected[g.id]} onChange={() => toggle(g.id)} aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`} />
+      render: (g, r, host, rowIdx) => (
+        <input
+          type="checkbox"
+          className="d-check"
+          checked={!!selected[g.id]}
+          onChange={() => {}}
+          onClick={(e) => {
+            e.preventDefault();
+            toggleWithRange(g.id, rowIdx, e.shiftKey);
+          }}
+          aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`}
+          title="Clic : sélectionner · Maj + clic : sélectionner une plage"
+        />
       ),
     },
     {
@@ -534,6 +635,8 @@ export default function Invites() {
 
       <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
 
+      <GuestsNote />
+
       <div className="d-col" style={{ gap: 14 }}>
         <div className="d-filters" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-scroll-x">
@@ -578,6 +681,11 @@ export default function Invites() {
                 </button>
               );
             })}
+            <button type="button" className="d-pill is-dashed" onClick={() => setGroupsModal(true)} aria-label="Modifier les groupes" title="Modifier les groupes">
+              <Icon name="pencil" size={14} sw={2} />
+              <span className="d-desk-only">Modifier les groupes</span>
+            </button>
+            <ColumnFilter fields={fields} guests={guests} value={activeFieldFilter} onChange={setFieldFilter} />
           </div>
           <span className="d-filters d-desk-only">
             {cols.customised ? (
@@ -636,40 +744,9 @@ export default function Invites() {
                   Tout sélectionner ({shown.length})
                 </button>
               ) : null}
-              <span className="d-anchor">
-                <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
-                  Changer de groupe
-                </button>
-                <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
-                  {groups.map((g) => (
-                    <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
-                      <GroupChip group={g} />
-                    </button>
-                  ))}
-                  <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
-                    <span className="d-pop-label">Sans groupe</span>
-                  </button>
-                </Popover>
-              </span>
-              {events.length ? (
-                <span className="d-anchor">
-                  <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
-                    Moments
-                  </button>
-                  <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
-                    {events.map((ev) => (
-                      <span key={ev.id} style={{ display: "contents" }}>
-                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
-                          <span className="d-pop-label">Inviter à {ev.name}</span>
-                        </button>
-                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
-                          <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
-                        </button>
-                      </span>
-                    ))}
-                  </Popover>
-                </span>
-              ) : null}
+              <button type="button" onClick={() => setBulkEdit(true)}>
+                Modifier en masse
+              </button>
               <button type="button" onClick={clearSel}>
                 Tout désélectionner
               </button>
@@ -715,14 +792,14 @@ export default function Invites() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((g) => {
+              {shown.map((g, rowIdx) => {
                 const r = idx.get(g.id) || {};
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
                   <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined}>
                     {cols.columns.map((c) => (
                       <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
-                        {c.render(g, r, host)}
+                        {c.render(g, r, host, rowIdx)}
                       </td>
                     ))}
                   </tr>
@@ -748,6 +825,8 @@ export default function Invites() {
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
+      {groupsModal ? <GroupsModal onClose={() => setGroupsModal(false)} /> : null}
+      {bulkEdit ? <BulkEditModal guestIds={selIds} onClose={() => setBulkEdit(false)} /> : null}
     </>
   );
 }
