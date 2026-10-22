@@ -573,38 +573,8 @@ begin
     i := i + 1;
   end loop;
 
-  -- Rétroplanning type, calé sur la date du mariage
-  i := 0;
-  for rec in
-    select * from (values
-      ('Fixer le budget', 'wallet', 365, false), ('Réserver le lieu', 'lieu', 330, false),
-      ('Choisir le traiteur', 'traiteur', 300, false), ('Réserver le photographe', 'photo', 300, false),
-      ('Choisir le DJ', 'musique', 270, false), ('Bloquer des chambres près du lieu', 'lit', 240, false),
-      ('Envoyer les save-the-date', 'enveloppe', 240, false), ('Choisir le fleuriste', 'fleurs', 180, false),
-      ('Premiers essayages', 'tenues', 150, false), ('Commander les faire-part', 'enveloppe', 120, false),
-      ('Choisir les alliances', 'alliances', 120, false), ('Réserver le brunch du dimanche', 'traiteur', 90, true),
-      ('Déposer le dossier à la mairie', 'mairie', 60, false), ('Essai coiffure et maquillage', 'beaute', 60, false),
-      ('Relancer les invités sans réponse', 'users', 45, false), ('Faire le plan de table', 'table', 30, false),
-      ('Liste des photos de groupe', 'photo', 30, false), ('Envoyer le déroulé aux prestataires', 'horloge', 10, false)
-    ) as v(title, icon, days_before, weekend_only)
-  loop
-    if rec.weekend_only and not weekend then
-      continue;
-    end if;
-    -- Ce que le brief dit déjà fait est coché ; les tâches en retard sont étalées
-    -- sur les semaines qui viennent plutôt qu'empilées le même jour.
-    insert into public.tasks (wedding_id, title, icon, due_date, done, done_at, assignees, position)
-    values (w, rec.title, rec.icon,
-            case when d is null then null
-                 when d - rec.days_before >= current_date + 14 then d - rec.days_before
-                 else least(d, current_date + 14 + i * 3) end,
-            coalesce((rec.title = 'Réserver le lieu' and b.stage in ('lieu_reserve', 'details'))
-                     or (rec.title = 'Fixer le budget' and total is not null), false),
-            case when coalesce((rec.title = 'Réserver le lieu' and b.stage in ('lieu_reserve', 'details'))
-                            or (rec.title = 'Fixer le budget' and total is not null), false) then now() end,
-            array_remove(array[m1, m2], null), i);
-    i := i + 1;
-  end loop;
+  -- Pas de rétroplanning pré-rempli : le couple le génère depuis l'accueil (quatre questions)
+  -- puis Merry crée les tâches, datées à rebours de la date du mariage.
 
   return w;
 end;

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { budgetTotals, chosenKpis, guestStats, kpiContext, paymentTitle, taskStats, upcomingTasks } from "@/lib/dash/model";
 import { dayMonth, daysUntil, euros, longDate, shortDate } from "@/lib/dash/format";
-import { Icon, Tile, guessIcon } from "@/components/dash/icons";
+import { DuoIcon, Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Bar, Btn, KpiBar, PersonChip, Section } from "@/components/dash/ui";
 import TaskRow from "@/components/dash/TaskRow";
 import WeddingModal from "@/components/dash/WeddingModal";
@@ -53,9 +53,11 @@ export default function Accueil() {
   ].sort((a, z) => Number(a.done) - Number(z.done));
   const doneSteps = steps.filter((s) => s.done).length;
 
-  return (
-    <>
-      <div className="d-home-head">
+  // Première connexion : rien n'est encore généré, tout part du rétroplanning
+  const firstVisit = data.tasks.length === 0;
+
+  const head = (
+    <div className="d-home-head">
         <div style={{ minWidth: 0 }}>
           <h1 className="d-title" style={{ fontSize: "clamp(26px, 6.4vw, 36px)" }}>
             {title}
@@ -85,7 +87,96 @@ export default function Accueil() {
             Votre brief <Icon name="chev" size={16} sw={2} />
           </Link>
         </div>
-      </div>
+    </div>
+  );
+
+  if (firstVisit) {
+    const startSteps = [
+      { label: "Créer votre espace", sub: "Votre brief est enregistré", done: true },
+      { label: "Générer le rétroplanning", sub: "Quatre questions", href: "/dashboard/retroplanning/generer" },
+      { label: "Importer votre liste d'invités", sub: "Excel, photo, PDF…", href: "/dashboard/invites/importer" },
+      { label: "Inviter un organisateur", sub: "Votre moitié, vos parents, un témoin", href: "#organisateurs" },
+    ];
+    const startDone = startSteps.filter((s) => s.done).length;
+    return (
+      <>
+        {head}
+        <p className="d-lead" style={{ margin: 0 }}>
+          Bienvenue sur Merry. Tout part du rétroplanning : quatre questions, et vous savez quoi faire et quand.
+        </p>
+        <div className="d-grid-side">
+          <div className="d-col" style={{ gap: 26 }}>
+            <section className="d-first-card">
+              <span className="d-first-icon">
+                <Icon name="calendar" size={30} sw={1.6} />
+              </span>
+              <div className="d-first-text">
+                <h2>Votre rétroplanning</h2>
+                <p>
+                  Dites-nous ce qui est déjà fait : Merry prépare toutes les étapes{wedding.wedding_date ? ` jusqu'au ${longDate(wedding.wedding_date).replace(/^\S+\s/, "")}` : ""}, datées et réparties entre vous.
+                </p>
+                <span className="d-small d-muted">Environ 2 minutes</span>
+              </div>
+              <Btn icon="sparkle" href="/dashboard/retroplanning/generer">
+                Générer un rétroplanning
+              </Btn>
+            </section>
+            <div className="d-col">
+              <Section title="Prochaines tâches" />
+              <div className="d-empty">
+                <p>Vos tâches apparaîtront ici dès que le rétroplanning sera prêt.</p>
+                <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
+                  Générer un rétroplanning
+                </Btn>
+              </div>
+            </div>
+          </div>
+          <div className="d-col">
+            <section className="d-card">
+              <h2>Bien démarrer</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Bar value={(startDone / startSteps.length) * 100} />
+                <span className="d-small d-muted">
+                  {startDone}/{startSteps.length}
+                </span>
+              </div>
+              <ul className="d-checklist">
+                {startSteps.map((s) => (
+                  <li key={s.label} className={s.done ? "is-done" : ""}>
+                    {s.done ? (
+                      <div className="d-check-row">
+                        <span className="d-dot is-done">
+                          <Icon name="check" size={13} sw={2.4} />
+                        </span>
+                        <span style={{ flex: 1 }}>
+                          <span>{s.label}</span>
+                          <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
+                        </span>
+                      </div>
+                    ) : (
+                      <a href={s.href}>
+                        <span className="d-dot" />
+                        <span style={{ flex: 1 }}>
+                          <span>{s.label}</span>
+                          <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
+                        </span>
+                        <Icon name="chev" size={16} sw={2} />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </div>
+        {editWedding ? <WeddingModal onClose={() => setEditWedding(false)} /> : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {head}
 
       {!quoteFiles ? (
       <div className="d-import-banner">
@@ -178,12 +269,12 @@ export default function Accueil() {
             <Section title="Bientôt" />
             <div className="d-g3 d-soon-grid">
               {[
-                ["boutique", "Prestataires"],
-                ["ecran", "Site de mariage"],
-                ["cadeau", "Liste & cagnotte"],
-              ].map(([icon, label]) => (
-                <div key={label} className="d-module is-soon">
-                  <Tile name={icon} size={36} bg="#ffffff" fill="#ffffff" />
+                ["boutique", "Prestataires", "#fbe5dc", "#8c4229", "#f1b8a1"],
+                ["ecran", "Site de mariage", "#e0ebf6", "#2b5479", "#a5c4e4"],
+                ["cadeau", "Liste & cagnotte", "#ebe6fb", "#4a3d99", "#bcb0f0"],
+              ].map(([icon, label, bg, ink, fill]) => (
+                <div key={label} className="d-module is-soon" style={{ background: bg, color: ink }}>
+                  <DuoIcon name={icon} size={24} fill={fill} />
                   {label}
                 </div>
               ))}
