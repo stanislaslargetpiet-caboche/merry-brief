@@ -284,34 +284,36 @@ export default function Accueil() {
         </div>
 
         <div className="d-col">
-          <section className="d-card">
-            <h2>Bien démarrer</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Bar value={(doneSteps / steps.length) * 100} />
-              <span className="d-small d-muted">
-                {doneSteps}/{steps.length}
-              </span>
-            </div>
-            <ul className="d-checklist">
-              {steps.map((s) => (
-                <li key={s.label} className={s.done ? "is-done" : ""}>
-                  {s.act ? (
-                    <button type="button" onClick={s.act}>
-                      <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
-                      <span style={{ flex: 1, textAlign: "left" }}>{s.label}</span>
-                      <Icon name="chev" size={16} sw={2} />
-                    </button>
-                  ) : (
-                    <a href={s.href}>
-                      <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
-                      <span style={{ flex: 1 }}>{s.label}</span>
-                      <Icon name="chev" size={16} sw={2} />
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+          {doneSteps < steps.length ? (
+            <section className="d-card">
+              <h2>Bien démarrer</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Bar value={(doneSteps / steps.length) * 100} />
+                <span className="d-small d-muted">
+                  {doneSteps}/{steps.length}
+                </span>
+              </div>
+              <ul className="d-checklist">
+                {steps.map((s) => (
+                  <li key={s.label} className={s.done ? "is-done" : ""}>
+                    {s.act ? (
+                      <button type="button" onClick={s.act}>
+                        <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                        <span style={{ flex: 1, textAlign: "left" }}>{s.label}</span>
+                        <Icon name="chev" size={16} sw={2} />
+                      </button>
+                    ) : (
+                      <a href={s.href}>
+                        <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                        <span style={{ flex: 1 }}>{s.label}</span>
+                        <Icon name="chev" size={16} sw={2} />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {next && nextItem ? (
             <section className="d-card is-panel">
