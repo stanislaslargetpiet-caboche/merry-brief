@@ -8,13 +8,49 @@ import { normalize, uid } from "@/lib/dash/format";
 import { guestKey } from "@/lib/dash/importParse";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { Icon } from "@/components/dash/icons";
-import { Btn, GroupChip, InlineEdit, PageHeader, Section } from "@/components/dash/ui";
+import { Btn, GroupChip, InlineEdit, PageHeader, Popover, Section } from "@/components/dash/ui";
 
 const MAX_FILES = 15;
 const PARALLEL = 3; // parties lues en même temps par l'IA
 
 function plural(n, one, many) {
   return `${n} ${n > 1 ? many : one}`;
+}
+
+// Groupe d'une ligne de l'aperçu : un clic propose les autres groupes
+function RowGroup({ group, groups, onPick }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="d-anchor">
+      <GroupChip group={group} onClick={() => setOpen((o) => !o)} />
+      <Popover open={open} onClose={() => setOpen(false)}>
+        {groups.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            className={`d-pop-item${group && g.id === group.id ? " is-on" : ""}`}
+            onClick={() => {
+              onPick(g.id);
+              setOpen(false);
+            }}
+          >
+            <GroupChip group={g} />
+            {group && g.id === group.id ? <Icon name="check" size={14} sw={2.2} /> : null}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="d-pop-item"
+          onClick={() => {
+            onPick("none");
+            setOpen(false);
+          }}
+        >
+          <span className="d-pop-label">Sans groupe</span>
+        </button>
+      </Popover>
+    </span>
+  );
 }
 
 export default function Importer() {
@@ -228,7 +264,7 @@ export default function Importer() {
         address: r.address || null,
         email: r.email || null,
         phone: r.phone || null,
-        group_id: r.group_id || defaultGroup || null,
+        group_id: r.group_id === "none" ? null : r.group_id || defaultGroup || null,
         custom: toCustom(r.extra),
         position: pos++,
         _row: r,
@@ -501,7 +537,7 @@ export default function Importer() {
                           />
                           <span className="d-guest-sub">
                             {r.age ? <span>{r.age} ans</span> : null}
-                            <GroupChip group={group} />
+                            <RowGroup group={group} groups={groups} onPick={(id) => edit(r.id, { group_id: id })} />
                           </span>
                         </div>
                       </td>
