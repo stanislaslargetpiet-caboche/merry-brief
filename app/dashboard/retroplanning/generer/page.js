@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { longDate } from "@/lib/dash/format";
+import { signedVendorChoices } from "@/lib/dash/links";
 import { GUEST_COUNTS, LIST_STATES, MOMENT_CHOICES, VENDOR_CHOICES, buildTasks, countTasks, defaultAnswers, missingEvents } from "@/lib/dash/retro";
 import { Icon, Tile } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
@@ -60,6 +61,7 @@ export default function GenererRetroplanning() {
   const count = useMemo(() => countTasks(a, data), [a, data]);
   const date = data.wedding?.wedding_date;
   const noVendor = a.vendors.length === 0;
+  const nSigned = signedVendorChoices(data).length;
   const briefGuests = GUEST_COUNTS.find((g) => g.id === data.brief?.guests && g.id !== "inconnu")?.label.toLowerCase();
 
   async function generate() {
@@ -83,7 +85,7 @@ export default function GenererRetroplanning() {
       <p className="d-lead">Quatre questions pour que Merry ne vous propose que ce qui reste à faire.</p>
 
       <div className="d-col" style={{ gap: 20, maxWidth: 880 }}>
-        <Question n={1} title="Quels prestataires avez-vous déjà réservés ?" hint="Merry saute leurs recherches et ne garde que les derniers points à confirmer avec eux.">
+        <Question n={1} title="Quels prestataires avez-vous déjà réservés ?" hint={`Merry saute leurs recherches et ne garde que les derniers points à confirmer avec eux.${nSigned ? " Ceux de vos devis signés sont déjà cochés." : ""}`}>
           <div className="d-chip-row">
             {VENDOR_CHOICES.map((v) => (
               <button key={v.id} type="button" className={`d-pill d-pill-lg${a.vendors.includes(v.id) ? " is-on" : ""}`} aria-pressed={a.vendors.includes(v.id)} onClick={() => toggle("vendors", v.id)}>

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
-import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
+import { budgetTotals, coupleIds, isBoth, paymentTitle, taskGroups, taskStats } from "@/lib/dash/model";
+import { dayMonth, daysUntil, euros } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
@@ -29,6 +31,8 @@ export default function Retroplanning() {
   }, [wedding?.id, data.events]);
 
   const st = taskStats(data);
+  // Les échéances de paiement restent dans le budget ; on les rappelle ici sans les dupliquer en tâches
+  const payments = budgetTotals(data).upcoming.slice(0, 4);
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
@@ -127,6 +131,33 @@ export default function Retroplanning() {
         </div>
 
         <div className="d-col">
+          {payments.length ? (
+            <section className="d-card">
+              <h2>Paiements à venir</h2>
+              <div>
+                {payments.map((p) => {
+                  const item = data.items.find((i) => i.id === p.budget_item_id);
+                  const late = p.due_date && daysUntil(p.due_date) < 0;
+                  return (
+                    <Link key={p.id} href={`/dashboard/budget/paiement/${p.budget_item_id}?echeance=${p.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: "1px solid var(--d-line)", textDecoration: "none", color: "inherit" }}>
+                      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>{paymentTitle(item, p)}</span>
+                        <span className="d-small" style={{ color: late ? "var(--d-red-ink)" : "var(--d-muted)" }}>
+                          {p.due_date ? `${late ? "En retard, " : ""}${dayMonth(p.due_date)}` : "Sans date"}
+                        </span>
+                      </span>
+                      <span className="d-amount" style={{ fontSize: 15 }}>
+                        {euros(p.amount)}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+              <Link href="/dashboard/budget" className="d-link" style={{ alignSelf: "flex-start" }}>
+                Tout le budget
+              </Link>
+            </section>
+          ) : null}
           <section className="d-card">
             <h2>Qui fait quoi</h2>
             <div>
