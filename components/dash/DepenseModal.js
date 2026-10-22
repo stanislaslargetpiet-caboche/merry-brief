@@ -5,7 +5,7 @@
 
 import { useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
-import { itemFinance } from "@/lib/dash/model";
+import { itemFinance, posteName } from "@/lib/dash/model";
 import { euros, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
@@ -56,7 +56,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
       const res = await dash.uploadDocument(file, { folderId: folder?.id || null, kind: "facture", budgetItemId: id, vendorId: item?.vendor_id || null, name: file.name });
       if (!res.ok) dash.setToast({ kind: "error", text: res.reason === "size" ? `La facture dépasse ${fileSize(DOCUMENT_MAX_BYTES)}.` : res.reason === "setup" ? "Le stockage des documents n'est pas installé (supabase/documents.sql) : la dépense est notée sans la facture." : "La facture n'a pas pu être envoyée ; la dépense est notée sans elle." });
     } else if (useLink && url.trim()) await dash.insert("documents", { budget_item_id: id, vendor_id: item?.vendor_id || null, kind: "facture", name: `Facture · ${label}`, url: url.trim() });
-    dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${isNew ? newLabel.trim() : item.label}.` });
+    dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${isNew ? newLabel.trim() : posteName(item)}.` });
     onClose();
   }
 
@@ -83,7 +83,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           <select className="d-select" value={isNew ? "new" : itemId} onChange={(e) => setItemId(e.target.value)} autoFocus>
             {items.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.label}
+                {posteName(i)}
               </option>
             ))}
             <option value="new">Nouveau poste…</option>
@@ -152,7 +152,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
       </form>
       {value && (item || newLabel.trim()) ? (
         <div className="d-note-ok">
-          Elle s'ajoute au poste <b>{isNew ? newLabel.trim() : item.label}</b>
+          Elle s'ajoute au poste <b>{isNew ? newLabel.trim() : posteName(item)}</b>
           {f && total ? ` (${euros(f.paid + value)} payés sur ${euros(total)})` : ""}
           {payer ? (
             <>

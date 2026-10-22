@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { itemFinance } from "@/lib/dash/model";
+import { itemFinance, posteName } from "@/lib/dash/model";
 import { dayMonth, euros, parseAmount, shortDate, todayIso, uid } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
@@ -124,9 +124,9 @@ export default function Paiement() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <Tile name={item.icon || guessIcon(item.label)} size={52} />
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-            <strong style={{ fontSize: 18, fontWeight: 600 }}>{vendor?.name || item.label}</strong>
+            <strong style={{ fontSize: 18, fontWeight: 600 }}>{vendor?.name || posteName(item)}</strong>
             <span className="d-small d-muted">
-              {vendor?.category || item.label}
+              {item.category ? posteName(item) : vendor?.category || item.label}
               {f.quote !== null ? ` · devis signé de ${euros(f.quote)}` : ""}
             </span>
           </div>

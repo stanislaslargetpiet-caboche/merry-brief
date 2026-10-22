@@ -77,7 +77,7 @@ export default function Dossier() {
 
       <div className="d-grid-side">
         <div className="d-col" style={{ gap: 18 }}>
-          <DropZone folderId={folder.virtual ? null : folder.id} />
+          <DropZone folderId={folder.virtual ? null : folder.id} folderName={folder.virtual ? null : folder.name} />
           {docs.length ? (
             <div className="d-docs-list">
               <div className="d-docrow is-head" aria-hidden="true">
