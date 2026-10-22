@@ -62,28 +62,6 @@ const VIBES = [
   "On ne sait pas encore",
 ];
 
-const WEEKENDS = [
-  "Hôtel de charme et grasse matinée",
-  "Rando et nuit sous tente",
-  "Ville, musées, bons restos",
-  "Plage et farniente",
-  "Route des vins",
-  "Festival ou concert",
-  "Chez des amis, grande tablée",
-  "Sport et grand air",
-  "Spa et ne rien faire",
-  "Canapé, série, pizza",
-];
-
-const HONEYMOON_VIBES = [
-  "Quelque part au chaud",
-  "Au bord de l'eau",
-  "Grands espaces",
-  "Une ville mythique",
-  "Hors des sentiers battus",
-  "Road trip",
-  "On ne sait pas encore",
-];
 
 const BUDGETS = [
   { value: "<15k", label: "Moins de 15 000 €" },
@@ -110,15 +88,13 @@ const PANEL_WORDS = [
   "Vous deux.",
   "Le sens de la fête.",
   "Sobre. Chic. Et élégant.",
-  "À deux.",
-  "Et après.",
   "Le budget.",
   "Un coup de main.",
   "On attaque.",
 ];
 
-// 10 questions après le choix de la fête (étape 0, sans compteur).
-const TOTAL = 10;
+// 8 questions après le choix de la fête (étape 0, sans compteur).
+const TOTAL = 8;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
 
 const EMPTY = {
@@ -196,15 +172,6 @@ function CloseIcon() {
   );
 }
 
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-3.5-3.5" />
-    </svg>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /*  Le flow                                                            */
 /* ------------------------------------------------------------------ */
@@ -271,14 +238,10 @@ export default function Brief() {
       case 5:
         return data.vibes.length > 0;
       case 6:
-        return data.weekend.length > 0;
-      case 7:
-        return data.honeymoon.trim().length > 0 || data.honeymoon_vibes.length > 0;
-      case 8:
         return !!data.budget;
-      case 9:
+      case 7:
         return data.help.length > 0;
-      case 10:
+      case 8:
         return (
           isMail(data.email) &&
           data.password.length >= 8 &&
@@ -496,46 +459,6 @@ export default function Brief() {
       case 6:
         return (
           <>
-            <div className="eyebrow">Vous deux, c'est quoi ?</div>
-            <h1 className="question">Un week-end à deux, ça ressemble à quoi ?</h1>
-            <p className="help">Coche tout ce qui vous ressemble. C'est ce qui nous dit quel genre de lieu, de fête et de voyage vous ira.</p>
-            <div className="choices">
-              {WEEKENDS.map((v) => (
-                <Chip key={v} selected={data.weekend.includes(v)} onClick={() => toggleIn("weekend", v)}>
-                  {v}
-                </Chip>
-              ))}
-            </div>
-          </>
-        );
-
-      case 7:
-        return (
-          <>
-            <div className="eyebrow">La lune de miel</div>
-            <h1 className="question">Votre destination de rêve pour la lune de miel ?</h1>
-            <p className="help">Merry s'occupe aussi du voyage de noces. Autant commencer à rêver maintenant.</p>
-            <div className="field">
-              <label htmlFor="honeymoon">Une ville, un pays, ou juste une envie</label>
-              <div className="search">
-                <SearchIcon />
-                <input id="honeymoon" placeholder="Japon, Italie, une île…" value={data.honeymoon} onChange={(e) => set("honeymoon", e.target.value)} />
-              </div>
-            </div>
-            <p className="note">Pas encore d'idée ? Donne-nous juste une direction, on fait le reste.</p>
-            <div className="choices">
-              {HONEYMOON_VIBES.map((v) => (
-                <Chip key={v} selected={data.honeymoon_vibes.includes(v)} onClick={() => toggleIn("honeymoon_vibes", v)}>
-                  {v}
-                </Chip>
-              ))}
-            </div>
-          </>
-        );
-
-      case 8:
-        return (
-          <>
             <div className="eyebrow">Le budget</div>
             <h1 className="question">Vous aviez quelque chose en tête ?</h1>
             <p className="help">Ça reste entre nous. On s'en sert pour ne jamais te montrer ce que tu ne veux pas payer.</p>
@@ -549,7 +472,7 @@ export default function Brief() {
           </>
         );
 
-      case 9:
+      case 7:
         return (
           <>
             <div className="eyebrow">Un coup de main ?</div>
@@ -565,7 +488,7 @@ export default function Brief() {
           </>
         );
 
-      case 10:
+      case 8:
         return (
           <>
             <div className="eyebrow">Dernière étape</div>
@@ -662,9 +585,7 @@ export default function Brief() {
               <div className="actions">
                 {step === 5 ? (
                   <button type="button" className="skip" onClick={() => { set("vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
-                ) : step === 7 ? (
-                  <button type="button" className="skip" onClick={() => { set("honeymoon_vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
-                ) : step === 10 ? (
+                ) : step === 8 ? (
                   <a className="skip" href="/connexion">Déjà un compte ? Se connecter</a>
                 ) : <span />}
                 {isLast ? (
