@@ -453,7 +453,7 @@ export default function Invites() {
     })),
     { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
   ];
-  const cols = useColumnLayout(`merry-cols-invites-${wedding.id}`, columnDefs);
+  const cols = useColumnLayout("invites", columnDefs);
   const [restoring, setRestoring] = useState(false);
 
   // En-tête de chaque colonne : renommer et supprimer sont possibles partout

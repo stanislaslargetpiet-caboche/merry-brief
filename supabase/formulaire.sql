@@ -104,8 +104,8 @@ as $$
            'cover_url', f.cover_url,
            'cover_position', f.cover_position,
            'deadline', f.deadline,
-           'fields', f.fields,
-           'custom', f.custom,
+           'fields', coalesce((select jsonb_agg(e - 'field_id' order by ord) from jsonb_array_elements(f.fields) with ordinality as t(e, ord)), '[]'::jsonb),
+           'custom', coalesce((select jsonb_agg(e - 'field_id' order by ord) from jsonb_array_elements(f.custom) with ordinality as t(e, ord)), '[]'::jsonb),
            'events', coalesce((
              select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name) order by e.position)
                from public.events e
@@ -268,6 +268,7 @@ declare
   w          uuid;
   modes      jsonb := '{}'::jsonb;    -- { key: mode }
   labels     jsonb := '{}'::jsonb;    -- { key: label }
+  links      jsonb := '{}'::jsonb;    -- { key: guest_fields.id } : question déjà reliée à sa colonne
   item       jsonb;
   v_first    text;
   v_last     text;
@@ -299,6 +300,7 @@ begin
   for item in select * from jsonb_array_elements(f.fields) loop
     modes := modes || jsonb_build_object(item ->> 'key', coalesce(item ->> 'mode', 'off'));
     labels := labels || jsonb_build_object(item ->> 'key', coalesce(item ->> 'label', item ->> 'key'));
+    links := links || jsonb_build_object(item ->> 'key', coalesce(item ->> 'field_id', ''));
   end loop;
 
   v_first := public.merry_clip(payload ->> 'first_name', 80);
@@ -310,11 +312,23 @@ begin
   -- Questions sans colonne dédiée : enfants, hébergement, mot pour les mariés
   foreach val in array array['enfants', 'hebergement', 'mot'] loop
     if coalesce(modes ->> val, 'off') <> 'off' and public.merry_clip(payload ->> val, case when val = 'mot' then 2000 else 300 end) is not null then
-      select id into field_id from public.guest_fields where wedding_id = w and lower(name) = lower(labels ->> val) limit 1;
+      -- La question est reliée à sa colonne par identifiant : renommer l'une ou l'autre ne crée plus de doublon.
+      -- Sans lien (formulaire existant), on retrouve la colonne par son nom, ou on la crée, puis on mémorise le lien.
+      select id into field_id from public.guest_fields where wedding_id = w and id::text = coalesce(links ->> val, '') limit 1;
+      if field_id is null then
+        select id into field_id from public.guest_fields where wedding_id = w and lower(name) = lower(labels ->> val) limit 1;
+      end if;
       if field_id is null then
         insert into public.guest_fields (wedding_id, name, position)
         values (w, labels ->> val, coalesce((select max(position) + 1 from public.guest_fields where wedding_id = w), 0))
         returning id into field_id;
+      end if;
+      if coalesce(links ->> val, '') <> field_id::text then
+        update public.guest_forms
+           set fields = (select jsonb_agg(case when e ->> 'key' = val then e || jsonb_build_object('field_id', field_id) else e end order by ord)
+                           from jsonb_array_elements(fields) with ordinality as t(e, ord))
+         where wedding_id = w;
+        links := links || jsonb_build_object(val, field_id::text);
       end if;
       custom_out := custom_out || jsonb_build_object(field_id::text, public.merry_clip(payload ->> val, case when val = 'mot' then 2000 else 300 end));
       field_id := null;
@@ -325,11 +339,22 @@ begin
   for item in select * from jsonb_array_elements(f.custom) loop
     val := public.merry_clip(payload -> 'custom' ->> (item ->> 'id'), 500);
     if val is not null then
-      select id into field_id from public.guest_fields where wedding_id = w and lower(name) = lower(item ->> 'label') limit 1;
+      -- Colonne reliée par identifiant (field_id, ou l'identifiant de la question quand elle vient d'une colonne),
+      -- à défaut par son nom ; le lien trouvé ou créé est mémorisé dans la question.
+      select id into field_id from public.guest_fields where wedding_id = w and id::text = coalesce(item ->> 'field_id', item ->> 'id') limit 1;
+      if field_id is null then
+        select id into field_id from public.guest_fields where wedding_id = w and lower(name) = lower(item ->> 'label') limit 1;
+      end if;
       if field_id is null then
         insert into public.guest_fields (wedding_id, name, position)
         values (w, left(item ->> 'label', 120), coalesce((select max(position) + 1 from public.guest_fields where wedding_id = w), 0))
         returning id into field_id;
+      end if;
+      if coalesce(item ->> 'field_id', '') <> field_id::text then
+        update public.guest_forms
+           set custom = (select jsonb_agg(case when e ->> 'id' = item ->> 'id' then e || jsonb_build_object('field_id', field_id) else e end order by ord)
+                           from jsonb_array_elements(custom) with ordinality as t(e, ord))
+         where wedding_id = w;
       end if;
       custom_out := custom_out || jsonb_build_object(field_id::text, val);
       field_id := null;
