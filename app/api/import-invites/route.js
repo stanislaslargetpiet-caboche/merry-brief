@@ -9,6 +9,7 @@
 
 import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isForced, refusesForcedTool, rememberNoForce, withTool } from "@/lib/aiTool";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,7 +33,8 @@ Comment lire :
 - Retire les titres (M., Mme, Dr, Me) des prénoms. Mets les noms en casse normale (« DUPONT » → « Dupont »).
 - Les colonnes utiles qui ne sont ni nom, groupe, âge, régime, adresse, mail ou téléphone (table, hébergement, navette, réponse, cadeau…) vont dans extra, avec le nom de la colonne comme clé.
 - Nombre de personnes (colonne « Nb », « Pers. », « NE », un chiffre seul après le nom, souvent sans en-tête) : c'est le nombre de personnes de la ligne. 2 = un couple : « Maud & Gautier » = deux entrées ; « Brune » avec 2 = Brune + une entrée vide avec plus_one_of ; « hugo & raph & vito » avec 3 = trois entrées. 0 ou vide = une seule entrée, présence à confirmer. Ce chiffre ne finit jamais dans un nom.
-- Présence aux moments du mariage (colonne « Statut », « Présence », « RSVP », mots comme « diner », « cocktail », « vin d'honneur », « brunch », « tbc », « pas là », « décline », ou colonnes Oui/Non par moment) : ne mets jamais ces mots dans le nom. Écris la présence dans extra, une clé par moment, sur chaque personne de la ligne, avec les valeurs « Oui » ou « Non ». Les moments du mariage te sont donnés dans la demande : utilise exactement leur nom comme clé quand le moment correspond (« diner » = le moment qui est le dîner, « cocktail » = le cocktail), sinon « Dîner » et « Cocktail ». Un invité « diner » est aussi invité au cocktail et au vin d'honneur qui précèdent le dîner : Oui + Oui ; « cocktail » seul = Cocktail Oui et Dîner Non ; « pas là », « absent », « décline » = Non partout ; « tbc », « à confirmer », « ? » = ne mets pas la clé et marque uncertain avec la note « Présence à confirmer ». Ajoute chaque clé utilisée à extra_columns.
+- Présence aux moments du mariage (colonne « Statut », « Présence », « RSVP », mots comme « diner », « cocktail », « vin d'honneur », « brunch », « tbc », « pas là », « décline », ou colonnes Oui/Non par moment) : ne mets jamais ces mots dans le nom. Écris la présence dans extra, une clé par moment, sur chaque personne de la ligne, avec exactement l'une de ces quatre valeurs : « Invité » (convié, réponse pas encore donnée : c'est le cas d'une liste d'invités classique, « diner », « oui », une croix), « Non invité » (pas convié à ce moment : « non », ou « cocktail » seul pour le dîner), « Vient » (a confirmé sa présence : seulement si le fichier parle de réponse ou de confirmation, « confirmé », « présent », « RSVP oui »), « Ne vient pas » (a décliné : « pas là », « absent », « décline », « ne vient pas »). Les moments du mariage te sont donnés dans la demande : utilise exactement leur nom comme clé quand le moment correspond (« diner » = le moment qui est le dîner, « cocktail » = le cocktail), sinon « Dîner » et « Cocktail ». Un invité « diner » est aussi invité au cocktail et au vin d'honneur qui précèdent le dîner : Invité + Invité ; « cocktail » seul = Cocktail Invité et Dîner Non invité ; « pas là », « absent », « décline » = Ne vient pas partout ; « tbc », « à confirmer », « ? » = ne mets pas la clé et marque uncertain avec la note « Présence à confirmer ». Dans une colonne Oui/Non, « Oui » = Invité et « Non » = Non invité, sauf si la colonne parle de réponse ou de confirmation (alors Vient et Ne vient pas). Ajoute chaque clé utilisée à extra_columns.
+- La première ligne d'un tableau est souvent un en-tête (« Nom | NB | Statut », ou un titre de groupe comme « AMIS LEOP/GOMS | NB | Statut ») : ce n'est pas un invité, ne l'enregistre jamais.
 - Lignes surlignées ou colorées (orange, jaune) dans un tableau ou une capture : c'est le plus souvent « à confirmer » ou « à relancer » ; mets la note « Surligné dans la liste » sans inventer de raison. Texte barré = personne retirée de la liste, ignore-la. Capture d'écran ou photo : lis chaque ligne visible, ignore l'interface (menus, filtres, onglets, numéros de ligne).
 - Un prénom seul, un surnom ou une initiale (« Jo », « Tiph G », « Clem de martin ») est normal dans une liste entre proches : garde-le tel quel, ne marque pas uncertain et ne complète jamais le nom. Une cellule avec plusieurs prénoms et un seul nom de famille (« Marc et Anne Dubois ») donne le nom aux deux.
 - Plusieurs feuilles, onglets ou blocs : chaque bloc peut avoir ses propres colonnes ; lis-les séparément. Les colonnes que tu ne sais pas classer vont dans extra avec leur titre.
@@ -196,15 +198,21 @@ async function readPart(body) {
   // MERRY_AI_MODEL_FAST : modèle plus rapide pour le texte et les tableaux (facultatif) ; photos et PDF gardent le modèle principal
   const textOnly = body.source?.kind === "text";
   const model = (textOnly && process.env.MERRY_AI_MODEL_FAST) || MODEL;
-  const out = await askAi({
-    model,
-    max_tokens: 8000,
-    system: SYSTEM,
-    tools: [TOOL],
-    tool_choice: { type: "tool", name: TOOL.name },
-    messages: [{ role: "user", content }],
-  });
-  const used = (out.content || []).find((c) => c.type === "tool_use");
+  // Appel d'outil forcé ; si le modèle le refuse, on le retient et on repart en « auto » avec une consigne explicite
+  let used = null;
+  let out = null;
+  for (let attempt = 0; attempt < 3 && !used; attempt += 1) {
+    try {
+      out = await askAi(withTool({ model, max_tokens: 8000, system: SYSTEM, messages: [{ role: "user", content }] }, TOOL));
+    } catch (e) {
+      if (e.status === 400 && isForced(model) && refusesForcedTool(e.message)) {
+        rememberNoForce(model);
+        continue;
+      }
+      throw e;
+    }
+    used = (out.content || []).find((c) => c.type === "tool_use") || null;
+  }
   if (!used) throw fail("L'IA n'a pas renvoyé de liste exploitable pour cette partie.", 502);
   return {
     guests: used.input.guests || [],

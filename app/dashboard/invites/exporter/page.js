@@ -69,7 +69,7 @@ export default function Exporter() {
   const [format, setFormat] = useState("xlsx");
 
   const audiences = [
-    dinner ? { id: "dinner", label: `Ceux qui ont dit oui au ${dinner.name.toLowerCase()}`, list: guests.filter((g) => (idx.get(g.id) || {})[dinner.id] === "oui") } : null,
+    dinner ? { id: "dinner", label: `Ceux qui viennent au ${dinner.name.toLowerCase()}`, list: guests.filter((g) => (idx.get(g.id) || {})[dinner.id] === "oui") } : null,
     { id: "all", label: "Tous les invités", list: guests },
     { id: "group", label: "Un groupe", list: guests.filter((g) => g.group_id === groupId) },
   ].filter(Boolean);
