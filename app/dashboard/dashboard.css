@@ -145,22 +145,25 @@
 .d-help-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
   min-height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--d-ink);
-  color: #ffffff;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--d-ink);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
-  transition: background 0.15s ease;
+  transition: opacity 0.15s ease;
+}
+
+.d-help-btn span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .d-help-btn:hover {
-  background: #33332f;
+  opacity: 0.7;
 }
 
 .d-help-btn:focus-visible {
