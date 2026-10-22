@@ -27,6 +27,11 @@ Comment lire :
 - Ignore ce qui n'est pas une personne invitée : titres, totaux, sous-totaux, dates, numéros de table seuls, lignes vides, prestataires.
 - Retire les titres (M., Mme, Dr, Me) des prénoms. Mets les noms en casse normale (« DUPONT » → « Dupont »).
 - Les colonnes utiles qui ne sont ni nom, groupe, âge, régime, adresse, mail ou téléphone (table, hébergement, navette, réponse, cadeau…) vont dans extra, avec le nom de la colonne comme clé.
+- Nombre de personnes (colonne « Nb », « Pers. », « NE », un chiffre seul après le nom, souvent sans en-tête) : c'est le nombre de personnes de la ligne. 2 = un couple : « Maud & Gautier » = deux entrées ; « Brune » avec 2 = Brune + une entrée vide avec plus_one_of ; « hugo & raph & vito » avec 3 = trois entrées. 0 ou vide = une seule entrée, présence à confirmer. Ce chiffre ne finit jamais dans un nom.
+- Présence aux moments du mariage (colonne « Statut », « Présence », « RSVP », mots comme « diner », « cocktail », « vin d'honneur », « brunch », « tbc », « pas là », « décline », ou colonnes Oui/Non par moment) : ne mets jamais ces mots dans le nom. Écris la présence dans extra, une clé par moment, sur chaque personne de la ligne, avec les valeurs « Oui » ou « Non ». Les moments du mariage te sont donnés dans la demande : utilise exactement leur nom comme clé quand le moment correspond (« diner » = le moment qui est le dîner, « cocktail » = le cocktail), sinon « Dîner » et « Cocktail ». Un invité « diner » est aussi invité au cocktail et au vin d'honneur qui précèdent le dîner : Oui + Oui ; « cocktail » seul = Cocktail Oui et Dîner Non ; « pas là », « absent », « décline » = Non partout ; « tbc », « à confirmer », « ? » = ne mets pas la clé et marque uncertain avec la note « Présence à confirmer ». Ajoute chaque clé utilisée à extra_columns.
+- Lignes surlignées ou colorées (orange, jaune) dans un tableau ou une capture : c'est le plus souvent « à confirmer » ou « à relancer » ; mets la note « Surligné dans la liste » sans inventer de raison. Texte barré = personne retirée de la liste, ignore-la. Capture d'écran ou photo : lis chaque ligne visible, ignore l'interface (menus, filtres, onglets, numéros de ligne).
+- Un prénom seul, un surnom ou une initiale (« Jo », « Tiph G », « Clem de martin ») est normal dans une liste entre proches : garde-le tel quel, ne marque pas uncertain et ne complète jamais le nom. Une cellule avec plusieurs prénoms et un seul nom de famille (« Marc et Anne Dubois ») donne le nom aux deux.
+- Plusieurs feuilles, onglets ou blocs : chaque bloc peut avoir ses propres colonnes ; lis-les séparément. Les colonnes que tu ne sais pas classer vont dans extra avec leur titre.
 - Une adresse répartie sur plusieurs colonnes (rue, code postal, ville) devient une seule adresse.
 
 Ne devine jamais : n'invente ni nom, ni prénom, ni information absente. Omets les champs vides. Marque uncertain (avec une note courte) quand un nom est mal lisible, incomplet ou ambigu.`;
@@ -59,8 +64,21 @@ const TOOL = {
         },
       },
       extra_columns: { type: "array", items: { type: "string" } },
+      columns: {
+        type: "array",
+        description: "Ce que tu as compris de la structure : une entrée par colonne ou information reconnue (max 8)",
+        items: {
+          type: "object",
+          properties: {
+            source: { type: "string", description: "La colonne telle qu'elle apparaît (« Statut », « 3e colonne », « surlignage orange »)" },
+            meaning: { type: "string", description: "Ce que Merry en fait, en quelques mots (« Présence au dîner et au cocktail », « Nombre de personnes : 2 = couple »)" },
+          },
+          required: ["source", "meaning"],
+        },
+      },
+      guide: { type: "string", description: "En une à trois phrases, comment lire ce fichier (colonnes, sens du nombre et du statut) pour que les parties suivantes soient lues de la même façon" },
     },
-    required: ["guests", "extra_columns"],
+    required: ["guests", "extra_columns", "columns", "guide"],
   },
 };
 
@@ -74,7 +92,10 @@ export async function POST(req) {
   if (!url || !key || !token) return Response.json({ error: "auth" }, { status: 401 });
   const sb = createClient(url, key, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   const { data: calls, error: tickError } = await sb.rpc("merry_ai_tick");
-  if (tickError) return Response.json({ error: "auth" }, { status: 403 });
+  if (tickError) {
+    console.error("[merry] merry_ai_tick", tickError.code, tickError.message);
+    return Response.json({ error: "tick", code: tickError.code || null }, { status: 403 });
+  }
   if (calls > DAILY_LIMIT) return Response.json({ error: "quota" }, { status: 429 });
 
   const raw = await req.text();
@@ -109,9 +130,13 @@ export async function POST(req) {
   }
   const groups = (body.groups || []).map(String).slice(0, 30);
   const fields = (body.fields || []).map(String).slice(0, 30);
+  const events = (body.events || []).map(String).slice(0, 12);
+  if (body.guide) {
+    content.push({ type: "text", text: `Comment lire ce fichier (établi sur la première partie, applique-le tel quel) : ${String(body.guide).slice(0, 800)}` });
+  }
   content.push({
     type: "text",
-    text: `Groupes existants : ${groups.join(", ") || "aucun"}. Colonnes déjà présentes dans la liste du couple : ${fields.join(", ") || "aucune"}. Enregistre maintenant chaque personne invitée de ce passage.`,
+    text: `Groupes existants : ${groups.join(", ") || "aucun"}. Moments du mariage : ${events.join(", ") || "non précisés"}. Colonnes déjà présentes dans la liste du couple : ${fields.join(", ") || "aucune"}. Enregistre maintenant chaque personne invitée de ce passage.`,
   });
 
   const call = () =>
@@ -134,11 +159,18 @@ export async function POST(req) {
     res = await call();
   }
   if (!res.ok) {
-    console.error("[merry] import IA", res.status, await res.text().catch(() => ""));
-    return Response.json({ error: "ai_failed" }, { status: 502 });
+    const detail = await res.text().catch(() => "");
+    console.error("[merry] import IA", res.status, detail.slice(0, 500));
+    return Response.json({ error: "ai_failed", upstream: res.status }, { status: 502 });
   }
   const out = await res.json();
   const used = (out.content || []).find((c) => c.type === "tool_use");
   if (!used) return Response.json({ error: "ai_failed" }, { status: 502 });
-  return Response.json({ guests: used.input.guests || [], extraColumns: used.input.extra_columns || [], truncated: out.stop_reason === "max_tokens" });
+  return Response.json({
+    guests: used.input.guests || [],
+    extraColumns: used.input.extra_columns || [],
+    columns: used.input.columns || [],
+    guide: used.input.guide || "",
+    truncated: out.stop_reason === "max_tokens",
+  });
 }

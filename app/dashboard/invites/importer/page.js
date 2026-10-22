@@ -17,6 +17,19 @@ function plural(n, one, many) {
   return `${n} ${n > 1 ? many : one}`;
 }
 
+const YES = /^(oui|o|yes|y|x|ok|present|presente|1|✓|✔)$/;
+const NO = /^(non|no|n|0|absent|absente)$/;
+function yesNo(v) {
+  const n = normalize(v);
+  return YES.test(n) ? "oui" : NO.test(n) ? "non" : null;
+}
+
+function failureText(code) {
+  if (code === "tick" || code === "auth") return "Votre session a expiré ou la base n'est pas à jour : reconnectez-vous puis réessayez.";
+  if (code === "too_big") return "Fichier trop lourd : envoyez-le en plusieurs fois.";
+  return "Merry n'a pas pu lire ce fichier. Réessayez dans un instant.";
+}
+
 export default function Importer() {
   const dash = useDash();
   const router = useRouter();
@@ -53,7 +66,7 @@ export default function Importer() {
   // Lecture locale (sans IA) : tableaux et texte ; les PDF et photos attendent l'IA
   function fallbackLocal(entry, why) {
     if (entry.local && entry.local.guests.length) {
-      patchFile(entry.id, { status: "lue", guests: entry.local.guests, extraColumns: entry.local.extraColumns || [], byAi: false, why });
+      patchFile(entry.id, { status: "lue", guests: entry.local.guests, extraColumns: entry.local.extraColumns || [], columns: entry.local.columns || [], byAi: false, why });
     } else if (entry.local) {
       patchFile(entry.id, { status: "erreur", why: "Aucun nom trouvé dans ce fichier." });
     } else {
@@ -70,6 +83,8 @@ export default function Importer() {
     let done = 0;
     let stop = null;
     patchFile(entry.id, { status: "encours", parts: { done: 0, total: units.length } });
+    let guide = "";
+    let lastCode = null;
 
     async function one(i) {
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -78,7 +93,13 @@ export default function Importer() {
           const res = await fetch("/api/import-invites", {
             method: "POST",
             headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-            body: JSON.stringify({ source: { name: entry.name, ...units[i] }, groups: groups.map((g) => g.name), fields: fields.map((f) => f.name) }),
+            body: JSON.stringify({
+              source: { name: entry.name, ...units[i] },
+              groups: groups.map((g) => g.name),
+              fields: fields.map((f) => f.name),
+              events: events.map((e) => e.name),
+              guide: i > 0 ? guide : undefined,
+            }),
           });
           if (res.status === 501) {
             stop = "off";
@@ -88,8 +109,16 @@ export default function Importer() {
             stop = "quota";
             return;
           }
-          if (!res.ok) throw new Error(String(res.status));
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            lastCode = j.error || String(res.status);
+            if (res.status === 401 || res.status === 403) {
+              attempt = 1; // inutile de réessayer
+            }
+            throw new Error(lastCode);
+          }
           results[i] = await res.json();
+          if (i === 0) guide = results[0].guide || "";
           done += 1;
           patchFile(entry.id, { parts: { done, total: units.length } });
           return;
@@ -99,9 +128,11 @@ export default function Importer() {
       }
     }
 
-    let next = 0;
+    // La première partie fixe la façon de lire le fichier (colonnes, sens du nombre et du statut) ; les suivantes la reprennent
+    await one(0);
+    let next = 1;
     await Promise.all(
-      Array.from({ length: Math.min(PARALLEL, units.length) }, async () => {
+      Array.from({ length: Math.min(PARALLEL, Math.max(units.length - 1, 0)) }, async () => {
         while (next < units.length && !stop) await one(next++);
       }),
     );
@@ -113,7 +144,7 @@ export default function Importer() {
     }
     const ok = results.filter((r) => r && !r.failed);
     if (stop === "quota" && !ok.length) return fallbackLocal(entry, "Limite de lectures du jour atteinte : réessayez demain.");
-    if (!ok.length) return fallbackLocal(entry, "Merry n'a pas pu lire ce fichier. Réessayez dans un instant.");
+    if (!ok.length) return fallbackLocal(entry, failureText(lastCode));
     if (ok.length < units.length && entry.local?.guests.length) return fallbackLocal(entry, "Lu en partie par l'IA : Merry a lu le tableau colonne par colonne.");
     const found = ok.flatMap((r) => r.guests || []).map((g) => ({ ...g, extra: g.extra || {} }));
     patchFile(entry.id, {
@@ -121,6 +152,7 @@ export default function Importer() {
       byAi: true,
       guests: found,
       extraColumns: [...new Set(ok.flatMap((r) => r.extraColumns || []))],
+      columns: ok[0]?.columns || [],
       why: ok.length < units.length ? `${ok.length} parties sur ${units.length} lues : retirez le fichier et réessayez pour le reste.` : null,
     });
   }
@@ -151,6 +183,18 @@ export default function Importer() {
     readWithAi(entry);
   }
 
+  // Colonne de présence reconnue = un moment du mariage (nom identique) : « Dîner » remplit « Invités à » ligne par ligne
+  const eventForColumn = useMemo(() => {
+    const names = new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]));
+    const m = new Map();
+    for (const c of names) {
+      const n = normalize(c);
+      const hit = events.filter((e) => normalize(e.name) === n || (e.short_name && normalize(e.short_name) === n));
+      if (hit.length === 1) m.set(c, hit[0]);
+    }
+    return m;
+  }, [files, events]);
+
   // Lignes de l'aperçu, avec détection des doublons
   const rows = useMemo(() => {
     const existingByKey = new Map(guests.map((g) => [guestKey(g), g]));
@@ -168,12 +212,17 @@ export default function Importer() {
         if (named && key) seen.add(key);
         const dup = (named && key && existingByKey.get(key)) || (row.email && existingByEmail.get(normalize(row.email)));
         row.dup = dup || null;
+        row.presence = {};
+        for (const [c, ev] of eventForColumn) {
+          const v = yesNo((row.extra || {})[c]);
+          if (v) row.presence[ev.id] = v;
+        }
         row.check = !dup && (row.uncertain || (!named && !row.plus_one_of && row.plusOneOfIndex === undefined));
         out.push(row);
       });
     });
     return out;
-  }, [files, guests, edits, groupIdFor]);
+  }, [files, guests, edits, groupIdFor, eventForColumn]);
 
   const active = rows.filter((r) => !removed[r.id]);
   const dups = active.filter((r) => r.dup);
@@ -182,9 +231,37 @@ export default function Importer() {
   const removedCount = rows.length - active.length;
   const selectedIds = active.filter((r) => selected[r.id]).map((r) => r.id);
   const reading = files.some((f) => f.status === "lecture" || f.status === "encours");
-  const extraColumns = [...new Set(files.flatMap((f) => f.extraColumns || []))].filter((c) => !fields.some((x) => normalize(x.name) === normalize(c)));
+  const extraColumns = [...new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]))].filter(
+    (c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)),
+  );
+  const mappedEvents = events.filter((e) => [...eventForColumn.values()].includes(e));
   const shownExtra = extraColumns.filter((c) => extraOn[c] !== false);
   const groupById = new Map(groups.map((g) => [g.id, g]));
+
+  // Colonnes de présence : un moment du mariage reconnu, ou toute colonne remplie en Oui / Non
+  const dataColumns = [...eventForColumn.keys(), ...shownExtra].map((c) => {
+    const vals = active.map((r) => (r.extra || {})[c]).filter((v) => v !== undefined && v !== "");
+    const yn = vals.length > 0 && vals.every((v) => yesNo(v));
+    const ev = eventForColumn.get(c);
+    return { key: c, label: ev ? ev.short_name || ev.name : c, yn, ev };
+  });
+  const ynCounts = (c) => {
+    let oui = 0;
+    let non = 0;
+    for (const r of active) {
+      const v = yesNo((r.extra || {})[c]);
+      if (v === "oui") oui += 1;
+      else if (v === "non") non += 1;
+    }
+    return { oui, non, blank: active.length - oui - non };
+  };
+  const plusOnes = active.filter((r) => r.plusOneOfIndex !== undefined || r.plus_one_of).length;
+  const understood = files.flatMap((f) => f.columns || []).slice(0, 6);
+  const toggleYn = (r, c) => {
+    const cur = yesNo((r.extra || {})[c]);
+    const next = cur === "oui" ? "Non" : cur === "non" ? "" : "Oui";
+    edit(r.id, { extra: { ...(r.extra || {}), [c]: next } });
+  };
 
   const edit = (id, patch) => setEdits((x) => ({ ...x, [id]: { ...(x[id] || {}), ...patch } }));
   const removeRows = (ids) => {
@@ -249,7 +326,15 @@ export default function Importer() {
       await dash.insert("guests", created);
       const responses = [];
       const now = new Date().toISOString();
-      for (const g of created) for (const ev of events) responses.push({ guest_id: g.id, event_id: ev.id, status: invitedTo.includes(ev.id) ? "attente" : "non_invite", updated_at: now });
+      const presenceById = new Map(news.map((r) => [idByRow.get(r.id), r.presence || {}]));
+      for (const g of created) {
+        const pres = presenceById.get(g.id) || {};
+        for (const ev of events) {
+          const own = pres[ev.id];
+          const invited = own ? own === "oui" : invitedTo.includes(ev.id);
+          responses.push({ guest_id: g.id, event_id: ev.id, status: invited ? "attente" : "non_invite", updated_at: now });
+        }
+      }
       if (responses.length) await dash.insert("guest_responses", responses);
     }
     // Doublons : on complète seulement ce qui manque
@@ -387,6 +472,38 @@ export default function Importer() {
 
       {rows.length ? (
         <>
+          <div className="d-understood">
+            <div className="d-understood-head">
+              <span className="d-okpill is-small">
+                <Icon name="check" size={12} sw={2.4} />
+                Lue
+              </span>
+              <strong>
+                Merry a repéré {plural(active.length, "personne", "personnes")}
+                {plusOnes ? `, dont ${plural(plusOnes, "+1 à nommer", "+1 à nommer")}` : ""}.
+              </strong>
+            </div>
+            {dataColumns.some((c) => c.yn) || understood.length ? (
+              <ul className="d-understood-list">
+                {dataColumns
+                  .filter((c) => c.yn)
+                  .map((c) => {
+                    const n = ynCounts(c.key);
+                    return (
+                      <li key={c.key}>
+                        <strong>{c.label}</strong> complété{c.ev ? " et relié à « Invités à »" : ""} : {n.oui} oui · {n.non} non{n.blank ? ` · ${n.blank} à confirmer` : ""}
+                      </li>
+                    );
+                  })}
+                {understood.map((u, i) => (
+                  <li key={`u${i}`} className="d-muted">
+                    « {u.source} » : {u.meaning}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {checks.length ? <span className="d-small d-muted">{plural(checks.length, "ligne est", "lignes sont")} à vérifier, signalées en rouge ci-dessous.</span> : null}
+          </div>
           <Section
             title="Aperçu"
             right={
@@ -468,9 +585,9 @@ export default function Importer() {
                   <th>Adresse</th>
                   <th>Mail</th>
                   <th>Téléphone</th>
-                  {shownExtra.map((c) => (
-                    <th key={c} className="d-col-custom">
-                      {c}
+                  {dataColumns.map((c) => (
+                    <th key={c.key} className="d-col-custom">
+                      {c.label}
                     </th>
                   ))}
                   <th>Import</th>
@@ -478,12 +595,12 @@ export default function Importer() {
                 </tr>
               </thead>
               <tbody>
-                {active.map((r) => {
+                {active.map((r, rowIndex) => {
                   const group = groupById.get(r.group_id || (r.dup ? r.dup.group_id : defaultGroup));
                   const label = `${r.first_name || ""} ${r.last_name || ""}`.trim();
                   const isSel = !!selected[r.id];
                   return (
-                    <tr key={r.id} className={isSel ? "d-row-selected" : r.dup ? "d-row-dup" : r.check ? "d-row-check" : ""}>
+                    <tr key={r.id} className={`d-row-in ${isSel ? "d-row-selected" : r.dup ? "d-row-dup" : r.check ? "d-row-check" : ""}`} style={{ animationDelay: `${Math.min(rowIndex, 14) * 35}ms` }}>
                       <td className="d-col-check">
                         <input type="checkbox" className="d-check" checked={isSel} onChange={() => setSelected((x) => ({ ...x, [r.id]: !isSel }))} aria-label={`Sélectionner ${label || "cette ligne"}`} />
                       </td>
@@ -517,11 +634,21 @@ export default function Importer() {
                       <td>
                         <InlineEdit value={r.phone} label="téléphone" width={130} onSave={(v) => edit(r.id, { phone: v })} className="d-cell-clip" />
                       </td>
-                      {shownExtra.map((c) => (
-                        <td key={c} className="d-col-custom">
-                          {(r.extra || {})[c] || "–"}
-                        </td>
-                      ))}
+                      {dataColumns.map((c) => {
+                        const v = (r.extra || {})[c.key];
+                        const yn = yesNo(v);
+                        return (
+                          <td key={c.key} className="d-col-custom">
+                            {c.yn ? (
+                              <button type="button" className={`d-yn${yn === "oui" ? " is-yes" : yn === "non" ? " is-no" : ""}`} onClick={() => toggleYn(r, c.key)} aria-label={`${c.label} : ${yn === "oui" ? "oui" : yn === "non" ? "non" : "à confirmer"}, modifier`}>
+                                {yn === "oui" ? "Oui" : yn === "non" ? "Non" : "?"}
+                              </button>
+                            ) : (
+                              v || "–"
+                            )}
+                          </td>
+                        );
+                      })}
                       <td>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
                           {r.dup ? (
