@@ -4896,3 +4896,168 @@ button.d-group-none {
   align-items: flex-start;
   gap: 10px;
 }
+
+/* Frise mois par mois du rétroplanning */
+.d-timeline-card {
+  padding: 14px 18px 14px;
+  gap: 12px;
+}
+
+.d-timeline {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.d-tl-month {
+  flex: 1 1 0;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.d-tl-marks {
+  display: flex;
+  gap: 3px;
+  min-height: 8px;
+  padding-left: 2px;
+}
+
+.d-tl-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--d-ink);
+}
+
+.d-tl-mark.is-main {
+  background: var(--d-lime);
+  box-shadow: 0 0 0 1.5px var(--d-ink);
+}
+
+.d-tl-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #ecebe6;
+  overflow: hidden;
+}
+
+.d-tl-month.is-now .d-tl-bar {
+  box-shadow: 0 0 0 1.5px var(--d-ink);
+}
+
+.d-tl-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--d-ink);
+}
+
+.d-tl-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.d-tl-label strong {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.d-tl-label span {
+  color: var(--d-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.d-tl-label span.is-late {
+  color: var(--d-red-ink);
+  font-weight: 600;
+}
+
+.d-tl-month.is-empty .d-tl-label {
+  color: var(--d-muted);
+}
+
+.d-tl-pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.d-tl-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.d-tl-pin.is-main {
+  background: var(--d-lime);
+  border-color: var(--d-ink);
+}
+
+/* Grandes dates */
+.d-keydate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+}
+
+.d-keydate.is-on {
+  border-color: var(--d-ink);
+}
+
+.d-keydate-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-keydate-text strong {
+  font-size: 14px;
+}
+
+.d-keydate-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+
+.d-keydate-date .d-input {
+  min-height: 38px;
+  width: 160px;
+}
+
+@media (max-width: 700px) {
+  .d-keydate {
+    flex-wrap: wrap;
+  }
+
+  .d-keydate-date {
+    width: 100%;
+    align-items: flex-start;
+  }
+}

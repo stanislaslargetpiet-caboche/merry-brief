@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
 import { pastel } from "@/lib/dash/theme";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
+import DatesModal, { DATES_SEEN_KEY } from "@/components/dash/DatesModal";
+import Timeline from "@/components/dash/Timeline";
 
 export default function Retroplanning() {
   const data = useData();
@@ -13,6 +15,18 @@ export default function Retroplanning() {
   const [who, setWho] = useState(null);
   const [adding, setAdding] = useState(false);
   const [showDone, setShowDone] = useState(true);
+  const [dates, setDates] = useState(null); // null | "first" | "edit"
+
+  // À la première visite, on demande les grandes dates (civil, veille, brunch…)
+  useEffect(() => {
+    if (!wedding?.id) return;
+    try {
+      if (window.localStorage.getItem(`${DATES_SEEN_KEY}-${wedding.id}`)) return;
+    } catch {
+      /* ignore */
+    }
+    if (!data.events.some((e) => e.event_date)) setDates("first");
+  }, [wedding?.id, data.events]);
 
   const st = taskStats(data);
   const couple = coupleIds(members);
@@ -40,9 +54,14 @@ export default function Retroplanning() {
       <PageHeader
         title="Rétroplanning."
         actions={
-          <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
-            Ajouter une tâche
-          </Btn>
+          <>
+            <Btn kind="ghost" icon="pin" onClick={() => setDates("edit")}>
+              Grandes dates
+            </Btn>
+            <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
+              Ajouter une tâche
+            </Btn>
+          </>
         }
       />
 
@@ -71,6 +90,8 @@ export default function Retroplanning() {
           </button>
         </div>
       </div>
+
+      <Timeline data={data} onPinClick={() => setDates("edit")} />
 
       {adding ? (
         <div className="d-tasks" style={{ padding: 14 }}>
@@ -125,6 +146,19 @@ export default function Retroplanning() {
           </section>
         </div>
       </div>
+      {dates ? (
+        <DatesModal
+          first={dates === "first"}
+          onClose={() => {
+            try {
+              window.localStorage.setItem(`${DATES_SEEN_KEY}-${wedding.id}`, "1");
+            } catch {
+              /* ignore */
+            }
+            setDates(null);
+          }}
+        />
+      ) : null}
     </>
   );
 }
