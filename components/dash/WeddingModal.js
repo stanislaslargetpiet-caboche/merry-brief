@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { normalize, parseAmount } from "@/lib/dash/format";
+import { syncNames } from "@/lib/dash/names";
 import { Btn, Field, Modal } from "./ui";
 
 export default function WeddingModal({ onClose }) {
@@ -21,14 +22,16 @@ export default function WeddingModal({ onClose }) {
   async function save(e) {
     e.preventDefault();
     const budget = parseAmount(form.budget_total);
+    const names = { partner1: form.partner1.trim() || w.partner1, partner2: form.partner2.trim() || null };
     await dash.updateWedding({
-      partner1: form.partner1.trim() || w.partner1,
-      partner2: form.partner2.trim() || null,
+      ...names,
       wedding_date: form.wedding_date || null,
       venue: form.venue.trim() || null,
       region: form.region.trim() || null,
       budget_total: budget,
     });
+    // Les copies du prénom (organisateurs, groupes, titre du formulaire) suivent
+    await syncNames(dash, { partner1: w.partner1, partner2: w.partner2 }, names);
     // Le budget est fixé : la tâche « Fixer le budget » du rétroplanning est faite, on ne la redemande pas
     if (budget !== null && budget !== undefined) {
       const now = new Date().toISOString();
