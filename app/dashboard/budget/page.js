@@ -46,6 +46,9 @@ export default function Budget() {
   const dash = useDash();
   const data = dash.data;
   const { items, members, vendors, documents, wedding, payments, guests } = data;
+  // Pied de la colonne « Par invité » : la moyenne des postes, pas leur somme
+  const perGuestValues = guests.length ? items.map((it) => (itemFinance(it, payments).quote ?? itemFinance(it, payments).budgeted ?? null)).filter((v) => v !== null).map((v) => v / guests.length) : [];
+  const avgPerGuest = perGuestValues.length ? perGuestValues.reduce((a, v) => a + v, 0) / perGuestValues.length : null;
   const [editing, setEditing] = useState(null); // item | "new"
   const [quoteFocus, setQuoteFocus] = useState(false);
   const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
@@ -455,7 +458,10 @@ export default function Budget() {
                     {b.signed ? <Variance value={b.variance} big /> : null}
                   </div>
                 </td>
-                <td className="is-num">{b.perGuest !== null ? euros(b.perGuest) : "–"}</td>
+                <td className="is-num" title="Moyenne des postes">
+                  {avgPerGuest !== null ? euros(avgPerGuest) : "–"}
+                  {avgPerGuest !== null ? <small className="d-muted" style={{ display: "block", fontSize: 11, fontWeight: 400 }}>en moyenne</small> : null}
+                </td>
                 <td colSpan={5}>{euros(b.paid)} payés</td>
               </tr>
             </tfoot>
