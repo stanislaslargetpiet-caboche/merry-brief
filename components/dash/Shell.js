@@ -219,15 +219,15 @@ function Frame({ children }) {
           <div className="d-help">
             <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
               <Icon name="calendar" size={16} sw={2} />
-              Démonstration
+              <span>Démonstration</span>
             </a>
             <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
               <Icon name="bubble" size={16} sw={2} />
-              Aide
+              <span>Aide</span>
             </a>
             <a className="d-help-btn" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
               <Icon name="users" size={16} sw={2} />
-              Premiers utilisateurs
+              <span>Premiers utilisateurs</span>
             </a>
           </div>
           {data ? (
