@@ -4896,3 +4896,59 @@ button.d-group-none {
   align-items: flex-start;
   gap: 10px;
 }
+
+/* Import en cours ou prêt, visible partout dans le tableau de bord */
+.d-import-badge {
+  position: fixed;
+  z-index: 55;
+  right: 24px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 13.5px;
+  text-decoration: none;
+  box-shadow: 0 12px 32px rgba(28, 28, 26, 0.2);
+}
+.d-import-badge span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.d-import-badge strong {
+  flex: none;
+  color: var(--d-lime, #cbff75);
+}
+.d-import-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--d-lime, #cbff75);
+}
+.d-import-badge.is-running .d-import-dot {
+  animation: d-pulse 1.1s ease-in-out infinite;
+}
+@keyframes d-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (max-width: 700px) {
+  .d-import-badge {
+    right: 16px;
+    left: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .d-import-badge.is-running .d-import-dot {
+    animation: none;
+  }
+}

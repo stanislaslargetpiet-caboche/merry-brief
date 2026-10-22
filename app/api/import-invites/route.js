@@ -1,9 +1,13 @@
 // Lecture des listes d'invités par l'IA, quel que soit le format : chaque fichier arrive
-// découpé en parties (40 lignes de tableau, une page de PDF, une photo).
+// découpé en parties (25 lignes de tableau, une page de PDF, une photo).
+// Deux modes : avec import_id, la lecture se fait APRÈS la réponse (202) et le résultat est écrit dans
+// guest_import_parts, donc elle continue même si l'organisateur quitte la page (voir supabase/imports.sql) ;
+// sans import_id, la route répond directement avec le résultat (secours si la table n'existe pas encore).
 // Réservée aux organisateurs connectés. Nécessite ANTHROPIC_API_KEY côté serveur
 // (Vercel > Settings > Environment Variables) ; sans clé, l'appli lit seulement
 // les tableaux (Excel, CSV, Word) et le texte collé, colonne par colonne.
 
+import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -12,7 +16,7 @@ export const maxDuration = 60;
 // Vercel refuse les requêtes de plus de 4,5 Mo : l'appli réduit les photos et limite les PDF à 3 Mo.
 const MAX_BYTES = 4.4 * 1024 * 1024;
 const MAX_TEXT = 60000;
-const DAILY_LIMIT = 200; // parties lues par compte et par jour (une liste de 200 lignes = 5 parties)
+const DAILY_LIMIT = 200; // parties lues par compte et par jour (une liste de 200 lignes = 8 parties)
 const MODEL = process.env.MERRY_AI_MODEL || "claude-sonnet-5-5";
 const API = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
 
@@ -82,31 +86,77 @@ const TOOL = {
   },
 };
 
-export async function POST(req) {
-  if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: "no_ai" }, { status: 501 });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // Réservé aux organisateurs connectés, avec un nombre de lectures par jour
+// Message clair pour l'organisateur selon la réponse d'Anthropic
+function explain(status, raw) {
+  let type = "";
+  let message = "";
+  try {
+    const j = JSON.parse(raw);
+    type = j?.error?.type || "";
+    message = String(j?.error?.message || "");
+  } catch {
+    /* corps non JSON */
+  }
+  const m = message.toLowerCase();
+  if (m.includes("credit balance")) return "Le crédit du compte Anthropic est épuisé : rechargez-le sur console.anthropic.com.";
+  if (status === 401 || type === "authentication_error") return "La clé Anthropic (ANTHROPIC_API_KEY) est refusée : vérifiez-la dans Vercel > Settings > Environment Variables.";
+  if (status === 403 || type === "permission_error") return "La clé Anthropic n'a pas accès à ce modèle : changez MERRY_AI_MODEL dans Vercel.";
+  if (status === 404 || type === "not_found_error") return `Modèle introuvable (${MODEL}) : corrigez ou supprimez MERRY_AI_MODEL dans Vercel.`;
+  if (status === 429) return "Anthropic limite les lectures pour le moment : réessayez dans une minute.";
+  if (status === 529 || status >= 500) return "Le service Anthropic est surchargé : réessayez dans un instant.";
+  if (status === 400) return `L'IA a refusé la demande${message ? ` : ${message.slice(0, 160)}` : ""}.`;
+  return `L'IA n'a pas pu lire cette partie (code ${status}).`;
+}
+
+function fail(text, status) {
+  return Object.assign(new Error(text), { status });
+}
+
+// Connexion à Supabase avec le jeton de l'organisateur (c'est lui qui est vérifié par les règles d'accès)
+function connect(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!url || !key || !token) return Response.json({ error: "auth" }, { status: 401 });
-  const sb = createClient(url, key, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data: calls, error: tickError } = await sb.rpc("merry_ai_tick");
-  if (tickError) {
-    console.error("[merry] merry_ai_tick", tickError.code, tickError.message);
-    return Response.json({ error: "tick", code: tickError.code || null }, { status: 403 });
-  }
-  if (calls > DAILY_LIMIT) return Response.json({ error: "quota" }, { status: 429 });
+  if (!url || !key || !token) return null;
+  return createClient(url, key, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+}
 
-  const raw = await req.text();
-  if (raw.length > MAX_BYTES) return Response.json({ error: "too_big" }, { status: 413 });
-  let body;
-  try {
-    body = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: "bad_request" }, { status: 400 });
+// Un appel à l'IA, avec un second essai si le service est surchargé
+async function askAi(payload) {
+  const started = Date.now();
+  let last = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) {
+      if (Date.now() - started > 30000) break;
+      await new Promise((r) => setTimeout(r, attempt === 1 ? 1500 : 4000));
+    }
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 50000);
+    try {
+      const res = await fetch(`${API}/v1/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify(payload),
+        signal: ctl.signal,
+      });
+      if (res.ok) return await res.json();
+      const raw = await res.text().catch(() => "");
+      console.error("[merry] import IA", res.status, raw.slice(0, 500));
+      last = { status: res.status, raw };
+      if (res.status !== 429 && res.status < 500) break;
+    } catch (e) {
+      console.error("[merry] import IA réseau", e?.name, e?.message);
+      last = { status: 0, raw: "" };
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  // Un fichier par appel : la réponse reste courte et sous la limite de temps de Vercel
+  throw fail(last && last.status ? explain(last.status, last.raw) : "L'IA n'a pas répondu à temps : réessayez dans un instant.", last?.status || 504);
+}
+
+function buildContent(body) {
   const s = body.source || {};
   const name = String(s.name || "liste").slice(0, 120);
   const where = s.label ? ` (${String(s.label).slice(0, 60)})` : "";
@@ -126,51 +176,123 @@ export async function POST(req) {
     content.push({ type: "text", text: `Fichier « ${name} »${where} (PDF) :` });
     content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: String(s.content || "") } });
   } else {
-    return Response.json({ error: "bad_request" }, { status: 400 });
+    return null;
   }
   const groups = (body.groups || []).map(String).slice(0, 30);
   const fields = (body.fields || []).map(String).slice(0, 30);
   const events = (body.events || []).map(String).slice(0, 12);
-  if (body.guide) {
-    content.push({ type: "text", text: `Comment lire ce fichier (établi sur la première partie, applique-le tel quel) : ${String(body.guide).slice(0, 800)}` });
-  }
+  if (body.guide) content.push({ type: "text", text: `Comment lire ce fichier (établi sur la première partie, applique-le tel quel) : ${String(body.guide).slice(0, 800)}` });
   content.push({
     type: "text",
     text: `Groupes existants : ${groups.join(", ") || "aucun"}. Moments du mariage : ${events.join(", ") || "non précisés"}. Colonnes déjà présentes dans la liste du couple : ${fields.join(", ") || "aucune"}. Enregistre maintenant chaque personne invitée de ce passage.`,
   });
+  return content;
+}
 
-  const call = () =>
-    fetch(`${API}/v1/messages`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 8000,
-        system: SYSTEM,
-        tools: [TOOL],
-        tool_choice: { type: "tool", name: TOOL.name },
-        messages: [{ role: "user", content }],
-      }),
-    });
-  let res = await call();
-  // Service surchargé : un second essai
-  if (res.status === 429 || res.status >= 500) {
-    await new Promise((r) => setTimeout(r, 1500));
-    res = await call();
-  }
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    console.error("[merry] import IA", res.status, detail.slice(0, 500));
-    return Response.json({ error: "ai_failed", upstream: res.status }, { status: 502 });
-  }
-  const out = await res.json();
+// Lit une partie du fichier : { guests, extraColumns, columns, guide, truncated }
+async function readPart(body) {
+  const content = buildContent(body);
+  if (!content) throw fail("Format de partie non reconnu.", 400);
+  // MERRY_AI_MODEL_FAST : modèle plus rapide pour le texte et les tableaux (facultatif) ; photos et PDF gardent le modèle principal
+  const textOnly = body.source?.kind === "text";
+  const model = (textOnly && process.env.MERRY_AI_MODEL_FAST) || MODEL;
+  const out = await askAi({
+    model,
+    max_tokens: 8000,
+    system: SYSTEM,
+    tools: [TOOL],
+    tool_choice: { type: "tool", name: TOOL.name },
+    messages: [{ role: "user", content }],
+  });
   const used = (out.content || []).find((c) => c.type === "tool_use");
-  if (!used) return Response.json({ error: "ai_failed" }, { status: 502 });
-  return Response.json({
+  if (!used) throw fail("L'IA n'a pas renvoyé de liste exploitable pour cette partie.", 502);
+  return {
     guests: used.input.guests || [],
     extraColumns: used.input.extra_columns || [],
     columns: used.input.columns || [],
     guide: used.input.guide || "",
     truncated: out.stop_reason === "max_tokens",
+  };
+}
+
+// Contrôle de santé : la clé, les tables, et (avec ?ping=1) un vrai petit appel à l'IA
+export async function GET(req) {
+  const sb = connect(req);
+  if (!sb) return Response.json({ error: "auth" }, { status: 401 });
+  const out = { key: Boolean(process.env.ANTHROPIC_API_KEY), model: MODEL, fastModel: process.env.MERRY_AI_MODEL_FAST || null };
+  const probe = await sb.from("guest_imports").select("id").limit(1);
+  out.background = probe.error ? "missing" : "ok";
+  if (new URL(req.url).searchParams.get("ping")) {
+    const tick = await sb.rpc("merry_ai_tick");
+    out.tick = tick.error ? `error:${tick.error.code || tick.error.message}` : "ok";
+    if (!out.key) out.ai = "no_key";
+    else {
+      try {
+        await askAi({ model: MODEL, max_tokens: 8, messages: [{ role: "user", content: "Réponds uniquement : ok" }] });
+        out.ai = "ok";
+      } catch (e) {
+        out.ai = e.message;
+      }
+    }
+  }
+  return Response.json(out);
+}
+
+export async function POST(req) {
+  if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: "no_ai" }, { status: 501 });
+
+  // Réservé aux organisateurs connectés, avec un nombre de lectures par jour
+  const sb = connect(req);
+  if (!sb) return Response.json({ error: "auth" }, { status: 401 });
+  const { data: calls, error: tickError } = await sb.rpc("merry_ai_tick");
+  if (tickError) {
+    console.error("[merry] merry_ai_tick", tickError.code, tickError.message);
+    return Response.json({ error: "tick", code: tickError.code || null }, { status: 403 });
+  }
+  if (calls > DAILY_LIMIT) return Response.json({ error: "quota" }, { status: 429 });
+
+  const raw = await req.text();
+  if (raw.length > MAX_BYTES) return Response.json({ error: "too_big" }, { status: 413 });
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return Response.json({ error: "bad_request" }, { status: 400 });
+  }
+  if (!buildContent(body)) return Response.json({ error: "bad_request" }, { status: 400 });
+
+  const importId = typeof body.import_id === "string" && UUID.test(body.import_id) ? body.import_id : null;
+
+  // Réponse directe (sans arrière-plan)
+  if (!importId) {
+    try {
+      return Response.json(await readPart(body));
+    } catch (e) {
+      return Response.json({ error: "ai_failed", message: e.message, upstream: e.status || null }, { status: 502 });
+    }
+  }
+
+  // Arrière-plan : on enregistre le morceau, on répond tout de suite, la lecture continue après la réponse
+  const idx = Number.isInteger(body.idx) && body.idx >= 0 && body.idx < 200 ? body.idx : 0;
+  const { data: job, error: jobError } = await sb.from("guest_imports").select("wedding_id").eq("id", importId).maybeSingle();
+  if (jobError || !job) return Response.json({ error: "import_missing" }, { status: 404 });
+  const now = () => new Date().toISOString();
+  const { error: partError } = await sb
+    .from("guest_import_parts")
+    .upsert({ import_id: importId, idx, wedding_id: job.wedding_id, status: "running", result: null, error: null, updated_at: now() }, { onConflict: "import_id,idx" });
+  if (partError) {
+    console.error("[merry] guest_import_parts", partError.code, partError.message);
+    return Response.json({ error: "imports_table" }, { status: 500 });
+  }
+  after(async () => {
+    let patch;
+    try {
+      patch = { status: "done", result: await readPart(body), error: null };
+    } catch (e) {
+      patch = { status: "failed", result: null, error: String(e?.message || e).slice(0, 300) };
+    }
+    const { error } = await sb.from("guest_import_parts").update({ ...patch, updated_at: now() }).eq("import_id", importId).eq("idx", idx);
+    if (error) console.error("[merry] écriture du résultat", error.code, error.message);
   });
+  return Response.json({ queued: true, idx }, { status: 202 });
 }
