@@ -4884,3 +4884,15 @@ button.d-group-none {
   cursor: pointer;
   font: inherit;
 }
+
+/* Sélection d'invités */
+.d-guests .d-row-selected td {
+  background: var(--d-limetint, #f4f5d6);
+}
+.d-gcard.is-selected {
+  background: var(--d-limetint, #f4f5d6);
+}
+.d-gcard-top {
+  align-items: flex-start;
+  gap: 10px;
+}
