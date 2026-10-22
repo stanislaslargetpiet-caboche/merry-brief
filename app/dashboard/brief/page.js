@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useData } from "@/lib/dash/store";
-import { longDate } from "@/lib/dash/format";
-import { PageHeader } from "@/components/dash/ui";
+import { euros, longDate } from "@/lib/dash/format";
+import { Btn, PageHeader } from "@/components/dash/ui";
+import WeddingModal from "@/components/dash/WeddingModal";
 
 const LABELS = {
   stage: { debut: "Au tout début", regarde: "On commence à s'y pencher", lieu_recherche: "Recherche du lieu", lieu_reserve: "Lieu réservé", details: "Derniers détails" },
@@ -15,15 +17,20 @@ const LABELS = {
 export default function BriefPage() {
   const data = useData();
   const b = data.brief;
+  const w = data.wedding;
+  const [edit, setEdit] = useState(false);
+  // Date, lieu et budget : ce que vous avez saisi depuis (accueil), pas la réponse du brief d'origine
+  const place = [w.venue, w.region].filter(Boolean).join(", ");
+  const budget = w.budget_total !== null && w.budget_total !== undefined ? euros(w.budget_total) : LABELS.budget[b?.budget] || b?.budget;
   const rows = b
     ? [
         ["Où vous en êtes", LABELS.stage[b.stage] || b.stage],
         ["Qui organise", LABELS.team[b.team] || b.team],
-        ["Date", b.wedding_date ? longDate(b.wedding_date) : "À définir"],
-        ["Région", b.region || "À définir"],
+        ["Date", w.wedding_date ? longDate(w.wedding_date) : "À définir"],
+        ["Lieu", place || b.region || "À définir"],
         ["Invités", LABELS.guests[b.guests] || b.guests],
         ["Format", LABELS.format[b.format] || b.format],
-        ["Budget", LABELS.budget[b.budget] || b.budget],
+        ["Budget", budget || "À définir"],
         ["Style", (b.vibes || []).join(", ") || "–"],
       ]
     : [];
@@ -41,9 +48,12 @@ export default function BriefPage() {
               </div>
             </div>
           ))}
-          <p className="d-small d-muted" style={{ margin: 0 }}>
-            Le brief sert de point de départ : la date, le lieu et le budget se modifient depuis l'accueil, en cliquant sur la date.
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <Btn kind="ghost" small icon="pencil" onClick={() => setEdit(true)}>
+              Modifier la date, le lieu, le budget
+            </Btn>
+            <span className="d-small d-muted">Le reste du brief est le point de départ de votre organisation.</span>
+          </div>
         </section>
       ) : (
         <div className="d-empty">
@@ -53,6 +63,7 @@ export default function BriefPage() {
           </a>
         </div>
       )}
+      {edit ? <WeddingModal onClose={() => setEdit(false)} /> : null}
     </>
   );
 }

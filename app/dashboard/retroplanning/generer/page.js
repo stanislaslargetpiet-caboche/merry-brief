@@ -9,7 +9,27 @@ import { GUEST_COUNTS, LIST_STATES, MOMENT_CHOICES, VENDOR_CHOICES, buildTasks, 
 import { Icon, Tile } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
 
-function Question({ n, title, hint, children }) {
+// `known` : réponse déjà donnée dans le brief ; on la rappelle au lieu de reposer la question
+function Question({ n, title, hint, known, children }) {
+  const [open, setOpen] = useState(!known);
+  if (!open) {
+    return (
+      <section className="d-card">
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <span className="d-step-num">{n}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
+            <h2>{title}</h2>
+            <span className="d-small d-muted">
+              Déjà indiqué dans votre brief : <strong style={{ color: "var(--d-ink)" }}>{known}</strong>
+            </span>
+          </div>
+          <button type="button" className="d-link" onClick={() => setOpen(true)}>
+            Modifier
+          </button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="d-card">
       <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -40,14 +60,20 @@ export default function GenererRetroplanning() {
   const count = useMemo(() => countTasks(a, data), [a, data]);
   const date = data.wedding?.wedding_date;
   const noVendor = a.vendors.length === 0;
+  const briefGuests = GUEST_COUNTS.find((g) => g.id === data.brief?.guests && g.id !== "inconnu")?.label.toLowerCase();
 
   async function generate() {
     if (busy) return;
     setBusy(true);
     const events = missingEvents(a, data);
-    if (events.length) await dash.insert("events", events);
+    if (events.length) {
+      const created = await dash.insert("events", events);
+      // Les invités déjà dans la liste ont une réponse « Invité » à chaque nouveau moment
+      const now = new Date().toISOString();
+      if (data.guests.length) await dash.insert("guest_responses", created.flatMap((ev) => data.guests.map((g) => ({ guest_id: g.id, event_id: ev.id, status: "attente", updated_at: now }))));
+    }
     const tasks = buildTasks(a, data);
-    await dash.insert("tasks", tasks);
+    if (tasks.length) await dash.insert("tasks", tasks);
     router.push("/dashboard/retroplanning");
   }
 
@@ -71,7 +97,7 @@ export default function GenererRetroplanning() {
           </div>
         </Question>
 
-        <Question n={2} title="Combien d'invités environ ?" hint="Au-delà de 150, Merry ajoute le transport des invités.">
+        <Question n={2} title="Combien d'invités environ ?" hint="Au-delà de 150, Merry ajoute le transport des invités." known={briefGuests}>
           <div className="d-chip-row">
             {GUEST_COUNTS.map((g) => (
               <button key={g.id} type="button" className={`d-pill d-pill-lg${a.guests === g.id ? " is-on" : ""}`} aria-pressed={a.guests === g.id} onClick={() => setA((x) => ({ ...x, guests: g.id }))}>

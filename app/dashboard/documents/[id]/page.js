@@ -123,7 +123,7 @@ export default function Dossier() {
             </div>
             <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
               {linked.length
-                ? `${linked.length} document${linked.length > 1 ? "s" : ""} de ce dossier ${linked.length > 1 ? "sont rattachés" : "est rattaché"} à un prestataire : leur montant est dans le budget et leurs échéances dans le rétroplanning.`
+                ? `${linked.length} document${linked.length > 1 ? "s" : ""} de ce dossier ${linked.length > 1 ? "sont rattachés" : "est rattaché"} à un prestataire : leur montant et leurs échéances sont dans le budget.`
                 : "Un devis ou une facture ajouté depuis le budget ou la fiche d'un prestataire se retrouve aussi ici, rattaché à ce prestataire."}
             </span>
             <Link href="/dashboard/budget" className="d-link" style={{ alignSelf: "flex-start" }}>

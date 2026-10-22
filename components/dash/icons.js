@@ -69,8 +69,6 @@ const DUO_ICONS = {
   dossier: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="FILL"/><path d="M3.5 11h17"/>',
 };
 
-export const DUO_KEYS = Object.keys(DUO_ICONS);
-
 export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, className, style }) {
   const inner = Object.hasOwn(LINE_ICONS, name) ? LINE_ICONS[name] : LINE_ICONS.plus;
   return (

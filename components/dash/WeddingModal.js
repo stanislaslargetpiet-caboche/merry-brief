@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { parseAmount } from "@/lib/dash/format";
+import { normalize, parseAmount } from "@/lib/dash/format";
 import { Btn, Field, Modal } from "./ui";
 
 export default function WeddingModal({ onClose }) {
@@ -20,14 +20,20 @@ export default function WeddingModal({ onClose }) {
 
   async function save(e) {
     e.preventDefault();
+    const budget = parseAmount(form.budget_total);
     await dash.updateWedding({
       partner1: form.partner1.trim() || w.partner1,
       partner2: form.partner2.trim() || null,
       wedding_date: form.wedding_date || null,
       venue: form.venue.trim() || null,
       region: form.region.trim() || null,
-      budget_total: parseAmount(form.budget_total),
+      budget_total: budget,
     });
+    // Le budget est fixé : la tâche « Fixer le budget » du rétroplanning est faite, on ne la redemande pas
+    if (budget !== null && budget !== undefined) {
+      const now = new Date().toISOString();
+      for (const t of dash.data.tasks.filter((x) => !x.done && normalize(x.title) === "fixer le budget")) await dash.update("tasks", t.id, { done: true, done_at: now });
+    }
     onClose();
   }
 
