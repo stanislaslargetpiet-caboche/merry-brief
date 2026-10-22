@@ -34,14 +34,9 @@ export default function Accueil() {
 
   // Bien démarrer
   const partner = members.find((m) => m.role === "couple" && m.id !== data.meId);
-  const parents = members.filter((m) => m.role === "parents");
-  const pendingParents = parents.filter((m) => !m.user_id);
   const steps = [
     { label: "Remplir le brief", done: !!(data.brief || wedding.brief_id), href: data.brief || wedding.brief_id ? "/dashboard/brief" : "/" },
     partner ? { label: `Inviter ${partner.display_name}`, done: !!partner.user_id, href: "#organisateurs" } : { label: "Inviter votre moitié", done: false, href: "#organisateurs" },
-    parents.length
-      ? { label: pendingParents.length ? `Inviter les ${pendingParents[0].display_name.charAt(0).toLowerCase()}${pendingParents[0].display_name.slice(1)}` : "Inviter les parents", done: !pendingParents.length, href: "#organisateurs" }
-      : { label: "Inviter vos parents", done: false, href: "#organisateurs" },
     { label: "Importer les listes d'invités", done: g.total >= 10, href: "/dashboard/invites/importer" },
     { label: "Compléter les adresses", done: g.total > 0 && g.addresses / g.total >= 0.9, href: "/dashboard/invites" },
     { label: "Fixer le budget", done: wedding.budget_total !== null && wedding.budget_total !== undefined, href: "/dashboard/budget" },
