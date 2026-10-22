@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { normalize, uid } from "@/lib/dash/format";
 import { guestKey } from "@/lib/dash/importParse";
+import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { Icon } from "@/components/dash/icons";
 import { Btn, GroupChip, InlineEdit, PageHeader, Popover, Section } from "@/components/dash/ui";
@@ -66,11 +67,56 @@ function RowGroup({ group, groups, onPick }) {
   );
 }
 
+// Test de la lecture par l'IA : clé, modèle, base et un vrai petit appel, pour savoir d'où vient un problème
+function Diagnostic() {
+  const [state, setState] = useState(null); // null | "wait" | { lines }
+  async function run() {
+    setState("wait");
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch("/api/import-invites?ping=1", { headers: { authorization: `Bearer ${sess?.session?.access_token}` } });
+      const j = await res.json();
+      if (!res.ok) return setState({ lines: [[false, "Session non reconnue : reconnectez-vous."]] });
+      setState({
+        lines: [
+          [j.key, j.key ? "Clé Anthropic présente" : "Clé Anthropic absente : ajoutez ANTHROPIC_API_KEY dans Vercel (Settings > Environment Variables), puis redéployez"],
+          [j.tick === "ok", j.tick === "ok" ? "Compteur de lectures de la base : ok" : `Compteur de lectures de la base indisponible (${j.tick || "inconnu"}) : relancez supabase/dashboard.sql dans Supabase`],
+          [j.ai === "ok", j.ai === "ok" ? `Lecture par l'IA : ok (modèle ${j.model})` : `Lecture par l'IA : ${j.ai === "no_key" ? "impossible sans clé" : j.ai}`],
+          [j.background === "ok", j.background === "ok" ? "Lecture en arrière-plan : activée" : "Lecture en arrière-plan : non installée, exécutez supabase/imports.sql dans Supabase (l'import marche quand même, mais pas si vous quittez la page)"],
+        ],
+      });
+    } catch {
+      setState({ lines: [[false, "Impossible de joindre le serveur."]] });
+    }
+  }
+  return (
+    <div className="d-col" style={{ gap: 8, alignItems: "flex-start" }}>
+      <button type="button" className="d-link" onClick={run} disabled={state === "wait"} style={{ fontSize: 13 }}>
+        {state === "wait" ? "Test en cours…" : "Un souci de lecture ? Tester la connexion à l'IA"}
+      </button>
+      {state && state !== "wait" ? (
+        <ul className="d-small" style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+          {state.lines.map(([ok, text], i) => (
+            <li key={i} style={{ color: ok ? "inherit" : "#9b2c2c" }}>
+              {ok ? "✓ " : "✗ "}
+              {text}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Importer() {
   const dash = useDash();
   const router = useRouter();
   const { guests, groups, events, fields } = dash.data;
-  const [files, setFiles] = useState([]); // { id, name, kind, note, status, parts, guests, extraColumns, byAi }
+  const imports = useImports();
+  const [localFiles, setFiles] = useState([]); // lectures dans cette page (démo, secours) : { id, name, kind, note, status, parts, guests, extraColumns, byAi }
+  // Les imports du serveur (lus en arrière-plan) s'ajoutent aux lectures locales
+  const files = useMemo(() => [...localFiles, ...imports.jobs], [localFiles, imports.jobs]);
+  const [noBackground, setNoBackground] = useState(false);
   const [aiOff, setAiOff] = useState(false);
   const [pasted, setPasted] = useState("");
   const [showPaste, setShowPaste] = useState(false);
@@ -84,6 +130,42 @@ export default function Importer() {
   const [selected, setSelected] = useState({}); // rowId -> true
   const inputRef = useRef(null);
   const aiOffRef = useRef(false);
+
+  // Quand l'IA remplace l'aperçu rapide d'un import, les lignes changent : les corrections faites sur l'aperçu sont abandonnées
+  const jobMode = useRef(new Map());
+  useEffect(() => {
+    for (const j of imports.jobs) {
+      const mode = `${j.status}:${j.byAi}`;
+      const before = jobMode.current.get(j.id);
+      jobMode.current.set(j.id, mode);
+      if (before && before !== mode) {
+        const gone = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith(`${j.id}:`)));
+        setEdits(gone);
+        setRemoved(gone);
+        setSelected(gone);
+      }
+    }
+  }, [imports.jobs]);
+
+  // À l'ouverture : la clé IA est-elle installée ? (évite de découvrir le problème après avoir déposé un fichier)
+  useEffect(() => {
+    if (dash.mode !== "live" || !supabase) return;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const res = await fetch("/api/import-invites", { headers: { authorization: `Bearer ${sess?.session?.access_token}` } });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!j.key) {
+          aiOffRef.current = true;
+          setAiOff(true);
+        }
+        if (j.background === "missing") setNoBackground(true);
+      } catch {
+        /* hors ligne : on verra à l'envoi */
+      }
+    })();
+  }, [dash.mode]);
 
   const patchFile = (id, patch) => setFiles((x) => x.map((f) => (f.id === id ? { ...f, ...(typeof patch === "function" ? patch(f) : patch) } : f)));
 
@@ -193,6 +275,24 @@ export default function Importer() {
     });
   }
 
+  // Envoie la lecture au serveur : elle continue même si l'on quitte la page. Secours : lecture depuis cette page.
+  async function launch(entry) {
+    if (dash.mode !== "live" || !supabase || aiOffRef.current) return fallbackLocal(entry);
+    const res = await imports.start(entry, { groups: groups.map((g) => g.name), fields: fields.map((f) => f.name), events: events.map((e) => e.name) });
+    if (res.ok) {
+      setFiles((x) => x.filter((f) => f.id !== entry.id));
+      return undefined;
+    }
+    if (res.reason === "no_ai") {
+      aiOffRef.current = true;
+      setAiOff(true);
+      return fallbackLocal(entry);
+    }
+    if (["quota", "tick", "auth", "too_big"].includes(res.reason)) return fallbackLocal(entry, reasonText(res.reason));
+    if (res.reason === "tables") setNoBackground(true);
+    return readWithAi(entry);
+  }
+
   async function addFiles(list) {
     const picked = Array.from(list).slice(0, MAX_FILES);
     const entries = picked.map((f) => ({ id: uid(), name: f.name, kind: "txt", status: "lecture", guests: [], extraColumns: [], file: f }));
@@ -202,7 +302,7 @@ export default function Importer() {
         const read = await readFile(e.file);
         const entry = { ...e, ...read };
         patchFile(e.id, { kind: read.kind, note: read.note });
-        readWithAi(entry);
+        launch(entry);
       } catch (err) {
         patchFile(e.id, { kind: err.kind || "txt", status: "erreur", why: err.note || (err.message === "PDF trop lourd" ? "PDF trop lourd : envoyez-le en plusieurs fois ou en photos." : "Impossible de lire ce fichier.") });
       }
@@ -216,7 +316,7 @@ export default function Importer() {
     setFiles((x) => [...x, { ...entry, units: undefined, local: undefined }]);
     setPasted("");
     setShowPaste(false);
-    readWithAi(entry);
+    launch(entry);
   }
 
   // Colonne de présence reconnue = un moment du mariage (nom identique) : « Dîner » remplit « Invités à » ligne par ligne
@@ -384,6 +484,7 @@ export default function Importer() {
     }
     setSaving(false);
     dash.setToast({ kind: "ok", text: `${plural(created.length, "invité ajouté", "invités ajoutés")}${dups.length ? `, ${plural(dups.length, "fusionné", "fusionnés")}` : ""}.` });
+    imports.remove(files.filter((f) => f.job).map((f) => f.id));
     router.push("/dashboard/invites");
   }
 
@@ -488,7 +589,7 @@ export default function Importer() {
                 ) : (
                   <span className="d-status is-todo">Merry lit…</span>
                 )}
-                <button type="button" className="d-icon-btn is-flat" aria-label={`Retirer ${f.name}`} onClick={() => setFiles((x) => x.filter((y) => y.id !== f.id))}>
+                <button type="button" className="d-icon-btn is-flat" aria-label={`Retirer ${f.name}`} onClick={() => (f.job ? imports.remove(f.id) : setFiles((x) => x.filter((y) => y.id !== f.id)))}>
                   <Icon name="x" size={14} sw={2.2} />
                 </button>
               </div>
@@ -506,13 +607,27 @@ export default function Importer() {
         </div>
       ) : null}
 
+      {imports.jobs.some((j) => j.status === "encours") ? (
+        <div className="d-card" style={{ background: "var(--d-limetint, #f4f5d6)", border: 0, gap: 4 }}>
+          <strong style={{ fontSize: 14 }}>Merry lit votre liste.</strong>
+          <span className="d-small d-muted">Vous pouvez quitter cette page ou fermer l'application : la lecture continue, et la liste vous attend ici à votre retour.</span>
+        </div>
+      ) : null}
+
+      {noBackground ? (
+        <div className="d-card" style={{ background: "var(--d-panel)", border: 0, gap: 4 }}>
+          <strong style={{ fontSize: 14 }}>Lecture en arrière-plan non installée.</strong>
+          <span className="d-small d-muted">Pour que l'import continue quand vous quittez la page, exécutez supabase/imports.sql dans Supabase (SQL Editor). En attendant, restez sur cette page pendant la lecture.</span>
+        </div>
+      ) : null}
+
       {rows.length ? (
         <>
           <div className="d-understood">
             <div className="d-understood-head">
               <span className="d-okpill is-small">
                 <Icon name="check" size={12} sw={2.4} />
-                Lue
+                {reading ? "Aperçu" : "Lue"}
               </span>
               <strong>
                 Merry a repéré {plural(active.length, "personne", "personnes")}
@@ -743,6 +858,7 @@ export default function Importer() {
           <p>Merry lit vos listes…</p>
         </div>
       ) : null}
+      {dash.mode === "live" && supabase ? <Diagnostic /> : null}
     </>
   );
 }

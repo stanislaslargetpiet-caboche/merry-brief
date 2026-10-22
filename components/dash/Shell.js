@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
+import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { SITE_URL } from "@/lib/site";
 import { Icon } from "./icons";
 import { Avatar, Popover } from "./ui";
@@ -21,7 +22,9 @@ const SOON = ["Prestataires", "Site de mariage", "Liste & cagnotte"];
 export default function Shell({ children }) {
   return (
     <DashProvider>
-      <Frame>{children}</Frame>
+      <ImportsProvider>
+        <Frame>{children}</Frame>
+      </ImportsProvider>
     </DashProvider>
   );
 }
@@ -32,6 +35,43 @@ function pendingSentence(pending) {
   const name = pending[0].display_name;
   if (/^parents de /i.test(name)) return `Les ${name.charAt(0).toLowerCase()}${name.slice(1)} n'ont pas encore accès.`;
   return `${name} n'a pas encore accès.`;
+}
+
+// Import de liste en cours ou prêt, visible sur toutes les pages : la lecture continue même quand on quitte la page d'import
+function ImportBadge() {
+  const dash = useDash();
+  const pathname = usePathname();
+  const { jobs } = useImports();
+  const seen = useRef(new Map());
+
+  // Une fois la lecture terminée, un message le dit, où que l'on soit
+  useEffect(() => {
+    for (const j of jobs) {
+      const before = seen.current.get(j.id);
+      seen.current.set(j.id, j.status);
+      if (before === "encours" && j.status !== "encours" && !pathname.startsWith("/dashboard/invites/importer")) {
+        dash.setToast(j.status === "lue" ? { kind: "ok", text: `« ${j.name} » est lue : ${j.guests.length} nom${j.guests.length > 1 ? "s" : ""} à vérifier dans Importer une liste.` } : { kind: "error", text: `« ${j.name} » n'a pas pu être lue.` });
+      }
+    }
+  }, [jobs, pathname, dash]);
+
+  if (!jobs.length || pathname.startsWith("/dashboard/invites/importer")) return null;
+  const running = jobs.filter((j) => j.status === "encours");
+  const job = running[0] || jobs[jobs.length - 1];
+  const text = running.length
+    ? `Merry lit « ${job.name} »${job.parts.total > 1 ? ` · ${Math.min(job.parts.done, job.parts.total)}/${job.parts.total}` : ""}`
+    : jobs.length > 1
+      ? `${jobs.length} listes lues, à vérifier`
+      : job.status === "lue"
+        ? `« ${job.name} » est lue : ${job.guests.length} nom${job.guests.length > 1 ? "s" : ""} à vérifier`
+        : `« ${job.name} » n'a pas pu être lue`;
+  return (
+    <Link href="/dashboard/invites/importer" className={`d-import-badge${running.length ? " is-running" : ""}`} role="status">
+      <span className="d-import-dot" aria-hidden="true" />
+      <span>{text}</span>
+      <strong>{running.length ? "Voir" : "Vérifier"}</strong>
+    </Link>
+  );
 }
 
 function Frame({ children }) {
@@ -229,6 +269,7 @@ function Frame({ children }) {
         </div>
       </main>
       {showOrganisers && data ? <Organisers onClose={() => setShowOrganisers(false)} /> : null}
+      <ImportBadge />
       {dash.toast ? (
         <div className={`d-toast is-${dash.toast.kind}`} role="status">
           {dash.toast.text}
