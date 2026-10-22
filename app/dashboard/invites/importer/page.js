@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { normalize, uid } from "@/lib/dash/format";
-import { guestKey } from "@/lib/dash/importParse";
+import { guestKey, rsvpFromCell } from "@/lib/dash/importParse";
 import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { Icon } from "@/components/dash/icons";
 import { RSVP } from "@/lib/dash/theme";
-import { Btn, GroupChip, InlineEdit, PageHeader, Popover, Section } from "@/components/dash/ui";
+import { Btn, GroupChip, InlineEdit, PageHeader, Popover, RsvpMenu, Section } from "@/components/dash/ui";
 
 const MAX_FILES = 15;
 const PARALLEL = 3; // parties lues en même temps par l'IA
@@ -54,11 +54,19 @@ function YnChip({ value, onClick, label }) {
 function Count({ status, n, children }) {
   const s = RSVP[status];
   return (
-    <span className="d-rsvp" style={{ background: s.bg, color: s.ink, fontWeight: s.weight }}>
+    <span className="d-rsvp" style={{ background: s.bg, color: s.ink, fontWeight: s.weight }} title={`${s.label} : ${s.hint.toLowerCase()}`}>
       {n} {children}
     </span>
   );
 }
+
+// « 93 invités », « 1 vient », « 3 ne viennent pas » : le compteur d'un statut
+const STATUS_COUNT = {
+  attente: ["invité", "invités"],
+  oui: ["vient", "viennent"],
+  non: ["ne vient pas", "ne viennent pas"],
+  non_invite: ["non invité", "non invités"],
+};
 
 // Groupe d'une ligne de l'aperçu : un clic propose les autres groupes
 function RowGroup({ group, groups, onPick }) {
@@ -382,7 +390,7 @@ export default function Importer() {
         row.dup = dup || null;
         row.presence = {};
         for (const [c, ev] of eventForColumn) {
-          const v = yesNo((row.extra || {})[c]);
+          const v = rsvpFromCell((row.extra || {})[c]);
           if (v) row.presence[ev.id] = v;
         }
         row.toName = !dup && !named && (row.plus_one_of || row.plusOneOfIndex !== undefined);
@@ -415,7 +423,7 @@ export default function Importer() {
   const info = found.map((c) => {
     const vals = active.map((r) => (r.extra || {})[c]).filter(hasValue);
     const ev = eventForColumn.get(c);
-    return { key: c, label: ev ? ev.short_name || ev.name : c, yn: vals.length > 0 && vals.every((v) => yesNo(v)), ev, count: vals.length, off: !ev && extraOn[c] === false };
+    return { key: c, label: ev ? ev.short_name || ev.name : c, yn: !ev && vals.length > 0 && vals.every((v) => yesNo(v)), ev, count: vals.length, off: !ev && extraOn[c] === false };
   });
   const dataColumns = info.filter((c) => !c.off); // colonnes affichées dans l'aperçu
   const shownExtra = extraColumns.filter((c) => extraOn[c] !== false);
@@ -430,6 +438,13 @@ export default function Importer() {
     if (r.plusOneOfIndex === undefined) return "";
     const host = rows.find((x) => x.id === `${r.id.split(":")[0]}:${r.plusOneOfIndex}`);
     return host ? nameOf(host) : "";
+  };
+  // Statut de chaque personne pour un moment : celui du document, sinon « Invité » (réponse attendue)
+  const statusOf = (r, ev) => r.presence[ev.id] || "attente";
+  const statusCounts = (ev) => {
+    const n = { attente: 0, oui: 0, non: 0, non_invite: 0 };
+    for (const r of active) n[statusOf(r, ev)] += 1;
+    return n;
   };
   const ynCounts = (c) => {
     let oui = 0;
@@ -523,9 +538,8 @@ export default function Importer() {
       for (const g of created) {
         const pres = presenceById.get(g.id) || {};
         for (const ev of events) {
-          const own = pres[ev.id];
-          const invited = own ? own === "oui" : invitedTo.includes(ev.id);
-          responses.push({ guest_id: g.id, event_id: ev.id, status: invited ? "attente" : "non_invite", updated_at: now });
+          const own = pres[ev.id]; // statut lu dans le document
+          responses.push({ guest_id: g.id, event_id: ev.id, status: own || (invitedTo.includes(ev.id) ? "attente" : "non_invite"), updated_at: now });
         }
       }
       if (responses.length) await dash.insert("guest_responses", responses);
@@ -692,11 +706,22 @@ export default function Importer() {
             {info.length ? (
               <div className="d-readout-cols">
                 {info.map((c) => {
+                  const sc = c.ev ? statusCounts(c.ev) : null;
                   const n = c.yn ? ynCounts(c.key) : null;
                   return (
                     <div key={c.key} className={`d-readout-col${c.off ? " is-off" : ""}`}>
                       <strong>{c.label}</strong>
-                      {n ? (
+                      {sc ? (
+                        <span className="d-readout-counts">
+                          {["attente", "oui", "non", "non_invite"]
+                            .filter((k) => sc[k])
+                            .map((k) => (
+                              <Count key={k} status={k} n={sc[k]}>
+                                {STATUS_COUNT[k][sc[k] > 1 ? 1 : 0]}
+                              </Count>
+                            ))}
+                        </span>
+                      ) : n ? (
                         <span className="d-readout-counts">
                           {n.oui ? (
                             <Count status="oui" n={n.oui}>
@@ -890,7 +915,15 @@ export default function Importer() {
                         const yn = yesNo(v);
                         return (
                           <td key={c.key} className="d-col-custom">
-                            {c.yn ? <YnChip value={yn} label={c.label} onClick={() => toggleYn(r, c.key)} /> : hasValue(v) ? v : <span className="d-muted">–</span>}
+                            {c.ev ? (
+                              <RsvpMenu status={statusOf(r, c.ev)} title={`${c.label} : modifier le statut`} onPick={(k) => edit(r.id, { extra: { ...(r.extra || {}), [c.key]: RSVP[k].label } })} />
+                            ) : c.yn ? (
+                              <YnChip value={yn} label={c.label} onClick={() => toggleYn(r, c.key)} />
+                            ) : hasValue(v) ? (
+                              v
+                            ) : (
+                              <span className="d-muted">–</span>
+                            )}
                           </td>
                         );
                       })}

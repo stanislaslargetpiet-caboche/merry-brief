@@ -3,6 +3,7 @@
 // l'icône devinée par mots-clés (components/dash/icons.js).
 
 import { createClient } from "@supabase/supabase-js";
+import { isForced, refusesForcedTool, rememberNoForce, withTool } from "@/lib/aiTool";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
@@ -63,26 +64,22 @@ export async function POST(req) {
   if (!text) return Response.json({ error: "bad_request" }, { status: 400 });
   const what = body.kind === "poste" ? "un poste du budget de mariage" : "une tâche du rétroplanning d'un mariage";
 
-  const res = await fetch(`${API}/v1/messages`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 100,
-      tools: [TOOL],
-      tool_choice: { type: "tool", name: TOOL.name },
-      messages: [
-        {
-          role: "user",
-          content:
-            `Voici ${what} : « ${text} ».\nChoisis l'icône qui correspond à son thème principal (ce dont il s'agit vraiment, pas un mot isolé).\n` +
-            Object.entries(ICONS)
-              .map(([k, v]) => `- ${k} : ${v}`)
-              .join("\n"),
-        },
-      ],
-    }),
-  });
+  const prompt =
+    `Voici ${what} : « ${text} ».\nChoisis l'icône qui correspond à son thème principal (ce dont il s'agit vraiment, pas un mot isolé).\n` +
+    Object.entries(ICONS)
+      .map(([k, v]) => `- ${k} : ${v}`)
+      .join("\n");
+  const call = () =>
+    fetch(`${API}/v1/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify(withTool({ model: MODEL, max_tokens: 100, messages: [{ role: "user", content: prompt }] }, TOOL)),
+    });
+  let res = await call();
+  if (res.status === 400 && isForced(MODEL) && refusesForcedTool(await res.clone().text().catch(() => ""))) {
+    rememberNoForce(MODEL); // ce modèle refuse l'outil forcé : on repart en « auto »
+    res = await call();
+  }
   if (!res.ok) return Response.json({ error: "ai_failed" }, { status: 502 });
   const out = await res.json();
   const icon = (out.content || []).find((c) => c.type === "tool_use")?.input?.icon;

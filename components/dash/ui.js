@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./icons";
-import { pastel, RSVP } from "@/lib/dash/theme";
+import { pastel, RSVP, RSVP_ORDER } from "@/lib/dash/theme";
 
 export function Btn({ kind = "primary", icon, href, small, onClick, children, type = "button", disabled, className = "", title, target }) {
   const cls = `d-btn d-btn-${kind}${small ? " d-btn-small" : ""} ${className}`;
@@ -94,6 +94,7 @@ export function GroupChip({ group, onClick, small = true }) {
 
 export function RsvpChip({ status, onClick, open, title }) {
   const s = RSVP[status] || RSVP.non_invite;
+  title = title || `${s.label} : ${s.hint.toLowerCase()}`;
   const Tag = onClick ? "button" : "span";
   return (
     <Tag
@@ -109,6 +110,35 @@ export function RsvpChip({ status, onClick, open, title }) {
       {s.label}
       {open ? <Icon name="chevDown" size={12} sw={2.2} /> : null}
     </Tag>
+  );
+}
+
+// Pastille de statut d'un moment du mariage, avec le menu des quatre choix et ce que chacun veut dire
+export function RsvpMenu({ status, onPick, title }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="d-anchor">
+      <RsvpChip status={status} onClick={() => setOpen((o) => !o)} open={open} title={title} />
+      <Popover open={open} onClose={() => setOpen(false)}>
+        {RSVP_ORDER.map((k) => (
+          <button
+            key={k}
+            type="button"
+            className={`d-pop-item d-rsvp-opt${k === status ? " is-on" : ""}`}
+            onClick={() => {
+              onPick(k);
+              setOpen(false);
+            }}
+          >
+            <span className="d-rsvp-opt-main">
+              <RsvpChip status={k} />
+              <span className="d-rsvp-hint">{RSVP[k].hint}</span>
+            </span>
+            {k === status ? <Icon name="check" size={14} sw={2.2} /> : null}
+          </button>
+        ))}
+      </Popover>
+    </span>
   );
 }
 

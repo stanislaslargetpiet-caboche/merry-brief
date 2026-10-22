@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { chosenKpis, kpiContext, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
-import { PASTEL_KEYS, RSVP_ORDER, pastel } from "@/lib/dash/theme";
+import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
-import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpChip } from "@/components/dash/ui";
+import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpMenu } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
@@ -18,28 +18,7 @@ function splitName(s) {
 
 function RsvpCell({ guest, event, status }) {
   const dash = useDash();
-  const [open, setOpen] = useState(false);
-  return (
-    <span className="d-anchor">
-      <RsvpChip status={status} onClick={() => setOpen((o) => !o)} open={open} title={`${event.name} : modifier la réponse`} />
-      <Popover open={open} onClose={() => setOpen(false)}>
-        {RSVP_ORDER.map((k) => (
-          <button
-            key={k}
-            type="button"
-            className={`d-pop-item${k === status ? " is-on" : ""}`}
-            onClick={() => {
-              dash.setResponse(guest.id, event.id, k);
-              setOpen(false);
-            }}
-          >
-            <RsvpChip status={k} />
-            {k === status ? <Icon name="check" size={14} sw={2.2} /> : null}
-          </button>
-        ))}
-      </Popover>
-    </span>
-  );
+  return <RsvpMenu status={status} onPick={(k) => dash.setResponse(guest.id, event.id, k)} title={`${event.name} : modifier le statut`} />;
 }
 
 // Menu de fin de ligne : retirer l'invité de la liste

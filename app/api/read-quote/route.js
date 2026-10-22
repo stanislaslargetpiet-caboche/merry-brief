@@ -4,6 +4,7 @@
 // Nécessite ANTHROPIC_API_KEY ; sans clé, l'appli demande au couple de remplir les champs.
 
 import { createClient } from "@supabase/supabase-js";
+import { isForced, refusesForcedTool, rememberNoForce, withTool } from "@/lib/aiTool";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -99,16 +100,13 @@ export async function POST(req) {
     fetch(`${API}/v1/messages`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2000,
-        system: SYSTEM,
-        tools: [TOOL],
-        tool_choice: { type: "tool", name: TOOL.name },
-        messages: [{ role: "user", content }],
-      }),
+      body: JSON.stringify(withTool({ model: MODEL, max_tokens: 2000, system: SYSTEM, messages: [{ role: "user", content }] }, TOOL)),
     });
   let res = await call();
+  if (res.status === 400 && isForced(MODEL) && refusesForcedTool(await res.clone().text().catch(() => ""))) {
+    rememberNoForce(MODEL); // ce modèle refuse l'outil forcé : on repart en « auto »
+    res = await call();
+  }
   if (res.status === 429 || res.status >= 500) {
     await new Promise((r) => setTimeout(r, 1500));
     res = await call();
