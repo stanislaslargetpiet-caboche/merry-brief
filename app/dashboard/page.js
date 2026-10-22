@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
-import { budgetTotals, chosenKpis, guestStats, kpiContext, paymentTitle, taskStats, upcomingTasks } from "@/lib/dash/model";
+import { budgetTotals, guestStats, kpiItems, paymentTitle, taskStats, upcomingTasks } from "@/lib/dash/model";
 import { dayMonth, daysUntil, euros, longDate, shortDate } from "@/lib/dash/format";
 import { DuoIcon, Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Bar, Btn, KpiBar, PersonChip, Section } from "@/components/dash/ui";
@@ -30,8 +30,7 @@ export default function Accueil() {
   const quoteFiles = bannerOff || (items.length > 0 && b.signed >= items.length);
   const t = taskStats(data);
   const nFolders = (data.folders || []).length + (data.documents.some((d) => !d.folder_id) ? 1 : 0);
-  const ctx = kpiContext(data);
-  const kpis = chosenKpis(data, "accueil").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
+  const kpis = kpiItems(data, "accueil");
 
   const days = daysUntil(wedding.wedding_date);
   const title = [wedding.partner1, wedding.partner2].filter(Boolean).join(" & ");
