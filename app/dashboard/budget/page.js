@@ -113,7 +113,6 @@ export default function Budget() {
             <div className="d-repart-head">
               <span>
                 <strong>Qui a payé quoi</strong>
-                <small>Les dépenses déjà réglées, par personne</small>
               </span>
               <button type="button" className="d-add-spend" onClick={() => setAdding(true)}>
                 <span>
@@ -146,7 +145,6 @@ export default function Budget() {
             <div className="d-repart-head">
               <span>
                 <strong>Où va l'argent</strong>
-                <small>Les devis signés, par poste</small>
               </span>
             </div>
             {signed.length ? (
