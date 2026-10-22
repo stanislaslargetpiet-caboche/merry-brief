@@ -63,7 +63,7 @@ ${sender ? `<p>${esc(sender)}</p>\n` : ""}<p style="font-size:13px;color:#666">C
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-    body: JSON.stringify({ from: FROM, to: [to], subject, text, html, reply_to: user.user.email || undefined }),
+    body: JSON.stringify({ from: FROM, to: [to], subject, text, html, reply_to: user.user.email || undefined, cc: user.user.email && user.user.email.toLowerCase() !== to.toLowerCase() ? [user.user.email] : undefined }),
   });
   if (!res.ok) {
     console.error("[merry] envoi invitation", res.status, await res.text().catch(() => ""));
