@@ -17,6 +17,19 @@ function plural(n, one, many) {
   return `${n} ${n > 1 ? many : one}`;
 }
 
+const YES = /^(oui|o|yes|y|x|ok|present|presente|1|✓|✔)$/;
+const NO = /^(non|no|n|0|absent|absente)$/;
+function yesNo(v) {
+  const n = normalize(v);
+  return YES.test(n) ? "oui" : NO.test(n) ? "non" : null;
+}
+
+function failureText(code) {
+  if (code === "tick" || code === "auth") return "Votre session a expiré ou la base n'est pas à jour : reconnectez-vous puis réessayez.";
+  if (code === "too_big") return "Fichier trop lourd : envoyez-le en plusieurs fois.";
+  return "Merry n'a pas pu lire ce fichier. Réessayez dans un instant.";
+}
+
 // Groupe d'une ligne de l'aperçu : un clic propose les autres groupes
 function RowGroup({ group, groups, onPick }) {
   const [open, setOpen] = useState(false);
