@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { budgetTotals, chosenKpis, itemFinance, kpiContext, paidByPayer, paymentTitle } from "@/lib/dash/model";
+import { budgetTotals, itemFinance, kpiItems, paidByPayer, paymentTitle } from "@/lib/dash/model";
 import { euros, monthShort, parseAmount, shortDate, toDate } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
@@ -54,8 +54,7 @@ export default function Budget() {
   const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
 
   const b = budgetTotals(data);
-  const ctx = kpiContext(data);
-  const kpis = chosenKpis(data, "budget").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
+  const kpis = kpiItems(data, "budget");
   const memberById = new Map(members.map((m) => [m.id, m]));
   const vendorById = new Map(vendors.map((v) => [v.id, v]));
   const itemById = new Map(items.map((i) => [i.id, i]));

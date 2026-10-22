@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { chosenKpis, kpiContext, responseIndex, guestLabel } from "@/lib/dash/model";
+import { kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
 import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
@@ -398,8 +398,7 @@ export default function Invites() {
     if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
   }
 
-  const ctx = kpiContext(data);
-  const stats = chosenKpis(data, "invites").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
+  const stats = kpiItems(data, "invites");
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
@@ -453,7 +452,7 @@ export default function Invites() {
     })),
     { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
   ];
-  const cols = useColumnLayout(`merry-cols-invites-${wedding.id}`, columnDefs);
+  const cols = useColumnLayout("invites", columnDefs);
   const [restoring, setRestoring] = useState(false);
 
   // En-tête de chaque colonne : renommer et supprimer sont possibles partout

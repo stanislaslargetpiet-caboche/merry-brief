@@ -889,6 +889,26 @@ button.d-rsvp:hover {
   text-align: left;
 }
 
+.d-check-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--d-panel);
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.d-check-line input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--d-ink);
+}
+
 .d-checklist .is-done span:nth-child(2) {
   color: var(--d-muted);
   text-decoration: line-through;

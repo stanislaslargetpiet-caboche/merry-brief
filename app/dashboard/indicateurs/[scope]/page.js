@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { KPI_DEFAULTS, KPI_MAX, kpiCatalog, kpiContext, kpiDef } from "@/lib/dash/model";
+import { KPI_DEFAULTS, KPI_MAX, kpiCatalog, kpiContext, kpiDef, kpiItem } from "@/lib/dash/model";
 import { Icon } from "@/components/dash/icons";
 import { Btn, OkPill, PageHeader, Section } from "@/components/dash/ui";
 
@@ -44,7 +44,7 @@ export default function Indicateurs() {
           {chosen.map((id) => {
             const def = kpiDef(sc, id, data);
             if (!def) return null;
-            const val = def.get(ctx);
+            const val = kpiItem(def, ctx);
             return (
               <div key={id} className="d-kpi-tile">
                 <button type="button" className="d-icon-btn" onClick={() => toggle(id)} aria-label={`Retirer ${def.label}`}>
@@ -54,7 +54,7 @@ export default function Indicateurs() {
                   {val.value}
                   {val.sub ? <span className="d-stat-sub"> {val.sub}</span> : null}
                 </span>
-                {def.pill ? <OkPill small>{def.label}</OkPill> : <span className="d-stat-label">{def.label}</span>}
+                {val.pill ? <OkPill small>{val.label}</OkPill> : <span className="d-stat-label">{val.label}</span>}
               </div>
             );
           })}
