@@ -67,9 +67,6 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
         </>
       }
     >
-      <p className="d-muted" style={{ margin: 0 }}>
-        Ce qui a déjà été payé, par qui, pour quel poste.
-      </p>
       <form className="d-form-grid" onSubmit={save}>
         <Field label="Pour quel poste ?" full>
           <select className="d-select" value={isNew ? "new" : itemId} onChange={(e) => setItemId(e.target.value)} autoFocus>
