@@ -52,7 +52,7 @@ export async function POST(req) {
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const link = `${proto}://${host}/connexion?invitation=${member.invite_token}`;
 
-  const subject = `Rejoins l'organisation du mariage de ${couple} sur Merry`;
+  const subject = sender ? `${sender} t'invite à rejoindre Merry` : "Tu es invité(e) à rejoindre Merry";
   const text = `Hello !\n\nJe t'invite à rejoindre Merry pour organiser notre événement.\n\n${link}${sender ? `\n\n${sender}` : ""}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111">
 <p>Hello !</p>

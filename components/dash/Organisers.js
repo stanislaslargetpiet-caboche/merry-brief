@@ -61,7 +61,7 @@ export default function Organisers({ onClose }) {
 
   // Repli si l'envoi automatique n'est pas disponible (démo, service de mail non configuré)
   function openMailClient(m, email) {
-    const subject = `Rejoins l'organisation du mariage de ${couple} sur Merry`;
+    const subject = meName ? `${meName} t'invite à rejoindre Merry` : "Tu es invité(e) à rejoindre Merry";
     const body = `Hello !\n\nJe t'invite à rejoindre Merry pour organiser notre événement.\n\n${inviteLink(m.invite_token)}${meName ? `\n\n${meName}` : ""}`;
     window.location.href = `mailto:${encodeURIComponent(email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
