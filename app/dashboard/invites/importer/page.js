@@ -12,7 +12,7 @@ import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { ColumnsReview } from "@/components/dash/ColumnsReview";
 import { Icon } from "@/components/dash/icons";
 import { PASTEL_KEYS, RSVP } from "@/lib/dash/theme";
-import { Btn, GroupChip, InlineEdit, PageHeader, Popover, RsvpMenu, Section } from "@/components/dash/ui";
+import { Bar, Btn, GroupChip, InlineEdit, PageHeader, Popover, RsvpMenu, Section } from "@/components/dash/ui";
 
 const MAX_FILES = 15;
 const PARALLEL = 3; // parties lues en même temps par l'IA
@@ -440,10 +440,17 @@ export default function Importer() {
   const showPhone = has((r) => r.phone);
   const filled = (c) => has((r) => (r.extra || {})[c]);
   const allNames = [...new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]))];
-  const extraColumns = allNames.filter((c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)) && filled(c));
+  // Pas de colonne à valider avant la fin de la lecture : tant que Merry lit, les noms de colonnes sont provisoires (lecture colonne par colonne, parties du fichier sans ligne de titres)
+  const extraColumns = reading ? [] : allNames.filter((c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)) && filled(c));
   // Colonnes que Merry ne connaît pas : il demande quoi en faire (garder, en faire des groupes, ignorer) avant d'ajouter quoi que ce soit
   const profiles = columnProfiles(active.map((r) => r.extra), new Set(eventForColumn.keys())).filter((p) => extraColumns.includes(p.column));
   const pendingColumns = profiles.filter((p) => !colChoices[p.column]);
+  // Trois temps : Merry étudie tout le fichier (barre de progression), puis pose ses questions, puis seulement l'aperçu mis en forme
+  const asking = reading || pendingColumns.length > 0;
+  const partsTotal = files.reduce((a, f) => a + (f.parts?.total || 1), 0);
+  const partsDone = files.reduce((a, f) => a + (f.status === "lecture" || f.status === "encours" ? Math.min(f.parts?.done || 0, f.parts?.total || 1) : f.parts?.total || 1), 0);
+  const progress = partsTotal ? Math.round((100 * partsDone) / partsTotal) : 0;
+  const readingCount = files.filter((f) => f.status === "lecture" || f.status === "encours").length;
   const modeOf = (c) => colChoices[c]?.mode || "keep";
   const colLabel = (c) => colChoices[c]?.name?.trim() || c;
   const keptCol = (c) => modeOf(c) === "keep" || (modeOf(c) === "groups" && !!colChoices[c]?.keepToo);
@@ -720,10 +727,19 @@ export default function Importer() {
         </div>
       ) : null}
 
-      {imports.jobs.some((j) => j.status === "encours") ? (
-        <div className="d-card" style={{ background: "var(--d-limetint, #f4f5d6)", border: 0, gap: 4 }}>
-          <strong style={{ fontSize: 14 }}>Merry lit votre liste.</strong>
-          <span className="d-small d-muted">Vous pouvez quitter cette page ou fermer l'application : la lecture continue, et la liste vous attend ici à votre retour.</span>
+      {reading ? (
+        <div className="d-card d-reading" role="status" aria-live="polite" style={{ gap: 10 }}>
+          <div className="d-reading-head">
+            <strong style={{ fontSize: 15 }}>{readingCount > 1 ? "Merry étudie vos fichiers" : "Merry étudie votre fichier"}</strong>
+            <span className="d-small d-muted">{partsTotal > 1 ? `Partie ${Math.min(partsDone + 1, partsTotal)} sur ${partsTotal} · ${progress} %` : "Lecture en cours"}</span>
+          </div>
+          <span role="progressbar" aria-label="Avancement de la lecture" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} className={`d-reading-bar${partsTotal === 1 ? " is-wait" : ""}`}>
+            <Bar value={Math.max(progress, 4)} height={8} />
+          </span>
+          <span className="d-small d-muted">
+            Ensuite, Merry vous posera ses questions sur les colonnes qu'il ne connaît pas, puis vous validerez la liste.
+            {imports.jobs.some((j) => j.status === "encours") ? " Vous pouvez quitter cette page ou fermer l'application : la lecture continue, et la liste vous attend ici à votre retour." : ""}
+          </span>
         </div>
       ) : null}
 
@@ -737,303 +753,303 @@ export default function Importer() {
       {rows.length ? (
         <>
           {profiles.length ? <ColumnsReview profiles={profiles} answers={colChoices} meanings={meanings} groups={groups} takenNames={takenNames} onValidate={validateColumns} /> : null}
-          <div className={`d-readout${todo.length ? "" : " is-clean"}`}>
-            <div className="d-readout-top">
-              <span className={`d-readout-mark${reading ? " is-busy" : ""}`}>{reading ? null : <Icon name="check" size={16} sw={2.6} />}</span>
-              <div className="d-readout-title">
-                <strong>
-                  {reading ? "Lecture en cours" : "Liste lue"} : {plural(active.length, "personne", "personnes")}
-                </strong>
-                {dups.length ? <span className="d-small d-muted">{plural(dups.length, "est déjà dans votre liste et sera fusionnée", "sont déjà dans votre liste et seront fusionnées")}</span> : null}
-              </div>
-              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
-                {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
-              </Btn>
-            </div>
-
-            {info.length ? (
-              <div className="d-readout-cols">
-                {info.map((c) => {
-                  const sc = c.ev ? statusCounts(c.ev) : null;
-                  const n = c.yn ? ynCounts(c.key) : null;
-                  return (
-                    <div key={c.key} className={`d-readout-col${c.off ? " is-off" : ""}`}>
-                      <strong>{c.label}</strong>
-                      {sc ? (
-                        <span className="d-readout-counts">
-                          {["attente", "oui", "non", "non_invite"]
-                            .filter((k) => sc[k])
-                            .map((k) => (
-                              <Count key={k} status={k} n={sc[k]}>
-                                {STATUS_COUNT[k][sc[k] > 1 ? 1 : 0]}
-                              </Count>
-                            ))}
-                        </span>
-                      ) : n ? (
-                        <span className="d-readout-counts">
-                          {n.oui ? (
-                            <Count status="oui" n={n.oui}>
-                              oui
-                            </Count>
-                          ) : null}
-                          {n.non ? (
-                            <Count status="non" n={n.non}>
-                              non
-                            </Count>
-                          ) : null}
-                          {n.blank ? (
-                            <Count status="attente" n={n.blank}>
-                              à confirmer
-                            </Count>
-                          ) : null}
-                        </span>
-                      ) : (
-                        <span className="d-small d-muted">{plural(c.count, "valeur", "valeurs")}</span>
-                      )}
-                      {!c.ev ? (
-                        <span className={`d-pill d-pill-sm${c.off ? "" : " is-on"}`}>
-                          {c.mode === "ignore" ? "Ignorée" : c.mode === "groups" ? (c.off ? "Groupes" : "Groupes et colonne") : "Nouvelle colonne"}
-                          {c.off ? null : <Icon name="check" size={12} sw={2.4} />}
-                        </span>
-                      ) : null}
+          {asking ? null : (
+            <>
+                <div className={`d-readout${todo.length ? "" : " is-clean"}`}>
+                  <div className="d-readout-top">
+                    <span className={`d-readout-mark${reading ? " is-busy" : ""}`}>{reading ? null : <Icon name="check" size={16} sw={2.6} />}</span>
+                    <div className="d-readout-title">
+                      <strong>
+                        {reading ? "Lecture en cours" : "Liste lue"} : {plural(active.length, "personne", "personnes")}
+                      </strong>
+                      {dups.length ? <span className="d-small d-muted">{plural(dups.length, "est déjà dans votre liste et sera fusionnée", "sont déjà dans votre liste et seront fusionnées")}</span> : null}
                     </div>
-                  );
-                })}
-              </div>
-            ) : null}
+                    <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
+                      {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+                    </Btn>
+                  </div>
 
-            {todo.length ? (
-              <div className="d-readout-todo">
-                <span className="d-readout-alert" aria-hidden="true">
-                  !
-                </span>
-                <span className="d-readout-todo-text">
-                  <strong>{plural(todo.length, "ligne incomplète", "lignes incomplètes")}</strong>
-                  <span className="d-small d-muted">{[checks.length ? `${checks.length} à vérifier` : "", toName.length ? `${toName.length} +1 à nommer` : ""].filter(Boolean).join(" · ")}</span>
-                </span>
-                <Btn kind="ghost" small onClick={showTodo}>
-                  Voir les lignes incomplètes
-                </Btn>
-              </div>
-            ) : reading ? null : (
-              <div className="d-readout-todo is-ok">
-                <span className="d-small">Aucune ligne à vérifier.</span>
-              </div>
-            )}
-
-            {notes.length || understood.length ? (
-              <div className="d-readout-foot">
-                {notes.map((t, i) => (
-                  <span key={i} className="d-small d-muted">
-                    {t}
-                  </span>
-                ))}
-                {understood.length ? (
-                  <button type="button" className="d-link" style={{ fontSize: 12 }} onClick={() => setShowHow((v) => !v)}>
-                    {showHow ? "Masquer comment Merry a lu le fichier" : "Comment Merry a lu le fichier"}
-                  </button>
-                ) : null}
-                {showHow && understood.length ? (
-                  <ul className="d-readout-how">
-                    {understood.map((u, i) => (
-                      <li key={i}>
-                        « {u.source} » : {u.meaning}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div ref={tableRef} style={{ scrollMarginTop: 16 }}>
-            <Section
-              title="Aperçu"
-              right={
-                todo.length ? (
-                  <span className="d-seg" role="group" aria-label="Lignes affichées">
-                    <button type="button" className={`d-pill d-pill-sm${shown === active ? " is-on" : ""}`} aria-pressed={shown === active} onClick={() => (setView("all"), setSelected({}))}>
-                      Toutes ({active.length})
-                    </button>
-                    <button type="button" className={`d-pill d-pill-sm${shown !== active ? " is-on" : ""}`} aria-pressed={shown !== active} onClick={showTodo}>
-                      Incomplètes ({todo.length})
-                    </button>
-                  </span>
-                ) : (
-                  <span className="d-small d-muted" style={{ whiteSpace: "nowrap" }}>
-                    {plural(active.length, "ligne", "lignes")}
-                  </span>
-                )
-              }
-            />
-          </div>
-
-          {selectedIds.length ? (
-            <div className="d-selbar" role="region" aria-label="Lignes sélectionnées">
-              <strong>{plural(selectedIds.length, "ligne sélectionnée", "lignes sélectionnées")}</strong>
-              <span className="d-selbar-actions">
-                <button type="button" onClick={() => setSelected({})}>
-                  Tout désélectionner
-                </button>
-                <button type="button" className="is-danger" onClick={() => removeRows(selectedIds)}>
-                  <Icon name="trash" size={14} sw={2} />
-                  {selectedIds.length > 1 ? `Supprimer les ${selectedIds.length} lignes` : "Supprimer la ligne"}
-                </button>
-              </span>
-            </div>
-          ) : null}
-
-          <div className="d-table-wrap">
-            <table className="d-table d-guests">
-              <thead>
-                <tr>
-                  <th className="d-col-check">
-                    <input
-                      type="checkbox"
-                      className="d-check"
-                      checked={allSelected}
-                      onChange={() => setSelected(allSelected ? {} : Object.fromEntries(active.map((r) => [r.id, true])))}
-                      aria-label="Tout sélectionner"
-                    />
-                  </th>
-                  <th>Invités</th>
-                  {showDiet ? <th>Régime</th> : null}
-                  {showAddress ? <th>Adresse</th> : null}
-                  {showMail ? <th>Mail</th> : null}
-                  {showPhone ? <th>Téléphone</th> : null}
-                  {dataColumns.map((c) => (
-                    <th key={c.key} className="d-col-custom">
-                      {c.label}
-                    </th>
-                  ))}
-                  <th>Import</th>
-                  <th aria-label="Supprimer" />
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((r, rowIndex) => {
-                  const group = groupById.get(r.group_id || (r.dup ? r.dup.group_id : null));
-                  const label = `${r.first_name || ""} ${r.last_name || ""}`.trim();
-                  const isSel = !!selected[r.id];
-                  return (
-                    <tr key={r.id} className={`d-row-in ${isSel ? "d-row-selected" : r.dup ? "d-row-dup" : r.check ? "d-row-check" : ""}`} style={{ animationDelay: `${Math.min(rowIndex, 14) * 35}ms` }}>
-                      <td className="d-col-check">
-                        <input type="checkbox" className="d-check" checked={isSel} onChange={() => setSelected((x) => ({ ...x, [r.id]: !isSel }))} aria-label={`Sélectionner ${label || "cette ligne"}`} />
-                      </td>
-                      <td>
-                        <div className="d-guest-name">
-                          <InlineEdit
-                            value={label}
-                            placeholder={r.plusOneOfIndex !== undefined || r.plus_one_of ? (hostOf(r) ? `+1 de ${hostOf(r)}` : "+1 à nommer") : "Sans nom"}
-                            label="nom"
-                            width={170}
-                            onSave={(v) => {
-                              const parts = String(v || "").trim().split(/\s+/);
-                              edit(r.id, { first_name: parts.shift() || "", last_name: parts.join(" "), uncertain: false, note: null });
-                            }}
-                          />
-                          <span className="d-guest-sub">
-                            {r.age ? <span>{r.age} ans</span> : null}
-                            <RowGroup group={group} groups={allGroups} onPick={(id) => edit(r.id, { group_id: id })} />
-                          </span>
-                        </div>
-                      </td>
-                      {showDiet ? (
-                        <td>
-                          <InlineEdit value={r.diet} label="régime" width={110} onSave={(v) => edit(r.id, { diet: v })} className="d-cell-clip" />
-                        </td>
-                      ) : null}
-                      {showAddress ? (
-                        <td>
-                          <InlineEdit value={r.address} label="adresse" width={200} onSave={(v) => edit(r.id, { address: v })} className="d-cell-clip" />
-                        </td>
-                      ) : null}
-                      {showMail ? (
-                        <td>
-                          <InlineEdit value={r.email} label="mail" width={170} onSave={(v) => edit(r.id, { email: v })} className="d-cell-clip" />
-                        </td>
-                      ) : null}
-                      {showPhone ? (
-                        <td>
-                          <InlineEdit value={r.phone} label="téléphone" width={130} onSave={(v) => edit(r.id, { phone: v })} className="d-cell-clip" />
-                        </td>
-                      ) : null}
-                      {dataColumns.map((c) => {
-                        const v = (r.extra || {})[c.key];
-                        const yn = yesNo(v);
+                  {info.length ? (
+                    <div className="d-readout-cols">
+                      {info.map((c) => {
+                        const sc = c.ev ? statusCounts(c.ev) : null;
+                        const n = c.yn ? ynCounts(c.key) : null;
                         return (
-                          <td key={c.key} className="d-col-custom">
-                            {c.ev ? (
-                              <RsvpMenu status={statusOf(r, c.ev)} title={`${c.label} : modifier le statut`} onPick={(k) => edit(r.id, { extra: { ...(r.extra || {}), [c.key]: RSVP[k].label } })} />
-                            ) : c.yn ? (
-                              <YnChip value={yn} label={c.label} onClick={() => toggleYn(r, c.key)} />
-                            ) : hasValue(v) ? (
-                              v
+                          <div key={c.key} className={`d-readout-col${c.off ? " is-off" : ""}`}>
+                            <strong>{c.label}</strong>
+                            {sc ? (
+                              <span className="d-readout-counts">
+                                {["attente", "oui", "non", "non_invite"]
+                                  .filter((k) => sc[k])
+                                  .map((k) => (
+                                    <Count key={k} status={k} n={sc[k]}>
+                                      {STATUS_COUNT[k][sc[k] > 1 ? 1 : 0]}
+                                    </Count>
+                                  ))}
+                              </span>
+                            ) : n ? (
+                              <span className="d-readout-counts">
+                                {n.oui ? (
+                                  <Count status="oui" n={n.oui}>
+                                    oui
+                                  </Count>
+                                ) : null}
+                                {n.non ? (
+                                  <Count status="non" n={n.non}>
+                                    non
+                                  </Count>
+                                ) : null}
+                                {n.blank ? (
+                                  <Count status="attente" n={n.blank}>
+                                    à confirmer
+                                  </Count>
+                                ) : null}
+                              </span>
                             ) : (
-                              <span className="d-muted">–</span>
+                              <span className="d-small d-muted">{plural(c.count, "valeur", "valeurs")}</span>
                             )}
-                          </td>
+                            {!c.ev ? (
+                              <span className={`d-pill d-pill-sm${c.off ? "" : " is-on"}`}>
+                                {c.mode === "ignore" ? "Ignorée" : c.mode === "groups" ? (c.off ? "Groupes" : "Groupes et colonne") : "Nouvelle colonne"}
+                                {c.off ? null : <Icon name="check" size={12} sw={2.4} />}
+                              </span>
+                            ) : null}
+                          </div>
                         );
                       })}
-                      <td>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
-                          {r.dup ? (
-                            <>
-                              <span className="d-status" style={{ background: "#f4f5d6", color: "#5d5e12" }}>
-                                Sera fusionné
-                              </span>
-                              <span className="d-small-muted">Déjà dans votre liste</span>
-                            </>
-                          ) : r.check ? (
-                            <>
-                              <span className="d-status" style={{ background: "#fde0de", color: "#9b2c2c" }}>
-                                À vérifier
-                              </span>
-                              {r.note ? <span className="d-small-muted">{r.note}</span> : null}
-                            </>
-                          ) : r.toName ? (
-                            <span className="d-status is-todo">+1 à nommer</span>
-                          ) : (
-                            <span className="d-okpill is-small">
-                              <Icon name="plus" size={12} sw={2.4} />
-                              Nouveau
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button type="button" className="d-icon-btn is-flat is-danger" onClick={() => removeRows([r.id])} aria-label={`Supprimer ${label || "cette ligne"}`} title="Supprimer cette ligne">
-                          <Icon name="trash" size={16} sw={2} />
+                    </div>
+                  ) : null}
+
+                  {todo.length ? (
+                    <div className="d-readout-todo">
+                      <span className="d-readout-alert" aria-hidden="true">
+                        !
+                      </span>
+                      <span className="d-readout-todo-text">
+                        <strong>{plural(todo.length, "ligne incomplète", "lignes incomplètes")}</strong>
+                        <span className="d-small d-muted">{[checks.length ? `${checks.length} à vérifier` : "", toName.length ? `${toName.length} +1 à nommer` : ""].filter(Boolean).join(" · ")}</span>
+                      </span>
+                      <Btn kind="ghost" small onClick={showTodo}>
+                        Voir les lignes incomplètes
+                      </Btn>
+                    </div>
+                  ) : reading ? null : (
+                    <div className="d-readout-todo is-ok">
+                      <span className="d-small">Aucune ligne à vérifier.</span>
+                    </div>
+                  )}
+
+                  {notes.length || understood.length ? (
+                    <div className="d-readout-foot">
+                      {notes.map((t, i) => (
+                        <span key={i} className="d-small d-muted">
+                          {t}
+                        </span>
+                      ))}
+                      {understood.length ? (
+                        <button type="button" className="d-link" style={{ fontSize: 12 }} onClick={() => setShowHow((v) => !v)}>
+                          {showHow ? "Masquer comment Merry a lu le fichier" : "Comment Merry a lu le fichier"}
                         </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="d-filters" style={{ justifyContent: "space-between" }}>
-            <span className="d-small d-muted">
-              {removedCount ? (
-                <button type="button" className="d-link" style={{ fontSize: "inherit" }} onClick={() => setRemoved({})}>
-                  Rétablir {plural(removedCount, "ligne supprimée", "lignes supprimées")}
-                </button>
-              ) : null}
-            </span>
-            <div className="d-filters">
-              <Btn kind="ghost" href="/dashboard/invites">
-                Annuler
-              </Btn>
-              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
-                {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
-              </Btn>
-            </div>
-          </div>
+                      ) : null}
+                      {showHow && understood.length ? (
+                        <ul className="d-readout-how">
+                          {understood.map((u, i) => (
+                            <li key={i}>
+                              « {u.source} » : {u.meaning}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div ref={tableRef} style={{ scrollMarginTop: 16 }}>
+                  <Section
+                    title="Aperçu"
+                    right={
+                      todo.length ? (
+                        <span className="d-seg" role="group" aria-label="Lignes affichées">
+                          <button type="button" className={`d-pill d-pill-sm${shown === active ? " is-on" : ""}`} aria-pressed={shown === active} onClick={() => (setView("all"), setSelected({}))}>
+                            Toutes ({active.length})
+                          </button>
+                          <button type="button" className={`d-pill d-pill-sm${shown !== active ? " is-on" : ""}`} aria-pressed={shown !== active} onClick={showTodo}>
+                            Incomplètes ({todo.length})
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="d-small d-muted" style={{ whiteSpace: "nowrap" }}>
+                          {plural(active.length, "ligne", "lignes")}
+                        </span>
+                      )
+                    }
+                  />
+                </div>
+
+                {selectedIds.length ? (
+                  <div className="d-selbar" role="region" aria-label="Lignes sélectionnées">
+                    <strong>{plural(selectedIds.length, "ligne sélectionnée", "lignes sélectionnées")}</strong>
+                    <span className="d-selbar-actions">
+                      <button type="button" onClick={() => setSelected({})}>
+                        Tout désélectionner
+                      </button>
+                      <button type="button" className="is-danger" onClick={() => removeRows(selectedIds)}>
+                        <Icon name="trash" size={14} sw={2} />
+                        {selectedIds.length > 1 ? `Supprimer les ${selectedIds.length} lignes` : "Supprimer la ligne"}
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="d-table-wrap">
+                  <table className="d-table d-guests">
+                    <thead>
+                      <tr>
+                        <th className="d-col-check">
+                          <input
+                            type="checkbox"
+                            className="d-check"
+                            checked={allSelected}
+                            onChange={() => setSelected(allSelected ? {} : Object.fromEntries(active.map((r) => [r.id, true])))}
+                            aria-label="Tout sélectionner"
+                          />
+                        </th>
+                        <th>Invités</th>
+                        {showDiet ? <th>Régime</th> : null}
+                        {showAddress ? <th>Adresse</th> : null}
+                        {showMail ? <th>Mail</th> : null}
+                        {showPhone ? <th>Téléphone</th> : null}
+                        {dataColumns.map((c) => (
+                          <th key={c.key} className="d-col-custom">
+                            {c.label}
+                          </th>
+                        ))}
+                        <th>Import</th>
+                        <th aria-label="Supprimer" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shown.map((r, rowIndex) => {
+                        const group = groupById.get(r.group_id || (r.dup ? r.dup.group_id : null));
+                        const label = `${r.first_name || ""} ${r.last_name || ""}`.trim();
+                        const isSel = !!selected[r.id];
+                        return (
+                          <tr key={r.id} className={`d-row-in ${isSel ? "d-row-selected" : r.dup ? "d-row-dup" : r.check ? "d-row-check" : ""}`} style={{ animationDelay: `${Math.min(rowIndex, 14) * 35}ms` }}>
+                            <td className="d-col-check">
+                              <input type="checkbox" className="d-check" checked={isSel} onChange={() => setSelected((x) => ({ ...x, [r.id]: !isSel }))} aria-label={`Sélectionner ${label || "cette ligne"}`} />
+                            </td>
+                            <td>
+                              <div className="d-guest-name">
+                                <InlineEdit
+                                  value={label}
+                                  placeholder={r.plusOneOfIndex !== undefined || r.plus_one_of ? (hostOf(r) ? `+1 de ${hostOf(r)}` : "+1 à nommer") : "Sans nom"}
+                                  label="nom"
+                                  width={170}
+                                  onSave={(v) => {
+                                    const parts = String(v || "").trim().split(/\s+/);
+                                    edit(r.id, { first_name: parts.shift() || "", last_name: parts.join(" "), uncertain: false, note: null });
+                                  }}
+                                />
+                                <span className="d-guest-sub">
+                                  {r.age ? <span>{r.age} ans</span> : null}
+                                  <RowGroup group={group} groups={allGroups} onPick={(id) => edit(r.id, { group_id: id })} />
+                                </span>
+                              </div>
+                            </td>
+                            {showDiet ? (
+                              <td>
+                                <InlineEdit value={r.diet} label="régime" width={110} onSave={(v) => edit(r.id, { diet: v })} className="d-cell-clip" />
+                              </td>
+                            ) : null}
+                            {showAddress ? (
+                              <td>
+                                <InlineEdit value={r.address} label="adresse" width={200} onSave={(v) => edit(r.id, { address: v })} className="d-cell-clip" />
+                              </td>
+                            ) : null}
+                            {showMail ? (
+                              <td>
+                                <InlineEdit value={r.email} label="mail" width={170} onSave={(v) => edit(r.id, { email: v })} className="d-cell-clip" />
+                              </td>
+                            ) : null}
+                            {showPhone ? (
+                              <td>
+                                <InlineEdit value={r.phone} label="téléphone" width={130} onSave={(v) => edit(r.id, { phone: v })} className="d-cell-clip" />
+                              </td>
+                            ) : null}
+                            {dataColumns.map((c) => {
+                              const v = (r.extra || {})[c.key];
+                              const yn = yesNo(v);
+                              return (
+                                <td key={c.key} className="d-col-custom">
+                                  {c.ev ? (
+                                    <RsvpMenu status={statusOf(r, c.ev)} title={`${c.label} : modifier le statut`} onPick={(k) => edit(r.id, { extra: { ...(r.extra || {}), [c.key]: RSVP[k].label } })} />
+                                  ) : c.yn ? (
+                                    <YnChip value={yn} label={c.label} onClick={() => toggleYn(r, c.key)} />
+                                  ) : hasValue(v) ? (
+                                    v
+                                  ) : (
+                                    <span className="d-muted">–</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td>
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+                                {r.dup ? (
+                                  <>
+                                    <span className="d-status" style={{ background: "#f4f5d6", color: "#5d5e12" }}>
+                                      Sera fusionné
+                                    </span>
+                                    <span className="d-small-muted">Déjà dans votre liste</span>
+                                  </>
+                                ) : r.check ? (
+                                  <>
+                                    <span className="d-status" style={{ background: "#fde0de", color: "#9b2c2c" }}>
+                                      À vérifier
+                                    </span>
+                                    {r.note ? <span className="d-small-muted">{r.note}</span> : null}
+                                  </>
+                                ) : r.toName ? (
+                                  <span className="d-status is-todo">+1 à nommer</span>
+                                ) : (
+                                  <span className="d-okpill is-small">
+                                    <Icon name="plus" size={12} sw={2.4} />
+                                    Nouveau
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <button type="button" className="d-icon-btn is-flat is-danger" onClick={() => removeRows([r.id])} aria-label={`Supprimer ${label || "cette ligne"}`} title="Supprimer cette ligne">
+                                <Icon name="trash" size={16} sw={2} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="d-filters" style={{ justifyContent: "space-between" }}>
+                  <span className="d-small d-muted">
+                    {removedCount ? (
+                      <button type="button" className="d-link" style={{ fontSize: "inherit" }} onClick={() => setRemoved({})}>
+                        Rétablir {plural(removedCount, "ligne supprimée", "lignes supprimées")}
+                      </button>
+                    ) : null}
+                  </span>
+                  <div className="d-filters">
+                    <Btn kind="ghost" href="/dashboard/invites">
+                      Annuler
+                    </Btn>
+                    <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
+                      {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+                    </Btn>
+                  </div>
+                </div>
+            </>
+          )}
         </>
-      ) : reading ? (
-        <div className="d-empty">
-          <p>Merry lit vos listes…</p>
-        </div>
       ) : null}
       {dash.mode === "live" && supabase ? <Diagnostic /> : null}
     </>

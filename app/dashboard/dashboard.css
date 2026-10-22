@@ -5447,3 +5447,30 @@ button.d-group-none {
   font-size: 12px;
   color: var(--d-muted);
 }
+
+/* Étude du fichier par Merry : barre de progression avant les questions */
+.d-reading-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.d-reading-bar {
+  display: block;
+}
+
+.d-reading-bar .d-bar > span {
+  transition: width 0.5s ease;
+}
+
+.d-reading-bar.is-wait .d-bar > span {
+  animation: d-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-reading-bar.is-wait .d-bar > span {
+    animation: none;
+  }
+}
