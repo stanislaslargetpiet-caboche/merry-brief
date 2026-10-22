@@ -4263,3 +4263,30 @@ button.d-rsvp:hover {
   text-transform: uppercase;
   color: var(--d-muted);
 }
+
+.d-filechoice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.d-filechoice-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 6px 0 12px;
+  border-radius: 999px;
+  background: var(--d-panel);
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 100%;
+}
+
+.d-filechoice-name > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}

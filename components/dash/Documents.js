@@ -332,3 +332,22 @@ export function FolderCard({ folder, docs, members }) {
     </Link>
   );
 }
+
+// Lien qui ouvre un document, fichier déposé (lien signé) ou lien externe
+export function DocLink({ doc, className, style, children }) {
+  const dash = useDash();
+  const open = async (e) => {
+    e.preventDefault();
+    const url = await dash.documentUrl(doc);
+    if (!url) {
+      dash.setToast({ kind: "error", text: "Ce document n'a pas pu être ouvert." });
+      return;
+    }
+    window.open(url, "_blank", "noopener");
+  };
+  return (
+    <a href={doc.url || "#"} onClick={open} className={className} style={style} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  );
+}

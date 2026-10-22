@@ -9,6 +9,7 @@ import { euros, initials, shortDate } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Avatar, Bar, Btn, Field, InlineEdit, OkPill, PageHeader, PersonChip } from "@/components/dash/ui";
+import { DocLink } from "@/components/dash/Documents";
 
 const KIND_LABEL = { devis: "Devis", facture: "Facture", autre: "Document" };
 
@@ -236,10 +237,10 @@ export default function Prestataire() {
                       {KIND_LABEL[d.kind]} · {shortDate(String(d.created_at || "").slice(0, 10))}
                     </span>
                   </span>
-                  <a href={d.url} target="_blank" rel="noreferrer" className="d-small" style={{ fontWeight: 600 }}>
+                  <DocLink doc={d} className="d-small" style={{ fontWeight: 600 }}>
                     Ouvrir
-                  </a>
-                  <button type="button" className="d-icon-btn" style={{ width: 26, height: 26 }} aria-label={`Retirer ${d.name}`} onClick={() => window.confirm(`Retirer « ${d.name} » ?`) && dash.remove("documents", d.id)}>
+                  </DocLink>
+                  <button type="button" className="d-icon-btn" style={{ width: 26, height: 26 }} aria-label={`Retirer ${d.name}`} onClick={() => window.confirm(`Retirer « ${d.name} » ?`) && dash.removeDocument(d)}>
                     <Icon name="x" size={12} sw={2.2} />
                   </button>
                 </div>

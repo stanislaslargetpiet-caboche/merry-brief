@@ -10,6 +10,7 @@ import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Btn, Donut, InlineEdit, KpiBar, OkPill, PageHeader, PersonChip, Section } from "@/components/dash/ui";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
+import { DocLink } from "@/components/dash/Documents";
 
 function Variance({ value, big }) {
   if (value === null || value === undefined) return null;
@@ -379,16 +380,16 @@ export default function Budget() {
                       {devis || facture ? (
                         <div className="d-docs">
                           {devis ? (
-                            <a className="d-doc" href={devis.url} target="_blank" rel="noreferrer">
+                            <DocLink className="d-doc" doc={devis}>
                               <Icon name="file" size={13} sw={2} />
                               Devis
-                            </a>
+                            </DocLink>
                           ) : null}
                           {facture ? (
-                            <a className="d-doc" href={facture.url} target="_blank" rel="noreferrer">
+                            <DocLink className="d-doc" doc={facture}>
                               <Icon name="file" size={13} sw={2} />
                               Facture
-                            </a>
+                            </DocLink>
                           ) : null}
                         </div>
                       ) : (
