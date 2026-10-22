@@ -5325,6 +5325,59 @@ button.d-group-none {
   }
 }
 
+/* Une colonne inconnue du fichier : ce qu'elle contient, et ce qu'on en fait (garder, groupes, ignorer) */
+.d-colrow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--d-line, rgba(0, 0, 0, 0.08));
+}
+
+.d-colrow-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.d-colrow-name {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .d-colrow .d-seg {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    border-radius: 22px;
+  }
+  .d-colrow .d-seg button {
+    justify-content: center;
+  }
+}
+
+.d-colrow .d-codes {
+  align-self: stretch;
+}
+
+.d-colrow-name-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: stretch;
+  max-width: 360px;
+}
+
+.d-codes-key strong {
+  overflow-wrap: anywhere;
+}
+
 .d-seg {
   display: inline-flex;
   gap: 6px;

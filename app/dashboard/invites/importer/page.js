@@ -5,11 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { normalize, uid } from "@/lib/dash/format";
-import { findCodeColumns, groupsToCreate, resolvePick } from "@/lib/dash/codes";
+import { columnProfiles, groupsToCreate, resolvePick } from "@/lib/dash/codes";
 import { guestKey, rsvpFromCell } from "@/lib/dash/importParse";
 import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
-import { CodeDoubt } from "@/components/dash/CodeDoubt";
+import { ColumnsReview } from "@/components/dash/ColumnsReview";
 import { Icon } from "@/components/dash/icons";
 import { PASTEL_KEYS, RSVP } from "@/lib/dash/theme";
 import { Btn, GroupChip, InlineEdit, PageHeader, Popover, RsvpMenu, Section } from "@/components/dash/ui";
@@ -161,10 +161,9 @@ export default function Importer() {
   const [showPaste, setShowPaste] = useState(false);
   const [over, setOver] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [extraOn, setExtraOn] = useState({});
   const [view, setView] = useState("all"); // all | todo : lignes incomplètes seulement
   const [showHow, setShowHow] = useState(false);
-  const [codeAnswers, setCodeAnswers] = useState({}); // colonne de codes -> { mode: "groups" | "keep", map, keep }
+  const [colChoices, setColChoices] = useState({}); // colonne du fichier -> { mode: "keep" | "groups" | "ignore", name, map, keepToo }
   const tableRef = useRef(null);
   const [edits, setEdits] = useState({}); // rowId -> champs corrigés
   const [removed, setRemoved] = useState({}); // rowId -> true
@@ -378,11 +377,11 @@ export default function Importer() {
   const newGroups = useMemo(
     () =>
       groupsToCreate(
-        Object.values(codeAnswers).filter((a) => a.mode === "groups").map((a) => a.map),
+        Object.values(colChoices).filter((a) => a.mode === "groups").map((a) => a.map),
         groups,
         PASTEL_KEYS,
       ),
-    [codeAnswers, groups],
+    [colChoices, groups],
   );
   const allGroups = useMemo(() => [...groups, ...newGroups], [groups, newGroups]);
 
@@ -399,7 +398,7 @@ export default function Importer() {
         if (!row.group_id && row.group) row.group_id = groupIdFor(row.group);
         // Colonne de codes expliquée par l'organisateur : le groupe vient de la lettre, sauf s'il l'a corrigé à la main sur cette ligne
         if (!edits[id] || !("group_id" in edits[id])) {
-          for (const [col, ans] of Object.entries(codeAnswers)) {
+          for (const [col, ans] of Object.entries(colChoices)) {
             if (ans.mode !== "groups" || !hasValue((row.extra || {})[col])) continue;
             const hit = resolvePick(ans.map[normalize(row.extra[col])], groups);
             if (hit) row.group_id = hit.id || hit.vid;
@@ -422,7 +421,7 @@ export default function Importer() {
       });
     });
     return out;
-  }, [files, guests, edits, groupIdFor, eventForColumn, codeAnswers, groups]);
+  }, [files, guests, edits, groupIdFor, eventForColumn, colChoices, groups]);
 
   const active = rows.filter((r) => !removed[r.id]);
   const dups = active.filter((r) => r.dup);
@@ -431,13 +430,6 @@ export default function Importer() {
   const toName = active.filter((r) => r.toName);
   const todo = active.filter((r) => r.check || r.toName); // lignes incomplètes
   const removedCount = rows.length - active.length;
-  // Colonnes de lettres (D, P, L…) : Merry ne devine pas leur sens, il le demande avant d'ajouter quoi que ce soit
-  const codeDoubts = findCodeColumns(active.map((r) => r.extra), new Set(eventForColumn.keys()));
-  const pendingDoubts = codeDoubts.filter((d) => !codeAnswers[d.column]);
-  const answerCode = (column, ans) => {
-    setCodeAnswers((x) => ({ ...x, [column]: ans }));
-    setExtraOn((x) => ({ ...x, [column]: ans.mode === "groups" ? !!ans.keep : true })); // la colonne ne devient une colonne de la liste que si on le demande
-  };
   const reading = files.some((f) => f.status === "lecture" || f.status === "encours");
 
   // Le document ne génère que les colonnes qui contiennent quelque chose : Régime, Adresse, Mail, Téléphone et colonnes ajoutées
@@ -449,14 +441,21 @@ export default function Importer() {
   const filled = (c) => has((r) => (r.extra || {})[c]);
   const allNames = [...new Set(files.flatMap((f) => [...(f.extraColumns || []), ...f.guests.flatMap((g) => Object.keys(g.extra || {}))]))];
   const extraColumns = allNames.filter((c) => !eventForColumn.has(c) && !fields.some((x) => normalize(x.name) === normalize(c)) && filled(c));
+  // Colonnes que Merry ne connaît pas : il demande quoi en faire (garder, en faire des groupes, ignorer) avant d'ajouter quoi que ce soit
+  const profiles = columnProfiles(active.map((r) => r.extra), new Set(eventForColumn.keys())).filter((p) => extraColumns.includes(p.column));
+  const pendingColumns = profiles.filter((p) => !colChoices[p.column]);
+  const modeOf = (c) => colChoices[c]?.mode || "keep";
+  const colLabel = (c) => colChoices[c]?.name?.trim() || c;
+  const keptCol = (c) => modeOf(c) === "keep" || (modeOf(c) === "groups" && !!colChoices[c]?.keepToo);
+  const validateColumns = (answers) => setColChoices((x) => ({ ...x, ...answers }));
   const found = [...[...eventForColumn.keys()].filter(filled), ...extraColumns];
   const info = found.map((c) => {
     const vals = active.map((r) => (r.extra || {})[c]).filter(hasValue);
     const ev = eventForColumn.get(c);
-    return { key: c, label: ev ? ev.short_name || ev.name : c, yn: !ev && vals.length > 0 && vals.every((v) => yesNo(v)), ev, count: vals.length, off: !ev && extraOn[c] === false };
+    return { key: c, label: ev ? ev.short_name || ev.name : colLabel(c), yn: !ev && vals.length > 0 && vals.every((v) => yesNo(v)), ev, count: vals.length, off: !ev && !keptCol(c), mode: ev ? null : modeOf(c) };
   });
   const dataColumns = info.filter((c) => !c.off); // colonnes affichées dans l'aperçu
-  const shownExtra = extraColumns.filter((c) => extraOn[c] !== false);
+  const shownExtra = extraColumns.filter(keptCol);
   // Sans moment reconnu dans le document, tout le monde est invité à tout ; sinon seulement aux moments que le document décrit
   const mappedEvents = dataColumns.filter((c) => c.ev).map((c) => c.ev);
   const invitedTo = (mappedEvents.length ? mappedEvents : events).map((e) => e.id);
@@ -487,6 +486,14 @@ export default function Importer() {
     return { oui, non, blank: active.length - oui - non };
   };
   const understood = files.flatMap((f) => f.columns || []).slice(0, 6);
+  // Ce que l'IA a compris de chaque colonne inconnue, pour que la question soit informée
+  const meanings = {};
+  for (const p of profiles) {
+    const n = normalize(p.column);
+    const hit = files.flatMap((f) => f.columns || []).find((u) => normalize(u.source) === n || (n.length >= 4 && normalize(u.source).includes(n)));
+    if (hit?.meaning) meanings[p.column] = hit.meaning;
+  }
+  const takenNames = new Set(fields.map((f) => f.name.trim().toLowerCase()));
   const notes = [...new Set(files.filter((f) => f.status === "lue" && f.why).map((f) => f.why))];
   const shown = view === "todo" && todo.length ? todo : active;
   const selectedIds = active.filter((r) => selected[r.id]).map((r) => r.id);
@@ -516,13 +523,18 @@ export default function Importer() {
     setSaving(true);
     // Colonnes nouvelles retenues
     const fieldIdByName = new Map(fields.map((f) => [normalize(f.name), f.id]));
-    const newFields = shownExtra.map((c, i) => ({ id: uid(), name: c, position: fields.length + i }));
+    // Le nom choisi par l'organisateur ; deux colonnes au même nom, ou un nom déjà pris, n'en font qu'une
+    const wanted = new Map();
+    for (const c of shownExtra) if (!wanted.has(normalize(colLabel(c)))) wanted.set(normalize(colLabel(c)), colLabel(c).slice(0, 120));
+    const newFields = [...wanted].filter(([n]) => !fieldIdByName.has(n)).map(([, name], i) => ({ id: uid(), name, position: fields.length + i }));
     if (newFields.length) await dash.insert("guest_fields", newFields);
     newFields.forEach((f) => fieldIdByName.set(normalize(f.name), f.id));
+    const isNew = new Set(extraColumns);
     const toCustom = (extra) => {
       const c = {};
       for (const [k, v] of Object.entries(extra || {})) {
-        const fid = fieldIdByName.get(normalize(k));
+        if (isNew.has(k) && !shownExtra.includes(k)) continue; // colonne ignorée, ou devenue groupes
+        const fid = fieldIdByName.get(normalize(isNew.has(k) ? colLabel(k) : k));
         if (fid && v) c[fid] = String(v);
       }
       return c;
@@ -724,9 +736,7 @@ export default function Importer() {
 
       {rows.length ? (
         <>
-          {codeDoubts.map((d) => (
-            <CodeDoubt key={d.column} doubt={d} answer={codeAnswers[d.column]} groups={groups} onAnswer={(a) => answerCode(d.column, a)} />
-          ))}
+          {profiles.length ? <ColumnsReview profiles={profiles} answers={colChoices} meanings={meanings} groups={groups} takenNames={takenNames} onValidate={validateColumns} /> : null}
           <div className={`d-readout${todo.length ? "" : " is-clean"}`}>
             <div className="d-readout-top">
               <span className={`d-readout-mark${reading ? " is-busy" : ""}`}>{reading ? null : <Icon name="check" size={16} sw={2.6} />}</span>
@@ -736,8 +746,8 @@ export default function Importer() {
                 </strong>
                 {dups.length ? <span className="d-small d-muted">{plural(dups.length, "est déjà dans votre liste et sera fusionnée", "sont déjà dans votre liste et seront fusionnées")}</span> : null}
               </div>
-              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingDoubts.length > 0} title={pendingDoubts.length ? "Répondez d'abord à la question de Merry sur la colonne" : undefined}>
-                {reading ? "Merry lit encore…" : pendingDoubts.length ? "Répondez à Merry d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
+                {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
               </Btn>
             </div>
 
@@ -781,10 +791,10 @@ export default function Importer() {
                         <span className="d-small d-muted">{plural(c.count, "valeur", "valeurs")}</span>
                       )}
                       {!c.ev ? (
-                        <button type="button" className={`d-pill d-pill-sm${c.off ? "" : " is-on"}`} aria-pressed={!c.off} onClick={() => setExtraOn((x) => ({ ...x, [c.key]: c.off }))} title={c.off ? "Ajouter cette colonne à votre liste" : "Ne pas ajouter cette colonne"}>
-                          {c.off ? "Ignorée" : "Nouvelle colonne"}
+                        <span className={`d-pill d-pill-sm${c.off ? "" : " is-on"}`}>
+                          {c.mode === "ignore" ? "Ignorée" : c.mode === "groups" ? (c.off ? "Groupes" : "Groupes et colonne") : "Nouvelle colonne"}
                           {c.off ? null : <Icon name="check" size={12} sw={2.4} />}
-                        </button>
+                        </span>
                       ) : null}
                     </div>
                   );
@@ -1014,8 +1024,8 @@ export default function Importer() {
               <Btn kind="ghost" href="/dashboard/invites">
                 Annuler
               </Btn>
-              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingDoubts.length > 0} title={pendingDoubts.length ? "Répondez d'abord à la question de Merry sur la colonne" : undefined}>
-                {reading ? "Merry lit encore…" : pendingDoubts.length ? "Répondez à Merry d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingColumns.length > 0} title={pendingColumns.length ? "Dites d'abord à Merry quoi faire des colonnes qu'il ne connaît pas" : undefined}>
+                {reading ? "Merry lit encore…" : pendingColumns.length ? "Validez les colonnes d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
               </Btn>
             </div>
           </div>
