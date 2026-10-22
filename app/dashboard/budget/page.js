@@ -108,9 +108,6 @@ export default function Budget() {
 
       <section className="d-card" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
-        <p className="d-muted d-hide-mobile" style={{ margin: "-6px 0 0", maxWidth: 760, lineHeight: 1.5 }}>
-          À gauche, ce que chacun a déjà payé. À droite, où va l'argent. Chaque dépense ajoutée avec le + s'inscrit dans son poste, dans le tableau en dessous.
-        </p>
         <div className="d-split">
           <div className="d-col" style={{ gap: 14 }}>
             <div className="d-repart-head">
