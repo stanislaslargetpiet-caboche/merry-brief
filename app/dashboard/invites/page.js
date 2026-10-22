@@ -10,7 +10,6 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpMenu } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
-import BulkEditModal from "@/components/dash/BulkEditModal";
 import GuestsNote from "@/components/dash/GuestsNote";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
@@ -89,6 +88,97 @@ function ColumnFilter({ fields, guests, value, onChange }) {
           <span className="d-pop-label d-muted d-small" style={{ padding: "4px 8px" }}>
             Pas encore de valeur pour cette colonne.
           </span>
+        )}
+      </Popover>
+    </span>
+  );
+}
+
+// Modifier une colonne personnalisée pour toute la sélection : choisir d'abord la colonne, puis la valeur
+function BulkColumnMenu({ fields, onApply }) {
+  const [open, setOpen] = useState(null); // null fermé | "field" | "value"
+  const [field, setField] = useState(null);
+  const [text, setText] = useState("");
+  const close = () => {
+    setOpen(null);
+    setField(null);
+    setText("");
+  };
+  return (
+    <span className="d-anchor">
+      <button type="button" onClick={() => setOpen(open ? null : "field")} aria-haspopup="menu">
+        Colonne
+      </button>
+      <Popover open={open === "field"} onClose={close}>
+        {fields.length ? (
+          fields.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className="d-pop-item"
+              onClick={() => {
+                setField(f);
+                setOpen("value");
+              }}
+            >
+              <span className="d-pop-label">{f.name}</span>
+            </button>
+          ))
+        ) : (
+          <span className="d-pop-label d-muted d-small" style={{ padding: "4px 8px" }}>
+            Pas encore de colonne ajoutée.
+          </span>
+        )}
+      </Popover>
+      <Popover open={open === "value"} onClose={close}>
+        {field?.kind === "choice" ? (
+          <>
+            {(field.options || []).map((o) => (
+              <button
+                key={o}
+                type="button"
+                className="d-pop-item"
+                onClick={() => {
+                  onApply(field, o);
+                  close();
+                }}
+              >
+                <span className="d-pop-label">{o}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="d-pop-item"
+              onClick={() => {
+                onApply(field, null);
+                close();
+              }}
+            >
+              <span className="d-pop-label d-muted">Effacer</span>
+            </button>
+          </>
+        ) : (
+          <form
+            style={{ display: "flex", gap: 6, padding: "4px 2px" }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              onApply(field, text.trim() || null);
+              close();
+            }}
+          >
+            <input
+              className="d-input"
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`Valeur pour « ${field?.name} »`}
+              aria-label={`Valeur pour ${field?.name}`}
+              style={{ minWidth: 170 }}
+            />
+            <Btn type="submit" small>
+              Appliquer
+            </Btn>
+          </form>
         )}
       </Popover>
     </span>
@@ -435,7 +525,7 @@ export default function Invites() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
-  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
 
   // Un moment supprimé ne reste pas sélectionné
   const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
@@ -473,7 +563,10 @@ export default function Invites() {
   const selIds = shown.filter((g) => selected[g.id]).map((g) => g.id);
   const allSelected = shown.length > 0 && selIds.length === shown.length;
   const selectAll = () => setSelected(Object.fromEntries(shown.map((g) => [g.id, true])));
-  const clearSel = () => setSelected({});
+  const clearSel = () => {
+    setSelected({});
+    setBulkMenu(null);
+  };
   const ok = (text) => dash.setToast({ kind: "ok", text });
   const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
 
@@ -486,6 +579,31 @@ export default function Invites() {
     const ids = selIds;
     clearSel();
     if (await dash.removeGuests(ids)) ok(`${n(ids.length, "invité retiré", "invités retirés")}.`);
+  }
+  async function bulkGroup(groupId) {
+    const ids = selIds;
+    const name = groupId ? groupById.get(groupId)?.name : null;
+    clearSel();
+    if (await dash.updateGuests(ids, { group_id: groupId })) ok(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`);
+  }
+  async function bulkMoment(ev, invite) {
+    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
+    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
+    clearSel();
+    if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
+  }
+  async function bulkField(field, value) {
+    const ids = selIds;
+    clearSel();
+    await Promise.all(
+      ids.map((id) => {
+        const custom = { ...(byId.get(id)?.custom || {}) };
+        if (value) custom[field.id] = value;
+        else delete custom[field.id];
+        return dash.update("guests", id, { custom });
+      }),
+    );
+    ok(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`);
   }
 
   const stats = kpiItems(data, "invites");
@@ -744,9 +862,41 @@ export default function Invites() {
                   Tout sélectionner ({shown.length})
                 </button>
               ) : null}
-              <button type="button" onClick={() => setBulkEdit(true)}>
-                Modifier en masse
-              </button>
+              <span className="d-anchor">
+                <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
+                  Groupe
+                </button>
+                <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
+                  {groups.map((g) => (
+                    <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
+                      <GroupChip group={g} />
+                    </button>
+                  ))}
+                  <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
+                    <span className="d-pop-label">Sans groupe</span>
+                  </button>
+                </Popover>
+              </span>
+              {events.length ? (
+                <span className="d-anchor">
+                  <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
+                    Moments
+                  </button>
+                  <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
+                    {events.map((ev) => (
+                      <span key={ev.id} style={{ display: "contents" }}>
+                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
+                          <span className="d-pop-label">Inviter à {ev.name}</span>
+                        </button>
+                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
+                          <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
+                        </button>
+                      </span>
+                    ))}
+                  </Popover>
+                </span>
+              ) : null}
+              <BulkColumnMenu fields={fields} onApply={bulkField} />
               <button type="button" onClick={clearSel}>
                 Tout désélectionner
               </button>
@@ -826,7 +976,6 @@ export default function Invites() {
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {groupsModal ? <GroupsModal onClose={() => setGroupsModal(false)} /> : null}
-      {bulkEdit ? <BulkEditModal guestIds={selIds} onClose={() => setBulkEdit(false)} /> : null}
     </>
   );
 }
