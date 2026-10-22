@@ -159,10 +159,40 @@ export function ColumnModal({ field, onClose }) {
 // En-tête d'une colonne ajoutée : menu modifier / supprimer, icône selon qui la remplit
 export function FieldHeader({ field }) {
   const dash = useDash();
+  const { guests } = dash.data;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [grouping, setGrouping] = useState(false);
   const canGroup = columnValues(dash.data.guests, field.id).length > 0; // quelques valeurs distinctes : on peut en faire des groupes
+  const firstOption = field.kind === "choice" ? (field.options || [])[0] : null;
+  const filledCount = guests.filter((g) => (g.custom || {})[field.id]).length;
+
+  async function checkAll() {
+    if (!firstOption) return;
+    setOpen(false);
+    const msg =
+      filledCount && filledCount < guests.length
+        ? `Mettre « ${firstOption} » dans « ${field.name} » pour tous les invités ? ${filledCount} ont déjà une valeur dans cette colonne : elle sera remplacée.`
+        : `Mettre « ${firstOption} » dans « ${field.name} » pour les ${guests.length} invités ?`;
+    if (!window.confirm(msg)) return;
+    // Un invité à la fois : on garde ses autres colonnes, seule celle-ci change
+    await Promise.all(guests.map((g) => dash.update("guests", g.id, { custom: { ...(g.custom || {}), [field.id]: firstOption } })));
+  }
+
+  async function uncheckAll() {
+    setOpen(false);
+    if (!filledCount) return;
+    if (!window.confirm(`Vider « ${field.name} » pour les ${filledCount} invité${filledCount > 1 ? "s" : ""} qui ont une valeur ?`)) return;
+    await Promise.all(
+      guests
+        .filter((g) => (g.custom || {})[field.id])
+        .map((g) => {
+          const { [field.id]: _drop, ...rest } = g.custom || {};
+          return dash.update("guests", g.id, { custom: rest });
+        }),
+    );
+  }
+
   return (
     <span className="d-anchor">
       <button
@@ -189,6 +219,22 @@ export function FieldHeader({ field }) {
             Modifier la colonne
           </span>
         </button>
+        {firstOption ? (
+          <button type="button" className="d-pop-item" onClick={checkAll}>
+            <span className="d-pop-label">
+              <Icon name="check" size={14} sw={2.2} />
+              Tout cocher « {firstOption} »
+            </span>
+          </button>
+        ) : null}
+        {firstOption ? (
+          <button type="button" className="d-pop-item" onClick={uncheckAll} disabled={!filledCount}>
+            <span className="d-pop-label">
+              <Icon name="x" size={14} sw={2.2} />
+              Tout décocher
+            </span>
+          </button>
+        ) : null}
         {canGroup ? (
           <button
             type="button"
