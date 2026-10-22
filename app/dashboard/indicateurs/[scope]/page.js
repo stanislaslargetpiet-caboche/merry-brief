@@ -9,8 +9,8 @@ import { Btn, OkPill, PageHeader, Section } from "@/components/dash/ui";
 
 const BACK = {
   accueil: { href: "/dashboard", label: "Accueil", preview: "Aperçu de l'accueil" },
-  budget: { href: "/dashboard/budget", label: "Le budget", preview: "Aperçu du budget" },
-  invites: { href: "/dashboard/invites", label: "Les invités", preview: "Aperçu des invités" },
+  budget: { href: "/dashboard/budget", label: "Budget", preview: "Aperçu du budget" },
+  invites: { href: "/dashboard/invites", label: "Invités", preview: "Aperçu des invités" },
 };
 
 export default function Indicateurs() {

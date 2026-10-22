@@ -24,7 +24,7 @@ export default function Dossier() {
   if (!folder) {
     return (
       <>
-        <PageHeader back={{ href: "/dashboard/documents", label: "Les documents" }} title="Dossier introuvable." />
+        <PageHeader back={{ href: "/dashboard/documents", label: "Documents" }} title="Dossier introuvable." />
         <div className="d-empty">
           <p>Ce dossier n'existe plus ou a été supprimé par un autre organisateur.</p>
         </div>
@@ -46,7 +46,7 @@ export default function Dossier() {
   return (
     <>
       <PageHeader
-        back={{ href: "/dashboard/documents", label: "Les documents" }}
+        back={{ href: "/dashboard/documents", label: "Documents" }}
         title={
           <span className="d-folder-head">
             <span className="d-tile" style={{ width: 52, height: 52, borderRadius: 16, background: p.bg }}>

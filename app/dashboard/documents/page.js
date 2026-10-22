@@ -33,7 +33,7 @@ export default function Documents() {
   return (
     <>
       <PageHeader
-        title="Vos documents."
+        title="Documents."
         actions={
           <>
             <Btn kind="ghost" icon="folderPlus" onClick={() => setCreating(true)}>

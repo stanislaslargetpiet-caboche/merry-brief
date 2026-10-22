@@ -38,7 +38,7 @@ export default function Retroplanning() {
   return (
     <>
       <PageHeader
-        title="Le rétroplanning."
+        title="Rétroplanning."
         actions={
           <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
             Ajouter une tâche

@@ -31,7 +31,7 @@ export default function Prestataire() {
   const [draft, setDraft] = useState("");
   const [docForm, setDocForm] = useState(null);
 
-  if (!vendor) return <PageHeader back={{ href: "/dashboard/budget", label: "Le budget" }} title="Prestataire introuvable." />;
+  if (!vendor) return <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Prestataire introuvable." />;
 
   const item = items.find((i) => i.vendor_id === vendor.id);
   const f = item ? itemFinance(item, payments) : null;
@@ -64,7 +64,7 @@ export default function Prestataire() {
 
   return (
     <>
-      <PageHeader back={{ href: "/dashboard/budget", label: "Le budget" }} />
+      <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} />
       <div className="d-vendor-head" style={{ marginTop: -14 }}>
         <div className="d-vendor-id">
           <Tile name={item?.icon || guessIcon(vendor.category || vendor.name)} size={60} />

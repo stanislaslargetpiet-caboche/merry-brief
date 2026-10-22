@@ -46,7 +46,7 @@ export default function Paiement() {
   if (!item) {
     return (
       <>
-        <PageHeader back={{ href: "/dashboard/budget", label: "Le budget" }} title="Poste introuvable." />
+        <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Poste introuvable." />
       </>
     );
   }
@@ -99,7 +99,7 @@ export default function Paiement() {
 
   return (
     <div style={{ maxWidth: 680, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-      <PageHeader back={{ href: "/dashboard/budget", label: "Le budget" }} title="Noter un paiement." />
+      <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Noter un paiement." />
 
       <section className="d-card" style={{ padding: 28, gap: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

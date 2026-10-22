@@ -145,7 +145,7 @@ export default function FormulaireInvites() {
   if (dash.mode === "live" && data.formSetup === false) {
     return (
       <>
-        <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Le formulaire invités." />
+        <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Formulaire invités." />
         <section className="d-card" style={{ maxWidth: 640 }}>
           <h2>Encore une étape côté Supabase</h2>
           <p className="d-muted" style={{ margin: 0, lineHeight: 1.5 }}>
@@ -259,7 +259,7 @@ export default function FormulaireInvites() {
     <>
       <PageHeader
         back={{ href: "/dashboard/invites", label: "Invités" }}
-        title="Le formulaire invités."
+        title="Formulaire invités."
         actions={<span className="d-small" role="status" style={{ color: status === "error" ? "var(--d-red-ink)" : "var(--d-muted)" }}>{statusLabel}</span>}
       />
       <p className="d-muted" style={{ margin: "-12px 0 0", maxWidth: 640, lineHeight: 1.5 }}>

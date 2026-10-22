@@ -90,7 +90,7 @@ export default function Budget() {
   return (
     <>
       <PageHeader
-        title="Le budget."
+        title="Budget."
         actions={
           <>
             <Btn kind="strong" icon="download" onClick={exportCsv}>
