@@ -4872,67 +4872,15 @@ button.d-rsvp:hover {
   background: #ffffff;
 }
 
-/* Import des invités : ce que Merry a compris, colonnes Oui / Non, lignes qui apparaissent */
-.d-understood {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--d-limetint, #f4f5d6);
+/* Menus flottants : posés hors des tableaux, au-dessus des fenêtres */
+.d-pop.d-pop-fixed {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 70;
 }
-.d-understood-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 15px;
-}
-.d-understood-list {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13.5px;
-}
-.d-yn {
-  min-width: 44px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--d-border, #e6e2d8);
-  background: #ffffff;
-  color: var(--d-muted, #6b675c);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+button.d-group-none {
+  border: 1px dashed var(--d-line);
   cursor: pointer;
-}
-.d-yn.is-yes {
-  background: #e5eadc;
-  border-color: #cdd8bf;
-  color: #3f5a31;
-}
-.d-yn.is-no {
-  background: #f1eee6;
-  color: #7a766b;
-}
-@keyframes d-row-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.d-row-in {
-  animation: d-row-in 0.35s ease both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .d-row-in {
-    animation: none;
-  }
+  font: inherit;
 }
