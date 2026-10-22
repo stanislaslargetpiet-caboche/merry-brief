@@ -3390,42 +3390,6 @@ button.d-rsvp:hover {
   background: #f4f3ef;
 }
 
-.d-pill.is-off {
-  border: 1.5px solid #9b2c2c;
-  color: #9b2c2c;
-  background: #fde0de;
-  font-weight: 600;
-}
-
-.d-bulk-rows {
-  display: flex;
-  flex-direction: column;
-}
-
-.d-bulk-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: flex-start;
-  padding: 14px 0;
-  border-top: 1px solid var(--d-line);
-}
-
-.d-bulk-row:first-child {
-  border-top: none;
-}
-
-.d-bulk-row > .d-check {
-  margin-top: 3px;
-}
-
-.d-bulk-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
 .d-note {
   display: flex;
   flex-direction: column;
