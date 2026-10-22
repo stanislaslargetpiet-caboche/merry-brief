@@ -5235,6 +5235,96 @@ button.d-group-none {
   gap: 2px;
 }
 
+/* Question de Merry sur une colonne de codes (D, P, L…) : à quel groupe correspond chaque lettre */
+.d-doubt {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff7ec;
+  border: 1px solid var(--d-orange-bg);
+}
+
+.d-doubt.is-answered {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border-color: transparent;
+}
+
+.d-doubt-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.d-doubt-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-doubt-text strong {
+  font-size: 15px;
+}
+
+.d-codes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-codes-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 120px) 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.d-codes-key {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.d-codes-key strong {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+}
+
+.d-codes-arrow {
+  color: var(--d-muted);
+  text-align: center;
+}
+
+.d-codes-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-codes-pick .d-select,
+.d-codes-pick .d-input {
+  flex: 1 1 200px;
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .d-codes-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .d-codes-arrow {
+    display: none;
+  }
+}
+
 .d-seg {
   display: inline-flex;
   gap: 6px;

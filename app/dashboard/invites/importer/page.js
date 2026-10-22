@@ -5,11 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { normalize, uid } from "@/lib/dash/format";
+import { findCodeColumns, groupsToCreate, resolvePick } from "@/lib/dash/codes";
 import { guestKey, rsvpFromCell } from "@/lib/dash/importParse";
 import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
+import { CodeDoubt } from "@/components/dash/CodeDoubt";
 import { Icon } from "@/components/dash/icons";
-import { RSVP } from "@/lib/dash/theme";
+import { PASTEL_KEYS, RSVP } from "@/lib/dash/theme";
 import { Btn, GroupChip, InlineEdit, PageHeader, Popover, RsvpMenu, Section } from "@/components/dash/ui";
 
 const MAX_FILES = 15;
@@ -162,6 +164,7 @@ export default function Importer() {
   const [extraOn, setExtraOn] = useState({});
   const [view, setView] = useState("all"); // all | todo : lignes incomplètes seulement
   const [showHow, setShowHow] = useState(false);
+  const [codeAnswers, setCodeAnswers] = useState({}); // colonne de codes -> { mode: "groups" | "keep", map, keep }
   const tableRef = useRef(null);
   const [edits, setEdits] = useState({}); // rowId -> champs corrigés
   const [removed, setRemoved] = useState({}); // rowId -> true
@@ -371,6 +374,18 @@ export default function Importer() {
     return m;
   }, [files, events]);
 
+  // Groupes que les réponses sur les colonnes de codes obligent à créer (« Famille Dormeuil ») : ils n'existent en base qu'à l'ajout
+  const newGroups = useMemo(
+    () =>
+      groupsToCreate(
+        Object.values(codeAnswers).filter((a) => a.mode === "groups").map((a) => a.map),
+        groups,
+        PASTEL_KEYS,
+      ),
+    [codeAnswers, groups],
+  );
+  const allGroups = useMemo(() => [...groups, ...newGroups], [groups, newGroups]);
+
   // Lignes de l'aperçu, avec détection des doublons
   const rows = useMemo(() => {
     const existingByKey = new Map(guests.map((g) => [guestKey(g), g]));
@@ -382,6 +397,14 @@ export default function Importer() {
         const id = `${f.id}:${i}`;
         const row = { id, file: f.name, ...g, ...(edits[id] || {}) };
         if (!row.group_id && row.group) row.group_id = groupIdFor(row.group);
+        // Colonne de codes expliquée par l'organisateur : le groupe vient de la lettre, sauf s'il l'a corrigé à la main sur cette ligne
+        if (!edits[id] || !("group_id" in edits[id])) {
+          for (const [col, ans] of Object.entries(codeAnswers)) {
+            if (ans.mode !== "groups" || !hasValue((row.extra || {})[col])) continue;
+            const hit = resolvePick(ans.map[normalize(row.extra[col])], groups);
+            if (hit) row.group_id = hit.id || hit.vid;
+          }
+        }
         const key = guestKey(row);
         const named = row.first_name || row.last_name;
         if (named && key && seen.has(key)) return; // même personne dans deux fichiers
@@ -399,7 +422,7 @@ export default function Importer() {
       });
     });
     return out;
-  }, [files, guests, edits, groupIdFor, eventForColumn]);
+  }, [files, guests, edits, groupIdFor, eventForColumn, codeAnswers, groups]);
 
   const active = rows.filter((r) => !removed[r.id]);
   const dups = active.filter((r) => r.dup);
@@ -408,6 +431,13 @@ export default function Importer() {
   const toName = active.filter((r) => r.toName);
   const todo = active.filter((r) => r.check || r.toName); // lignes incomplètes
   const removedCount = rows.length - active.length;
+  // Colonnes de lettres (D, P, L…) : Merry ne devine pas leur sens, il le demande avant d'ajouter quoi que ce soit
+  const codeDoubts = findCodeColumns(active.map((r) => r.extra), new Set(eventForColumn.keys()));
+  const pendingDoubts = codeDoubts.filter((d) => !codeAnswers[d.column]);
+  const answerCode = (column, ans) => {
+    setCodeAnswers((x) => ({ ...x, [column]: ans }));
+    setExtraOn((x) => ({ ...x, [column]: ans.mode === "groups" ? !!ans.keep : true })); // la colonne ne devient une colonne de la liste que si on le demande
+  };
   const reading = files.some((f) => f.status === "lecture" || f.status === "encours");
 
   // Le document ne génère que les colonnes qui contiennent quelque chose : Régime, Adresse, Mail, Téléphone et colonnes ajoutées
@@ -430,7 +460,7 @@ export default function Importer() {
   // Sans moment reconnu dans le document, tout le monde est invité à tout ; sinon seulement aux moments que le document décrit
   const mappedEvents = dataColumns.filter((c) => c.ev).map((c) => c.ev);
   const invitedTo = (mappedEvents.length ? mappedEvents : events).map((e) => e.id);
-  const groupById = new Map(groups.map((g) => [g.id, g]));
+  const groupById = new Map(allGroups.map((g) => [g.id, g]));
   // « +1 de Brune » : on sait de qui il s'agit sans quitter la ligne
   const nameOf = (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim();
   const hostOf = (r) => {
@@ -497,6 +527,11 @@ export default function Importer() {
       }
       return c;
     };
+    // Groupes nés des colonnes de codes : créés seulement s'ils servent à au moins un nouvel invité
+    const usedGroups = new Set(news.map((r) => r.group_id));
+    const madeGroups = newGroups.filter((g) => usedGroups.has(g.id)).map((g, i) => ({ id: uid(), name: g.name, color: g.color, position: groups.length + i, vid: g.id }));
+    if (madeGroups.length) await dash.insert("guest_groups", madeGroups.map(({ vid, ...g }) => g));
+    const realGroup = new Map(madeGroups.map((g) => [g.vid, g.id]));
     // Nouveaux invités (+1 rattachés à la personne qu'ils accompagnent)
     const created = [];
     const idByRow = new Map();
@@ -513,7 +548,7 @@ export default function Importer() {
         address: r.address || null,
         email: r.email || null,
         phone: r.phone || null,
-        group_id: r.group_id === "none" ? null : r.group_id || null,
+        group_id: r.group_id === "none" ? null : realGroup.get(r.group_id) || r.group_id || null,
         custom: toCustom(r.extra),
         position: pos++,
         _row: r,
@@ -689,6 +724,9 @@ export default function Importer() {
 
       {rows.length ? (
         <>
+          {codeDoubts.map((d) => (
+            <CodeDoubt key={d.column} doubt={d} answer={codeAnswers[d.column]} groups={groups} onAnswer={(a) => answerCode(d.column, a)} />
+          ))}
           <div className={`d-readout${todo.length ? "" : " is-clean"}`}>
             <div className="d-readout-top">
               <span className={`d-readout-mark${reading ? " is-busy" : ""}`}>{reading ? null : <Icon name="check" size={16} sw={2.6} />}</span>
@@ -698,8 +736,8 @@ export default function Importer() {
                 </strong>
                 {dups.length ? <span className="d-small d-muted">{plural(dups.length, "est déjà dans votre liste et sera fusionnée", "sont déjà dans votre liste et seront fusionnées")}</span> : null}
               </div>
-              <Btn onClick={commit} disabled={saving || reading || !active.length}>
-                {reading ? "Merry lit encore…" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingDoubts.length > 0} title={pendingDoubts.length ? "Répondez d'abord à la question de Merry sur la colonne" : undefined}>
+                {reading ? "Merry lit encore…" : pendingDoubts.length ? "Répondez à Merry d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
               </Btn>
             </div>
 
@@ -886,7 +924,7 @@ export default function Importer() {
                           />
                           <span className="d-guest-sub">
                             {r.age ? <span>{r.age} ans</span> : null}
-                            <RowGroup group={group} groups={groups} onPick={(id) => edit(r.id, { group_id: id })} />
+                            <RowGroup group={group} groups={allGroups} onPick={(id) => edit(r.id, { group_id: id })} />
                           </span>
                         </div>
                       </td>
@@ -976,8 +1014,8 @@ export default function Importer() {
               <Btn kind="ghost" href="/dashboard/invites">
                 Annuler
               </Btn>
-              <Btn onClick={commit} disabled={saving || reading || !active.length}>
-                {reading ? "Merry lit encore…" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
+              <Btn onClick={commit} disabled={saving || reading || !active.length || pendingDoubts.length > 0} title={pendingDoubts.length ? "Répondez d'abord à la question de Merry sur la colonne" : undefined}>
+                {reading ? "Merry lit encore…" : pendingDoubts.length ? "Répondez à Merry d'abord" : news.length ? "Ajouter à la liste" : "Fusionner les doublons"}
               </Btn>
             </div>
           </div>
