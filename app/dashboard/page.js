@@ -7,6 +7,7 @@ import { budgetTotals, chosenKpis, guestStats, kpiContext, paymentTitle, taskSta
 import { dayMonth, daysUntil, euros, longDate, shortDate } from "@/lib/dash/format";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Bar, Btn, KpiBar, PersonChip, Section } from "@/components/dash/ui";
+import { pastel } from "@/lib/dash/theme";
 import TaskRow from "@/components/dash/TaskRow";
 import WeddingModal from "@/components/dash/WeddingModal";
 
@@ -178,12 +179,13 @@ export default function Accueil() {
             <Section title="Bientôt" />
             <div className="d-g3 d-soon-grid">
               {[
-                ["boutique", "Prestataires"],
-                ["ecran", "Site de mariage"],
-                ["cadeau", "Liste & cagnotte"],
-              ].map(([icon, label]) => (
-                <div key={label} className="d-module is-soon">
-                  <Tile name={icon} size={36} bg="#ffffff" fill="#ffffff" />
+                ["boutique", "Prestataires", "peche"],
+                ["ecran", "Site de mariage", "bleu"],
+                ["cadeau", "Liste & cagnotte", "lavande"],
+              ].map(([icon, label, tone]) => (
+                // Chaque brique à venir a son pastel clair
+                <div key={label} className="d-module is-soon" style={{ background: pastel(tone).bg, color: pastel(tone).ink }}>
+                  <Tile name={icon} size={36} bg="#ffffff" fill={pastel(tone).mid} />
                   {label}
                 </div>
               ))}
