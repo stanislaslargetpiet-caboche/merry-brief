@@ -13,6 +13,7 @@ const LINE_ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   chev: '<path d="m9.5 6 6 6-6 6"/>',
   chevDown: '<path d="m6 9.5 6 6 6-6"/>',
+  chevUp: '<path d="m6 14.5 6-6 6 6"/>',
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',

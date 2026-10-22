@@ -4251,3 +4251,15 @@ button.d-rsvp:hover {
   border-color: transparent;
   font-weight: 600;
 }
+
+.d-thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
