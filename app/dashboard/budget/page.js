@@ -438,7 +438,9 @@ export default function Budget() {
                           className="d-icon-btn is-flat is-danger"
                           onClick={() => {
                             const n = payments.filter((p) => p.budget_item_id === it.id).length;
-                            if (window.confirm(`Supprimer le poste « ${it.label} »${n ? ` et ses ${n} paiement${n > 1 ? "s" : ""}` : ""} ?`)) dash.remove("budget_items", it.id);
+                            const nDocs = documents.filter((d) => d.budget_item_id === it.id).length;
+                            const lost = [n ? `${n} paiement${n > 1 ? "s" : ""}` : "", nDocs ? `${nDocs} document${nDocs > 1 ? "s" : ""}` : ""].filter(Boolean).join(" et ses ");
+                            if (window.confirm(`Supprimer le poste « ${it.label} »${lost ? ` et ses ${lost}` : ""} ?`)) dash.remove("budget_items", it.id);
                           }}
                           aria-label={`Supprimer ${it.label}`}
                           title="Supprimer le poste"

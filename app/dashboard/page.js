@@ -49,7 +49,7 @@ export default function Accueil() {
     { label: "Remplir le brief", done: !!(data.brief || wedding.brief_id), href: data.brief || wedding.brief_id ? "/dashboard/brief" : "/" },
     partner ? { label: `Inviter ${partner.display_name}`, done: !!partner.user_id, href: "#organisateurs" } : { label: "Inviter votre moitié", done: false, href: "#organisateurs" },
     { label: "Importer les listes d'invités", done: g.total >= 10, href: "/dashboard/invites/importer" },
-    { label: "Fixer le budget", done: wedding.budget_total !== null && wedding.budget_total !== undefined, href: "/dashboard/budget" },
+    { label: "Fixer le budget", done: wedding.budget_total !== null && wedding.budget_total !== undefined, act: () => setEditWedding(true) },
     { label: "Signer un premier devis", done: b.signed > 0, href: "/dashboard/budget" },
   ].sort((a, z) => Number(a.done) - Number(z.done));
   const doneSteps = steps.filter((s) => s.done).length;
@@ -296,11 +296,19 @@ export default function Accueil() {
             <ul className="d-checklist">
               {steps.map((s) => (
                 <li key={s.label} className={s.done ? "is-done" : ""}>
-                  <a href={s.href}>
-                    <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
-                    <span style={{ flex: 1 }}>{s.label}</span>
-                    <Icon name="chev" size={16} sw={2} />
-                  </a>
+                  {s.act ? (
+                    <button type="button" onClick={s.act}>
+                      <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                      <span style={{ flex: 1, textAlign: "left" }}>{s.label}</span>
+                      <Icon name="chev" size={16} sw={2} />
+                    </button>
+                  ) : (
+                    <a href={s.href}>
+                      <span className={`d-dot${s.done ? " is-done" : ""}`}>{s.done ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                      <span style={{ flex: 1 }}>{s.label}</span>
+                      <Icon name="chev" size={16} sw={2} />
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

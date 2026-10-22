@@ -406,12 +406,3 @@ export function Donut({ segments, size = 168, thickness = 26, center, sub }) {
     </div>
   );
 }
-
-export function Empty({ children, action }) {
-  return (
-    <div className="d-empty">
-      <p>{children}</p>
-      {action}
-    </div>
-  );
-}

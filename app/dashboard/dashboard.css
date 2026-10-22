@@ -881,6 +881,8 @@ button.d-rsvp:hover {
   padding: 0;
   text-decoration: none;
   font-size: 14px;
+  font-family: inherit;
+  color: inherit;
   background: none;
   border: 0;
   cursor: pointer;
@@ -984,19 +986,6 @@ button.d-rsvp:hover {
   min-width: 168px;
   display: flex;
   justify-content: flex-end;
-}
-
-.d-task-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--d-muted);
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--d-line);
 }
 
 .d-check {
@@ -1326,14 +1315,6 @@ button.d-rsvp:hover {
   gap: 2px;
 }
 
-.d-pop-left {
-  left: 0;
-}
-
-.d-pop-right {
-  right: 0;
-}
-
 .d-pop-item {
   display: flex;
   align-items: center;
@@ -1457,15 +1438,6 @@ button.d-rsvp:hover {
   border-top: 1.5px solid var(--d-ink);
   font-weight: 600;
   font-size: 16px;
-}
-
-.d-table-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  font-size: 13px;
-  color: var(--d-muted);
 }
 
 /* Invités */
@@ -2065,38 +2037,6 @@ button.d-rsvp:hover {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
-}
-
-.d-toggle {
-  position: relative;
-  width: 44px;
-  height: 26px;
-  border-radius: 999px;
-  border: 1.5px solid var(--d-ink);
-  background: #ffffff;
-  cursor: pointer;
-  padding: 0;
-  flex: none;
-}
-
-.d-toggle::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 17px;
-  height: 17px;
-  border-radius: 999px;
-  background: var(--d-ink);
-  transition: left 0.15s ease;
-}
-
-.d-toggle.is-on {
-  background: var(--d-lime);
-}
-
-.d-toggle.is-on::after {
-  left: 20px;
 }
 
 /* ---------- Écrans moyens ---------- */
@@ -2785,10 +2725,6 @@ button.d-rsvp:hover {
   .d-error-card {
     margin: 16px auto;
     padding: 20px;
-  }
-
-  .d-table-foot .d-hint {
-    display: none;
   }
 
   /* Documents : un dossier par ligne */
@@ -4735,7 +4671,6 @@ button.d-rsvp:hover {
   line-height: 1.5;
   color: var(--d-muted);
 }
-
 
 /* ---------- Accueil, première connexion · génération du rétroplanning ---------- */
 

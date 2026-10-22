@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { KEY_DATES, eventOfKind, eventDate, tasksForKind } from "@/lib/dash/dates";
+import { coupleIds } from "@/lib/dash/model";
 import { addDays, isoDate, longDate, uid } from "@/lib/dash/format";
 import { shortEventName } from "./MomentsModal";
 import { Icon, Tile } from "./icons";
@@ -15,7 +16,7 @@ export const DATES_SEEN_KEY = "merry-dates-seen";
 
 export default function DatesModal({ onClose, first }) {
   const dash = useDash();
-  const { events, wedding, guests, tasks } = dash.data;
+  const { events, wedding, guests, tasks, members } = dash.data;
   const [rows, setRows] = useState(() =>
     KEY_DATES.map((k) => {
       const ev = k.fixed ? null : eventOfKind(events, k.kind);
@@ -44,7 +45,7 @@ export default function DatesModal({ onClose, first }) {
           if (guests.length) await dash.insert("guest_responses", guests.map((g) => ({ guest_id: g.id, event_id: id, status: "attente", updated_at: now })));
         } else if ((ev.event_date || null) !== (r.date || null) || ev.kind !== r.kind) await dash.update("events", ev.id, { event_date: r.date || null, kind: r.kind });
         if (r.date) {
-          const fresh = tasksForKind(r.kind, r.date, [...tasks, ...dash.data.tasks].map((t) => t.title));
+          const fresh = tasksForKind(r.kind, r.date, [...tasks, ...dash.data.tasks].map((t) => t.title), coupleIds(members));
           if (fresh.length) {
             await dash.insert("tasks", fresh.map((t, i) => ({ ...t, position: dash.data.tasks.length + i })));
             added += fresh.length;

@@ -117,6 +117,11 @@ export default function Retroplanning() {
           {!groups.length ? (
             <div className="d-empty">
               <p>{who ? "Rien pour cette personne." : "Aucune tâche pour l'instant."}</p>
+              {!who && !tasks.length ? (
+                <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
+                  Générer un rétroplanning
+                </Btn>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -138,6 +143,14 @@ export default function Retroplanning() {
                 </div>
               ))}
             </div>
+          </section>
+          <section className="d-card is-panel">
+            <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
+              Un prestataire de plus, un moment ajouté ? Merry complète le rétroplanning sans toucher à vos tâches.
+            </span>
+            <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
+              Compléter le rétroplanning
+            </Btn>
           </section>
           <section className="d-card is-panel d-hide-mobile">
             <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
