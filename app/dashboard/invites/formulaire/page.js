@@ -224,10 +224,17 @@ export default function FormulaireInvites() {
     }
   }
 
-  function addCustom() {
+  async function addCustom() {
     const label = newLabel.trim() || "Nouvelle question";
     const options = newType === "choice" ? newOptions.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean).slice(0, 12) : [];
-    change((f) => ({ custom: [...f.custom, { id: `q${Date.now().toString(36)}`, label: label.slice(0, 120), type: newType, options, req: false }] }));
+    const existing = data.fields.find((x) => x.name.trim().toLowerCase() === label.trim().toLowerCase());
+    let id = existing?.id || `q${Date.now().toString(36)}`;
+    if (!existing) {
+      // La question devient aussi une colonne « invités » de la liste
+      const [col] = await dash.insert("guest_fields", { name: label.slice(0, 120), position: data.fields.length, source: "invites", kind: newType === "text" ? "text" : "choice", options: newType === "yesno" ? ["Oui", "Non"] : options });
+      id = col.id;
+    } else if (existing.source !== "invites") dash.update("guest_fields", existing.id, { source: "invites" });
+    change((f) => ({ custom: [...f.custom, { id, label: label.slice(0, 120), type: newType, options, req: false }] }));
     setAdding(false);
     setNewLabel("");
     setNewOptions("");

@@ -9,6 +9,7 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpChip } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
+import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
@@ -109,41 +110,6 @@ function GroupCell({ guest, group, groups, label }) {
   );
 }
 
-function FieldHeader({ field }) {
-  const dash = useDash();
-  const [open, setOpen] = useState(false);
-  return (
-    <span className="d-anchor">
-      <button type="button" className="d-link" style={{ textDecoration: "none", fontSize: 12, fontWeight: 500, letterSpacing: "0.04em", color: "inherit" }} onClick={() => setOpen((o) => !o)}>
-        {field.name.toUpperCase()}
-      </button>
-      <Popover open={open} onClose={() => setOpen(false)} align="right">
-        <button
-          type="button"
-          className="d-pop-item"
-          onClick={() => {
-            const name = window.prompt("Nouveau nom de la colonne", field.name);
-            if (name && name.trim()) dash.update("guest_fields", field.id, { name: name.trim() });
-            setOpen(false);
-          }}
-        >
-          Renommer
-        </button>
-        <button
-          type="button"
-          className="d-pop-item"
-          onClick={() => {
-            if (window.confirm(`Supprimer la colonne « ${field.name} » et son contenu ?`)) dash.remove("guest_fields", field.id);
-            setOpen(false);
-          }}
-        >
-          Supprimer la colonne
-        </button>
-      </Popover>
-    </span>
-  );
-}
-
 function AddGuests({ onClose }) {
   const dash = useDash();
   const { groups, events, guests } = dash.data;
@@ -214,37 +180,6 @@ function AddGuests({ onClose }) {
   );
 }
 
-function AddColumn({ onClose }) {
-  const dash = useDash();
-  const [name, setName] = useState("");
-  async function save(e) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    await dash.insert("guest_fields", { name: name.trim(), position: dash.data.fields.length });
-    onClose();
-  }
-  return (
-    <Modal
-      title="Ajouter une colonne"
-      onClose={onClose}
-      footer={
-        <>
-          <Btn kind="ghost" onClick={onClose}>
-            Annuler
-          </Btn>
-          <Btn onClick={save}>Ajouter</Btn>
-        </>
-      }
-    >
-      <form onSubmit={save}>
-        <Field label="Nom de la colonne" hint="Hébergement, navette, table, cadeau reçu… Chaque organisateur peut la remplir.">
-          <input className="d-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="Navette" />
-        </Field>
-      </form>
-    </Modal>
-  );
-}
-
 // Téléphone : un invité par carte, les réponses sur une ligne, les coordonnées repliées
 function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
   const dash = useDash();
@@ -294,7 +229,7 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
           {fields.map((f) => (
             <span key={f.id} style={{ display: "contents" }}>
               <small>{f.name}</small>
-              <InlineEdit value={custom[f.id]} label={f.name} onSave={(v) => saveCustom(f, v)} />
+              {f.kind === "choice" ? <ChoiceCell value={custom[f.id]} options={f.options} label={f.name} onChange={(v) => saveCustom(f, v)} /> : <InlineEdit value={custom[f.id]} label={f.name} onSave={(v) => saveCustom(f, v)} />}
             </span>
           ))}
         </div>
@@ -355,20 +290,19 @@ export default function Invites() {
       label: f.name,
       custom: true,
       field: f,
-      render: (g) => (
-        <InlineEdit
-          value={(g.custom || {})[f.id]}
-          label={f.name}
-          width={110}
-          onSave={(v) => {
-            const custom = { ...(g.custom || {}) };
-            if (v) custom[f.id] = v;
-            else delete custom[f.id];
-            dash.update("guests", g.id, { custom });
-          }}
-          className="d-cell-clip"
-        />
-      ),
+      render: (g) => {
+        const saveCustom = (v) => {
+          const custom = { ...(g.custom || {}) };
+          if (v) custom[f.id] = v;
+          else delete custom[f.id];
+          dash.update("guests", g.id, { custom });
+        };
+        return f.kind === "choice" ? (
+          <ChoiceCell value={(g.custom || {})[f.id]} options={f.options} label={f.name} onChange={saveCustom} />
+        ) : (
+          <InlineEdit value={(g.custom || {})[f.id]} label={f.name} width={110} onSave={saveCustom} className="d-cell-clip" />
+        );
+      },
     })),
     { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
   ];
@@ -520,7 +454,7 @@ export default function Invites() {
 
 
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
-      {addingCol ? <AddColumn onClose={() => setAddingCol(false)} /> : null}
+      {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
     </>
   );

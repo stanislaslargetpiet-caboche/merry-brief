@@ -4202,3 +4202,52 @@ button.d-rsvp:hover {
 .d-guests .d-row-menu:focus-visible {
   background: var(--d-panel);
 }
+
+/* Colonnes ajoutées : en-tête et cases à réponses prédéfinies */
+.d-field-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.d-choicepill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.d-choicepill.is-empty {
+  color: var(--d-muted);
+  border-style: dashed;
+}
+
+.d-choicepill.is-yes {
+  background: var(--d-ok-bg);
+  color: var(--d-ok-ink);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.d-choicepill.is-no {
+  background: var(--d-red-bg);
+  color: var(--d-red-ink);
+  border-color: transparent;
+  font-weight: 600;
+}
