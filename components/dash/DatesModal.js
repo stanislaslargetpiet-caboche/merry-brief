@@ -3,10 +3,12 @@
 // Les grandes dates : quels moments le mariage comporte, et quand. Chaque moment coché devient
 // un moment de la liste des invités (s'il n'existe pas) et ajoute ses tâches type au rétroplanning.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { KEY_DATES, eventOfKind, eventDate, tasksForKind } from "@/lib/dash/dates";
 import { coupleIds } from "@/lib/dash/model";
+import { applyShift, shiftPlan } from "@/lib/dash/shift";
+import ShiftOption from "./ShiftOption";
 import { addDays, isoDate, longDate, uid } from "@/lib/dash/format";
 import { shortEventName } from "./MomentsModal";
 import { Icon, Tile } from "./icons";
@@ -24,6 +26,10 @@ export default function DatesModal({ onClose, first }) {
     }),
   );
   const [busy, setBusy] = useState(false);
+  const [shift, setShift] = useState(true);
+  // Le jour J change : les tâches de Merry suivent (les moments ont leurs propres dates ici)
+  const newJourJ = rows.find((r) => r.fixed)?.date || null;
+  const plan = useMemo(() => shiftPlan(dash.data, wedding.wedding_date || null, newJourJ, { events: false }), [dash.data, wedding.wedding_date, newJourJ]);
 
   const set = (kind, patch) => setRows((rs) => rs.map((r) => (r.kind === kind ? { ...r, ...patch } : r)));
 
@@ -33,7 +39,10 @@ export default function DatesModal({ onClose, first }) {
     let added = 0;
     for (const r of rows) {
       if (r.fixed) {
-        if (r.date && r.date !== wedding.wedding_date) await dash.updateWedding({ wedding_date: r.date });
+        if (r.date && r.date !== wedding.wedding_date) {
+          await dash.updateWedding({ wedding_date: r.date });
+          if (plan && shift) await applyShift(dash, plan);
+        }
         continue;
       }
       if (r.on) {
@@ -110,6 +119,7 @@ export default function DatesModal({ onClose, first }) {
           </div>
         ))}
       </div>
+      <ShiftOption plan={plan} checked={shift} onChange={setShift} />
       <p className="d-small d-muted" style={{ margin: 0 }}>
         Chaque moment coché a sa colonne de réponses dans la liste des invités. Vous pourrez changer les dates ici à tout moment.
       </p>
