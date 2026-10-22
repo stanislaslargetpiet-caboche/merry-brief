@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { chosenKpis, kpiContext, responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize } from "@/lib/dash/format";
-import { RSVP_ORDER, pastel } from "@/lib/dash/theme";
+import { fullName, normalize, uid } from "@/lib/dash/format";
+import { PASTEL_KEYS, RSVP_ORDER, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpChip } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
@@ -73,10 +73,34 @@ function RowMenu({ guest, label }) {
 function GroupCell({ guest, group, groups, label }) {
   const dash = useDash();
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const close = () => {
+    setOpen(false);
+    setCreating(false);
+    setName("");
+  };
+  const create = async (e) => {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n) return;
+    const exists = groups.find((g) => normalize(g.name) === normalize(n));
+    let id = exists?.id;
+    if (!id) {
+      id = uid();
+      const color = PASTEL_KEYS[groups.length % PASTEL_KEYS.length];
+      await dash.insert("guest_groups", { id, name: n, color, position: groups.length });
+    }
+    dash.update("guests", guest.id, { group_id: id });
+    close();
+  };
   return (
     <span className="d-anchor">
-      <GroupChip group={group} onClick={() => setOpen((o) => !o)} />
-      <Popover open={open} onClose={() => setOpen(false)}>
+      <GroupChip group={group} onClick={() => (open ? close() : setOpen(true))} />
+      <Popover open={open} onClose={close}>
+        <span className="d-pop-label d-small d-muted" style={{ padding: "4px 8px" }}>
+          Groupe de {label}
+        </span>
         {groups.map((g) => (
           <button
             key={g.id}
@@ -84,19 +108,46 @@ function GroupCell({ guest, group, groups, label }) {
             className={`d-pop-item${g.id === guest.group_id ? " is-on" : ""}`}
             onClick={() => {
               dash.update("guests", guest.id, { group_id: g.id });
-              setOpen(false);
+              close();
             }}
           >
             <GroupChip group={g} />
             {g.id === guest.group_id ? <Icon name="check" size={14} sw={2.2} /> : null}
           </button>
         ))}
+        {guest.group_id ? (
+          <button
+            type="button"
+            className="d-pop-item"
+            onClick={() => {
+              dash.update("guests", guest.id, { group_id: null });
+              close();
+            }}
+          >
+            <span className="d-pop-label">Sans groupe</span>
+          </button>
+        ) : null}
+        {creating ? (
+          <form onSubmit={create} style={{ display: "flex", gap: 6, padding: "4px 2px" }}>
+            <input className="d-input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du groupe" maxLength={60} aria-label="Nom du nouveau groupe" style={{ minWidth: 150 }} />
+            <Btn type="submit" small disabled={!name.trim()}>
+              Créer
+            </Btn>
+          </form>
+        ) : (
+          <button type="button" className="d-pop-item" onClick={() => setCreating(true)}>
+            <span className="d-pop-label">
+              <Icon name="plus" size={14} sw={2.2} />
+              Nouveau groupe
+            </span>
+          </button>
+        )}
         <span style={{ height: 1, background: "var(--d-line)", margin: "4px 2px" }} />
         <button
           type="button"
-          className="d-pop-item"
+          className="d-pop-item is-danger"
           onClick={() => {
-            setOpen(false);
+            close();
             if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
           }}
         >
@@ -105,6 +156,76 @@ function GroupCell({ guest, group, groups, label }) {
             Retirer de la liste
           </span>
         </button>
+      </Popover>
+    </span>
+  );
+}
+
+// En-tête d'une colonne du tableau : un clic ouvre « Renommer » et « Supprimer » (sur toutes les colonnes, pas seulement les ajoutées)
+function ColumnHead({ col, onRename, onRemove, removeLabel, extraItems }) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(col.label);
+  if (editing) {
+    const save = () => {
+      setEditing(false);
+      const v = draft.trim();
+      if (v && v !== col.label) onRename(v);
+    };
+    return (
+      <input
+        className="d-inline-input"
+        autoFocus
+        value={draft}
+        maxLength={40}
+        aria-label={`Nouveau nom de la colonne ${col.label}`}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        style={{ width: 110 }}
+      />
+    );
+  }
+  return (
+    <span className="d-anchor">
+      <button type="button" className="d-link d-field-head" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}>
+        {col.label}
+        <Icon name="chevDown" size={11} sw={2.2} />
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} align="right">
+        <button
+          type="button"
+          className="d-pop-item"
+          onClick={() => {
+            setOpen(false);
+            setDraft(col.label);
+            setEditing(true);
+          }}
+        >
+          <span className="d-pop-label">
+            <Icon name="pencil" size={14} sw={2} />
+            Renommer la colonne
+          </span>
+        </button>
+        {extraItems}
+        {onRemove ? (
+          <button
+            type="button"
+            className="d-pop-item is-danger"
+            onClick={() => {
+              setOpen(false);
+              onRemove();
+            }}
+          >
+            <span className="d-pop-label">
+              <Icon name="trash" size={14} sw={2} />
+              {removeLabel || "Supprimer la colonne"}
+            </span>
+          </button>
+        ) : null}
       </Popover>
     </span>
   );
@@ -280,7 +401,7 @@ export default function Invites() {
         </div>
       ),
     },
-    ...events.map((ev) => ({ key: `ev:${ev.id}`, label: ev.short_name, render: (g, r) => <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} /> })),
+    ...events.map((ev) => ({ key: `ev:${ev.id}`, label: ev.short_name, event: ev, render: (g, r) => <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} /> })),
     { key: "diet", label: "Régime", render: (g) => <InlineEdit value={g.diet} label="régime" width={110} onSave={(v) => dash.update("guests", g.id, { diet: v })} className="d-cell-clip" /> },
     { key: "address", label: "Adresse", render: (g) => <InlineEdit value={g.address} label="adresse" width={220} onSave={(v) => dash.update("guests", g.id, { address: v })} className="d-cell-clip" /> },
     { key: "email", label: "Mail", render: (g) => <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => dash.update("guests", g.id, { email: v })} className="d-cell-clip" /> },
@@ -307,6 +428,51 @@ export default function Invites() {
     { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
   ];
   const cols = useColumnLayout(`merry-cols-invites-${wedding.id}`, columnDefs);
+  const [restoring, setRestoring] = useState(false);
+
+  // En-tête de chaque colonne : renommer et supprimer sont possibles partout
+  function headFor(c) {
+    if (c.custom) return <FieldHeader field={c.field} />;
+    if (c.key === "tools") return c.label;
+    if (c.event) {
+      const ev = c.event;
+      const n = (data.responses || []).filter((r) => r.event_id === ev.id && r.status !== "non_invite").length;
+      return (
+        <ColumnHead
+          col={c}
+          onRename={(v) => dash.update("events", ev.id, { short_name: v.slice(0, 14) })}
+          removeLabel="Supprimer le moment"
+          onRemove={() => {
+            const msg = n ? `Supprimer « ${ev.name} » ? Les réponses de ${n} invité${n > 1 ? "s" : ""} à ce moment seront effacées.` : `Supprimer « ${ev.name} » ?`;
+            if (window.confirm(msg)) dash.remove("events", ev.id);
+          }}
+          extraItems={
+            <button type="button" className="d-pop-item" onClick={() => setMoments(true)}>
+              <span className="d-pop-label">
+                <Icon name="pencil" size={14} sw={2} />
+                Modifier les moments
+              </span>
+            </button>
+          }
+        />
+      );
+    }
+    const removable = !c.fixed;
+    return (
+      <ColumnHead
+        col={c}
+        onRename={(v) => cols.rename(c.key, v)}
+        removeLabel="Supprimer la colonne"
+        onRemove={
+          removable
+            ? () => {
+                if (window.confirm(`Supprimer la colonne « ${c.label} » du tableau ? Les informations restent enregistrées, vous pourrez la réafficher.`)) cols.hide(c.key);
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <>
@@ -380,6 +546,31 @@ export default function Invites() {
                 Colonnes par défaut
               </button>
             ) : null}
+            {cols.hiddenColumns.length ? (
+              <span className="d-anchor">
+                <button type="button" className="d-pill" onClick={() => setRestoring((o) => !o)} aria-haspopup="menu" aria-expanded={restoring}>
+                  Colonnes supprimées · {cols.hiddenColumns.length}
+                </button>
+                <Popover open={restoring} onClose={() => setRestoring(false)} align="right">
+                  {cols.hiddenColumns.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className="d-pop-item"
+                      onClick={() => {
+                        cols.show(c.key);
+                        setRestoring(false);
+                      }}
+                    >
+                      <span className="d-pop-label">
+                        <Icon name="plus" size={14} sw={2.2} />
+                        Réafficher « {c.label} »
+                      </span>
+                    </button>
+                  ))}
+                </Popover>
+              </span>
+            ) : null}
             <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
               <Icon name="plus" size={14} sw={2} />
               Ajouter une colonne
@@ -414,7 +605,7 @@ export default function Invites() {
                   const hp = cols.headerProps(c);
                   return (
                     <th key={c.key} {...hp} className={[hp.className, c.custom ? "d-col-custom" : ""].filter(Boolean).join(" ") || undefined} title={c.fixed ? undefined : "Glisser pour déplacer la colonne"}>
-                      {c.custom ? <FieldHeader field={c.field} /> : c.label}
+                      {headFor(c)}
                       {c.noResize ? null : <ResizeHandle label={c.label} onMouseDown={(e) => cols.startResize(c.key, e, e.currentTarget.parentElement)} />}
                     </th>
                   );

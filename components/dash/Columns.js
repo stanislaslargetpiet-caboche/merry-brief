@@ -14,12 +14,19 @@ function readLayout(key) {
     const raw = window.localStorage.getItem(key);
     if (raw) {
       const v = JSON.parse(raw);
-      if (v && typeof v === "object") return { order: Array.isArray(v.order) ? v.order : [], widths: v.widths && typeof v.widths === "object" ? v.widths : {} };
+      if (v && typeof v === "object") {
+        return {
+          order: Array.isArray(v.order) ? v.order : [],
+          widths: v.widths && typeof v.widths === "object" ? v.widths : {},
+          hidden: Array.isArray(v.hidden) ? v.hidden : [],
+          labels: v.labels && typeof v.labels === "object" ? v.labels : {},
+        };
+      }
     }
   } catch {
     /* stockage indisponible */
   }
-  return { order: [], widths: {} };
+  return { order: [], widths: {}, hidden: [], labels: {} };
 }
 
 function writeLayout(key, layout) {
@@ -33,7 +40,7 @@ function writeLayout(key, layout) {
 // columns : [{ key, fixed? }] dans l'ordre par défaut. Renvoie les colonnes dans l'ordre
 // choisi, les largeurs, et les fonctions à brancher sur les en-têtes.
 export function useColumnLayout(storageKey, columns) {
-  const [layout, setLayout] = useState({ order: [], widths: {} });
+  const [layout, setLayout] = useState({ order: [], widths: {}, hidden: [], labels: {} });
   const [drag, setDrag] = useState(null); // { key, over }
   const loaded = useRef(false);
 
@@ -59,7 +66,12 @@ export function useColumnLayout(storageKey, columns) {
   const fixedStart = columns.filter((c, i) => c.fixed && (firstMovable < 0 || i < firstMovable));
   const fixedEnd = columns.filter((c, i) => c.fixed && firstMovable >= 0 && i > firstMovable);
   const movable = columns.filter((c) => !c.fixed);
-  const ordered = [...fixedStart, ...layout.order.map((k) => byKey.get(k)).filter((c) => c && !c.fixed), ...movable.filter((c) => !layout.order.includes(c.key)), ...fixedEnd];
+  const hidden = layout.hidden || [];
+  const labels = layout.labels || {};
+  const ordered = [...fixedStart, ...layout.order.map((k) => byKey.get(k)).filter((c) => c && !c.fixed), ...movable.filter((c) => !layout.order.includes(c.key)), ...fixedEnd]
+    .filter((c) => c.fixed || !hidden.includes(c.key))
+    .map((c) => (labels[c.key] ? { ...c, label: labels[c.key] } : c));
+  const hiddenColumns = columns.filter((c) => !c.fixed && hidden.includes(c.key));
 
   const move = useCallback(
     (fromKey, toKey) => {
@@ -77,7 +89,21 @@ export function useColumnLayout(storageKey, columns) {
     [ordered, save],
   );
 
-  const reset = useCallback(() => save(() => ({ order: [], widths: {} })), [save]);
+  const reset = useCallback(() => save(() => ({ order: [], widths: {}, hidden: [], labels: {} })), [save]);
+
+  // Masquer / réafficher une colonne (les informations restent enregistrées), renommer un en-tête
+  const hide = useCallback((key) => save((l) => ({ ...l, hidden: [...new Set([...(l.hidden || []), key])] })), [save]);
+  const show = useCallback((key) => save((l) => ({ ...l, hidden: (l.hidden || []).filter((k) => k !== key) })), [save]);
+  const rename = useCallback(
+    (key, label) =>
+      save((l) => {
+        const labels = { ...(l.labels || {}) };
+        if (label) labels[key] = label;
+        else delete labels[key];
+        return { ...l, labels };
+      }),
+    [save],
+  );
 
   // Poignée : glisser pour élargir ou rétrécir
   const startResize = useCallback(
@@ -143,7 +169,20 @@ export function useColumnLayout(storageKey, columns) {
     return w ? { width: w, minWidth: w, maxWidth: w } : undefined;
   };
 
-  return { columns: ordered, widths: layout.widths, headerProps, cellStyle, startResize, move, reset, customised: layout.order.length > 0 || Object.keys(layout.widths).length > 0 };
+  return {
+    columns: ordered,
+    hiddenColumns,
+    widths: layout.widths,
+    headerProps,
+    cellStyle,
+    startResize,
+    move,
+    reset,
+    hide,
+    show,
+    rename,
+    customised: layout.order.length > 0 || Object.keys(layout.widths).length > 0 || hidden.length > 0 || Object.keys(labels).length > 0,
+  };
 }
 
 // Poignée de redimensionnement à poser dans un <th> (position: relative)
