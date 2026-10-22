@@ -1,11 +1,11 @@
 # Merry · Onboarding et compte
 
-Le parcours d'inscription des couples (choix de la fête + 8 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 21 octobre 2026.
+Le parcours d'inscription des couples (choix de la fête + 7 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 22 octobre 2026.
 
 ## 1. Supabase (15 minutes)
 
 1. Crée un projet sur supabase.com (région EU, Francfort ou Paris).
-2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run.
+2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run, puis de `supabase/onboarding-simplifie.sql`, Run.
 3. Authentication > Providers > Email : laisse Email activé.
    Pour le lancement, désactive « Confirm email » (Authentication > Providers > Email > Confirm email) : le couple arrive sur son tableau de bord sans passer par sa boîte mail. Si tu le laisses activé, le code gère le cas (écran « vérifie ta boîte mail », brief envoyé à la première connexion).
 4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.merry.fr).
@@ -35,7 +35,7 @@ Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Au
 
 ## 5. Pages
 
-- `/` : le choix de la fête (seul le mariage est ouvert), le parcours en huit écrans, puis l'écran de bienvenue.
+- `/` : le choix de la fête (seul le mariage est ouvert), le parcours en sept écrans, puis l'écran de bienvenue.
 - `/connexion` : connexion au tableau de bord (bouton « Connexion » du site), mot de passe oublié, et création d'accès pour un organisateur invité (`/connexion?invitation=…`).
 - `/dashboard` : le tableau de bord (voir la section 8).
 - `/f/<adresse>` : le formulaire invités public (voir la section 9).
@@ -92,7 +92,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 
 ## Modifier les questions et les couleurs
 
-Tout le contenu est en haut de `components/Brief.js` (listes `STAGES`, `TEAMS`, `GUESTS`, `VIBES`, `WEEKENDS`, `HONEYMOON_VIBES`, `BUDGETS`, `HELP`, `PANEL_WORDS`). Les couleurs et polices sont dans `app/globals.css` (variables `:root` : `--lime` est le vert-jaune du site).
+Tout le contenu est en haut de `components/Brief.js` (listes `EVENTS`, `STAGES`, `TEAMS`, `GUESTS`, `FORMATS`, `VIBES`, `BUDGETS`, `PANEL_WORDS`). Les couleurs et polices sont dans `app/globals.css` (variables `:root` : `--lime` est le vert-jaune du site).
 
 ## À vérifier avant de publier
 
