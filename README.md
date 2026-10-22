@@ -1,6 +1,6 @@
 # Merry · Onboarding et compte
 
-Le parcours d'inscription des couples (10 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 21 octobre 2026.
+Le parcours d'inscription des couples (choix de la fête + 10 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 21 octobre 2026.
 
 ## 1. Supabase (15 minutes)
 
@@ -35,7 +35,7 @@ Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Au
 
 ## 5. Pages
 
-- `/` : le parcours en dix écrans, puis l'écran de bienvenue.
+- `/` : le choix de la fête (seul le mariage est ouvert), le parcours en dix écrans, puis l'écran de bienvenue.
 - `/connexion` : connexion au tableau de bord (bouton « Connexion » du site), mot de passe oublié, et création d'accès pour un organisateur invité (`/connexion?invitation=…`).
 - `/dashboard` : le tableau de bord (voir la section 8).
 - `/f/<adresse>` : le formulaire invités public (voir la section 9).
