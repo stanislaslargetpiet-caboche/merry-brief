@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
-import { SITE_URL } from "@/lib/site";
+import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
 import { Icon } from "./icons";
 import { Avatar, Popover } from "./ui";
 import Organisers from "./Organisers";
@@ -216,6 +216,25 @@ function Frame({ children }) {
           ))}
         </div>
         <div className="d-nav-bottom">
+          <div className="d-help">
+            {/* Design 1 : pilule noire pleine */}
+            <a className="d-help-btn is-demo" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              <Icon name="calendar" size={16} sw={2} />
+              Demander une démo
+            </a>
+            {/* Design 2 : noir, avec une pastille lime à gauche */}
+            <a className="d-help-btn is-advisor" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              <span className="d-help-badge" aria-hidden="true">
+                <Icon name="bubble" size={16} sw={2} />
+              </span>
+              <span>Demander l'aide d'un conseiller</span>
+            </a>
+            {/* Design 3 : contour noir, fond transparent (le vert de la barre apparaît) */}
+            <a className="d-help-btn is-whatsapp" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+              <Icon name="users" size={16} sw={2} />
+              Rejoindre le groupe WhatsApp
+            </a>
+          </div>
           {data ? (
             <div className="d-team">
               <div className="d-team-title">Organisateurs</div>
