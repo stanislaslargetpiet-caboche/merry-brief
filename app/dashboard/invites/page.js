@@ -8,6 +8,7 @@ import { RSVP_ORDER, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpChip } from "@/components/dash/ui";
 import MomentsModal from "@/components/dash/MomentsModal";
+import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
@@ -35,6 +36,34 @@ function RsvpCell({ guest, event, status }) {
             {k === status ? <Icon name="check" size={14} sw={2.2} /> : null}
           </button>
         ))}
+      </Popover>
+    </span>
+  );
+}
+
+// Menu de fin de ligne : retirer l'invité de la liste
+function RowMenu({ guest, label }) {
+  const dash = useDash();
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="d-anchor">
+      <button type="button" className="d-icon-btn d-row-menu" aria-label={`Options de ${label}`} onClick={() => setOpen((o) => !o)}>
+        <Icon name="dots" size={16} sw={2.4} />
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} align="right">
+        <button
+          type="button"
+          className="d-pop-item is-danger"
+          onClick={() => {
+            setOpen(false);
+            if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Icon name="trash" size={14} />
+            Retirer de la liste
+          </span>
+        </button>
       </Popover>
     </span>
   );
@@ -277,7 +306,7 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById }) {
 export default function Invites() {
   const dash = useDash();
   const data = dash.data;
-  const { guests, groups, events, fields } = data;
+  const { guests, groups, events, fields, wedding } = data;
   const [eventPick, setEventFilter] = useState(null);
   const [moments, setMoments] = useState(false);
   const [groupFilter, setGroupFilter] = useState(null);
@@ -298,6 +327,52 @@ export default function Invites() {
 
   const ctx = kpiContext(data);
   const stats = chosenKpis(data, "invites").map((k) => ({ id: k.id, label: k.label, pill: k.pill, ...k.get(ctx) }));
+
+  // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
+  const columnDefs = [
+    {
+      key: "name",
+      label: "Invités",
+      fixed: true,
+      render: (g, r, host) => (
+        <div className="d-guest-name">
+          <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" width={170} onSave={(v) => dash.update("guests", g.id, splitName(v))} />
+          <span className="d-guest-sub">
+            {g.age ? <span>{g.age} ans</span> : null}
+            {host && !fullName(g) ? <span>À nommer</span> : null}
+            <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
+          </span>
+        </div>
+      ),
+    },
+    ...events.map((ev) => ({ key: `ev:${ev.id}`, label: ev.short_name, render: (g, r) => <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} /> })),
+    { key: "diet", label: "Régime", render: (g) => <InlineEdit value={g.diet} label="régime" width={110} onSave={(v) => dash.update("guests", g.id, { diet: v })} className="d-cell-clip" /> },
+    { key: "address", label: "Adresse", render: (g) => <InlineEdit value={g.address} label="adresse" width={220} onSave={(v) => dash.update("guests", g.id, { address: v })} className="d-cell-clip" /> },
+    { key: "email", label: "Mail", render: (g) => <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => dash.update("guests", g.id, { email: v })} className="d-cell-clip" /> },
+    { key: "phone", label: "Téléphone", render: (g) => <InlineEdit value={g.phone} label="téléphone" width={130} onSave={(v) => dash.update("guests", g.id, { phone: v })} className="d-cell-clip" /> },
+    ...fields.map((f) => ({
+      key: `field:${f.id}`,
+      label: f.name,
+      custom: true,
+      field: f,
+      render: (g) => (
+        <InlineEdit
+          value={(g.custom || {})[f.id]}
+          label={f.name}
+          width={110}
+          onSave={(v) => {
+            const custom = { ...(g.custom || {}) };
+            if (v) custom[f.id] = v;
+            else delete custom[f.id];
+            dash.update("guests", g.id, { custom });
+          }}
+          className="d-cell-clip"
+        />
+      ),
+    })),
+    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
+  ];
+  const cols = useColumnLayout(`merry-cols-invites-${wedding.id}`, columnDefs);
 
   return (
     <>
@@ -365,10 +440,17 @@ export default function Invites() {
               );
             })}
           </div>
-          <button type="button" className="d-pill is-dashed d-desk-only" onClick={() => setAddingCol(true)}>
-            <Icon name="plus" size={14} sw={2} />
-            Ajouter une colonne
-          </button>
+          <span className="d-filters d-desk-only">
+            {cols.customised ? (
+              <button type="button" className="d-pill" onClick={cols.reset} title="Remettre l'ordre et la largeur des colonnes par défaut">
+                Colonnes par défaut
+              </button>
+            ) : null}
+            <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
+              <Icon name="plus" size={14} sw={2} />
+              Ajouter une colonne
+            </button>
+          </span>
         </div>
       </div>
 
@@ -391,22 +473,18 @@ export default function Invites() {
 
       {guests.length ? (
         <div className="d-table-wrap d-desk-only">
-          <table className="d-table d-guests">
+          <table className="d-table d-guests d-cols">
             <thead>
               <tr>
-                <th>Invités</th>
-                {events.map((ev) => (
-                  <th key={ev.id}>{ev.short_name}</th>
-                ))}
-                <th>Régime</th>
-                <th>Adresse</th>
-                <th>Mail</th>
-                <th>Téléphone</th>
-                {fields.map((f) => (
-                  <th key={f.id} className="d-col-custom">
-                    <FieldHeader field={f} />
-                  </th>
-                ))}
+                {cols.columns.map((c) => {
+                  const hp = cols.headerProps(c);
+                  return (
+                    <th key={c.key} {...hp} className={[hp.className, c.custom ? "d-col-custom" : ""].filter(Boolean).join(" ") || undefined} title={c.fixed ? undefined : "Glisser pour déplacer la colonne"}>
+                      {c.custom ? <FieldHeader field={c.field} /> : c.label}
+                      {c.noResize ? null : <ResizeHandle label={c.label} onMouseDown={(e) => cols.startResize(c.key, e, e.currentTarget.parentElement)} />}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -415,53 +493,9 @@ export default function Invites() {
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
                   <tr key={g.id}>
-                    <td>
-                      <div className="d-guest-name">
-                        <InlineEdit
-                          value={fullName(g)}
-                          placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"}
-                          label="nom de l'invité"
-                          width={170}
-                          onSave={(v) => dash.update("guests", g.id, splitName(v))}
-                        />
-                        <span className="d-guest-sub">
-                          {g.age ? <span>{g.age} ans</span> : null}
-                          {host && !fullName(g) ? <span>À nommer</span> : null}
-                          <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
-                        </span>
-                      </div>
-                    </td>
-                    {events.map((ev) => (
-                      <td key={ev.id}>
-                        <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} />
-                      </td>
-                    ))}
-                    <td>
-                      <InlineEdit value={g.diet} label="régime" width={110} onSave={(v) => dash.update("guests", g.id, { diet: v })} className="d-cell-clip" />
-                    </td>
-                    <td>
-                      <InlineEdit value={g.address} label="adresse" width={220} onSave={(v) => dash.update("guests", g.id, { address: v })} className="d-cell-clip" />
-                    </td>
-                    <td>
-                      <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => dash.update("guests", g.id, { email: v })} className="d-cell-clip" />
-                    </td>
-                    <td>
-                      <InlineEdit value={g.phone} label="téléphone" width={130} onSave={(v) => dash.update("guests", g.id, { phone: v })} className="d-cell-clip" />
-                    </td>
-                    {fields.map((f) => (
-                      <td key={f.id} className="d-col-custom">
-                        <InlineEdit
-                          value={(g.custom || {})[f.id]}
-                          label={f.name}
-                          width={110}
-                          onSave={(v) => {
-                            const custom = { ...(g.custom || {}) };
-                            if (v) custom[f.id] = v;
-                            else delete custom[f.id];
-                            dash.update("guests", g.id, { custom });
-                          }}
-                          className="d-cell-clip"
-                        />
+                    {cols.columns.map((c) => (
+                      <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
+                        {c.render(g, r, host)}
                       </td>
                     ))}
                   </tr>
@@ -484,18 +518,6 @@ export default function Invites() {
         </div>
       )}
 
-      {guests.length ? (
-        <div className="d-table-foot">
-          <span>
-            {shown.length} invité{shown.length > 1 ? "s" : ""} affiché{shown.length > 1 ? "s" : ""} sur {guests.length}
-          </span>
-          <span className="d-hint d-desk-only">·</span>
-          <span className="d-hint d-desk-only">
-            <Icon name="pencil" size={14} />
-            cliquez sur une case pour la modifier : nom, groupe, réponse, régime, adresse, mail, téléphone
-          </span>
-        </div>
-      ) : null}
 
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <AddColumn onClose={() => setAddingCol(false)} /> : null}

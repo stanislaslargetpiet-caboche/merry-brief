@@ -1484,6 +1484,60 @@ button.d-rsvp:hover {
   max-width: 118px;
 }
 
+/* Colonnes déplaçables et redimensionnables */
+.d-cols th {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.d-cols th[draggable="true"] {
+  cursor: grab;
+}
+
+.d-cols th.is-dragging {
+  opacity: 0.4;
+}
+
+.d-cols th.is-drop {
+  box-shadow: inset 3px 0 0 var(--d-ink);
+}
+
+.d-cols td {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.d-cols td[style] .d-cell-clip {
+  max-width: none;
+}
+
+.d-col-resize {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.d-col-resize::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: 4px;
+  width: 1px;
+  background: var(--d-border);
+  opacity: 0;
+}
+
+.d-cols th:hover .d-col-resize::after,
+.d-col-resize:hover::after {
+  opacity: 1;
+  background: var(--d-ink);
+}
+
 .d-guest-name {
   display: flex;
   flex-direction: column;
@@ -4136,4 +4190,15 @@ button.d-rsvp:hover {
   .d-docrow.is-head {
     display: none;
   }
+}
+
+.d-guests .d-row-menu {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+}
+
+.d-guests tr:hover .d-row-menu,
+.d-guests .d-row-menu:focus-visible {
+  background: var(--d-panel);
 }
