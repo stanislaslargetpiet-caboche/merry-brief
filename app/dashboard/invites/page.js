@@ -302,7 +302,7 @@ export default function Invites() {
   return (
     <>
       <PageHeader
-        title="Les invités."
+        title="Invités."
         actions={
           <>
             <Btn kind="lime" icon="link" href="/dashboard/invites/formulaire">
