@@ -21,3 +21,11 @@ alter table public.payments add column if not exists note text check (note is nu
 alter table public.vendors add column if not exists iban text check (iban is null or length(iban) <= 48);
 alter table public.vendors add column if not exists bic text check (bic is null or length(bic) <= 16);
 alter table public.vendors add column if not exists account_holder text check (account_holder is null or length(account_holder) <= 120);
+
+-- Moments du mariage : date et nature (civil, fiançailles, veille, cérémonie, brunch, fête…)
+-- pour les grandes dates du rétroplanning
+alter table public.events add column if not exists event_date date;
+alter table public.events add column if not exists kind text;
+alter table public.events drop constraint if exists events_kind_check;
+alter table public.events add constraint events_kind_check
+  check (kind is null or kind in ('fiancailles', 'civil', 'veille', 'ceremonie', 'cocktail', 'diner', 'brunch', 'fete', 'autre'));

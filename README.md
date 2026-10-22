@@ -59,7 +59,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/invites/importer` | Import d'Excel, CSV ou texte collé, détection des doublons ; photos et PDF lus par l'IA si la clé est configurée |
 | `/dashboard/invites/exporter` | Export Excel, CSV ou PDF, colonnes au choix (raccourcis traiteur, faire-part, plan de table) |
 | `/dashboard/invites/formulaire` | Réglages du formulaire invités : questions (non demandé, facultatif, obligatoire, intitulés modifiables), moments affichés, questions ajoutées, photo d'en-tête, petit mot, date limite, thème, lien à copier |
-| `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
+| `/dashboard/retroplanning` | Grandes dates (fiançailles, mairie, dîner de la veille, jour J, brunch, fête entre amis ; demandées à la première visite, chacune ajoute ses tâches type), frise mois par mois avec le nombre de tâches et les dates épinglées, tâches par mois, « Qui fait quoi » |
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
 | `/dashboard/budget/importer` | Import des devis signés et des factures réglées : Merry lit chaque document, puis trois questions par document (devis ou facture, qui a payé, on a bien lu ?) avant de remplir le poste, le prestataire, les paiements, les échéances et le dossier « Factures et devis ». Un devis non signé est seulement rangé, pour la comparaison |
 | `/dashboard/budget/paiement/[poste]` | Effectuer un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
