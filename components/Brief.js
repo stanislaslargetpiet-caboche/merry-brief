@@ -9,6 +9,17 @@ import { SITE_URL } from "@/lib/site";
 /*  page Onboarding, validé le 21 oct. 2026)                            */
 /* ------------------------------------------------------------------ */
 
+const EVENTS = [
+  { value: "mariage", label: "Mariage", sub: "Du lieu à la lune de miel", available: true },
+  { value: "famille", label: "Fête de famille" },
+  { value: "evjf", label: "Enterrement de vie de jeune fille" },
+  { value: "evg", label: "Enterrement de vie de garçon" },
+  { value: "anniversaire", label: "Anniversaire" },
+  { value: "fiancailles", label: "Fiançailles" },
+  { value: "bapteme", label: "Baptême" },
+  { value: "autre", label: "Une autre fête" },
+];
+
 const STAGES = [
   { value: "debut", label: "Au tout (tout) début" },
   { value: "regarde", label: "On commence à s'y pencher" },
@@ -93,6 +104,7 @@ const HELP = [
 ];
 
 const PANEL_WORDS = [
+  "On fête quoi ?",
   "C'est parti !",
   "Qui fait quoi.",
   "Vous deux.",
@@ -105,10 +117,12 @@ const PANEL_WORDS = [
   "On attaque.",
 ];
 
+// 10 questions après le choix de la fête (étape 0, sans compteur).
 const TOTAL = 10;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
 
 const EMPTY = {
+  event: "mariage",
   stage: "",
   team: "",
   first_name: "",
@@ -134,7 +148,7 @@ const EMPTY = {
   partner_email: "",
 };
 
-const STORAGE_KEY = "merry-brief-draft";
+const STORAGE_KEY = "merry-brief-draft-v2";
 const PENDING_KEY = "merry-brief-pending";
 
 /* ------------------------------------------------------------------ */
@@ -153,6 +167,14 @@ function Chip({ selected, onClick, children, tag, quote }) {
 function Check() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7" />
+    </svg>
+  );
+}
+
+function CheckSmall() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none", marginLeft: "auto" }}>
       <path d="M5 12.5l4.5 4.5L19 7" />
     </svg>
   );
@@ -202,7 +224,7 @@ export default function Brief() {
         const saved = JSON.parse(raw);
         if (saved && saved.data) {
           setData({ ...EMPTY, ...saved.data, password: "" });
-          setStep(Math.min(saved.step || 0, TOTAL - 1));
+          setStep(Math.min(saved.step || 0, TOTAL));
         }
       }
     } catch {
@@ -232,29 +254,31 @@ export default function Brief() {
   const canContinue = useMemo(() => {
     switch (step) {
       case 0:
-        return !!data.stage;
+        return data.event === "mariage";
       case 1:
-        return !!data.team;
+        return !!data.stage;
       case 2:
+        return !!data.team;
+      case 3:
         return (
           data.first_name.trim().length > 0 &&
           data.partner_first_name.trim().length > 0 &&
           (data.date_unknown || data.wedding_date) &&
           (data.region_unknown || data.region.trim().length > 0)
         );
-      case 3:
-        return !!data.guests && !!data.format;
       case 4:
-        return data.vibes.length > 0;
+        return !!data.guests && !!data.format;
       case 5:
-        return data.weekend.length > 0;
+        return data.vibes.length > 0;
       case 6:
-        return data.honeymoon.trim().length > 0 || data.honeymoon_vibes.length > 0;
+        return data.weekend.length > 0;
       case 7:
-        return !!data.budget;
+        return data.honeymoon.trim().length > 0 || data.honeymoon_vibes.length > 0;
       case 8:
-        return data.help.length > 0;
+        return !!data.budget;
       case 9:
+        return data.help.length > 0;
+      case 10:
         return (
           isMail(data.email) &&
           data.password.length >= 8 &&
@@ -266,7 +290,7 @@ export default function Brief() {
     }
   }, [step, data]);
 
-  const next = () => setStep((s) => Math.min(s + 1, TOTAL - 1));
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   async function submit() {
@@ -327,6 +351,34 @@ export default function Brief() {
         return (
           <>
             <div className="eyebrow">C'est parti !</div>
+            <h1 className="question">Qu'est-ce que tu prépares ?</h1>
+            <p className="help">Choisis ta fête, on adapte les questions.</p>
+            <div className="choices events">
+              {EVENTS.map((o) =>
+                o.available ? (
+                  <button key={o.value} type="button" className="chip event" aria-pressed={data.event === o.value} onClick={() => set("event", o.value)}>
+                    <span className="event-text">
+                      <span className="event-name">{o.label}</span>
+                      <span className="event-sub">{o.sub}</span>
+                    </span>
+                    {data.event === o.value ? <CheckSmall /> : null}
+                  </button>
+                ) : (
+                  <button key={o.value} type="button" className="chip event soon" disabled aria-disabled="true">
+                    <span className="event-name">{o.label}</span>
+                    <span className="tag soon-tag">Bientôt</span>
+                  </button>
+                )
+              )}
+            </div>
+            <p className="note">Pour l'instant, Merry s'occupe des mariages. Les autres fêtes arrivent très vite.</p>
+          </>
+        );
+
+      case 1:
+        return (
+          <>
+            <div className="eyebrow">C'est parti !</div>
             <h1 className="question">Vous en êtes où ?</h1>
             <p className="help">Au tout début ou sur la dernière ligne droite : on s'adapte !</p>
             <div className="choices stack">
@@ -339,7 +391,7 @@ export default function Brief() {
           </>
         );
 
-      case 1:
+      case 2:
         return (
           <>
             <div className="eyebrow">L'équipe</div>
@@ -355,7 +407,7 @@ export default function Brief() {
           </>
         );
 
-      case 2:
+      case 3:
         return (
           <>
             <div className="eyebrow">Vous deux</div>
@@ -397,7 +449,7 @@ export default function Brief() {
           </>
         );
 
-      case 3:
+      case 4:
         return (
           <>
             <div className="eyebrow">La fête</div>
@@ -421,7 +473,7 @@ export default function Brief() {
           </>
         );
 
-      case 4:
+      case 5:
         return (
           <>
             <div className="eyebrow">Le style</div>
@@ -441,7 +493,7 @@ export default function Brief() {
           </>
         );
 
-      case 5:
+      case 6:
         return (
           <>
             <div className="eyebrow">Vous deux, c'est quoi ?</div>
@@ -457,7 +509,7 @@ export default function Brief() {
           </>
         );
 
-      case 6:
+      case 7:
         return (
           <>
             <div className="eyebrow">La lune de miel</div>
@@ -481,7 +533,7 @@ export default function Brief() {
           </>
         );
 
-      case 7:
+      case 8:
         return (
           <>
             <div className="eyebrow">Le budget</div>
@@ -497,7 +549,7 @@ export default function Brief() {
           </>
         );
 
-      case 8:
+      case 9:
         return (
           <>
             <div className="eyebrow">Un coup de main ?</div>
@@ -513,7 +565,7 @@ export default function Brief() {
           </>
         );
 
-      case 9:
+      case 10:
         return (
           <>
             <div className="eyebrow">Dernière étape</div>
@@ -553,7 +605,7 @@ export default function Brief() {
 
   /* ------------------------------ rendu ------------------------------- */
 
-  const isLast = step === TOTAL - 1;
+  const isLast = step === TOTAL;
   const names = [data.first_name.trim(), data.partner_first_name.trim()].filter(Boolean).join(" et ");
   const finished = status === "done" || status === "confirm";
 
@@ -579,13 +631,6 @@ export default function Brief() {
                 Votre tableau de bord est ouvert : le brief, le budget, la liste d'invités et les premiers lieux à comparer vous attendent.
               </p>
             )}
-            <div className="advisor">
-              <div className="avatar" aria-hidden="true">C</div>
-              <div>
-                <div className="who">CAMILLE, VOTRE CONSEILLÈRE</div>
-                <div className="msg">Bonjour, je vous reviens au plus vite, merci pour votre demande !</div>
-              </div>
-            </div>
             {status === "done" ? (
               <a className="btn" href={DASHBOARD_URL}>Accéder au dashboard</a>
             ) : null}
@@ -597,10 +642,16 @@ export default function Brief() {
               <button type="button" className="back" onClick={back} disabled={step === 0} aria-label="Question précédente">
                 <ArrowLeft />
               </button>
-              <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={step + 1}>
-                <span style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
-              </div>
-              <div className="counter">{step + 1} / {TOTAL}</div>
+              {step === 0 ? (
+                <div style={{ flex: 1 }} />
+              ) : (
+                <>
+                  <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={step}>
+                    <span style={{ width: `${(step / TOTAL) * 100}%` }} />
+                  </div>
+                  <div className="counter">{step} / {TOTAL}</div>
+                </>
+              )}
               <a className="close" href={SITE_URL} aria-label="Retour au site Merry" title="Retour au site (tes réponses sont gardées)">
                 <CloseIcon />
               </a>
@@ -609,11 +660,11 @@ export default function Brief() {
             <section className="card" key={step}>
               {renderStep()}
               <div className="actions">
-                {step === 4 ? (
+                {step === 5 ? (
                   <button type="button" className="skip" onClick={() => { set("vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
-                ) : step === 6 ? (
+                ) : step === 7 ? (
                   <button type="button" className="skip" onClick={() => { set("honeymoon_vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
-                ) : step === 9 ? (
+                ) : step === 10 ? (
                   <a className="skip" href="/connexion">Déjà un compte ? Se connecter</a>
                 ) : <span />}
                 {isLast ? (

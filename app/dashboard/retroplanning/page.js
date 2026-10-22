@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
-import { daysUntil, longDate } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
@@ -16,7 +15,6 @@ export default function Retroplanning() {
   const [showDone, setShowDone] = useState(true);
 
   const st = taskStats(data);
-  const days = daysUntil(wedding.wedding_date);
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
@@ -36,13 +34,11 @@ export default function Retroplanning() {
     }
   }
 
-  const kicker = [wedding.wedding_date ? longDate(wedding.wedding_date) : null, days !== null && days >= 0 ? `J-${days}` : null].filter(Boolean).join(" · ");
 
   return (
     <>
       <PageHeader
-        kicker={kicker || null}
-        title="Le rétroplanning."
+        title="Rétroplanning."
         actions={
           <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
             Ajouter une tâche
@@ -50,7 +46,7 @@ export default function Retroplanning() {
         }
       />
 
-      <div className="d-card is-panel" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
+      <div className="d-card is-panel d-filterbar" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
         <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
           <strong style={{ fontSize: 26, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
             {st.done}/{st.total}
@@ -60,7 +56,7 @@ export default function Retroplanning() {
         <span style={{ flex: "1 1 160px", maxWidth: 230, display: "flex" }}>
           <Bar value={st.total ? (st.done / st.total) * 100 : 0} />
         </span>
-        <div className="d-filters" style={{ marginLeft: "auto" }}>
+        <div className="d-filters d-scroll-x" style={{ marginLeft: "auto" }}>
           <button type="button" className={`d-pill${!who ? " is-on" : ""}`} onClick={() => setWho(null)}>
             Tout
           </button>
@@ -122,7 +118,7 @@ export default function Retroplanning() {
               ))}
             </div>
           </section>
-          <section className="d-card is-panel">
+          <section className="d-card is-panel d-hide-mobile">
             <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
               Cliquez sur une tâche pour changer sa date ou la personne qui s'en occupe. Chaque organisateur voit les mêmes tâches que vous.
             </span>

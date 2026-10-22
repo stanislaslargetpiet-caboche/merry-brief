@@ -10,6 +10,7 @@ import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Btn, Donut, InlineEdit, KpiBar, OkPill, PageHeader, PersonChip, Section } from "@/components/dash/ui";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
+import { DocLink } from "@/components/dash/Documents";
 
 function Variance({ value, big }) {
   if (value === null || value === undefined) return null;
@@ -45,6 +46,9 @@ export default function Budget() {
   const dash = useDash();
   const data = dash.data;
   const { items, members, vendors, documents, wedding, payments, guests } = data;
+  // Pied de la colonne « Par invité » : la moyenne des postes, pas leur somme
+  const perGuestValues = guests.length ? items.map((it) => (itemFinance(it, payments).quote ?? itemFinance(it, payments).budgeted ?? null)).filter((v) => v !== null).map((v) => v / guests.length) : [];
+  const avgPerGuest = perGuestValues.length ? perGuestValues.reduce((a, v) => a + v, 0) / perGuestValues.length : null;
   const [editing, setEditing] = useState(null); // item | "new"
   const [quoteFocus, setQuoteFocus] = useState(false);
   const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
@@ -90,14 +94,17 @@ export default function Budget() {
   return (
     <>
       <PageHeader
-        title="Le budget."
+        title="Budget."
         actions={
           <>
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
-            <Btn icon="plus" onClick={() => setAdding(true)}>
+            <Btn kind="strong" icon="plus" onClick={() => setAdding(true)}>
               Ajouter une dépense
+            </Btn>
+            <Btn icon="upload" href="/dashboard/budget/importer">
+              Importer devis et factures
             </Btn>
           </>
         }
@@ -107,15 +114,11 @@ export default function Budget() {
 
       <section className="d-card" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
-        <p className="d-muted" style={{ margin: "-6px 0 0", maxWidth: 760, lineHeight: 1.5 }}>
-          À gauche, ce que chacun a déjà payé. À droite, où va l'argent. Chaque dépense ajoutée avec le + s'inscrit dans son poste, dans le tableau en dessous.
-        </p>
         <div className="d-split">
           <div className="d-col" style={{ gap: 14 }}>
             <div className="d-repart-head">
               <span>
                 <strong>Qui a payé quoi</strong>
-                <small>Les dépenses déjà réglées, par personne</small>
               </span>
               <button type="button" className="d-add-spend" onClick={() => setAdding(true)}>
                 <span>
@@ -148,7 +151,6 @@ export default function Budget() {
             <div className="d-repart-head">
               <span>
                 <strong>Où va l'argent</strong>
-                <small>Les devis signés, par poste</small>
               </span>
             </div>
             {signed.length ? (
@@ -214,7 +216,81 @@ export default function Budget() {
 
       <div className="d-col">
         <Section title="Par poste" right={<span className="d-small d-muted d-hide-mobile">Le crayon modifie un poste, la corbeille le supprime</span>} />
-        <div className="d-table-wrap">
+
+        <div className="d-cards d-mob-only">
+          {items.map((it) => {
+            const f = itemFinance(it, payments);
+            const v = vendorById.get(it.vendor_id);
+            return (
+              <div key={it.id} className="d-pcard">
+                <div className="d-pcard-top">
+                  <Tile name={it.icon || guessIcon(it.label)} />
+                  <span className="d-pcard-text">
+                    <button type="button" onClick={() => setEditing(it)} title="Modifier le poste">
+                      {it.label}
+                    </button>
+                    {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : null}
+                  </span>
+                  <span className="d-pcard-amounts">
+                    {f.quote !== null ? (
+                      <>
+                        <strong>{euros(f.quote)}</strong>
+                        <small>budget {f.budgeted !== null ? euros(f.budgeted) : "–"}</small>
+                      </>
+                    ) : (
+                      <>
+                        <strong>{f.budgeted !== null ? euros(f.budgeted) : "–"}</strong>
+                        <small>budget</small>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="d-pcard-foot">
+                  {f.quote !== null ? <Variance value={f.variance} /> : <span />}
+                  {f.fullyPaid ? (
+                    <span className="d-status is-done">
+                      <Icon name="check" size={12} sw={2.4} />
+                      Tout payé
+                    </span>
+                  ) : f.quote !== null && f.paid === 0 ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
+                      Effectuer un paiement
+                    </Link>
+                  ) : f.next ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo">
+                      {dueLabel(f.next, wedding.wedding_date)}
+                    </Link>
+                  ) : f.quote !== null ? (
+                    <Link href={`/dashboard/budget/paiement/${it.id}`} className="d-status is-todo">
+                      Reste {euros(f.remaining)}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="d-link"
+                      onClick={() => {
+                        setQuoteFocus(true);
+                        setEditing(it);
+                      }}
+                    >
+                      Ajouter un devis
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div className="d-pcard-total">
+            <span>
+              Total <strong>{euros(b.sumBudgeted)}</strong>
+            </span>
+            <small>
+              {euros(b.engaged)} engagés · {euros(b.paid)} payés
+            </small>
+          </div>
+        </div>
+
+        <div className="d-table-wrap d-desk-only">
           <table className="d-table">
             <thead>
               <tr>
@@ -305,16 +381,16 @@ export default function Budget() {
                       {devis || facture ? (
                         <div className="d-docs">
                           {devis ? (
-                            <a className="d-doc" href={devis.url} target="_blank" rel="noreferrer">
+                            <DocLink className="d-doc" doc={devis}>
                               <Icon name="file" size={13} sw={2} />
                               Devis
-                            </a>
+                            </DocLink>
                           ) : null}
                           {facture ? (
-                            <a className="d-doc" href={facture.url} target="_blank" rel="noreferrer">
+                            <DocLink className="d-doc" doc={facture}>
                               <Icon name="file" size={13} sw={2} />
                               Facture
-                            </a>
+                            </DocLink>
                           ) : null}
                         </div>
                       ) : (
@@ -329,7 +405,7 @@ export default function Budget() {
                         </span>
                       ) : f.quote !== null && f.paid === 0 ? (
                         <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
-                          Noter un paiement
+                          Effectuer un paiement
                         </Link>
                       ) : f.next ? (
                         <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo" style={{ textDecoration: "none" }}>
@@ -385,7 +461,10 @@ export default function Budget() {
                     {b.signed ? <Variance value={b.variance} big /> : null}
                   </div>
                 </td>
-                <td className="is-num">{b.perGuest !== null ? euros(b.perGuest) : "–"}</td>
+                <td className="is-num" title="Moyenne des postes">
+                  {avgPerGuest !== null ? euros(avgPerGuest) : "–"}
+                  {avgPerGuest !== null ? <small className="d-muted" style={{ display: "block", fontSize: 11, fontWeight: 400 }}>en moyenne</small> : null}
+                </td>
                 <td colSpan={5}>{euros(b.paid)} payés</td>
               </tr>
             </tfoot>

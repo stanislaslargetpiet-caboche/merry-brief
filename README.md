@@ -1,6 +1,6 @@
 # Merry · Onboarding et compte
 
-Le parcours d'inscription des couples (10 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 21 octobre 2026.
+Le parcours d'inscription des couples (choix de la fête + 10 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 21 octobre 2026.
 
 ## 1. Supabase (15 minutes)
 
@@ -35,7 +35,7 @@ Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Au
 
 ## 5. Pages
 
-- `/` : le parcours en dix écrans, puis l'écran de bienvenue.
+- `/` : le choix de la fête (seul le mariage est ouvert), le parcours en dix écrans, puis l'écran de bienvenue.
 - `/connexion` : connexion au tableau de bord (bouton « Connexion » du site), mot de passe oublié, et création d'accès pour un organisateur invité (`/connexion?invitation=…`).
 - `/dashboard` : le tableau de bord (voir la section 8).
 - `/f/<adresse>` : le formulaire invités public (voir la section 9).
@@ -61,23 +61,30 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/invites/formulaire` | Réglages du formulaire invités : questions (non demandé, facultatif, obligatoire, intitulés modifiables), moments affichés, questions ajoutées, photo d'en-tête, petit mot, date limite, thème, lien à copier |
 | `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
-| `/dashboard/budget/paiement/[poste]` | Noter un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
-| `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact, résumé des échanges, fil des messages (envoi par la messagerie), documents, paiements |
+| `/dashboard/budget/importer` | Import des devis signés et des factures réglées : Merry lit chaque document, puis trois questions par document (devis ou facture, qui a payé, on a bien lu ?) avant de remplir le poste, le prestataire, les paiements, les échéances et le dossier « Factures et devis ». Un devis non signé est seulement rangé, pour la comparaison |
+| `/dashboard/budget/paiement/[poste]` | Effectuer un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
+| `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact (rempli par l'IA depuis un devis ou une facture : interlocuteur, téléphone, mail, site, RIB, montant du devis, échéances), résumé des échanges, fil des messages, documents (import ou choix dans Documents), bouton « Effectuer un paiement » |
+| `/dashboard/documents` | Dossiers partagés (Factures et devis, Mairie, Préparation religieuse…), recherche, documents ajoutés récemment (voir la section 10) |
+| `/dashboard/documents/[id]` | Un dossier : dépôt de fichiers par glisser-déposer, liste des documents, renommer, déplacer, supprimer |
 | `/dashboard/indicateurs/accueil` et `/budget` | Choix des indicateurs (cinq au maximum) |
 
 **Installer** : Supabase > SQL Editor > New query, colle `supabase/dashboard.sql`, Run (après `schema.sql`, le fichier peut être relancé sans risque). Au premier passage, chaque compte reçoit un mariage créé à partir de son brief : organisateurs, moments, groupes, postes de budget et rétroplanning type.
+
+**Colonnes ajoutées** : chaque colonne a un auteur et un format. « Rempli par les invités » ajoute la question au formulaire invités (texte libre ou réponses prédéfinies) ; « Pour les organisateurs » reste interne, en texte libre ou avec des réponses prédéfinies (« Oui / Non / Ne sait pas » par défaut) choisies d'un clic dans la case. Installer : Supabase > SQL Editor, colle `supabase/colonnes.sql`, Run (relançable). Sans lui, les colonnes restent du texte libre pour les organisateurs. Les colonnes se déplacent (glisser l'en-tête) et s'élargissent (poignée à droite) ; cet ordre et ces largeurs sont propres à chaque navigateur.
 
 **Organisateurs** : le couple, les parents, un témoin… ont tous les mêmes droits. Chacun reçoit un lien personnel (`/connexion?invitation=…`), utilisable une seule fois. Les règles d'accès sont dans la base (RLS) : un compte ne voit que les mariages dont il est organisateur.
 
 **Supabase > Authentication > URL Configuration** : ajoute `https://<ton domaine>/connexion` dans Redirect URLs (lien « mot de passe oublié »).
 
-**Import par l'IA (facultatif)** : ajoute `ANTHROPIC_API_KEY` dans Vercel (Settings > Environment Variables). Sans clé, l'import lit Excel, CSV et texte collé, et indique que les photos et PDF arrivent bientôt. `MERRY_AI_MODEL` permet de changer de modèle. Garde-fous : réservé aux organisateurs, 30 lectures par compte et par jour, un fichier par appel, photos réduites à 1600 px, PDF de 3 Mo au plus. Fixe aussi une limite de dépense dans la console Anthropic.
+**Lecture par l'IA (facultatif)** : import des listes d'invités et lecture des devis et factures sur la fiche prestataire. Ajoute `ANTHROPIC_API_KEY` dans Vercel (Settings > Environment Variables). Sans clé, l'import lit Excel, CSV et texte collé, et indique que les photos et PDF arrivent bientôt. `MERRY_AI_MODEL` permet de changer de modèle. Garde-fous : réservé aux organisateurs, 30 lectures par compte et par jour, un fichier par appel, photos réduites à 1600 px, PDF de 3 Mo au plus. Fixe aussi une limite de dépense dans la console Anthropic.
 
 **À savoir** : les colonnes de suivi de `briefs` (`status`, `owner`, `notes`) restent lisibles par le couple qui a rempli le brief (règle d'origine de `schema.sql`). Les organisateurs invités, eux, ne lisent le brief que par la fonction `merry_brief`, sans ces colonnes. Avant d'écrire des remarques sensibles dans `notes`, il faudra les déplacer dans une table interne.
 
 **Démo** : `/dashboard?demo=1` affiche le mariage d'exemple de la maquette, enregistré seulement dans le navigateur (`?demo=0` pour en sortir). En local sans `.env.local`, la démo s'affiche directement.
 
-**Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, dépôt de fichiers (les devis et factures sont des liens), résumé des échanges écrit par l'IA.
+**Devis et factures (lecture par l'IA)** : même clé `ANTHROPIC_API_KEY` et même compteur quotidien que l'import des invités (route `/api/read-quote`, un document par appel, PDF de 3 Mo au plus, quatre premières pages au-delà). Sans clé, le couple remplit lui-même les montants à l'étape « On a bien lu ? ». Le RIB lu sur le document est gardé dans la fiche du prestataire (colonnes de `supabase/colonnes.sql`). L'Accueil affiche un bandeau « Des prestataires déjà réservés ? » tant que des postes n'ont pas de devis (fermable).
+
+**Pas encore fait** : paiement des prestataires depuis Merry (Stripe), envoi de mails et de SMS par Merry, résumé des échanges écrit par l'IA. Les devis et factures du budget restent des liens ; les fichiers eux-mêmes se déposent dans le bloc Documents (section 10).
 
 **Relier Squarespace** : le bouton « Connexion » du site pointe vers `https://<ton domaine>/connexion`.
 
@@ -105,3 +112,15 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (2f et 
 **Garde-fous** : les visiteurs ne lisent aucune table, seulement le contenu du formulaire. Textes tronqués, réponse limitée à 20 Ko, 3 000 invités au plus par mariage. Il n'y a pas de captcha : un lien qui circule largement peut recevoir des réponses fantaisistes, que les organisateurs suppriment dans la liste.
 
 **Pas encore fait** : envoi d'un mail de confirmation à l'invité, modification d'une réponse par un lien personnel, une adresse à la carte (le lien finit par quatre caractères tirés au hasard).
+
+## 10. Documents
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (5 et 5b), validés le 21 octobre 2026.
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/documents.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `document_folders`, ajoute à `documents` les colonnes des fichiers déposés (dossier, chemin de stockage, taille, type, qui l'a ajouté) et le stockage privé `merry-documents`. Tant qu'il n'est pas lancé, la page Documents explique quoi faire et le reste du tableau de bord fonctionne.
+
+**Principe** : les organisateurs créent des dossiers (suggestions au premier clic : Factures et devis, Mairie, Préparation religieuse, Lieu et traiteur…) et y déposent des fichiers, 25 Mo au plus chacun. Chaque fichier est rangé dans le stockage sous `<wedding_id>/<dossier>/…` ; seuls les organisateurs du mariage peuvent le lire, par un lien signé valable une heure. Tous les organisateurs ont les mêmes droits : ajouter, renommer, déplacer, supprimer. Supprimer un dossier supprime ses fichiers.
+
+**Relié au budget** : les devis et factures ajoutés depuis le budget ou la fiche d'un prestataire (des liens) apparaissent aussi dans Documents, dans le pseudo-dossier « Devis et factures du budget » tant qu'ils ne sont pas déplacés, avec la pastille « Dans le budget ». Un fichier déposé peut être déplacé vers ce pseudo-dossier seulement s'il est déjà rattaché à un prestataire.
+
+**Pas encore fait** : rattacher un fichier déposé à un prestataire ou à un poste depuis la page Documents (passe encore par le budget), dossiers privés au couple, partage d'un dossier au conseiller, aperçu des fichiers dans la page.

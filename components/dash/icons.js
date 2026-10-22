@@ -13,6 +13,7 @@ const LINE_ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   chev: '<path d="m9.5 6 6 6-6 6"/>',
   chevDown: '<path d="m6 9.5 6 6 6-6"/>',
+  chevUp: '<path d="m6 14.5 6-6 6 6"/>',
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
@@ -34,6 +35,10 @@ const LINE_ICONS = {
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',
   logout: '<path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15M10 8l-4 4 4 4M6 12h10"/>',
+  folder: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  folderPlus: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v6M9 14h6"/>',
+  dots: '<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9M18 13v5.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H11"/>',
 };
 
 const DUO_ICONS = {
@@ -61,6 +66,7 @@ const DUO_ICONS = {
   cloche: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="FILL"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   upload: '<path d="M5 15v4.5h14V15" fill="none"/><path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9"/>',
   autre: '<rect x="4" y="4" width="16" height="16" rx="4" fill="FILL"/><path d="M8.5 12h7M12 8.5v7"/>',
+  dossier: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="FILL"/><path d="M3.5 11h17"/>',
 };
 
 export const DUO_KEYS = Object.keys(DUO_ICONS);

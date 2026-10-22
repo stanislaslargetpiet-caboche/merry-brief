@@ -145,7 +145,7 @@ export default function FormulaireInvites() {
   if (dash.mode === "live" && data.formSetup === false) {
     return (
       <>
-        <PageHeader back={{ href: "/dashboard/invites", label: "Les invités" }} title="Le formulaire invités." />
+        <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Formulaire invités." />
         <section className="d-card" style={{ maxWidth: 640 }}>
           <h2>Encore une étape côté Supabase</h2>
           <p className="d-muted" style={{ margin: 0, lineHeight: 1.5 }}>
@@ -224,10 +224,17 @@ export default function FormulaireInvites() {
     }
   }
 
-  function addCustom() {
+  async function addCustom() {
     const label = newLabel.trim() || "Nouvelle question";
     const options = newType === "choice" ? newOptions.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean).slice(0, 12) : [];
-    change((f) => ({ custom: [...f.custom, { id: `q${Date.now().toString(36)}`, label: label.slice(0, 120), type: newType, options, req: false }] }));
+    const existing = data.fields.find((x) => x.name.trim().toLowerCase() === label.trim().toLowerCase());
+    let id = existing?.id || `q${Date.now().toString(36)}`;
+    if (!existing) {
+      // La question devient aussi une colonne « invités » de la liste
+      const [col] = await dash.insert("guest_fields", { name: label.slice(0, 120), position: data.fields.length, source: "invites", kind: newType === "text" ? "text" : "choice", options: newType === "yesno" ? ["Oui", "Non"] : options });
+      id = col.id;
+    } else if (existing.source !== "invites") dash.update("guest_fields", existing.id, { source: "invites" });
+    change((f) => ({ custom: [...f.custom, { id, label: label.slice(0, 120), type: newType, options, req: false }] }));
     setAdding(false);
     setNewLabel("");
     setNewOptions("");
@@ -251,8 +258,8 @@ export default function FormulaireInvites() {
   return (
     <>
       <PageHeader
-        back={{ href: "/dashboard/invites", label: "Les invités" }}
-        title="Le formulaire invités."
+        back={{ href: "/dashboard/invites", label: "Invités" }}
+        title="Formulaire invités."
         actions={<span className="d-small" role="status" style={{ color: status === "error" ? "var(--d-red-ink)" : "var(--d-muted)" }}>{statusLabel}</span>}
       />
       <p className="d-muted" style={{ margin: "-12px 0 0", maxWidth: 640, lineHeight: 1.5 }}>

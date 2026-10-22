@@ -6,6 +6,13 @@ export const metadata = {
     "Dix minutes de questions, et Merry te prépare un tableau de bord à la taille de ton mariage.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#cbff75",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">

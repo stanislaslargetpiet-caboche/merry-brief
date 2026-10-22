@@ -24,7 +24,7 @@ function ago(iso) {
 }
 
 // Fil de commentaires d'une tâche : chaque organisateur écrit en son nom
-function TaskThread({ task, comments }) {
+function TaskThread({ task, comments, onClose }) {
   const dash = useDash();
   const { members, meId } = dash.data;
   const [text, setText] = useState("");
@@ -40,6 +40,13 @@ function TaskThread({ task, comments }) {
 
   return (
     <div className="d-thread">
+      <div className="d-thread-head">
+        <span>{comments.length ? `${comments.length} commentaire${comments.length > 1 ? "s" : ""}` : "Commentaires"}</span>
+        <button type="button" className="d-pill" style={{ minHeight: 30, fontSize: 12 }} onClick={onClose}>
+          <Icon name="chevUp" size={12} sw={2.2} />
+          Masquer
+        </button>
+      </div>
       {comments.map((c) => {
         const who = members.find((m) => m.id === c.author_id);
         return (
@@ -178,7 +185,7 @@ export default function TaskRow({ task }) {
             onClick={() => setTalk((x) => !x)}
             aria-expanded={talk}
             aria-label={mine.length ? `${mine.length} commentaire${mine.length > 1 ? "s" : ""} sur : ${task.title}` : `Commenter : ${task.title}`}
-            title={mine.length ? "Voir les commentaires" : "Commenter"}
+            title={talk ? "Masquer les commentaires" : mine.length ? "Voir les commentaires" : "Commenter"}
           >
             <Icon name="bubble" size={14} sw={2} />
             {mine.length ? mine.length : null}
@@ -189,7 +196,7 @@ export default function TaskRow({ task }) {
           <TaskWho task={task} members={members} />
         </span>
       </div>
-      {talk && commentsOn ? <TaskThread task={task} comments={mine} /> : null}
+      {talk && commentsOn ? <TaskThread task={task} comments={mine} onClose={() => setTalk(false)} /> : null}
       {editing ? (
         <TaskForm
           task={task}
