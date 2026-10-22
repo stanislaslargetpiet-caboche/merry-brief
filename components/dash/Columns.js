@@ -1,10 +1,12 @@
 "use client";
 
 // Colonnes d'un tableau que l'utilisateur peut élargir (poignée à droite de l'en-tête)
-// et déplacer (glisser l'en-tête). L'ordre et les largeurs sont gardés dans le
-// navigateur, par mariage et par tableau.
+// et déplacer (glisser l'en-tête). L'ordre, les largeurs, les colonnes masquées et les en-têtes
+// renommés sont gardés avec le mariage (les organisateurs voient la même chose) ; tant que
+// supabase/mise-en-page.sql n'est pas lancé, ils restent dans le navigateur.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDash } from "@/lib/dash/store";
 
 const MIN = 70;
 const MAX = 640;
@@ -13,15 +15,8 @@ function readLayout(key) {
   try {
     const raw = window.localStorage.getItem(key);
     if (raw) {
-      const v = JSON.parse(raw);
-      if (v && typeof v === "object") {
-        return {
-          order: Array.isArray(v.order) ? v.order : [],
-          widths: v.widths && typeof v.widths === "object" ? v.widths : {},
-          hidden: Array.isArray(v.hidden) ? v.hidden : [],
-          labels: v.labels && typeof v.labels === "object" ? v.labels : {},
-        };
-      }
+      const v = cleanLayout(JSON.parse(raw));
+      if (v) return v;
     }
   } catch {
     /* stockage indisponible */
@@ -37,27 +32,76 @@ function writeLayout(key, layout) {
   }
 }
 
+const EMPTY = { order: [], widths: {}, hidden: [], labels: {} };
+const isCustom = (l) => l.order.length > 0 || Object.keys(l.widths).length > 0 || l.hidden.length > 0 || Object.keys(l.labels).length > 0;
+
+function cleanLayout(v) {
+  if (!v || typeof v !== "object") return null;
+  return {
+    order: Array.isArray(v.order) ? v.order : [],
+    widths: v.widths && typeof v.widths === "object" ? v.widths : {},
+    hidden: Array.isArray(v.hidden) ? v.hidden : [],
+    labels: v.labels && typeof v.labels === "object" ? v.labels : {},
+  };
+}
+
 // columns : [{ key, fixed? }] dans l'ordre par défaut. Renvoie les colonnes dans l'ordre
 // choisi, les largeurs, et les fonctions à brancher sur les en-têtes.
-export function useColumnLayout(storageKey, columns) {
-  const [layout, setLayout] = useState({ order: [], widths: {}, hidden: [], labels: {} });
+export function useColumnLayout(tableKey, columns) {
+  const dash = useDash();
+  const weddingId = dash.data.wedding.id;
+  const shared = "layouts" in dash.data.wedding; // supabase/mise-en-page.sql lancé (ou démo)
+  const storageKey = `merry-cols-${tableKey}-${weddingId}`;
+  const [layout, setLayout] = useState(EMPTY);
   const [drag, setDrag] = useState(null); // { key, over }
   const loaded = useRef(false);
+  const saveRemote = useRef(dash.saveLayout);
+  saveRemote.current = dash.saveLayout;
+  const pending = useRef(null); // écriture en base en attente (on en regroupe les rafales : glisser une largeur)
+  const timer = useRef(null);
+
+  const flush = useCallback(() => {
+    clearTimeout(timer.current);
+    if (pending.current) {
+      const next = pending.current;
+      pending.current = null;
+      saveRemote.current(tableKey, next);
+    }
+  }, [tableKey]);
 
   useEffect(() => {
-    setLayout(readLayout(storageKey));
+    loaded.current = false;
+    const mine = readLayout(storageKey);
+    if (shared) {
+      const remote = cleanLayout(dash.data.wedding.layouts?.[tableKey]);
+      if (remote) setLayout(remote); // même vide (après « Réinitialiser ») : la base fait foi
+      else {
+        // Première fois : on reprend la disposition de ce navigateur pour tout le monde
+        setLayout(mine);
+        if (isCustom(mine)) saveRemote.current(tableKey, mine);
+      }
+    } else setLayout(mine);
     loaded.current = true;
-  }, [storageKey]);
+    return flush;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, shared, flush]);
 
   const save = useCallback(
     (updater) => {
       setLayout((l) => {
         const next = updater(l);
-        if (loaded.current) writeLayout(storageKey, next);
+        if (loaded.current) {
+          writeLayout(storageKey, next);
+          if (shared) {
+            pending.current = next;
+            clearTimeout(timer.current);
+            timer.current = setTimeout(flush, 600);
+          }
+        }
         return next;
       });
     },
-    [storageKey],
+    [storageKey, shared, flush],
   );
 
   // Ordre affiché : les colonnes fixes d'abord, puis l'ordre enregistré, puis les nouvelles

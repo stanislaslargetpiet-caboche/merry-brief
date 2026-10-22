@@ -32,7 +32,7 @@ async function syncForm(dash, field, action) {
   if (!data.formSetup) return;
   const base = data.form || defaultForm(data);
   const custom = Array.isArray(base.custom) ? base.custom : [];
-  const q = { id: field.id, label: field.name.slice(0, 120), type: field.kind === "choice" ? "choice" : "text", options: field.kind === "choice" ? field.options || [] : [], req: false };
+  const q = { id: field.id, field_id: field.id, label: field.name.slice(0, 120), type: field.kind === "choice" ? "choice" : "text", options: field.kind === "choice" ? field.options || [] : [], req: false };
   const matches = (c) => c.id === field.id || c.label.trim().toLowerCase() === field.name.trim().toLowerCase();
   let next;
   if (action === "remove") next = custom.filter((c) => !matches(c));
