@@ -763,10 +763,13 @@ export default function Invites() {
 
       <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
 
-      <GuestsNote />
+      <div className="d-desk-only">
+        <GuestsNote />
+      </div>
 
       <div className="d-col" style={{ gap: 14 }}>
         <div className="d-filters" style={{ justifyContent: "space-between" }}>
+          <div className="d-desk-only">
           <div className="d-filters d-scroll-x">
             <div className="d-tabs" role="tablist" aria-label="Moments du mariage">
               <button type="button" role="tab" aria-selected={!eventFilter} className={`d-tab${!eventFilter ? " is-on" : ""}`} onClick={() => setEventFilter(null)}>
@@ -783,12 +786,13 @@ export default function Invites() {
               <span className="d-desk-only">Modifier les moments</span>
             </button>
           </div>
+          </div>
           <label className="d-search">
             <Icon name="search" size={15} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
           </label>
         </div>
-        <div className="d-filters" style={{ justifyContent: "space-between" }}>
+        <div className="d-filters d-desk-only" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-scroll-x">
             <button type="button" className={`d-pill${!groupFilter ? " is-on" : ""}`} onClick={() => setGroupFilter(null)}>
               Tous · {base.length}
