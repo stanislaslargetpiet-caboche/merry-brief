@@ -55,6 +55,13 @@
 }
 
 .gf-date {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--gf-deep);
+  color: var(--gf-accent);
   font-size: 18px;
   font-weight: 600;
 }
