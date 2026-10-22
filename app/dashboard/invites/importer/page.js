@@ -559,14 +559,10 @@ export default function Importer() {
           </div>
           <div className="d-filters" style={{ justifyContent: "space-between" }}>
             <span className="d-small d-muted">
-              {plural(active.length, "ligne", "lignes")} · cliquez sur une case pour la corriger
               {removedCount ? (
-                <>
-                  {" · "}
-                  <button type="button" className="d-link" style={{ fontSize: "inherit" }} onClick={() => setRemoved({})}>
-                    Rétablir {plural(removedCount, "ligne supprimée", "lignes supprimées")}
-                  </button>
-                </>
+                <button type="button" className="d-link" style={{ fontSize: "inherit" }} onClick={() => setRemoved({})}>
+                  Rétablir {plural(removedCount, "ligne supprimée", "lignes supprimées")}
+                </button>
               ) : null}
             </span>
             <div className="d-filters">
