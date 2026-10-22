@@ -133,6 +133,130 @@ as $$
   select nullif(left(btrim(coalesce(v, '')), n), '');
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Reconnaître un invité malgré une faute de frappe (ajout du 22 octobre 2026)
+-- Sans extension : accents, majuscules, tirets et espaces sont ignorés, l'ordre prénom / nom peut être
+-- inversé, et une lettre de différence est tolérée dans un mot de 4 lettres ou plus (2 à partir de 9).
+-- Un seul invité doit correspondre : en cas de doute, la personne est ajoutée à part plutôt que
+-- fusionnée avec la mauvaise.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.merry_norm(t text)
+returns text
+language sql
+immutable
+as $$
+  select regexp_replace(
+           translate(lower(coalesce(t, '')), 'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ', 'aaaaaaceeeeiiiinooooouuuuyyoa'),
+           '[^a-z0-9]', '', 'g');
+$$;
+
+create or replace function public.merry_lev(a text, b text)
+returns integer
+language plpgsql
+immutable
+as $$
+declare
+  la integer := length(a);
+  lb integer := length(b);
+  prev integer[];
+  cur integer[];
+  i integer;
+  j integer;
+  cost integer;
+begin
+  if la = 0 then return lb; end if;
+  if lb = 0 then return la; end if;
+  if abs(la - lb) > 3 then return abs(la - lb); end if;
+  prev := array(select generate_series(0, lb));
+  for i in 1..la loop
+    cur := array[i];
+    for j in 1..lb loop
+      cost := case when substr(a, i, 1) = substr(b, j, 1) then 0 else 1 end;
+      cur[j + 1] := least(prev[j + 1] + 1, cur[j] + 1, prev[j] + cost);
+    end loop;
+    prev := cur;
+  end loop;
+  return prev[lb + 1];
+end;
+$$;
+
+-- Distance entre deux mots, ou null si elle dépasse ce qu'on tolère pour leur longueur
+create or replace function public.merry_name_dist(a text, b text)
+returns integer
+language plpgsql
+immutable
+as $$
+declare
+  d integer;
+  tol integer := case when least(length(a), length(b)) >= 9 then 2 when least(length(a), length(b)) >= 4 then 1 else 0 end;
+begin
+  if a = b then return 0; end if;
+  if tol = 0 then return null; end if;
+  d := public.merry_lev(a, b);
+  return case when d <= tol then d else null end;
+end;
+$$;
+
+create or replace function public.merry_find_guest(w uuid, v_first text, v_last text)
+returns uuid
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  nf text := public.merry_norm(v_first);
+  nl text := public.merry_norm(v_last);
+  best integer := null;
+  best_id uuid := null;
+  ties integer := 0;
+  g record;
+  cf text;
+  cl text;
+  d1 integer;
+  d2 integer;
+  d3 integer;
+  d4 integer;
+  score integer;
+begin
+  -- 1. même nom, sans tenir compte des accents, des majuscules ni des tirets
+  select id into best_id from public.guests
+   where wedding_id = w and plus_one_of is null
+     and public.merry_norm(first_name) = nf and public.merry_norm(last_name) = nl
+   order by created_at limit 1;
+  if best_id is not null then return best_id; end if;
+
+  -- 2. nom proche ou inversé ; un seul candidat doit se détacher
+  for g in select id, first_name, last_name from public.guests where wedding_id = w and plus_one_of is null loop
+    cf := public.merry_norm(g.first_name);
+    cl := public.merry_norm(g.last_name);
+    score := null;
+    if cl = '' then
+      -- liste faite de prénoms seuls : le prénom doit correspondre
+      d1 := public.merry_name_dist(nf, cf);
+      if d1 is not null and cf <> '' then score := d1 + 1; end if;
+    else
+      d1 := public.merry_name_dist(nf, cf);
+      d2 := public.merry_name_dist(nl, cl);
+      d3 := public.merry_name_dist(nf, cl);
+      d4 := public.merry_name_dist(nl, cf);
+      if d1 is not null and d2 is not null then score := d1 + d2; end if;
+      if d3 is not null and d4 is not null and (score is null or d3 + d4 < score) then score := d3 + d4; end if;
+    end if;
+    if score is not null then
+      if best is null or score < best then
+        best := score; best_id := g.id; ties := 1;
+      elsif score = best then
+        ties := ties + 1;
+      end if;
+    end if;
+  end loop;
+  if best_id is not null and ties = 1 then return best_id; end if;
+  return null;
+end;
+$$;
+revoke all on function public.merry_find_guest(uuid, text, text) from public, anon, authenticated;
+
 create or replace function public.merry_form_submit(form_slug text, payload jsonb)
 returns jsonb
 language plpgsql
@@ -218,11 +342,8 @@ begin
       case when public.merry_clip(payload ->> 'allergies', 200) is not null then 'allergies : ' || public.merry_clip(payload ->> 'allergies', 200) end), '') end;
   addr := case when coalesce(modes ->> 'adresse', 'off') = 'off' then null else public.merry_clip(payload ->> 'address', 300) end;
 
-  -- Invité principal : reconnu par son nom, sinon ajouté en fin de liste
-  select id into main_id from public.guests
-   where wedding_id = w and plus_one_of is null
-     and lower(btrim(first_name)) = lower(v_first) and lower(btrim(last_name)) = lower(v_last)
-   order by created_at limit 1;
+  -- Invité principal : reconnu par son nom (fautes de frappe tolérées), sinon ajouté en fin de liste
+  main_id := public.merry_find_guest(w, v_first, v_last);
   if main_id is null then
     is_new := true;
     select coalesce(max(position) + 1, 0) into pos from public.guests where wedding_id = w;
@@ -230,7 +351,8 @@ begin
     values (w, v_first, v_last, pos) returning id into main_id;
   end if;
   update public.guests
-     set email   = coalesce(public.merry_clip(payload ->> 'email', 200), email),
+     set last_name = case when btrim(last_name) = '' then v_last else last_name end,
+         email   = coalesce(public.merry_clip(payload ->> 'email', 200), email),
          phone   = case when coalesce(modes ->> 'tel', 'off') = 'off' then phone else coalesce(public.merry_clip(payload ->> 'phone', 40), phone) end,
          address = coalesce(addr, address),
          diet    = coalesce(diet_txt, diet),

@@ -4871,3 +4871,16 @@ button.d-rsvp:hover {
   border-radius: 999px;
   background: #ffffff;
 }
+
+/* Menus flottants : posés hors des tableaux, au-dessus des fenêtres */
+.d-pop.d-pop-fixed {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 70;
+}
+button.d-group-none {
+  border: 1px dashed var(--d-line);
+  cursor: pointer;
+  font: inherit;
+}
