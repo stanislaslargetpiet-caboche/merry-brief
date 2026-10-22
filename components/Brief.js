@@ -71,40 +71,25 @@ const BUDGETS = [
   { value: "aucune_idee", label: "Aucune idée, aidez-nous" },
 ];
 
-const HELP = [
-  { value: "prestataires", label: "Trouver et comparer les prestataires", tag: "Gratuit" },
-  { value: "invites", label: "Gérer la liste d'invités", tag: "Gratuit" },
-  { value: "budget", label: "Gérer le budget et les paiements", tag: "Gratuit" },
-  { value: "site", label: "Créer mon site de mariage", tag: "Gratuit" },
-  { value: "cagnotte", label: "Créer ma cagnotte de mariage", tag: "Gratuit" },
-  { value: "planner", label: "Trouver un wedding planner", tag: "Sur devis", quote: true },
-  { value: "logements", label: "Trouver des logements et gérer les transports", tag: "Gratuit" },
-];
-
 const PANEL_WORDS = [
   "On fête quoi ?",
   "C'est parti !",
   "Qui fait quoi.",
-  "Vous deux.",
-  "Le sens de la fête.",
+  "Le jour, le lieu.",
+  "Combien de monde.",
   "Sobre. Chic. Et élégant.",
   "Le budget.",
-  "Un coup de main.",
   "On attaque.",
 ];
 
-// 8 questions après le choix de la fête (étape 0, sans compteur).
-const TOTAL = 8;
+// 7 questions après le choix de la fête (étape 0, sans compteur).
+const TOTAL = 7;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
 
 const EMPTY = {
   event: "mariage",
   stage: "",
   team: "",
-  first_name: "",
-  first_age: "",
-  partner_first_name: "",
-  partner_age: "",
   wedding_date: "",
   date_unknown: false,
   region: "",
@@ -113,14 +98,11 @@ const EMPTY = {
   format: "",
   vibes: [],
   pinterest: "",
-  weekend: [],
-  honeymoon: "",
-  honeymoon_vibes: [],
   budget: "",
-  help: [],
+  first_name: "",
+  partner_first_name: "",
   email: "",
   password: "",
-  phone: "",
   partner_email: "",
 };
 
@@ -228,8 +210,6 @@ export default function Brief() {
         return !!data.team;
       case 3:
         return (
-          data.first_name.trim().length > 0 &&
-          data.partner_first_name.trim().length > 0 &&
           (data.date_unknown || data.wedding_date) &&
           (data.region_unknown || data.region.trim().length > 0)
         );
@@ -240,12 +220,11 @@ export default function Brief() {
       case 6:
         return !!data.budget;
       case 7:
-        return data.help.length > 0;
-      case 8:
         return (
+          data.first_name.trim().length > 0 &&
+          data.partner_first_name.trim().length > 0 &&
           isMail(data.email) &&
           data.password.length >= 8 &&
-          data.phone.trim().length >= 6 &&
           (data.partner_email.trim() === "" || isMail(data.partner_email))
         );
       default:
@@ -262,10 +241,6 @@ export default function Brief() {
     const brief = {
       stage: data.stage,
       team: data.team,
-      first_name: data.first_name.trim(),
-      first_age: data.first_age ? Number(data.first_age) : null,
-      partner_first_name: data.partner_first_name.trim(),
-      partner_age: data.partner_age ? Number(data.partner_age) : null,
       wedding_date: data.date_unknown ? null : data.wedding_date || null,
       date_unknown: data.date_unknown,
       region: data.region_unknown ? null : data.region.trim() || null,
@@ -274,13 +249,10 @@ export default function Brief() {
       format: data.format,
       vibes: data.vibes,
       pinterest: data.pinterest.trim() || null,
-      weekend: data.weekend,
-      honeymoon: data.honeymoon.trim() || null,
-      honeymoon_vibes: data.honeymoon_vibes,
       budget: data.budget,
-      help: data.help,
+      first_name: data.first_name.trim(),
+      partner_first_name: data.partner_first_name.trim(),
       email: data.email.trim().toLowerCase(),
-      phone: data.phone.trim(),
       partner_email: data.partner_email.trim().toLowerCase() || null,
       source: typeof window !== "undefined" ? window.location.search.slice(0, 200) || null : null,
     };
@@ -373,25 +345,10 @@ export default function Brief() {
       case 3:
         return (
           <>
-            <div className="eyebrow">Vous deux</div>
-            <h1 className="question">Comme toute belle histoire, ça commence par les prénoms.</h1>
+            <div className="eyebrow">Lieu et date</div>
+            <h1 className="question">La date et le lieu, même approximatifs.</h1>
+            <p className="help">Une fourchette suffit pour commencer : vous préciserez plus tard.</p>
             <div className="fields">
-              <div className="field">
-                <label htmlFor="first_name">Ton prénom</label>
-                <input id="first_name" value={data.first_name} onChange={(e) => set("first_name", e.target.value)} autoComplete="given-name" />
-              </div>
-              <div className="field">
-                <label htmlFor="first_age">Ton âge</label>
-                <input id="first_age" inputMode="numeric" pattern="[0-9]*" value={data.first_age} onChange={(e) => set("first_age", e.target.value.replace(/\D/g, "").slice(0, 2))} />
-              </div>
-              <div className="field">
-                <label htmlFor="partner_first_name">Le prénom de ta moitié</label>
-                <input id="partner_first_name" value={data.partner_first_name} onChange={(e) => set("partner_first_name", e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="partner_age">Son âge</label>
-                <input id="partner_age" inputMode="numeric" pattern="[0-9]*" value={data.partner_age} onChange={(e) => set("partner_age", e.target.value.replace(/\D/g, "").slice(0, 2))} />
-              </div>
               <div className="field">
                 <label htmlFor="wedding_date">La date</label>
                 <input id="wedding_date" type="date" value={data.wedding_date} disabled={data.date_unknown} onChange={(e) => set("wedding_date", e.target.value)} />
@@ -401,7 +358,7 @@ export default function Brief() {
                 </label>
               </div>
               <div className="field">
-                <label htmlFor="region">La région de rêve pour votre mariage ?</label>
+                <label htmlFor="region">Le lieu, ou la région si vous hésitez</label>
                 <input id="region" placeholder="Provence, Bretagne, Paris…" value={data.region} disabled={data.region_unknown} onChange={(e) => set("region", e.target.value)} />
                 <label className="toggle">
                   <input type="checkbox" checked={data.region_unknown} onChange={(e) => set("region_unknown", e.target.checked)} />
@@ -415,7 +372,7 @@ export default function Brief() {
       case 4:
         return (
           <>
-            <div className="eyebrow">La fête</div>
+            <div className="eyebrow">Le format</div>
             <h1 className="question">Combien de monde ?</h1>
             <p className="help">The more the merrier... comme ils disent.</p>
             <div className="choices">
@@ -475,26 +432,18 @@ export default function Brief() {
       case 7:
         return (
           <>
-            <div className="eyebrow">Un coup de main ?</div>
-            <h1 className="question">Sur quoi on t'aide ?</h1>
-            <p className="help">Coche tout ce qui te parle ! On sait tout faire (ou presque).</p>
-            <div className="choices stack">
-              {HELP.map((o) => (
-                <Chip key={o.value} selected={data.help.includes(o.value)} onClick={() => toggleIn("help", o.value)} tag={o.tag} quote={o.quote}>
-                  {o.label}
-                </Chip>
-              ))}
-            </div>
-          </>
-        );
-
-      case 8:
-        return (
-          <>
             <div className="eyebrow">Dernière étape</div>
             <h1 className="question">Ton tableau de bord est prêt. Il te faut juste un compte.</h1>
             <p className="help">Tout ce que tu viens de nous dire y est déjà. Gratuit, sans engagement.</p>
             <div className="fields">
+              <div className="field">
+                <label htmlFor="first_name">Ton prénom</label>
+                <input id="first_name" value={data.first_name} onChange={(e) => set("first_name", e.target.value)} autoComplete="given-name" />
+              </div>
+              <div className="field">
+                <label htmlFor="partner_first_name">Le prénom de ta moitié</label>
+                <input id="partner_first_name" value={data.partner_first_name} onChange={(e) => set("partner_first_name", e.target.value)} />
+              </div>
               <div className="field">
                 <label htmlFor="email">Ton email</label>
                 <input id="email" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" />
@@ -503,14 +452,10 @@ export default function Brief() {
                 <label htmlFor="password">Mot de passe (8 caractères minimum)</label>
                 <input id="password" type="password" value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" />
               </div>
-              <div className="field">
-                <label htmlFor="phone">Ton téléphone</label>
-                <input id="phone" type="tel" value={data.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="06 …" />
-              </div>
-              <div className="field">
-                <label htmlFor="partner_email">L'email de {data.partner_first_name.trim() || "ta moitié"}, pour son accès (facultatif)</label>
-                <input id="partner_email" type="email" value={data.partner_email} onChange={(e) => set("partner_email", e.target.value)} inputMode="email" />
-              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="partner_email">L'email de {data.partner_first_name.trim() || "ta moitié"}, pour qu'il/elle ait aussi son accès (facultatif)</label>
+              <input id="partner_email" type="email" value={data.partner_email} onChange={(e) => set("partner_email", e.target.value)} inputMode="email" />
             </div>
             {status === "error" ? <p className="error">{errorMsg}</p> : null}
             <p className="footnote">
@@ -585,7 +530,7 @@ export default function Brief() {
               <div className="actions">
                 {step === 5 ? (
                   <button type="button" className="skip" onClick={() => { set("vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
-                ) : step === 8 ? (
+                ) : step === 7 ? (
                   <a className="skip" href="/connexion">Déjà un compte ? Se connecter</a>
                 ) : <span />}
                 {isLast ? (
