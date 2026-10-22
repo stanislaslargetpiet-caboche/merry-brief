@@ -268,10 +268,7 @@ export default function Importer() {
 
   return (
     <>
-      <PageHeader back={{ href: "/dashboard/invites", label: "Les invités" }} title="Importer une liste." />
-      <p className="d-muted" style={{ margin: "-12px 0 0", maxWidth: 640, lineHeight: 1.5 }}>
-        Déposez vos listes telles qu'elles sont. Merry les lit, sépare les couples, repère les doublons et range chaque information dans la bonne colonne.
-      </p>
+      <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Importer une liste." />
 
       <div
         className={`d-drop-big${over ? " is-over" : ""}`}
