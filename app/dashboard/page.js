@@ -77,10 +77,12 @@ export default function Accueil() {
           {days !== null && days >= 0 ? (
             <div className="d-countdown">
               <strong>J-{days}</strong>
-              <span>
-                avant le <br />
-                grand jour
-              </span>
+              {!firstVisit ? (
+                <span>
+                  avant le <br />
+                  grand jour
+                </span>
+              ) : null}
             </div>
           ) : null}
           <Link href="/dashboard/brief" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
@@ -92,82 +94,51 @@ export default function Accueil() {
 
   if (firstVisit) {
     const startSteps = [
-      { label: "Créer votre espace", sub: "Votre brief est enregistré", done: true },
-      { label: "Générer le rétroplanning", sub: "Quatre questions", href: "/dashboard/retroplanning/generer" },
-      { label: "Importer votre liste d'invités", sub: "Excel, photo, PDF…", href: "/dashboard/invites/importer" },
-      { label: "Inviter un organisateur", sub: "Votre moitié, vos parents, un témoin", href: "#organisateurs" },
+      { label: "Créer votre espace", sub: "Votre brief est enregistré, votre tableau de bord est prêt.", done: true },
+      { label: "Générer le rétroplanning", sub: "Les grandes dates de votre mariage, puis les prestataires déjà réservés : Merry en tire vos tâches, datées.", href: "/dashboard/retroplanning/generer" },
+      { label: "Importer votre liste d'invités", sub: "Collez un fichier Excel, une photo ou un PDF : Merry reconnaît les noms et les coordonnées.", href: "/dashboard/invites/importer" },
+      { label: "Inviter un organisateur", sub: "Votre moitié, vos parents, un témoin : ils voient et modifient tout comme vous.", href: "#organisateurs" },
     ];
     const startDone = startSteps.filter((s) => s.done).length;
     return (
       <>
         {head}
-        <p className="d-lead" style={{ margin: 0 }}>
-          Bienvenue sur Merry. Tout part du rétroplanning : quatre questions, et vous savez quoi faire et quand.
-        </p>
-        <div className="d-grid-side">
-          <div className="d-col" style={{ gap: 26 }}>
-            <section className="d-first-card">
-              <span className="d-first-icon">
-                <Icon name="calendar" size={30} sw={1.6} />
+        <div style={{ maxWidth: 640, width: "100%", margin: "0 auto" }}>
+          <section className="d-card" style={{ padding: "30px 34px", borderRadius: 22, gap: 18 }}>
+            <h2 style={{ fontSize: 22 }}>Bien démarrer</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Bar value={(startDone / startSteps.length) * 100} />
+              <span className="d-small d-muted">
+                {startDone}/{startSteps.length}
               </span>
-              <div className="d-first-text">
-                <h2>Votre rétroplanning</h2>
-                <p>
-                  Dites-nous ce qui est déjà fait : Merry prépare toutes les étapes{wedding.wedding_date ? ` jusqu'au ${longDate(wedding.wedding_date).replace(/^\S+\s/, "")}` : ""}, datées et réparties entre vous.
-                </p>
-                <span className="d-small d-muted">Environ 2 minutes</span>
-              </div>
-              <Btn icon="sparkle" href="/dashboard/retroplanning/generer">
-                Générer un rétroplanning
-              </Btn>
-            </section>
-            <div className="d-col">
-              <Section title="Prochaines tâches" />
-              <div className="d-empty">
-                <p>Vos tâches apparaîtront ici dès que le rétroplanning sera prêt.</p>
-                <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
-                  Générer un rétroplanning
-                </Btn>
-              </div>
             </div>
-          </div>
-          <div className="d-col">
-            <section className="d-card">
-              <h2>Bien démarrer</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Bar value={(startDone / startSteps.length) * 100} />
-                <span className="d-small d-muted">
-                  {startDone}/{startSteps.length}
-                </span>
-              </div>
-              <ul className="d-checklist">
-                {startSteps.map((s) => (
-                  <li key={s.label} className={s.done ? "is-done" : ""}>
-                    {s.done ? (
-                      <div className="d-check-row">
-                        <span className="d-dot is-done">
-                          <Icon name="check" size={13} sw={2.4} />
-                        </span>
-                        <span style={{ flex: 1 }}>
-                          <span>{s.label}</span>
-                          <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
-                        </span>
-                      </div>
-                    ) : (
-                      <a href={s.href}>
-                        <span className="d-dot" />
-                        <span style={{ flex: 1 }}>
-                          <span>{s.label}</span>
-                          <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
-                        </span>
-                        <Icon name="chev" size={16} sw={2} />
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
+            <ul className="d-checklist">
+              {startSteps.map((s) => (
+                <li key={s.label} className={s.done ? "is-done" : ""}>
+                  {s.done ? (
+                    <div className="d-check-row">
+                      <span className="d-dot is-done">
+                        <Icon name="check" size={13} sw={2.4} />
+                      </span>
+                      <span style={{ flex: 1 }}>
+                        <span>{s.label}</span>
+                        <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
+                      </span>
+                    </div>
+                  ) : (
+                    <a href={s.href}>
+                      <span className="d-dot" />
+                      <span style={{ flex: 1 }}>
+                        <span>{s.label}</span>
+                        <small className="d-small d-muted" style={{ display: "block" }}>{s.sub}</small>
+                      </span>
+                      <Icon name="chev" size={16} sw={2} />
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
         {editWedding ? <WeddingModal onClose={() => setEditWedding(false)} /> : null}
       </>
