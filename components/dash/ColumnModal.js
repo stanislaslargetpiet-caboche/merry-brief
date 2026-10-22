@@ -6,8 +6,10 @@
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
+import { columnValues } from "@/lib/dash/codes";
 import { defaultForm } from "@/lib/dash/form";
 import { Icon } from "./icons";
+import { FieldGroupsModal } from "./FieldGroupsModal";
 import { Btn, Field, Modal, Popover } from "./ui";
 
 export const DEFAULT_OPTIONS = ["Oui", "Non", "Ne sait pas"];
@@ -159,6 +161,8 @@ export function FieldHeader({ field }) {
   const dash = useDash();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [grouping, setGrouping] = useState(false);
+  const canGroup = columnValues(dash.data.guests, field.id).length > 0; // quelques valeurs distinctes : on peut en faire des groupes
   return (
     <span className="d-anchor">
       <button
@@ -185,6 +189,21 @@ export function FieldHeader({ field }) {
             Modifier la colonne
           </span>
         </button>
+        {canGroup ? (
+          <button
+            type="button"
+            className="d-pop-item"
+            onClick={() => {
+              setOpen(false);
+              setGrouping(true);
+            }}
+          >
+            <span className="d-pop-label">
+              <Icon name="users" size={14} sw={2} />
+              Ranger les invités en groupes
+            </span>
+          </button>
+        ) : null}
         <button
           type="button"
           className="d-pop-item is-danger"
@@ -202,6 +221,7 @@ export function FieldHeader({ field }) {
         </button>
       </Popover>
       {editing ? <ColumnModal field={field} onClose={() => setEditing(false)} /> : null}
+      {grouping ? <FieldGroupsModal field={field} onClose={() => setGrouping(false)} /> : null}
     </span>
   );
 }

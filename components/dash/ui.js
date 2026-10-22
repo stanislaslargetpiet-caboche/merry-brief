@@ -224,7 +224,13 @@ export function Bar({ value, color = "#1c1c1a", track = "#e4e2dc", height = 6 })
 
 export function Modal({ title, onClose, children, footer, wide }) {
   const ref = useRef(null);
+  // Affichée à la racine du tableau de bord : ouverte depuis un en-tête de tableau, elle héritait sinon de ses majuscules et de son texte sans retour à la ligne
+  const [host, setHost] = useState(null);
   useEffect(() => {
+    setHost(document.querySelector(".d-root") || document.body);
+  }, []);
+  useEffect(() => {
+    if (!host) return undefined;
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
     };
@@ -235,8 +241,9 @@ export function Modal({ title, onClose, children, footer, wide }) {
       document.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };
-  }, [onClose]);
-  return (
+  }, [onClose, host]);
+  if (!host) return null;
+  return createPortal(
     <div className="d-modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`d-modal${wide ? " is-wide" : ""}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <div className="d-modal-head">
@@ -248,7 +255,8 @@ export function Modal({ title, onClose, children, footer, wide }) {
         <div className="d-modal-body">{children}</div>
         {footer ? <div className="d-modal-foot">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    host,
   );
 }
 
