@@ -61,8 +61,8 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/invites/formulaire` | Réglages du formulaire invités : questions (non demandé, facultatif, obligatoire, intitulés modifiables), moments affichés, questions ajoutées, photo d'en-tête, petit mot, date limite, thème, lien à copier |
 | `/dashboard/retroplanning` | Tâches par mois, cochées, attribuées, « Qui fait quoi » |
 | `/dashboard/budget` | Indicateurs, répartition par payeur et par poste, prochains paiements, tableau des postes avec écart vs budget, coût par invité, devis et factures |
-| `/dashboard/budget/paiement/[poste]` | Noter un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
-| `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact, résumé des échanges, fil des messages (envoi par la messagerie), documents, paiements |
+| `/dashboard/budget/paiement/[poste]` | Effectuer un paiement (qui paie, quand, comment) et prévoir les échéances. Merry suit les paiements, il ne les encaisse pas encore |
+| `/dashboard/budget/prestataires/[id]` | Fiche prestataire : contact (rempli par l'IA depuis un devis ou une facture : interlocuteur, téléphone, mail, site, RIB, montant du devis, échéances), résumé des échanges, fil des messages, documents (import ou choix dans Documents), bouton « Effectuer un paiement » |
 | `/dashboard/documents` | Dossiers partagés (Factures et devis, Mairie, Préparation religieuse…), recherche, documents ajoutés récemment (voir la section 10) |
 | `/dashboard/documents/[id]` | Un dossier : dépôt de fichiers par glisser-déposer, liste des documents, renommer, déplacer, supprimer |
 | `/dashboard/indicateurs/accueil` et `/budget` | Choix des indicateurs (cinq au maximum) |
@@ -75,7 +75,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 
 **Supabase > Authentication > URL Configuration** : ajoute `https://<ton domaine>/connexion` dans Redirect URLs (lien « mot de passe oublié »).
 
-**Import par l'IA (facultatif)** : ajoute `ANTHROPIC_API_KEY` dans Vercel (Settings > Environment Variables). Sans clé, l'import lit Excel, CSV et texte collé, et indique que les photos et PDF arrivent bientôt. `MERRY_AI_MODEL` permet de changer de modèle. Garde-fous : réservé aux organisateurs, 30 lectures par compte et par jour, un fichier par appel, photos réduites à 1600 px, PDF de 3 Mo au plus. Fixe aussi une limite de dépense dans la console Anthropic.
+**Lecture par l'IA (facultatif)** : import des listes d'invités et lecture des devis et factures sur la fiche prestataire. Ajoute `ANTHROPIC_API_KEY` dans Vercel (Settings > Environment Variables). Sans clé, l'import lit Excel, CSV et texte collé, et indique que les photos et PDF arrivent bientôt. `MERRY_AI_MODEL` permet de changer de modèle. Garde-fous : réservé aux organisateurs, 30 lectures par compte et par jour, un fichier par appel, photos réduites à 1600 px, PDF de 3 Mo au plus. Fixe aussi une limite de dépense dans la console Anthropic.
 
 **À savoir** : les colonnes de suivi de `briefs` (`status`, `owner`, `notes`) restent lisibles par le couple qui a rempli le brief (règle d'origine de `schema.sql`). Les organisateurs invités, eux, ne lisent le brief que par la fonction `merry_brief`, sans ces colonnes. Avant d'écrire des remarques sensibles dans `notes`, il faudra les déplacer dans une table interne.
 

@@ -251,7 +251,7 @@ export default function Budget() {
                     </span>
                   ) : f.quote !== null && f.paid === 0 ? (
                     <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
-                      Noter un paiement
+                      Effectuer un paiement
                     </Link>
                   ) : f.next ? (
                     <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo">
@@ -402,7 +402,7 @@ export default function Budget() {
                         </span>
                       ) : f.quote !== null && f.paid === 0 ? (
                         <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
-                          Noter un paiement
+                          Effectuer un paiement
                         </Link>
                       ) : f.next ? (
                         <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo" style={{ textDecoration: "none" }}>

@@ -118,7 +118,7 @@ export default function Paiement() {
 
   return (
     <div style={{ maxWidth: 680, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-      <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Noter un paiement." />
+      <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Effectuer un paiement." />
 
       <section className="d-card" style={{ padding: 28, gap: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -353,7 +353,7 @@ export default function Paiement() {
             ) : null}
 
             <Btn onClick={save} disabled={busy || !amount || !payers.length} className="d-btn-block" icon="check">
-              C'est payé, noter {euros(amount)}
+              J'ai payé {euros(amount)}
             </Btn>
           </>
         )}

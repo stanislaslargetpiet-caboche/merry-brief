@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
@@ -8,10 +7,8 @@ import { itemFinance } from "@/lib/dash/model";
 import { euros, initials, shortDate } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Avatar, Bar, Btn, Field, InlineEdit, OkPill, PageHeader, PersonChip } from "@/components/dash/ui";
-import { DocLink } from "@/components/dash/Documents";
-
-const KIND_LABEL = { devis: "Devis", facture: "Facture", autre: "Document" };
+import { Avatar, Bar, Btn, InlineEdit, OkPill, PageHeader, PersonChip } from "@/components/dash/ui";
+import { AiFillButton, VendorDocuments } from "@/components/dash/VendorTools";
 
 function telHref(phone) {
   return `tel:${String(phone || "").replace(/[^\d+]/g, "")}`;
@@ -30,7 +27,6 @@ export default function Prestataire() {
   const [editSummary, setEditSummary] = useState(false);
   const [summary, setSummary] = useState(vendor?.summary || "");
   const [draft, setDraft] = useState("");
-  const [docForm, setDocForm] = useState(null);
 
   if (!vendor) return <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Prestataire introuvable." />;
 
@@ -56,12 +52,6 @@ export default function Prestataire() {
     if (!fromVendor && vendor.email) window.location.href = mailto(body);
   }
 
-  async function addDoc(e) {
-    e.preventDefault();
-    if (!docForm.url.trim() || !/^https?:\/\//i.test(docForm.url.trim())) return;
-    await dash.insert("documents", { vendor_id: vendor.id, budget_item_id: item?.id || null, kind: docForm.kind, name: docForm.name.trim() || KIND_LABEL[docForm.kind], url: docForm.url.trim() });
-    setDocForm(null);
-  }
 
   return (
     <>
@@ -79,6 +69,11 @@ export default function Prestataire() {
           </div>
         </div>
         <div className="d-header-actions">
+          {item ? (
+            <Btn kind="lime" icon="wallet" href={`/dashboard/budget/paiement/${item.id}${f?.next ? `?echeance=${f.next.id}` : ""}`}>
+              Effectuer un paiement
+            </Btn>
+          ) : null}
           {vendor.phone ? (
             <Btn kind="strong" icon="phone" href={telHref(vendor.phone)}>
               Appeler
@@ -189,7 +184,10 @@ export default function Prestataire() {
 
         <div className="d-col">
           <section className="d-card">
-            <h2>Contact</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <h2>Contact</h2>
+              <AiFillButton vendor={vendor} item={item} docs={docs} />
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span className="d-avatar" style={{ width: 40, height: 40, background: "#e4e2dc", fontSize: 14 }}>
                 {initials(vendor.contact_name || vendor.name)}
@@ -206,6 +204,7 @@ export default function Prestataire() {
                 ["phone", "Téléphone", "phone"],
                 ["email", "Mail", "mail"],
                 ["website", "Site", "globe"],
+                ["iban", "IBAN", "bank"],
               ].map(([k, label, icon]) => (
                 <div key={k} className="d-contact-row">
                   <Icon name={icon} size={16} style={{ marginTop: 3 }} />
@@ -223,62 +222,7 @@ export default function Prestataire() {
             </div>
           </section>
 
-          <section className="d-card">
-            <h2>Documents</h2>
-            <div>
-              {docs.map((d) => (
-                <div key={d.id} className="d-file">
-                  <span className="d-tile" style={{ width: 36, height: 36, borderRadius: 10, background: "var(--d-panel)" }}>
-                    <Icon name="file" size={16} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                    <strong style={{ fontSize: 14 }}>{d.name}</strong>
-                    <span className="d-small-muted">
-                      {KIND_LABEL[d.kind]} · {shortDate(String(d.created_at || "").slice(0, 10))}
-                    </span>
-                  </span>
-                  <DocLink doc={d} className="d-small" style={{ fontWeight: 600 }}>
-                    Ouvrir
-                  </DocLink>
-                  <button type="button" className="d-icon-btn" style={{ width: 26, height: 26 }} aria-label={`Retirer ${d.name}`} onClick={() => window.confirm(`Retirer « ${d.name} » ?`) && dash.removeDocument(d)}>
-                    <Icon name="x" size={12} sw={2.2} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {docForm ? (
-              <form className="d-col" style={{ gap: 10 }} onSubmit={addDoc}>
-                <div className="d-form-grid">
-                  <Field label="Type">
-                    <select className="d-select" value={docForm.kind} onChange={(e) => setDocForm((x) => ({ ...x, kind: e.target.value }))}>
-                      <option value="devis">Devis</option>
-                      <option value="facture">Facture</option>
-                      <option value="autre">Autre</option>
-                    </select>
-                  </Field>
-                  <Field label="Nom">
-                    <input className="d-input" value={docForm.name} onChange={(e) => setDocForm((x) => ({ ...x, name: e.target.value }))} placeholder="Facture d'acompte" />
-                  </Field>
-                  <Field label="Lien" full>
-                    <input className="d-input" type="url" value={docForm.url} onChange={(e) => setDocForm((x) => ({ ...x, url: e.target.value }))} placeholder="https://" required autoFocus />
-                  </Field>
-                </div>
-                <div className="d-actions-end">
-                  <Btn kind="ghost" small onClick={() => setDocForm(null)}>
-                    Annuler
-                  </Btn>
-                  <Btn small type="submit">
-                    Ajouter
-                  </Btn>
-                </div>
-              </form>
-            ) : (
-              <button type="button" className="d-link" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start" }} onClick={() => setDocForm({ kind: "facture", name: "", url: "" })}>
-                <Icon name="plus" size={14} sw={2} />
-                Ajouter un document
-              </button>
-            )}
-          </section>
+          <VendorDocuments vendor={vendor} item={item} docs={docs} />
 
           {item ? (
             <section className="d-card is-panel">
@@ -308,9 +252,6 @@ export default function Prestataire() {
                   </span>
                 ) : null}
               </div>
-              <Link href={`/dashboard/budget/paiement/${item.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-link" style={{ alignSelf: "flex-start" }}>
-                Noter un paiement
-              </Link>
             </section>
           ) : null}
         </div>
