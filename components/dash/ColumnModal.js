@@ -163,7 +163,7 @@ export function FieldHeader({ field }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [grouping, setGrouping] = useState(false);
-  const canGroup = columnValues(dash.data.guests, field.id).length > 0; // quelques valeurs distinctes : on peut en faire des groupes
+  const canGroup = columnValues(guests, field.id).length > 0; // quelques valeurs distinctes : on peut en faire des groupes
   const firstOption = field.kind === "choice" ? (field.options || [])[0] : null;
   const filledCount = guests.filter((g) => (g.custom || {})[field.id]).length;
 
