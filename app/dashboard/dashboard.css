@@ -145,8 +145,11 @@
 .d-help-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
   background: var(--d-ink);
   color: #ffffff;
   font-size: 14px;
@@ -163,46 +166,6 @@
 .d-help-btn:focus-visible {
   outline: 2px solid var(--d-ink);
   outline-offset: 3px;
-}
-
-/* Design 1 : pilule noire pleine, libellé centré */
-.d-help-btn.is-demo {
-  justify-content: center;
-  padding: 0 16px;
-  border-radius: 999px;
-}
-
-/* Design 2 : coins moins ronds, pastille lime à gauche, libellé sur deux lignes */
-.d-help-btn.is-advisor {
-  padding: 4px 14px 4px 4px;
-  border-radius: 16px;
-  font-size: 13.5px;
-}
-
-/* Contour noir seul, fond transparent : le vert de la barre apparaît */
-.d-help-btn.is-whatsapp {
-  justify-content: center;
-  padding: 0 14px;
-  border: 1.5px solid var(--d-ink);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--d-ink);
-}
-
-.d-help-btn.is-whatsapp:hover {
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.d-help-badge {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: var(--d-lime);
-  color: var(--d-ink);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .d-team {
@@ -287,12 +250,6 @@
   }
   .d-help-btn {
     min-height: 40px;
-  }
-  .d-help-btn.is-advisor {
-    padding: 2px 12px 2px 2px;
-  }
-  .d-help-badge {
-    flex-basis: 36px;
   }
   .d-team {
     padding: 12px;
