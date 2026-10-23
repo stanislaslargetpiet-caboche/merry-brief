@@ -456,7 +456,8 @@
 
 @media (max-width: 1180px) {
   .d-grid-side.d-grid-export,
-  .d-grid-side.d-grid-vendor {
+  .d-grid-side.d-grid-vendor,
+  .d-grid-side.d-form-grid-side {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -2254,6 +2255,49 @@ button.d-rsvp:hover {
     display: flex;
   }
 
+  /* Fiche prestataire, téléphone : .d-header-actions est masqué partout sur mobile ; ces 3
+     boutons (Payer/Appeler/Message) les remplacent, en rangée compacte comme la maquette */
+  .d-vendor-actions-m {
+    display: flex;
+    gap: 8px;
+  }
+
+  .d-vendor-actions-m .d-btn {
+    flex: 1;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  /* Fiche prestataire, téléphone : les deux colonnes s'empilent dans l'ordre de la maquette
+     (Résumé, Paiements, Contact, Documents, Messages) plutôt que dans l'ordre du HTML */
+  .d-grid-vendor {
+    gap: 18px;
+  }
+
+  .d-grid-vendor > .d-col {
+    display: contents;
+  }
+
+  .d-grid-vendor > .d-col:first-child > section:first-child {
+    order: 1;
+  }
+
+  .d-grid-vendor > .d-col:first-child > section:last-child {
+    order: 5;
+  }
+
+  .d-grid-vendor > .d-col:last-child > section:first-child {
+    order: 3;
+  }
+
+  .d-grid-vendor > .d-col:last-child > :nth-child(2) {
+    order: 4;
+  }
+
+  .d-grid-vendor > .d-col:last-child > section:last-child {
+    order: 2;
+  }
+
   /* En-tête */
   .d-topbar {
     position: sticky;
@@ -2582,6 +2626,76 @@ button.d-rsvp:hover {
     gap: 8px;
   }
 
+  /* Export des invités, téléphone : les 3 formats restent sur une ligne, comme la maquette */
+  .d-g3-keep3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  /* Indicateurs, téléphone : une ligne par indicateur plutôt que des cartes en grille */
+  .d-kpi-mrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 0;
+    border-top: 1px solid var(--d-line);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    background: none;
+    text-align: left;
+    box-sizing: border-box;
+  }
+
+  .d-kpi-mrow:first-child {
+    border-top: none;
+  }
+
+  .d-kpi-mrow[disabled] {
+    opacity: 0.45;
+  }
+
+  .d-kpi-mrow .d-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+  }
+
+  .d-kpi-mrow.is-on .d-box {
+    border-color: var(--d-ink);
+    background: var(--d-lime);
+  }
+
+  .d-kpi-mrow-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .d-kpi-mrow-text strong {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .d-kpi-mrow:not(.is-on) .d-kpi-mrow-text strong,
+  .d-kpi-mrow:not(.is-on) .d-kpi-mrow-value {
+    color: var(--d-muted);
+  }
+
+  .d-kpi-mrow-text span {
+    font-size: 12px;
+    color: var(--d-muted);
+  }
+
+  .d-kpi-mrow-value {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   .d-g4 {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -2846,6 +2960,85 @@ button.d-rsvp:hover {
 
   .d-modal-foot .d-spacer {
     display: none;
+  }
+
+  /* Les moments du mariage, téléphone : une ligne verticale par moment plutôt que la grille à 5 colonnes */
+  .d-moment {
+    grid-template-columns: unset;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+
+  .d-moment-move {
+    display: none;
+  }
+
+  .d-moment-field.is-name {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .d-moment-field.is-short {
+    flex: 1 1 auto;
+    min-width: 0;
+    order: 2;
+  }
+
+  .d-moment-count {
+    order: 3;
+    padding-bottom: 0;
+  }
+
+  .d-moment .d-icon-btn.is-danger {
+    order: 4;
+    margin-bottom: 0;
+  }
+
+  .d-moment-add-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-moment-add-row .d-moment-field,
+  .d-moment-add-row .d-btn {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  /* Les groupes d'invités, téléphone : pastille + nom sur une ligne, compteur + suppression sur la ligne suivante */
+  .d-groups-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "swatch name name"
+      ". count del";
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: center;
+  }
+
+  .d-groups-row .d-group-swatch {
+    grid-area: swatch;
+    margin-bottom: 0;
+  }
+
+  .d-groups-row .d-moment-field {
+    grid-area: name;
+  }
+
+  .d-groups-row .d-moment-count {
+    grid-area: count;
+    justify-self: start;
+    padding-bottom: 0;
+  }
+
+  .d-groups-row .d-icon-btn.is-danger {
+    grid-area: del;
+    justify-self: end;
+    margin-bottom: 0;
   }
 
   .d-empty {
@@ -3478,6 +3671,74 @@ button.d-rsvp:hover {
   border: 0;
   background: #ffffff;
   color: #9b2c2c;
+}
+
+/* Téléphone : accès aux réglages des moments et des groupes, cachés avec le reste des filtres */
+.d-filters-m {
+  display: flex;
+  gap: 8px;
+}
+
+.d-filters-m button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-ink);
+}
+
+/* Téléphone : barre de sélection simplifiée, un seul bouton vers l'écran « Modifier en masse » */
+.d-selbar-m {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.d-selbar-m button {
+  flex: none;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Modifier en masse, téléphone : une section par champ, coche = « appliquer ce changement » */
+.d-bm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-bm-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+}
+
+.d-bm-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--d-ink);
 }
 
 .d-check {

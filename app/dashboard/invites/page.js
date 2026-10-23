@@ -186,6 +186,123 @@ function BulkColumnMenu({ fields, onApply }) {
   );
 }
 
+// Téléphone : les menus en pop-up du bulk desktop tiennent mal sur petit écran ; un seul
+// écran plein, section par section (coche = « appliquer ce changement »), comme la maquette
+function BulkEditSheet({ n, groups, events, fields, onApply, onClose }) {
+  const [onGroup, setOnGroup] = useState(false);
+  const [groupId, setGroupId] = useState(undefined); // undefined : rien choisi, null : « Sans groupe »
+  const [onMoments, setOnMoments] = useState(false);
+  const [moments, setMoments] = useState({}); // { [eventId]: true | false }
+  const [onFields, setOnFields] = useState({}); // { [fieldId]: true }
+  const [fieldValues, setFieldValues] = useState({}); // { [fieldId]: string | null }
+
+  const count = (onGroup && groupId !== undefined ? 1 : 0) + (onMoments && Object.keys(moments).length ? 1 : 0) + Object.keys(onFields).filter((id) => onFields[id]).length;
+
+  const apply = () => {
+    if (onGroup && groupId !== undefined) onApply.group(groupId);
+    if (onMoments) {
+      events.forEach((ev) => {
+        if (moments[ev.id] !== undefined) onApply.moment(ev, moments[ev.id]);
+      });
+    }
+    fields.forEach((f) => {
+      if (onFields[f.id]) onApply.field(f, fieldValues[f.id] ?? null);
+    });
+    onClose();
+  };
+
+  return (
+    <Modal
+      title="Modifier en masse"
+      onClose={onClose}
+      footer={
+        <>
+          <Btn kind="ghost" onClick={onClose}>
+            Annuler
+          </Btn>
+          <Btn onClick={apply} disabled={!count}>
+            {count ? `Appliquer ${n(count, "changement", "changements")}` : "Rien à appliquer"}
+          </Btn>
+        </>
+      }
+    >
+      <div className="d-col" style={{ gap: 18 }}>
+        <div className="d-bm-row">
+          <label className="d-bm-check">
+            <input type="checkbox" checked={onGroup} onChange={(e) => setOnGroup(e.target.checked)} />
+            <strong>Groupe</strong>
+          </label>
+          <div className="d-chip-row" style={{ paddingLeft: 30 }}>
+            {groups.map((g) => (
+              <button key={g.id} type="button" className={`d-pill${groupId === g.id ? " is-on" : ""}`} onClick={() => setGroupId(g.id)}>
+                <GroupChip group={g} />
+              </button>
+            ))}
+            <button type="button" className={`d-pill${groupId === null ? " is-on" : ""}`} onClick={() => setGroupId(null)}>
+              Sans groupe
+            </button>
+          </div>
+        </div>
+
+        {events.length ? (
+          <div className="d-bm-row">
+            <label className="d-bm-check">
+              <input type="checkbox" checked={onMoments} onChange={(e) => setOnMoments(e.target.checked)} />
+              <strong>Moments</strong>
+            </label>
+            <div className="d-col" style={{ gap: 8, paddingLeft: 30 }}>
+              {events.map((ev) => (
+                <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span className="d-small" style={{ flex: "1 1 120px" }}>
+                    {ev.name}
+                  </span>
+                  <button type="button" className={`d-pill d-pill-sm${moments[ev.id] === true ? " is-on" : ""}`} onClick={() => setMoments((m) => ({ ...m, [ev.id]: true }))}>
+                    Oui
+                  </button>
+                  <button type="button" className={`d-pill d-pill-sm${moments[ev.id] === false ? " is-on" : ""}`} onClick={() => setMoments((m) => ({ ...m, [ev.id]: false }))}>
+                    Non
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {fields.map((f) => (
+          <div key={f.id} className="d-bm-row">
+            <label className="d-bm-check">
+              <input type="checkbox" checked={!!onFields[f.id]} onChange={(e) => setOnFields((x) => ({ ...x, [f.id]: e.target.checked }))} />
+              <strong>
+                {f.name} <span className="d-small d-muted">· colonne</span>
+              </strong>
+            </label>
+            {f.kind === "choice" ? (
+              <div className="d-chip-row" style={{ paddingLeft: 30 }}>
+                {(f.options || []).map((o) => (
+                  <button key={o} type="button" className={`d-pill${fieldValues[f.id] === o ? " is-on" : ""}`} onClick={() => setFieldValues((x) => ({ ...x, [f.id]: o }))}>
+                    {o}
+                  </button>
+                ))}
+                <button type="button" className={`d-pill${fieldValues[f.id] === null ? " is-on" : ""}`} onClick={() => setFieldValues((x) => ({ ...x, [f.id]: null }))}>
+                  Effacer
+                </button>
+              </div>
+            ) : (
+              <input
+                className="d-input"
+                style={{ marginLeft: 30, maxWidth: "calc(100% - 30px)" }}
+                placeholder="Même texte pour tous les invités sélectionnés"
+                value={fieldValues[f.id] || ""}
+                onChange={(e) => setFieldValues((x) => ({ ...x, [f.id]: e.target.value }))}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
   return { first_name: parts.shift() || "", last_name: parts.join(" ") };
@@ -536,6 +653,7 @@ export default function Invites() {
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
   const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
+  const [bulkSheet, setBulkSheet] = useState(false); // téléphone : écran « Modifier en masse »
 
   // Un moment supprimé ne reste pas sélectionné
   const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
@@ -797,6 +915,18 @@ export default function Invites() {
             </button>
           </div>
           </div>
+          <div className="d-mob-only">
+            <div className="d-filters-m">
+              <button type="button" onClick={() => setMoments(true)}>
+                <Icon name="pencil" size={13} sw={2} />
+                Moments
+              </button>
+              <button type="button" onClick={() => setGroupsModal(true)}>
+                <Icon name="pencil" size={13} sw={2} />
+                Groupes
+              </button>
+            </div>
+          </div>
           <label className="d-search">
             <Icon name="search" size={15} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
@@ -883,58 +1013,71 @@ export default function Invites() {
 
       {guests.length ? (
         selIds.length ? (
-          <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
-            <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
-            <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
-              {!allSelected ? (
-                <button type="button" onClick={selectAll}>
-                  Tout sélectionner ({shown.length})
-                </button>
-              ) : null}
-              <span className="d-anchor">
-                <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
-                  Groupe
-                </button>
-                <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
-                  {groups.map((g) => (
-                    <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
-                      <GroupChip group={g} />
+          <>
+            <div className="d-desk-only">
+              <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
+                <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
+                <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
+                  {!allSelected ? (
+                    <button type="button" onClick={selectAll}>
+                      Tout sélectionner ({shown.length})
                     </button>
-                  ))}
-                  <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
-                    <span className="d-pop-label">Sans groupe</span>
-                  </button>
-                </Popover>
-              </span>
-              {events.length ? (
-                <span className="d-anchor">
-                  <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
-                    Moments
-                  </button>
-                  <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
-                    {events.map((ev) => (
-                      <span key={ev.id} style={{ display: "contents" }}>
-                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
-                          <span className="d-pop-label">Inviter à {ev.name}</span>
+                  ) : null}
+                  <span className="d-anchor">
+                    <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
+                      Groupe
+                    </button>
+                    <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
+                      {groups.map((g) => (
+                        <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
+                          <GroupChip group={g} />
                         </button>
-                        <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
-                          <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
-                        </button>
-                      </span>
-                    ))}
-                  </Popover>
+                      ))}
+                      <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
+                        <span className="d-pop-label">Sans groupe</span>
+                      </button>
+                    </Popover>
+                  </span>
+                  {events.length ? (
+                    <span className="d-anchor">
+                      <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
+                        Moments
+                      </button>
+                      <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
+                        {events.map((ev) => (
+                          <span key={ev.id} style={{ display: "contents" }}>
+                            <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
+                              <span className="d-pop-label">Inviter à {ev.name}</span>
+                            </button>
+                            <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
+                              <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
+                            </button>
+                          </span>
+                        ))}
+                      </Popover>
+                    </span>
+                  ) : null}
+                  <BulkColumnMenu fields={fields} onApply={bulkField} />
+                  <button type="button" onClick={clearSel}>
+                    Tout désélectionner
+                  </button>
+                  <button type="button" className="is-danger" onClick={bulkRemove}>
+                    <Icon name="trash" size={14} sw={2} />
+                    {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
+                  </button>
                 </span>
-              ) : null}
-              <BulkColumnMenu fields={fields} onApply={bulkField} />
-              <button type="button" onClick={clearSel}>
-                Tout désélectionner
-              </button>
-              <button type="button" className="is-danger" onClick={bulkRemove}>
-                <Icon name="trash" size={14} sw={2} />
-                {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
-              </button>
-            </span>
-          </div>
+              </div>
+            </div>
+
+            <div className="d-mob-only">
+              <div className="d-selbar-m" role="region" aria-label="Invités sélectionnés">
+                <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
+                <button type="button" onClick={() => setBulkSheet(true)}>
+                  Modifier en masse
+                </button>
+              </div>
+            </div>
+          </>
         ) : (
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
@@ -1009,6 +1152,16 @@ export default function Invites() {
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {groupsModal ? <GroupsModal onClose={() => setGroupsModal(false)} /> : null}
+      {bulkSheet ? (
+        <BulkEditSheet
+          n={n}
+          groups={groups}
+          events={events}
+          fields={fields}
+          onApply={{ group: bulkGroup, moment: bulkMoment, field: bulkField }}
+          onClose={() => setBulkSheet(false)}
+        />
+      ) : null}
     </>
   );
 }
