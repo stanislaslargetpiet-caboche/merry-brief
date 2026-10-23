@@ -273,7 +273,8 @@ export function TypeBadge({ doc, size = 38 }) {
 }
 
 // Une ligne de document : type, nom, rattachement, qui, date, taille, menu
-export function DocumentRow({ doc, showFolder, folderName }) {
+// `compact` : version téléphone, empilée (maquette 5n) au lieu de la grille large desktop
+export function DocumentRow({ doc, showFolder, folderName, compact }) {
   const dash = useDash();
   const { members, vendors, items, folders } = dash.data;
   const [open, setOpen] = useState(false);
@@ -309,28 +310,116 @@ export function DocumentRow({ doc, showFolder, folderName }) {
 
   const sub = [vendor?.name || (item ? posteName(item) : null), showFolder ? folderName : null].filter(Boolean).join(" · ");
 
+  const nameEl = renaming ? (
+    <form onSubmit={rename} style={{ display: "flex", gap: 8 }}>
+      <input className="d-input" value={name} autoFocus onChange={(e) => setName(e.target.value)} onBlur={rename} onKeyDown={(e) => e.key === "Escape" && setRenaming(false)} aria-label="Nom du document" />
+    </form>
+  ) : (
+    <button type="button" className="d-docrow-name" onClick={openDoc} title="Ouvrir">
+      {docTitle(doc)}
+    </button>
+  );
+
+  const budgetBadge = linked ? (
+    <Link href={vendor ? `/dashboard/budget/prestataires/${vendor.id}` : "/dashboard/budget"} className="d-doc-budget">
+      <Icon name="wallet" size={11} sw={2.2} />
+      Dans le budget
+    </Link>
+  ) : null;
+
+  const menu = (
+    <span className="d-anchor">
+      <button type="button" className="d-icon-btn" aria-label={`Options de ${doc.name}`} onClick={() => setOpen((o) => !o)}>
+        <Icon name="dots" size={18} sw={2.4} />
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} align="right">
+        <button type="button" className="d-pop-item" onClick={() => (setOpen(false), openDoc())}>
+          <span className="d-pop-label">
+            <Icon name="external" size={14} sw={2} />
+            Ouvrir
+          </span>
+        </button>
+        <button type="button" className="d-pop-item" onClick={() => (setOpen(false), setName(doc.name), setRenaming(true))}>
+          <span className="d-pop-label">
+            <Icon name="pencil" size={14} sw={2} />
+            Renommer
+          </span>
+        </button>
+        {folders.length ? (
+          <button type="button" className="d-pop-item" onClick={() => (setOpen(false), setMoving(true))}>
+            <span className="d-pop-label">
+              <Icon name="folder" size={14} sw={2} />
+              Déplacer vers…
+            </span>
+          </button>
+        ) : null}
+        <button type="button" className="d-pop-item is-danger" onClick={() => (setOpen(false), destroy())}>
+          <span className="d-pop-label">
+            <Icon name="trash" size={14} sw={2} />
+            Supprimer
+          </span>
+        </button>
+      </Popover>
+    </span>
+  );
+
+  const movingModal = moving ? (
+    <Modal title="Déplacer le document" onClose={() => setMoving(false)}>
+      <div className="d-col" style={{ gap: 6 }}>
+        {[...folders, ...(linked ? [BUDGET_FOLDER] : [])].map((f) => {
+          const on = f.virtual ? !doc.folder_id : doc.folder_id === f.id;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              className={`d-choice${on ? " is-on" : ""}`}
+              onClick={async () => {
+                setMoving(false);
+                if (!on) await dash.update("documents", doc.id, { folder_id: f.virtual ? null : f.id });
+              }}
+            >
+              <span className="d-radio" />
+              <span className="d-choice-text">
+                <strong>{f.name}</strong>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Modal>
+  ) : null;
+
+  if (compact) {
+    const metaBits = [by?.display_name, doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : null, doc.size_bytes ? fileSize(doc.size_bytes) : doc.url && !doc.storage_path ? "Lien" : null].filter(Boolean);
+    return (
+      <div className="d-docrow-m">
+        <TypeBadge doc={doc} size={34} />
+        <span className="d-docrow-m-text">
+          {nameEl}
+          <span className="d-docrow-sub">
+            {sub ? <span>{sub}</span> : null}
+            {budgetBadge}
+          </span>
+          <span className="d-docrow-meta-m">
+            {by ? <Avatar member={by} size={16} /> : null}
+            {metaBits.length ? <span>{metaBits.join(" · ")}</span> : null}
+          </span>
+        </span>
+        {menu}
+        {movingModal}
+      </div>
+    );
+  }
+
   return (
     <div className="d-docrow">
       <span className="d-docrow-main">
         <TypeBadge doc={doc} />
         <span className="d-docrow-text">
-          {renaming ? (
-            <form onSubmit={rename} style={{ display: "flex", gap: 8 }}>
-              <input className="d-input" value={name} autoFocus onChange={(e) => setName(e.target.value)} onBlur={rename} onKeyDown={(e) => e.key === "Escape" && setRenaming(false)} aria-label="Nom du document" />
-            </form>
-          ) : (
-            <button type="button" className="d-docrow-name" onClick={openDoc} title="Ouvrir">
-              {docTitle(doc)}
-            </button>
-          )}
+          {nameEl}
           <span className="d-docrow-sub">
             {sub ? <span>{sub}</span> : null}
-            {linked ? (
-              <Link href={vendor ? `/dashboard/budget/prestataires/${vendor.id}` : "/dashboard/budget"} className="d-doc-budget">
-                <Icon name="wallet" size={11} sw={2.2} />
-                Dans le budget
-              </Link>
-            ) : null}
+            {budgetBadge}
           </span>
         </span>
       </span>
@@ -346,64 +435,8 @@ export function DocumentRow({ doc, showFolder, folderName }) {
       </span>
       <span className="d-docrow-date">{doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : ""}</span>
       <span className="d-docrow-size">{doc.size_bytes ? fileSize(doc.size_bytes) : doc.url && !doc.storage_path ? "Lien" : ""}</span>
-      <span className="d-anchor">
-        <button type="button" className="d-icon-btn" aria-label={`Options de ${doc.name}`} onClick={() => setOpen((o) => !o)}>
-          <Icon name="dots" size={18} sw={2.4} />
-        </button>
-        <Popover open={open} onClose={() => setOpen(false)} align="right">
-          <button type="button" className="d-pop-item" onClick={() => (setOpen(false), openDoc())}>
-            <span className="d-pop-label">
-              <Icon name="external" size={14} sw={2} />
-              Ouvrir
-            </span>
-          </button>
-          <button type="button" className="d-pop-item" onClick={() => (setOpen(false), setName(doc.name), setRenaming(true))}>
-            <span className="d-pop-label">
-              <Icon name="pencil" size={14} sw={2} />
-              Renommer
-            </span>
-          </button>
-          {folders.length ? (
-            <button type="button" className="d-pop-item" onClick={() => (setOpen(false), setMoving(true))}>
-              <span className="d-pop-label">
-                <Icon name="folder" size={14} sw={2} />
-                Déplacer vers…
-              </span>
-            </button>
-          ) : null}
-          <button type="button" className="d-pop-item is-danger" onClick={() => (setOpen(false), destroy())}>
-            <span className="d-pop-label">
-              <Icon name="trash" size={14} sw={2} />
-              Supprimer
-            </span>
-          </button>
-        </Popover>
-      </span>
-      {moving ? (
-        <Modal title="Déplacer le document" onClose={() => setMoving(false)}>
-          <div className="d-col" style={{ gap: 6 }}>
-            {[...folders, ...(linked ? [BUDGET_FOLDER] : [])].map((f) => {
-              const on = f.virtual ? !doc.folder_id : doc.folder_id === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`d-choice${on ? " is-on" : ""}`}
-                  onClick={async () => {
-                    setMoving(false);
-                    if (!on) await dash.update("documents", doc.id, { folder_id: f.virtual ? null : f.id });
-                  }}
-                >
-                  <span className="d-radio" />
-                  <span className="d-choice-text">
-                    <strong>{f.name}</strong>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Modal>
-      ) : null}
+      {menu}
+      {movingModal}
     </div>
   );
 }

@@ -108,7 +108,7 @@ export default function Dossier() {
               <div className="d-mob-only">
                 <div className="d-docs-list">
                   {docs.slice(0, 6).map((d) => (
-                    <DocumentRow key={d.id} doc={d} />
+                    <DocumentRow key={d.id} doc={d} compact />
                   ))}
                 </div>
                 {docs.length > 6 ? (

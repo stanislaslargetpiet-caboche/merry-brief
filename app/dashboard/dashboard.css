@@ -3153,6 +3153,34 @@ button.d-rsvp:hover {
   gap: 10px;
 }
 
+/* Téléphone : la ligne invité elle-même (lien vers la fiche, ou bouton en mode sélection) */
+.d-gcard-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.d-gavatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .d-gcard-name {
   flex: 1;
   min-width: 0;
@@ -3676,7 +3704,44 @@ button.d-rsvp:hover {
 /* Téléphone : accès aux réglages des moments et des groupes, cachés avec le reste des filtres */
 .d-filters-m {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.d-filters-m button.is-on {
+  border-style: solid;
+  border-color: var(--d-ink);
+  background: var(--d-ink);
+  color: #ffffff;
+}
+
+/* Téléphone : bouton de filtre par groupe, à côté de la recherche */
+.d-group-pick {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-ink);
+  white-space: nowrap;
+}
+
+/* Fiche invité téléphone : le groupe en texte simple, pas en pastille de couleur */
+.d-gcard-group .d-group {
+  background: transparent !important;
+  color: var(--d-muted) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  min-height: 0 !important;
 }
 
 .d-filters-m button {
@@ -4626,6 +4691,40 @@ button.d-rsvp:hover {
 
 .d-docrow-size {
   text-align: right;
+}
+
+/* Téléphone : ligne de document empilée (badge, nom, pastille budget, puis qui/quand/taille) */
+.d-docrow-m {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+}
+
+.d-docrow-m + .d-docrow-m {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-docrow-m-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.d-docrow-m .d-docrow-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.d-docrow-meta-m {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--d-muted);
+  margin-top: 2px;
 }
 
 .d-docdrop {
