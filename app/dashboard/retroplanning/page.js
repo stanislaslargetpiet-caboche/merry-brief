@@ -19,6 +19,7 @@ export default function Retroplanning() {
   const [adding, setAdding] = useState(false);
   const [showDone, setShowDone] = useState(true);
   const [dates, setDates] = useState(null); // null | "first" | "edit"
+  const [statusFilter, setStatusFilter] = useState("tout"); // téléphone : tout | semaine | retard | fait
 
   // À la première visite, on demande les grandes dates (civil, veille, brunch…)
   useEffect(() => {
@@ -37,7 +38,14 @@ export default function Retroplanning() {
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
-  const filtered = tasks.filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (showDone || !t.done));
+  const filtered = tasks
+    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (showDone || !t.done))
+    .filter((t) => {
+      if (statusFilter === "semaine") return !t.done && t.due_date && daysUntil(t.due_date) >= 0 && daysUntil(t.due_date) <= 7;
+      if (statusFilter === "retard") return !t.done && t.due_date && daysUntil(t.due_date) < 0;
+      if (statusFilter === "fait") return t.done;
+      return true;
+    });
   const groups = taskGroups(filtered);
 
   // Qui fait quoi : chaque personne, et « Vous deux » pour les tâches du couple
@@ -98,6 +106,40 @@ export default function Retroplanning() {
         </div>
       </div>
 
+      <div className="d-mob-only">
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+          {[
+            ["tout", "Tout"],
+            ["semaine", "Cette semaine"],
+            ["retard", "En retard"],
+            ["fait", "Fait"],
+          ].map(([key, label]) => {
+            const on = statusFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setStatusFilter(key)}
+                style={{
+                  flex: "none",
+                  minHeight: 40,
+                  padding: "0 16px",
+                  borderRadius: 999,
+                  border: on ? "none" : "1px solid #d9d7cf",
+                  background: on ? "var(--d-ink)" : "#ffffff",
+                  color: on ? "#ffffff" : "inherit",
+                  fontSize: 13,
+                  fontWeight: on ? 600 : 400,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="d-desk-only">
         <Timeline data={data} onPinClick={() => setDates("edit")} />
       </div>
@@ -114,7 +156,7 @@ export default function Retroplanning() {
             <div key={g.key} className="d-col" style={{ gap: 12 }}>
               <h2 className="d-h2" style={{ fontSize: 19, display: "flex", alignItems: "center", gap: 10, color: g.key === "late" ? "var(--d-red-ink)" : undefined }}>
                 {g.label}
-                <span className="d-count">{g.tasks.length}</span>
+                <span className="d-count d-desk-only">{g.tasks.length}</span>
               </h2>
               <div className="d-tasks">
                 {g.tasks.map((t) => (

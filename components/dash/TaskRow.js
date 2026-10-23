@@ -172,7 +172,7 @@ export default function TaskRow({ task }) {
         <button type="button" className="d-task-title" onClick={() => setEditing((x) => !x)} title="Modifier la tâche">
           <span>{task.title}</span>
           {task.added_by_merry ? (
-            <span className="d-badge d-badge-merry">
+            <span className="d-badge d-badge-merry d-desk-only">
               <Icon name="sparkle" size={12} sw={2} />
               Ajoutée par Merry
             </span>
