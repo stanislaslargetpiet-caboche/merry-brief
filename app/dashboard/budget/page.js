@@ -266,68 +266,32 @@ export default function Budget() {
     );
   };
 
-  const renderCard = (it) => {
+  // Téléphone : ligne simple (icône, nom, prestataire | montant ou « Ajouter un devis »), comme la maquette
+  const renderMobileRow = (it) => {
     const f = itemFinance(it, payments);
     const v = vendorById.get(it.vendor_id);
+    const sub = v ? v.name : f.quote === null ? "Prestataire à choisir" : it.note || null;
     return (
-      <div key={it.id} className="d-pcard">
-        <div className="d-pcard-top">
-          <Tile name={it.icon || guessIcon(it.label)} />
-          <span className="d-pcard-text">
-            <button type="button" onClick={() => setEditing(it)} title="Modifier le poste">
-              {posteName(it)}
-            </button>
-            {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : null}
-            <button type="button" className="d-add-line-link d-desk-only" onClick={() => addLine(it.category || it.label)}>
-              Ajouter une ligne
-            </button>
-          </span>
-          <span className="d-pcard-amounts">
-            {f.quote !== null ? (
-              <>
-                <strong>{euros(f.quote)}</strong>
-                <small>budget {f.budgeted !== null ? euros(f.budgeted) : "–"}</small>
-              </>
-            ) : (
-              <>
-                <strong>{f.budgeted !== null ? euros(f.budgeted) : "–"}</strong>
-                <small>budget</small>
-              </>
-            )}
-          </span>
-        </div>
-        <div className="d-pcard-foot">
-          {f.quote !== null ? <Variance value={f.variance} /> : <span />}
-          {f.fullyPaid ? (
-            <span className="d-status is-done">
-              <Icon name="check" size={12} sw={2.4} />
-              Tout payé
-            </span>
-          ) : f.quote !== null && f.paid === 0 ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
-              Effectuer un paiement
-            </Link>
-          ) : f.next ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo">
-              {dueLabel(f.next, wedding.wedding_date)}
-            </Link>
-          ) : f.quote !== null ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}`} className="d-status is-todo">
-              Reste {euros(f.remaining)}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="d-link"
-              onClick={() => {
-                setQuoteFocus(true);
-                setEditing(it);
-              }}
-            >
-              Ajouter un devis
-            </button>
-          )}
-        </div>
+      <div key={it.id} className="d-mrow">
+        <Tile name={it.icon || guessIcon(it.label)} />
+        <span className="d-mrow-text">
+          <strong>{posteName(it)}</strong>
+          {sub ? <small>{sub}</small> : null}
+        </span>
+        {f.quote !== null ? (
+          <strong className="d-mrow-amount">{euros(f.quote)}</strong>
+        ) : (
+          <button
+            type="button"
+            className="d-link d-mrow-amount"
+            onClick={() => {
+              setQuoteFocus(true);
+              setEditing(it);
+            }}
+          >
+            Ajouter un devis
+          </button>
+        )}
       </div>
     );
   };
@@ -503,7 +467,16 @@ export default function Budget() {
         }
       />
 
-      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" mobileLimit={3} />
+      <div className="d-desk-only">
+        <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
+      </div>
+      <div className="d-mob-only">
+        <div className="d-mstats">
+          <div><strong>{euros(b.initial)}</strong><span>Budget total</span></div>
+          <div><strong>{euros(b.engaged)}</strong><span>Engagé</span></div>
+          <div><strong>{euros(b.paid)}</strong><span>Payé</span></div>
+        </div>
+      </div>
 
       <section className="d-card d-desk-only" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
@@ -611,7 +584,7 @@ export default function Budget() {
         <Section title="Par poste" right={<span className="d-small d-muted d-hide-mobile">Le crayon modifie un poste, la corbeille le supprime</span>} />
 
         <div className="d-cards d-mob-only">
-          {groups.map((g) => (g.multi ? renderGroupCard(g) : renderCard(g.items[0])))}
+          {groups.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
           <span className="d-desk-only">
             <div className="d-pcard-total">
               <span>
