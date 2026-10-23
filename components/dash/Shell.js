@@ -174,10 +174,7 @@ function Frame({ children }) {
           const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
           return (
             <Link key={n.href} href={n.href} className={`d-tab-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
-              <span className="d-tab-icon">
-                <Icon name={n.icon} size={20} sw={on ? 2.2 : 1.8} />
-              </span>
-              {n.short}
+              {on ? <span className="d-tab-pill">{n.short}</span> : n.short}
             </Link>
           );
         })}
