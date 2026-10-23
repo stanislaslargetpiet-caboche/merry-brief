@@ -78,7 +78,7 @@ export default function Accueil() {
             <div className="d-countdown">
               <strong>J-{days}</strong>
               {!firstVisit ? (
-                <span>
+                <span className="d-desk-only">
                   avant le <br />
                   grand jour
                 </span>
@@ -86,7 +86,9 @@ export default function Accueil() {
             </div>
           ) : null}
           <Link href="/dashboard/brief" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-            Votre brief <Icon name="chev" size={16} sw={2} />
+            <span className="d-desk-only">Votre brief</span>
+            <span className="d-mob-only">Le brief</span>
+            <Icon name="chev" size={16} sw={2} />
           </Link>
         </div>
     </div>
@@ -224,7 +226,15 @@ export default function Accueil() {
           </div>
 
           <div className="d-col">
-            <Section title={week.length ? "Cette semaine" : "Prochaines tâches"} right={<Link href="/dashboard/retroplanning" className="d-link">Tout le rétroplanning</Link>} />
+            <Section
+              title={week.length ? "Cette semaine" : "Prochaines tâches"}
+              right={
+                <Link href="/dashboard/retroplanning" className="d-link">
+                  <span className="d-desk-only">Tout le rétroplanning</span>
+                  <span className="d-mob-only">Tout voir</span>
+                </Link>
+              }
+            />
             {shown.length ? (
               <div className="d-tasks">
                 {shown.map((task) => (
