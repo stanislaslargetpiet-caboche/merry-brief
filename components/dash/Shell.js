@@ -15,6 +15,9 @@ const NAV = [
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet" },
+];
+// Sur téléphone, ces deux-là se regroupent sous un seul onglet « Autres » (sinon la barre déborde)
+const NAV_MORE = [
   { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
   { href: "/dashboard/pense-bete", label: "Pense-bête", short: "Notes", icon: "notepad" },
 ];
@@ -109,6 +112,8 @@ function Frame({ children }) {
   const members = data?.members || [];
   const pending = members.filter((m) => !m.user_id);
   const [menu, setMenu] = useState(false);
+  const [more, setMore] = useState(false);
+  const moreOn = NAV_MORE.some((n) => pathname.startsWith(n.href));
 
   return (
     <div className="d-root">
@@ -179,6 +184,24 @@ function Frame({ children }) {
             </Link>
           );
         })}
+        <span className="d-anchor" style={{ flex: 1 }}>
+          <button type="button" className={`d-tab-item${moreOn ? " is-on" : ""}`} style={{ width: "100%" }} onClick={() => setMore((x) => !x)} aria-expanded={more} aria-haspopup="menu">
+            {moreOn ? <span className="d-tab-pill">Autres</span> : "Autres"}
+          </button>
+          <Popover open={more} onClose={() => setMore(false)} align="right">
+            {NAV_MORE.map((n) => {
+              const on = pathname.startsWith(n.href);
+              return (
+                <Link key={n.href} href={n.href} className={`d-pop-item${on ? " is-on" : ""}`} onClick={() => setMore(false)}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Icon name={n.icon} size={16} sw={2} />
+                    {n.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </Popover>
+        </span>
       </nav>
 
       <nav className="d-nav" aria-label="Navigation du tableau de bord">
@@ -195,7 +218,7 @@ function Frame({ children }) {
           </select>
         ) : null}
         <div className="d-nav-main">
-          {NAV.map((n) => {
+          {[...NAV, ...NAV_MORE].map((n) => {
             const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
             return (
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>

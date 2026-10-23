@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
+import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader, Section } from "@/components/dash/ui";
 import NoteRow from "@/components/dash/PenseBete";
 
@@ -85,6 +86,12 @@ export default function PenseBete() {
             ))}
           </div>
         </div>
+      ) : null}
+
+      {!adding ? (
+        <button type="button" className="d-fab" aria-label="Ajouter un pense-bête" onClick={() => setAdding(true)}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
       ) : null}
     </>
   );
