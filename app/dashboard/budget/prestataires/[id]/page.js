@@ -85,6 +85,25 @@ export default function Prestataire() {
             </Btn>
           ) : null}
         </div>
+        <div className="d-mob-only">
+          <div className="d-vendor-actions-m">
+            {item ? (
+              <Btn kind="lime" icon="wallet" href={`/dashboard/budget/paiement/${item.id}${f?.next ? `?echeance=${f.next.id}` : ""}`} small>
+                Payer
+              </Btn>
+            ) : null}
+            {vendor.phone ? (
+              <Btn kind="strong" icon="phone" href={telHref(vendor.phone)} small>
+                Appeler
+              </Btn>
+            ) : null}
+            {vendor.email ? (
+              <Btn icon="send" href={mailto(firstName ? `Bonjour ${firstName},\n\n` : "Bonjour,\n\n")} small>
+                Message
+              </Btn>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="d-grid-side d-grid-vendor">

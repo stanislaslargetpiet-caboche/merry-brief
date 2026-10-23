@@ -125,7 +125,18 @@ table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;back
               ))}
             </div>
           </div>
-          <div className="d-g2" style={{ gap: 10 }}>
+          <div className="d-g2 d-desk-only" style={{ gap: 10 }}>
+            {columns.map((c) => {
+              const on = chosen.includes(c.id);
+              return (
+                <button key={c.id} type="button" className={`d-choice${on ? " is-on" : ""}`} onClick={() => toggle(c.id)} aria-pressed={on}>
+                  <span className="d-box">{on ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                  <span style={{ fontSize: 15, fontWeight: on ? 600 : 400 }}>{c.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="d-col d-mob-only" style={{ gap: 8 }}>
             {columns.map((c) => {
               const on = chosen.includes(c.id);
               return (
@@ -173,7 +184,7 @@ table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;back
           </div>
           <div className="d-col" style={{ gap: 10 }}>
             <strong style={{ fontSize: 14 }}>Format</strong>
-            <div className="d-g3" style={{ gap: 10 }}>
+            <div className="d-g3 d-g3-keep3" style={{ gap: 10 }}>
               {[
                 ["xlsx", "Excel"],
                 ["csv", "CSV"],
