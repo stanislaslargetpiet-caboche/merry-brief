@@ -2230,6 +2230,11 @@ button.d-rsvp:hover {
   display: none;
 }
 
+/* Bouton rond flottant (ajouter), comme sur la maquette téléphone */
+.d-fab {
+  display: none;
+}
+
 @media (max-width: 700px) {
   .d-root {
     flex-direction: column;
@@ -2318,6 +2323,24 @@ button.d-rsvp:hover {
     color: var(--d-ink);
   }
 
+  .d-fab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 16px;
+    bottom: calc(64px + 16px + env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--d-ink);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(28, 28, 26, 0.28);
+    z-index: 35;
+    cursor: pointer;
+  }
+
   /* Onglets en bas */
   .d-tabbar {
     position: fixed;
@@ -2388,7 +2411,7 @@ button.d-rsvp:hover {
     font-size: 16px;
   }
 
-  /* En-têtes de page : titre plus petit, actions sur une ligne qui défile */
+  /* En-têtes de page : titre plus petit, actions masquées (la maquette téléphone ne les montre pas : chaque écran a sa propre entrée mobile) */
   .d-header {
     gap: 10px;
   }
@@ -2409,7 +2432,10 @@ button.d-rsvp:hover {
     margin-bottom: 6px;
   }
 
-  .d-header-actions,
+  .d-header-actions {
+    display: none;
+  }
+
   .d-scroll-x {
     display: flex;
     flex-wrap: nowrap;
@@ -2423,25 +2449,12 @@ button.d-rsvp:hover {
     -webkit-overflow-scrolling: touch;
   }
 
-  .d-header-actions::-webkit-scrollbar,
   .d-scroll-x::-webkit-scrollbar {
     display: none;
   }
 
-  .d-header-actions > *,
   .d-scroll-x > * {
     flex: none;
-  }
-
-  .d-header-actions .d-btn {
-    min-height: 40px;
-    padding: 0 16px;
-    font-size: 14px;
-  }
-
-  /* L'action principale passe en premier */
-  .d-header-actions .d-btn-primary {
-    order: -1;
   }
 
   .d-section {
@@ -2966,23 +2979,30 @@ button.d-rsvp:hover {
   font-size: 15px;
 }
 
-.d-gcard-rsvps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-}
-
-.d-gcard-rsvp {
+.d-gcard-status {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.d-gcard-rsvp > small {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.d-gcard-status.is-oui {
+  background: #dff3e1;
+  color: #1f6b30;
+}
+
+.d-gcard-status.is-attente {
+  background: #ffe6cc;
+  color: #8a4b0f;
+}
+
+.d-gcard-status.is-non,
+.d-gcard-status.is-non_invite {
+  background: var(--d-panel);
   color: var(--d-muted);
 }
 

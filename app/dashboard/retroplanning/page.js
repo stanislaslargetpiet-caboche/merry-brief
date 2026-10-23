@@ -6,6 +6,7 @@ import { useData } from "@/lib/dash/store";
 import { budgetTotals, coupleIds, isBoth, paymentTitle, taskGroups, taskStats } from "@/lib/dash/model";
 import { dayMonth, daysUntil, euros } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
+import { Icon } from "@/components/dash/icons";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
 import DatesModal, { DATES_SEEN_KEY } from "@/components/dash/DatesModal";
@@ -194,6 +195,11 @@ export default function Retroplanning() {
           </section>
         </div>
       </div>
+      {!adding ? (
+        <button type="button" className="d-fab" aria-label="Ajouter une tâche" onClick={() => setAdding(true)}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
+      ) : null}
       {dates ? (
         <DatesModal
           first={dates === "first"}
