@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { INVITE_KEY, RESET_KEY } from "@/lib/dash/store";
+import { useLang } from "@/lib/lang";
+import { CONNEXION_TEXT } from "@/lib/i18n/connexion";
+import LangSwitch from "@/components/LangSwitch";
 
 /*
  * Connexion au tableau de bord, depuis le bouton « Connexion » du site.
  * Gère aussi le lien d'invitation d'un organisateur (?invitation=…) : on
  * montre le mariage concerné et on ne rejoint qu'après confirmation.
+ * Textes FR/EN : voir lib/i18n/connexion.js.
  */
 
 const TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -39,6 +43,9 @@ function dropToken() {
 }
 
 export default function Connexion() {
+  const { lang } = useLang();
+  const s = CONNEXION_TEXT[lang];
+
   // checking | login | signup | forgot | reset | sent | confirm | join | badlink | signedin | expired
   const [mode, setMode] = useState("checking");
   const [user, setUser] = useState(null);
@@ -149,25 +156,25 @@ export default function Connexion() {
     try {
       if (mode === "login") {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-        if (err) throw new Error("Email ou mot de passe incorrect.");
+        if (err) throw new Error(s.errors.badLogin);
         afterAuth();
       } else if (mode === "signup") {
-        if (password.length < 8) throw new Error("Le mot de passe doit faire au moins 8 caractères.");
+        if (password.length < 8) throw new Error(s.errors.passwordTooShort);
         const { data, error: err } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { first_name: firstName }, emailRedirectTo: `${window.location.origin}/connexion` },
         });
-        if (err) throw new Error(/registered|already/i.test(err.message) ? "Ce mail a déjà un compte : connectez-vous." : "La création du compte n'a pas marché. Réessayez.");
+        if (err) throw new Error(/registered|already/i.test(err.message) ? s.errors.alreadyRegistered : s.errors.signupFailed);
         if (!data.session) setMode("confirm");
         else afterAuth();
       } else if (mode === "forgot") {
         await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/connexion?reset=1` });
         setMode("sent");
       } else if (mode === "reset") {
-        if (password.length < 8) throw new Error("Le mot de passe doit faire au moins 8 caractères.");
+        if (password.length < 8) throw new Error(s.errors.passwordTooShort);
         const { error: err } = await supabase.auth.updateUser({ password });
-        if (err) throw new Error(/same|different/i.test(err.message || "") ? "Choisis un mot de passe différent de l'ancien." : "Le lien a expiré. Redemande un mot de passe.");
+        if (err) throw new Error(/same|different/i.test(err.message || "") ? s.errors.samePassword : s.errors.resetExpired);
         try {
           window.localStorage.removeItem(RESET_KEY);
         } catch {
@@ -184,17 +191,17 @@ export default function Connexion() {
 
   const couple = invite ? [invite.partner1, invite.partner2].filter(Boolean).join(" et ") : "";
   const titles = {
-    login: "Content de te revoir.",
-    signup: token ? "Rejoins l'organisation." : "Crée ton accès.",
-    forgot: "Mot de passe oublié.",
-    reset: "Nouveau mot de passe.",
-    sent: "Regarde ta boîte mail.",
-    confirm: "Plus qu'un clic.",
-    join: `Le mariage de ${couple}.`,
-    badlink: "Ce lien ne marche plus.",
-    signedin: "Tu es déjà connecté.",
-    expired: "Ce lien a expiré.",
-    checking: "Connexion.",
+    login: s.titles.login,
+    signup: token ? s.titles.signupInvited : s.titles.signupNew,
+    forgot: s.titles.forgot,
+    reset: s.titles.reset,
+    sent: s.titles.sent,
+    confirm: s.titles.confirm,
+    join: s.titles.join(couple),
+    badlink: s.titles.badlink,
+    signedin: s.titles.signedin,
+    expired: s.titles.expired,
+    checking: s.titles.checking,
   };
 
   async function signOut() {
@@ -212,58 +219,57 @@ export default function Connexion() {
   return (
     <div className="shell">
       <aside className="panel">
-        <a className="panel-logo" href={SITE_URL} aria-label="Merry, retour au site">
+        <LangSwitch />
+        <a className="panel-logo" href={SITE_URL} aria-label={s.logoAria}>
           Merry
         </a>
         <div className="panel-word" aria-hidden="true">
-          Ton mariage.
+          {s.panelWord}
         </div>
         <div className="panel-caption" aria-hidden="true">
-          Merry - Experience Crafting Group
+          {s.panelCaption}
         </div>
       </aside>
       <main className="stage">
         <section className="card">
-          <div className="eyebrow">{token && mode !== "login" ? "Invitation" : "Connexion"}</div>
+          <div className="eyebrow">{token && mode !== "login" ? s.eyebrowInvitation : s.eyebrowLogin}</div>
           <h1 className="question">{titles[mode]}</h1>
 
           {!supabase ? (
             <>
-              <p className="help">Les comptes ne sont pas encore branchés sur cet environnement.</p>
+              <p className="help">{s.noSupabase}</p>
               <div className="actions">
                 <a className="btn" href="/dashboard?demo=1">
-                  Voir la démo
+                  {s.seeDemo}
                 </a>
               </div>
             </>
           ) : mode === "checking" ? (
-            <p className="help">Un instant…</p>
+            <p className="help">{s.oneMoment}</p>
           ) : mode === "signedin" ? (
             <>
-              <p className="help">Tu es connecté avec {user?.email}.</p>
+              <p className="help">{s.signedInAs(user?.email)}</p>
               <div className="actions">
                 <button type="button" className="skip" onClick={signOut}>
-                  Se déconnecter
+                  {s.signOut}
                 </button>
                 <a className="btn" href={next}>
-                  Aller au tableau de bord
+                  {s.goToDashboard}
                 </a>
               </div>
             </>
           ) : mode === "expired" ? (
             <>
-              <p className="help">Le lien pour changer de mot de passe ne sert qu'une fois et expire au bout d'une heure. Demande un nouveau lien.</p>
+              <p className="help">{s.expiredHelp}</p>
               <div className="actions">
                 <button type="button" className="btn" onClick={() => setMode("forgot")}>
-                  Recevoir un nouveau lien
+                  {s.getNewLink}
                 </button>
               </div>
             </>
           ) : mode === "join" ? (
             <>
-              <p className="help">
-                Tu es invité{invite?.invited_as ? ` en tant que « ${invite.invited_as} »` : ""} à organiser ce mariage sur Merry, avec les mêmes droits que le couple : invités, rétroplanning et budget.
-              </p>
+              <p className="help">{s.joinHelp(invite?.invited_as)}</p>
               <div className="actions">
                 <button
                   type="button"
@@ -273,53 +279,53 @@ export default function Connexion() {
                     window.location.replace("/dashboard");
                   }}
                 >
-                  Pas maintenant
+                  {s.notNow}
                 </button>
                 <button type="button" className="btn" onClick={join} disabled={busy}>
-                  Rejoindre
+                  {s.join}
                 </button>
               </div>
             </>
           ) : mode === "badlink" ? (
             <>
-              <p className="help">Ce lien d'invitation a déjà servi ou a été remplacé. Demande un nouveau lien à la personne qui t'a invité.</p>
+              <p className="help">{s.badlinkHelp}</p>
               <div className="actions">
                 <a className="btn" href="/dashboard">
-                  Aller au tableau de bord
+                  {s.goToDashboard}
                 </a>
               </div>
             </>
           ) : mode === "sent" ? (
-            <p className="help">Si un compte existe pour {email}, un lien pour choisir un nouveau mot de passe vient d'arriver.</p>
+            <p className="help">{s.sentHelp(email)}</p>
           ) : mode === "confirm" ? (
-            <p className="help">Un mail de confirmation est parti à {email}. Clique sur le lien : tu reviendras ici pour rejoindre l'organisation.</p>
+            <p className="help">{s.confirmHelp(email)}</p>
           ) : (
             <form onSubmit={submit} className="fields">
               {mode === "reset" ? (
                 <p className="help" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                  Choisis un nouveau mot de passe pour {user?.email}. Tu accèdes au tableau de bord juste après.
+                  {s.resetHelp(user?.email)}
                 </p>
               ) : null}
               {mode === "signup" && token ? (
                 <p className="help" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                  On t'a invité à organiser un mariage sur Merry. Crée ton accès, ou connecte-toi si tu as déjà un compte.
+                  {s.signupInvitedHelp}
                 </p>
               ) : null}
               {mode === "signup" ? (
                 <div className="field full">
-                  <label htmlFor="c-first">Prénom</label>
+                  <label htmlFor="c-first">{s.firstNameLabel}</label>
                   <input id="c-first" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" required />
                 </div>
               ) : null}
               {mode !== "reset" ? (
                 <div className="field full">
-                  <label htmlFor="c-email">Email</label>
+                  <label htmlFor="c-email">{s.emailLabel}</label>
                   <input id="c-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
                 </div>
               ) : null}
               {mode !== "forgot" ? (
                 <div className="field full">
-                  <label htmlFor="c-password">{mode === "reset" ? "Nouveau mot de passe" : "Mot de passe"}</label>
+                  <label htmlFor="c-password">{mode === "reset" ? s.newPasswordLabel : s.passwordLabel}</label>
                   <input
                     id="c-password"
                     type="password"
@@ -335,23 +341,23 @@ export default function Connexion() {
               <div className="actions" style={{ gridColumn: "1 / -1" }}>
                 {mode === "login" ? (
                   <button type="button" className="skip" onClick={() => setMode("forgot")}>
-                    Mot de passe oublié ?
+                    {s.forgotPassword}
                   </button>
                 ) : mode === "signup" ? (
                   <button type="button" className="skip" onClick={() => setMode("login")}>
-                    J'ai déjà un compte
+                    {s.haveAccount}
                   </button>
                 ) : mode === "reset" ? (
                   <button type="button" className="skip" onClick={signOut}>
-                    Annuler
+                    {s.cancel}
                   </button>
                 ) : (
                   <button type="button" className="skip" onClick={() => setMode("login")}>
-                    Retour
+                    {s.back}
                   </button>
                 )}
                 <button type="submit" className="btn" disabled={busy}>
-                  {mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon accès" : mode === "forgot" ? "Recevoir le lien" : "Enregistrer"}
+                  {mode === "login" ? s.submit.login : mode === "signup" ? s.submit.signup : mode === "forgot" ? s.submit.forgot : s.submit.reset}
                 </button>
               </div>
             </form>
@@ -359,7 +365,7 @@ export default function Connexion() {
 
           {mode === "login" && !token ? (
             <p className="footnote">
-              Pas encore de compte ? <a href="/">Raconte-nous ton mariage</a>, Merry prépare ton tableau de bord.
+              {s.footnoteLead}<a href="/">{s.footnoteLink}</a>{s.footnoteTail}
             </p>
           ) : null}
         </section>

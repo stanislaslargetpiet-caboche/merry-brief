@@ -1,4 +1,5 @@
 import "./globals.css";
+import { LangProvider } from "@/lib/lang";
 
 export const metadata = {
   title: "Merry · Raconte-nous ton mariage",
@@ -24,7 +25,9 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Climate+Crisis&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <LangProvider>{children}</LangProvider>
+      </body>
     </html>
   );
 }

@@ -92,6 +92,35 @@ textarea {
   font-size: 15px;
 }
 
+.lang-switch {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.lang-switch button {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.lang-switch button:hover {
+  opacity: 0.8;
+}
+
+.lang-switch button[aria-pressed="true"] {
+  opacity: 1;
+  text-decoration: underline;
+}
+
 .stage {
   display: flex;
   flex-direction: column;
@@ -545,6 +574,10 @@ h1.question {
   }
   .panel-caption {
     display: none;
+  }
+  .lang-switch {
+    top: 14px;
+    right: 16px;
   }
   .stage {
     padding: 16px;

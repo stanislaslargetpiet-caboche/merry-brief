@@ -3,84 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { createAccountAndBrief } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
+import { useLang } from "@/lib/lang";
+import { BRIEF_TEXT } from "@/lib/i18n/brief";
+import LangSwitch from "@/components/LangSwitch";
 
 /* ------------------------------------------------------------------ */
 /*  Contenu des écrans (source : canvas « Merry · Carte brief »,        */
-/*  page Onboarding, validé le 21 oct. 2026)                            */
+/*  page Onboarding, validé le 21 oct. 2026). Textes FR/EN : voir       */
+/*  lib/i18n/brief.js.                                                  */
 /* ------------------------------------------------------------------ */
-
-const EVENTS = [
-  { value: "mariage", label: "Mariage", sub: "Du lieu à la lune de miel", available: true },
-  { value: "famille", label: "Fête de famille" },
-  { value: "evjf", label: "Enterrement de vie de jeune fille" },
-  { value: "evg", label: "Enterrement de vie de garçon" },
-  { value: "anniversaire", label: "Anniversaire" },
-  { value: "fiancailles", label: "Fiançailles" },
-  { value: "bapteme", label: "Baptême" },
-  { value: "autre", label: "Une autre fête" },
-];
-
-const STAGES = [
-  { value: "debut", label: "Au tout (tout) début" },
-  { value: "regarde", label: "On commence à s'y pencher" },
-  { value: "lieu_recherche", label: "On cherche le lieu" },
-  { value: "lieu_reserve", label: "Le lieu est réservé, il manque tout le reste" },
-  { value: "details", label: "Presque fini, il reste les détails" },
-];
-
-const TEAMS = [
-  { value: "nous_deux", label: "Juste nous deux" },
-  { value: "nous_parents", label: "Nous et nos parents" },
-  { value: "nous_planner", label: "Nous et un wedding planner" },
-  { value: "planner_seul", label: "Juste un wedding planner" },
-];
-
-const GUESTS = [
-  { value: "<50", label: "Moins de 50" },
-  { value: "50-100", label: "50 à 100" },
-  { value: "100-150", label: "100 à 150" },
-  { value: "150-200", label: "150 à 200" },
-  { value: ">200", label: "Plus de 200" },
-];
-
-const FORMATS = [
-  { value: "jour", label: "Sur une journée" },
-  { value: "weekend", label: "Tout un week-end" },
-  { value: "inconnu", label: "On ne sait pas encore" },
-];
-
-const VIBES = [
-  "Champêtre",
-  "Grande fête",
-  "Intime",
-  "Chic",
-  "Bohème",
-  "Bord de mer",
-  "Rock",
-  "À l'ancienne",
-  "Un peu dingue",
-  "On ne sait pas encore",
-];
-
-
-const BUDGETS = [
-  { value: "<15k", label: "Moins de 15 000 €" },
-  { value: "15-30k", label: "15 000 à 30 000 €" },
-  { value: "30-50k", label: "30 000 à 50 000 €" },
-  { value: ">50k", label: "Plus de 50 000 €" },
-  { value: "aucune_idee", label: "Aucune idée, aidez-nous" },
-];
-
-const PANEL_WORDS = [
-  "On fête quoi ?",
-  "C'est parti !",
-  "Qui fait quoi.",
-  "Le jour, le lieu.",
-  "Combien de monde.",
-  "Sobre. Chic. Et élégant.",
-  "Le budget.",
-  "On attaque.",
-];
 
 // 7 questions après le choix de la fête (étape 0, sans compteur).
 const TOTAL = 7;
@@ -159,6 +90,9 @@ function CloseIcon() {
 /* ------------------------------------------------------------------ */
 
 export default function Brief() {
+  const { lang } = useLang();
+  const s = BRIEF_TEXT[lang];
+
   const [step, setStep] = useState(0);
   const [data, setData] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | done | confirm | error
@@ -198,7 +132,7 @@ export default function Brief() {
       return { ...d, [key]: max ? list.slice(-max) : list };
     });
 
-  const isMail = (s) => /.+@.+\..+/.test(s);
+  const isMail = (str) => /.+@.+\..+/.test(str);
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -232,8 +166,8 @@ export default function Brief() {
     }
   }, [step, data]);
 
-  const next = () => setStep((s) => Math.min(s + 1, TOTAL));
-  const back = () => setStep((s) => Math.max(s - 1, 0));
+  const next = () => setStep((st) => Math.min(st + 1, TOTAL));
+  const back = () => setStep((st) => Math.max(st - 1, 0));
 
   async function submit() {
     setStatus("sending");
@@ -260,11 +194,7 @@ export default function Brief() {
     if (!res.ok) {
       setStatus("error");
       const m = res.error?.message || "";
-      if (/already registered|already exists/i.test(m)) {
-        setErrorMsg("Il y a déjà un compte avec cet email. Connecte-toi, ou utilise une autre adresse.");
-      } else {
-        setErrorMsg("Ça n'est pas passé de notre côté. Réessaie, ou écris-nous à bonjour@merry.fr.");
-      }
+      setErrorMsg(/already registered|already exists/i.test(m) ? s.errors.alreadyRegistered : s.errors.generic);
       return;
     }
     try {
@@ -282,14 +212,15 @@ export default function Brief() {
 
   function renderStep() {
     switch (step) {
-      case 0:
+      case 0: {
+        const t = s.steps[0];
         return (
           <>
-            <div className="eyebrow">C'est parti !</div>
-            <h1 className="question">Qu'est-ce que tu prépares ?</h1>
-            <p className="help">Choisis ta fête, on adapte les questions.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices events">
-              {EVENTS.map((o) =>
+              {s.events.map((o) =>
                 o.available ? (
                   <button key={o.value} type="button" className="chip event" aria-pressed={data.event === o.value} onClick={() => set("event", o.value)}>
                     <span className="event-text">
@@ -301,23 +232,25 @@ export default function Brief() {
                 ) : (
                   <button key={o.value} type="button" className="chip event soon" disabled aria-disabled="true">
                     <span className="event-name">{o.label}</span>
-                    <span className="tag soon-tag">Bientôt</span>
+                    <span className="tag soon-tag">{s.soonTag}</span>
                   </button>
                 )
               )}
             </div>
-            <p className="note">Pour l'instant, Merry s'occupe des mariages. Les autres fêtes arrivent très vite.</p>
+            <p className="note">{t.note}</p>
           </>
         );
+      }
 
-      case 1:
+      case 1: {
+        const t = s.steps[1];
         return (
           <>
-            <div className="eyebrow">C'est parti !</div>
-            <h1 className="question">Vous en êtes où ?</h1>
-            <p className="help">Au tout début ou sur la dernière ligne droite : on s'adapte !</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices stack">
-              {STAGES.map((o) => (
+              {s.stages.map((o) => (
                 <Chip key={o.value} selected={data.stage === o.value} onClick={() => set("stage", o.value)}>
                   {o.label}
                 </Chip>
@@ -325,15 +258,17 @@ export default function Brief() {
             </div>
           </>
         );
+      }
 
-      case 2:
+      case 2: {
+        const t = s.steps[2];
         return (
           <>
-            <div className="eyebrow">L'équipe</div>
-            <h1 className="question">Qui participe à l'organisation ?</h1>
-            <p className="help">Pour savoir qui aura accès au tableau de bord, et à qui on parle.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices stack">
-              {TEAMS.map((o) => (
+              {s.teams.map((o) => (
                 <Chip key={o.value} selected={data.team === o.value} onClick={() => set("team", o.value)}>
                   {o.label}
                 </Chip>
@@ -341,50 +276,54 @@ export default function Brief() {
             </div>
           </>
         );
+      }
 
-      case 3:
+      case 3: {
+        const t = s.steps[3];
         return (
           <>
-            <div className="eyebrow">Lieu et date</div>
-            <h1 className="question">La date et le lieu, même approximatifs.</h1>
-            <p className="help">Une fourchette suffit pour commencer : vous préciserez plus tard.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="fields">
               <div className="field">
-                <label htmlFor="wedding_date">La date</label>
+                <label htmlFor="wedding_date">{t.dateLabel}</label>
                 <input id="wedding_date" type="date" value={data.wedding_date} disabled={data.date_unknown} onChange={(e) => set("wedding_date", e.target.value)} />
                 <label className="toggle">
                   <input type="checkbox" checked={data.date_unknown} onChange={(e) => set("date_unknown", e.target.checked)} />
-                  On hésite encore
+                  {t.unsureToggle}
                 </label>
               </div>
               <div className="field">
-                <label htmlFor="region">Le lieu, ou la région si vous hésitez</label>
-                <input id="region" placeholder="Provence, Bretagne, Paris…" value={data.region} disabled={data.region_unknown} onChange={(e) => set("region", e.target.value)} />
+                <label htmlFor="region">{t.regionLabel}</label>
+                <input id="region" placeholder={t.regionPlaceholder} value={data.region} disabled={data.region_unknown} onChange={(e) => set("region", e.target.value)} />
                 <label className="toggle">
                   <input type="checkbox" checked={data.region_unknown} onChange={(e) => set("region_unknown", e.target.checked)} />
-                  On hésite encore
+                  {t.unsureToggle}
                 </label>
               </div>
             </div>
           </>
         );
+      }
 
-      case 4:
+      case 4: {
+        const t = s.steps[4];
         return (
           <>
-            <div className="eyebrow">Le format</div>
-            <h1 className="question">Combien de monde ?</h1>
-            <p className="help">The more the merrier... comme ils disent.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices">
-              {GUESTS.map((o) => (
+              {s.guests.map((o) => (
                 <Chip key={o.value} selected={data.guests === o.value} onClick={() => set("guests", o.value)}>
                   {o.label}
                 </Chip>
               ))}
             </div>
-            <p className="subhead">Sur une journée, ou tout un week-end ?</p>
+            <p className="subhead">{t.subhead}</p>
             <div className="choices">
-              {FORMATS.map((o) => (
+              {s.formats.map((o) => (
                 <Chip key={o.value} selected={data.format === o.value} onClick={() => set("format", o.value)}>
                   {o.label}
                 </Chip>
@@ -392,35 +331,39 @@ export default function Brief() {
             </div>
           </>
         );
+      }
 
-      case 5:
+      case 5: {
+        const t = s.steps[5];
         return (
           <>
-            <div className="eyebrow">Le style</div>
-            <h1 className="question">Votre mariage, en trois mots.</h1>
-            <p className="help">Choisis jusqu'à trois. Ça nous évite de te proposer un château quand tu veux une grange.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices">
-              {VIBES.map((v) => (
+              {s.vibes.map((v) => (
                 <Chip key={v} selected={data.vibes.includes(v)} onClick={() => toggleIn("vibes", v, 3)}>
                   {v}
                 </Chip>
               ))}
             </div>
             <div className="field">
-              <label htmlFor="pinterest">Un tableau Pinterest, si vous en avez un (facultatif)</label>
-              <input id="pinterest" placeholder="https://pinterest.com/…" value={data.pinterest} onChange={(e) => set("pinterest", e.target.value)} inputMode="url" />
+              <label htmlFor="pinterest">{t.pinterestLabel}</label>
+              <input id="pinterest" placeholder={t.pinterestPlaceholder} value={data.pinterest} onChange={(e) => set("pinterest", e.target.value)} inputMode="url" />
             </div>
           </>
         );
+      }
 
-      case 6:
+      case 6: {
+        const t = s.steps[6];
         return (
           <>
-            <div className="eyebrow">Le budget</div>
-            <h1 className="question">Vous aviez quelque chose en tête ?</h1>
-            <p className="help">Ça reste entre nous. On s'en sert pour ne jamais te montrer ce que tu ne veux pas payer.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="choices stack">
-              {BUDGETS.map((o) => (
+              {s.budgets.map((o) => (
                 <Chip key={o.value} selected={data.budget === o.value} onClick={() => set("budget", o.value)}>
                   {o.label}
                 </Chip>
@@ -428,43 +371,49 @@ export default function Brief() {
             </div>
           </>
         );
+      }
 
-      case 7:
+      case 7: {
+        const t = s.steps[7];
+        const partnerName = data.partner_first_name.trim() || t.partnerEmailDefaultName;
         return (
           <>
-            <div className="eyebrow">Dernière étape</div>
-            <h1 className="question">Ton tableau de bord est prêt. Il te faut juste un compte.</h1>
-            <p className="help">Tout ce que tu viens de nous dire y est déjà. Gratuit, sans engagement.</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h1 className="question">{t.question}</h1>
+            <p className="help">{t.help}</p>
             <div className="fields">
               <div className="field">
-                <label htmlFor="first_name">Ton prénom</label>
+                <label htmlFor="first_name">{t.firstNameLabel}</label>
                 <input id="first_name" value={data.first_name} onChange={(e) => set("first_name", e.target.value)} autoComplete="given-name" />
               </div>
               <div className="field">
-                <label htmlFor="partner_first_name">Le prénom de ta moitié</label>
+                <label htmlFor="partner_first_name">{t.partnerFirstNameLabel}</label>
                 <input id="partner_first_name" value={data.partner_first_name} onChange={(e) => set("partner_first_name", e.target.value)} />
               </div>
               <div className="field">
-                <label htmlFor="email">Ton email</label>
+                <label htmlFor="email">{t.emailLabel}</label>
                 <input id="email" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" />
               </div>
               <div className="field">
-                <label htmlFor="password">Mot de passe (8 caractères minimum)</label>
+                <label htmlFor="password">{t.passwordLabel}</label>
                 <input id="password" type="password" value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" />
               </div>
             </div>
             <div className="field">
-              <label htmlFor="partner_email">L'email de {data.partner_first_name.trim() || "ta moitié"}, pour qu'il/elle ait aussi son accès (facultatif)</label>
+              <label htmlFor="partner_email">{t.partnerEmailLabel(partnerName)}</label>
               <input id="partner_email" type="email" value={data.partner_email} onChange={(e) => set("partner_email", e.target.value)} inputMode="email" />
             </div>
             {status === "error" ? <p className="error">{errorMsg}</p> : null}
             <p className="footnote">
-              En créant ton compte, tu acceptes nos{" "}
-              <a href="https://www.merry.fr/cgu" target="_blank" rel="noreferrer">conditions d'utilisation</a> et notre{" "}
-              <a href="https://www.merry.fr/confidentialite" target="_blank" rel="noreferrer">politique de confidentialité</a>. Pas de newsletter, pas de spam.
+              {t.footnoteLead}{" "}
+              <a href="https://www.merry.fr/cgu" target="_blank" rel="noreferrer">{t.footnoteTos}</a>{" "}
+              {t.footnoteAnd}{" "}
+              <a href="https://www.merry.fr/confidentialite" target="_blank" rel="noreferrer">{t.footnotePrivacy}</a>
+              {t.footnoteTail}
             </p>
           </>
         );
+      }
 
       default:
         return null;
@@ -480,34 +429,31 @@ export default function Brief() {
   return (
     <div className="shell">
       <aside className="panel">
-        <a className="panel-logo" href={SITE_URL} aria-label="Merry, retour au site">Merry</a>
-        <div className="panel-word" aria-hidden="true">{finished ? "Bienvenue." : PANEL_WORDS[step]}</div>
-        <div className="panel-caption" aria-hidden="true">Merry - Experience Crafting Group</div>
+        <LangSwitch />
+        <a className="panel-logo" href={SITE_URL} aria-label={s.logoAria}>Merry</a>
+        <div className="panel-word" aria-hidden="true">{finished ? s.panelWordDone : s.panelWords[step]}</div>
+        <div className="panel-caption" aria-hidden="true">{s.panelCaption}</div>
       </aside>
 
       <main className="stage">
         {finished ? (
           <section className="card done" aria-live="polite">
             <div className="check"><Check /></div>
-            <h1 className="question">Bienvenue{names ? `, ${names}` : ""}.</h1>
+            <h1 className="question">{s.done.welcome(names)}</h1>
             {status === "confirm" ? (
-              <p className="help">
-                Un mail vient de partir à {data.email.trim()} : clique sur le lien pour confirmer ton compte, et ton tableau de bord s'ouvre avec tout ce que tu viens de nous dire.
-              </p>
+              <p className="help">{s.done.confirmMsg(data.email.trim())}</p>
             ) : (
-              <p className="help">
-                Votre tableau de bord est ouvert : le brief, le budget, la liste d'invités et les premiers lieux à comparer vous attendent.
-              </p>
+              <p className="help">{s.done.doneMsg}</p>
             )}
             {status === "done" ? (
-              <a className="btn" href={DASHBOARD_URL}>Accéder au dashboard</a>
+              <a className="btn" href={DASHBOARD_URL}>{s.done.dashboardBtn}</a>
             ) : null}
-            <a className="skip" href={SITE_URL}>Retour au site</a>
+            <a className="skip" href={SITE_URL}>{s.done.backToSite}</a>
           </section>
         ) : (
           <>
             <div className="topbar">
-              <button type="button" className="back" onClick={back} disabled={step === 0} aria-label="Question précédente">
+              <button type="button" className="back" onClick={back} disabled={step === 0} aria-label={s.backAria}>
                 <ArrowLeft />
               </button>
               {step === 0 ? (
@@ -520,7 +466,7 @@ export default function Brief() {
                   <div className="counter">{step} / {TOTAL}</div>
                 </>
               )}
-              <a className="close" href={SITE_URL} aria-label="Retour au site Merry" title="Retour au site (tes réponses sont gardées)">
+              <a className="close" href={SITE_URL} aria-label={s.closeAria} title={s.closeTitle}>
                 <CloseIcon />
               </a>
             </div>
@@ -529,17 +475,17 @@ export default function Brief() {
               {renderStep()}
               <div className="actions">
                 {step === 5 ? (
-                  <button type="button" className="skip" onClick={() => { set("vibes", ["On ne sait pas encore"]); next(); }}>Passer</button>
+                  <button type="button" className="skip" onClick={() => { set("vibes", [s.vibes[s.vibes.length - 1]]); next(); }}>{s.skip}</button>
                 ) : step === 7 ? (
-                  <a className="skip" href="/connexion">Déjà un compte ? Se connecter</a>
+                  <a className="skip" href="/connexion">{s.loginLink}</a>
                 ) : <span />}
                 {isLast ? (
                   <button type="button" className="btn" onClick={submit} disabled={!canContinue || status === "sending"}>
-                    {status === "sending" ? "Création…" : "Accéder au dashboard"}
+                    {status === "sending" ? s.submitting : s.submitDone}
                   </button>
                 ) : (
                   <button type="button" className="btn" onClick={next} disabled={!canContinue}>
-                    Suivant
+                    {s.next}
                   </button>
                 )}
               </div>
