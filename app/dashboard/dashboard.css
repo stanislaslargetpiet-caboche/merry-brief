@@ -3083,6 +3083,42 @@ button.d-rsvp:hover {
   font-size: 15px;
 }
 
+/* Téléphone : indicateurs en pastilles qui défilent, comme la maquette Invités */
+.d-mstats-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.d-mstats-scroll > span {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--d-panel);
+  min-width: 96px;
+}
+
+.d-mstats-scroll strong {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.d-mstats-scroll strong i {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--d-muted);
+}
+
+.d-mstats-scroll small {
+  font-size: 11.5px;
+  color: var(--d-muted);
+}
+
 /* Téléphone : trois indicateurs fixes, comme la maquette */
 .d-mstats {
   display: grid;

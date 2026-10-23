@@ -18,6 +18,7 @@ export default function Dossier() {
   const { documents, members } = data;
   const folder = findFolder(data, id);
   const [renaming, setRenaming] = useState(false);
+  const [dropping, setDropping] = useState(false);
 
   const docs = useMemo(() => (folder ? sortRecent(folderDocs(documents, folder.id)) : []), [documents, folder]);
 
@@ -77,20 +78,46 @@ export default function Dossier() {
 
       <div className="d-grid-side">
         <div className="d-col" style={{ gap: 18 }}>
-          <DropZone folderId={folder.virtual ? null : folder.id} folderName={folder.virtual ? null : folder.name} />
+          <div className="d-desk-only">
+            <DropZone folderId={folder.virtual ? null : folder.id} folderName={folder.virtual ? null : folder.name} />
+          </div>
+          <div className="d-mob-only">
+            {dropping ? (
+              <DropZone folderId={folder.virtual ? null : folder.id} folderName={folder.virtual ? null : folder.name} onDone={() => setDropping(false)} />
+            ) : (
+              <button type="button" className="d-btn d-btn-primary" style={{ width: "100%" }} onClick={() => setDropping(true)}>
+                <Icon name="upload" size={16} sw={2} />
+                Ajouter un document
+              </button>
+            )}
+          </div>
           {docs.length ? (
-            <div className="d-docs-list">
-              <div className="d-docrow is-head" aria-hidden="true">
-                <span className="d-docrow-main">Document</span>
-                <span className="d-docrow-by">Ajouté par</span>
-                <span className="d-docrow-date">Date</span>
-                <span className="d-docrow-size">Taille</span>
-                <span />
+            <>
+              <div className="d-docs-list d-desk-only">
+                <div className="d-docrow is-head" aria-hidden="true">
+                  <span className="d-docrow-main">Document</span>
+                  <span className="d-docrow-by">Ajouté par</span>
+                  <span className="d-docrow-date">Date</span>
+                  <span className="d-docrow-size">Taille</span>
+                  <span />
+                </div>
+                {docs.map((d) => (
+                  <DocumentRow key={d.id} doc={d} />
+                ))}
               </div>
-              {docs.map((d) => (
-                <DocumentRow key={d.id} doc={d} />
-              ))}
-            </div>
+              <div className="d-mob-only">
+                <div className="d-docs-list">
+                  {docs.slice(0, 6).map((d) => (
+                    <DocumentRow key={d.id} doc={d} />
+                  ))}
+                </div>
+                {docs.length > 6 ? (
+                  <p className="d-small d-muted" style={{ textAlign: "center" }}>
+                    {docs.length - 6} autre{docs.length - 6 > 1 ? "s" : ""} document{docs.length - 6 > 1 ? "s" : ""} plus ancien{docs.length - 6 > 1 ? "s" : ""}
+                  </p>
+                ) : null}
+              </div>
+            </>
           ) : (
             <div className="d-empty">
               <p>Rien dans ce dossier pour l'instant. Déposez un premier fichier ci-dessus.</p>
@@ -99,7 +126,7 @@ export default function Dossier() {
         </div>
 
         <div className="d-col">
-          <section className="d-card">
+          <section className="d-card d-desk-only">
             <h2>Qui voit ce dossier</h2>
             <div className="d-col" style={{ gap: 10 }}>
               {members.map((m) => (

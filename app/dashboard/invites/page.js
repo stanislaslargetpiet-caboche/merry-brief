@@ -3,8 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
-import { GUEST_STATUS_LABEL, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize, uid } from "@/lib/dash/format";
+import { GUEST_STATUS_LABEL, guestStats, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
+import { fullName, normalize, pctLabel, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
 import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
@@ -617,6 +617,7 @@ export default function Invites() {
   }
 
   const stats = kpiItems(data, "invites");
+  const g = guestStats(data);
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
@@ -761,7 +762,16 @@ export default function Invites() {
         }
       />
 
-      <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" mobileLimit={3} />
+      <div className="d-desk-only">
+        <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
+      </div>
+      <div className="d-mob-only">
+        <div className="d-mstats-scroll">
+          <span><strong>{guests.length}</strong><small>Invités</small></span>
+          <span><strong>{g.answered} <i>({pctLabel(g.answered, g.total)})</i></strong><small>Réponses</small></span>
+          <span><strong>{g.oui} <i>({pctLabel(g.oui, g.total)})</i></strong><small>Participants</small></span>
+        </div>
+      </div>
 
       <div className="d-desk-only">
         <GuestsNote />
@@ -859,13 +869,15 @@ export default function Invites() {
       </div>
 
       {guests.length ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
-            Ajouter des invités
-          </Btn>
-          <Link href="/dashboard/invites/importer" className="d-link d-mob-only">
-            Importer une liste
-          </Link>
+        <div className="d-desk-only">
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
+              Ajouter des invités
+            </Btn>
+            <Link href="/dashboard/invites/importer" className="d-link">
+              Importer une liste
+            </Link>
+          </div>
         </div>
       ) : null}
 
@@ -988,6 +1000,10 @@ export default function Invites() {
           </div>
         </div>
       )}
+
+      <Link href="/dashboard/invites/importer" className="d-fab" aria-label="Ajouter un invité">
+        <Icon name="plus" size={22} sw={2.4} />
+      </Link>
 
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
