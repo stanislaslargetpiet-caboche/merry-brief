@@ -2582,6 +2582,71 @@ button.d-rsvp:hover {
     gap: 8px;
   }
 
+  /* Indicateurs, téléphone : une ligne par indicateur plutôt que des cartes en grille */
+  .d-kpi-mrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 0;
+    border-top: 1px solid var(--d-line);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    background: none;
+    text-align: left;
+    box-sizing: border-box;
+  }
+
+  .d-kpi-mrow:first-child {
+    border-top: none;
+  }
+
+  .d-kpi-mrow[disabled] {
+    opacity: 0.45;
+  }
+
+  .d-kpi-mrow .d-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+  }
+
+  .d-kpi-mrow.is-on .d-box {
+    border-color: var(--d-ink);
+    background: var(--d-lime);
+  }
+
+  .d-kpi-mrow-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .d-kpi-mrow-text strong {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .d-kpi-mrow:not(.is-on) .d-kpi-mrow-text strong,
+  .d-kpi-mrow:not(.is-on) .d-kpi-mrow-value {
+    color: var(--d-muted);
+  }
+
+  .d-kpi-mrow-text span {
+    font-size: 12px;
+    color: var(--d-muted);
+  }
+
+  .d-kpi-mrow-value {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   .d-g4 {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;

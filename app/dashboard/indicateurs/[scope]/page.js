@@ -36,38 +36,48 @@ export default function Indicateurs() {
     <>
       <PageHeader back={{ href: conf.href, label: conf.label }} title="Vos indicateurs." />
 
-      <div className="d-col" style={{ gap: 10 }}>
-        <div className="d-small d-muted" style={{ fontWeight: 600, fontSize: 14 }}>
-          {conf.preview} · la croix retire un indicateur
-        </div>
-        <div className="d-stats" style={{ "--cols": Math.max(chosen.length, 1), padding: 12, gap: 10 }}>
-          {chosen.map((id) => {
-            const def = kpiDef(sc, id, data);
-            if (!def) return null;
-            const val = kpiItem(def, ctx);
-            return (
-              <div key={id} className="d-kpi-tile">
-                <button type="button" className="d-icon-btn" onClick={() => toggle(id)} aria-label={`Retirer ${def.label}`}>
-                  <Icon name="x" size={12} sw={2.4} />
-                </button>
-                <span className="d-stat-value" style={{ fontSize: 22 }}>
-                  {val.value}
-                  {val.sub ? <span className="d-stat-sub"> {val.sub}</span> : null}
-                </span>
-                {val.pill ? <OkPill small>{val.label}</OkPill> : <span className="d-stat-label">{val.label}</span>}
-              </div>
-            );
-          })}
-          {!chosen.length ? <div className="d-small d-muted" style={{ padding: 18 }}>Aucun indicateur : cochez-en un ci-dessous.</div> : null}
+      <div className="d-desk-only">
+        <div className="d-col" style={{ gap: 10 }}>
+          <div className="d-small d-muted" style={{ fontWeight: 600, fontSize: 14 }}>
+            {conf.preview} · la croix retire un indicateur
+          </div>
+          <div className="d-stats" style={{ "--cols": Math.max(chosen.length, 1), padding: 12, gap: 10 }}>
+            {chosen.map((id) => {
+              const def = kpiDef(sc, id, data);
+              if (!def) return null;
+              const val = kpiItem(def, ctx);
+              return (
+                <div key={id} className="d-kpi-tile">
+                  <button type="button" className="d-icon-btn" onClick={() => toggle(id)} aria-label={`Retirer ${def.label}`}>
+                    <Icon name="x" size={12} sw={2.4} />
+                  </button>
+                  <span className="d-stat-value" style={{ fontSize: 22 }}>
+                    {val.value}
+                    {val.sub ? <span className="d-stat-sub"> {val.sub}</span> : null}
+                  </span>
+                  {val.pill ? <OkPill small>{val.label}</OkPill> : <span className="d-stat-label">{val.label}</span>}
+                </div>
+              );
+            })}
+            {!chosen.length ? <div className="d-small d-muted" style={{ padding: 18 }}>Aucun indicateur : cochez-en un ci-dessous.</div> : null}
+          </div>
         </div>
       </div>
 
-      <Section title="Indicateurs disponibles" right={<span className="d-small d-muted">{chosen.length} sur {KPI_MAX} choisis</span>} />
+      <div className="d-mob-only">
+        <span className="d-small d-muted" style={{ lineHeight: 1.5 }}>
+          La coche ajoute ou retire un indicateur. {chosen.length} sur {KPI_MAX} choisis.
+        </span>
+      </div>
+
+      <div className="d-desk-only">
+        <Section title="Indicateurs disponibles" right={<span className="d-small d-muted">{chosen.length} sur {KPI_MAX} choisis</span>} />
+      </div>
 
       {kpiCatalog(sc, data).map((fam) => (
         <div key={fam.family} className="d-col" style={{ gap: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div>
-          <div className="d-g3">
+          <div className="d-g3 d-desk-only">
             {fam.items.map((it) => {
               const on = chosen.includes(it.id);
               const val = it.get(ctx);
@@ -88,6 +98,32 @@ export default function Indicateurs() {
                       {val.sub ? ` ${val.sub}` : ""}
                     </b>
                     <span>{it.descFn ? it.descFn(ctx) : it.desc}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="d-card d-mob-only" style={{ padding: "2px 14px" }}>
+            {fam.items.map((it) => {
+              const on = chosen.includes(it.id);
+              const val = it.get(ctx);
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  className={`d-kpi-mrow${on ? " is-on" : ""}`}
+                  onClick={() => toggle(it.id)}
+                  aria-pressed={on}
+                  disabled={!on && chosen.length >= KPI_MAX}
+                >
+                  <span className="d-box">{on ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+                  <span className="d-kpi-mrow-text">
+                    <strong>{it.label}</strong>
+                    <span>{it.descFn ? it.descFn(ctx) : it.desc}</span>
+                  </span>
+                  <span className="d-kpi-mrow-value">
+                    {val.value}
+                    {val.sub ? ` ${val.sub}` : ""}
                   </span>
                 </button>
               );
