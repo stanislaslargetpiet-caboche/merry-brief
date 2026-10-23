@@ -301,10 +301,17 @@ export default function Accueil() {
                   {euros(next.amount)}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                {nextPayer ? <PersonChip members={[nextPayer]} /> : <span className="d-small d-muted">Payeur à choisir</span>}
-                <Link className="d-btn d-btn-primary d-btn-small" href={`/dashboard/budget/paiement/${nextItem.id}?echeance=${next.id}`}>
-                  Marquer payé
+              <span className="d-desk-only">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  {nextPayer ? <PersonChip members={[nextPayer]} /> : <span className="d-small d-muted">Payeur à choisir</span>}
+                  <Link className="d-btn d-btn-primary d-btn-small" href={`/dashboard/budget/paiement/${nextItem.id}?echeance=${next.id}`}>
+                    Marquer payé
+                  </Link>
+                </div>
+              </span>
+              <div className="d-mob-only">
+                <Link className="d-btn d-btn-primary" style={{ width: "100%" }} href={`/dashboard/budget/paiement/${nextItem.id}?echeance=${next.id}`}>
+                  Payer
                 </Link>
               </div>
             </section>
