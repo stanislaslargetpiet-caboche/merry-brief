@@ -15,10 +15,11 @@ const NAV = [
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet" },
+  { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
   { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
   { href: "/dashboard/pense-bete", label: "Pense-bête", short: "Notes", icon: "notepad" },
 ];
-const SOON = ["Prestataires", "Site de mariage", "Liste & cagnotte"];
+const SOON = ["Site de mariage", "Liste & cagnotte"];
 
 export default function Shell({ children }) {
   return (
