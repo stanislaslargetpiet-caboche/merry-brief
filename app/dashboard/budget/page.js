@@ -622,6 +622,13 @@ export default function Budget() {
           </div>
         </div>
 
+        <div className="d-mob-only">
+          <button type="button" className="d-pill is-dashed" style={{ width: "100%", justifyContent: "center" }} onClick={() => setAdding(true)}>
+            <Icon name="plus" size={14} sw={2} />
+            Ajouter une dépense
+          </button>
+        </div>
+
         <div className="d-table-wrap d-desk-only">
           <table className="d-table">
             <thead>
@@ -678,7 +685,7 @@ export default function Budget() {
             </tfoot>
           </table>
         </div>
-        <div>
+        <div className="d-desk-only">
           <button type="button" className="d-pill is-dashed" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} sw={2} />
             Ajouter un poste
