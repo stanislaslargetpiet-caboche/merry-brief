@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader, Section } from "@/components/dash/ui";
 import NoteRow from "@/components/dash/PenseBete";
 
@@ -11,17 +10,28 @@ export default function PenseBete() {
   const { notes = [], notesSetup, meId } = dash.data;
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
+  const [mobText, setMobText] = useState("");
 
   const todo = notes.filter((n) => !n.done);
   const done = notes.filter((n) => n.done);
 
+  async function create(value) {
+    const v = value.trim();
+    if (!v) return;
+    await dash.insert("pense_bete_items", { text: v, done: false, added_by: meId, position: notes.length });
+  }
+
   async function addNote(e) {
     e.preventDefault();
-    const value = text.trim();
-    if (!value) return;
+    await create(text);
     setText("");
     setAdding(false);
-    await dash.insert("pense_bete_items", { text: value, done: false, added_by: meId, position: notes.length });
+  }
+
+  async function addNoteMobile(e) {
+    e.preventDefault();
+    await create(mobText);
+    setMobText("");
   }
 
   return (
@@ -44,8 +54,9 @@ export default function PenseBete() {
         </div>
       ) : null}
 
+      {/* Ordinateur : la barre d'ajout se déplie depuis le bouton « Ajouter » de l'en-tête */}
       {adding ? (
-        <form className="d-card is-panel" style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: "10px 10px 10px 18px" }} onSubmit={addNote}>
+        <form className="d-card is-panel d-desk-only" style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: "10px 10px 10px 18px" }} onSubmit={addNote}>
           <input
             className="d-input"
             style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", padding: 0 }}
@@ -61,6 +72,31 @@ export default function PenseBete() {
           </Btn>
         </form>
       ) : null}
+
+      {/* Téléphone : la barre d'ajout reste visible en haut, comme sur le canvas (6m) */}
+      <form
+        className="d-mob-only"
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "#f6f5f1", borderRadius: 999, padding: "4px 4px 4px 14px" }}
+        onSubmit={addNoteMobile}
+      >
+        <input
+          style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", padding: 0, font: "inherit", fontSize: 15 }}
+          value={mobText}
+          onChange={(e) => setMobText(e.target.value)}
+          placeholder="À ne pas oublier…"
+          maxLength={300}
+          aria-label="Ajouter un pense-bête"
+        />
+        <button
+          type="submit"
+          aria-label="Ajouter"
+          style={{ flex: "none", width: 36, height: 36, borderRadius: 999, border: "none", background: "#1c1c1a", color: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      </form>
 
       <div className="d-col" style={{ gap: 12 }}>
         <Section title="À faire" count={todo.length} />
@@ -86,12 +122,6 @@ export default function PenseBete() {
             ))}
           </div>
         </div>
-      ) : null}
-
-      {!adding ? (
-        <button type="button" className="d-fab" aria-label="Ajouter un pense-bête" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={22} sw={2.4} />
-        </button>
       ) : null}
     </>
   );

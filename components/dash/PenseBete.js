@@ -54,7 +54,11 @@ export default function NoteRow({ note }) {
         </span>
       </div>
       <div className="d-task-side">
-        {who ? <Avatar member={who} size={26} /> : null}
+        {who ? (
+          <span className="d-desk-only">
+            <Avatar member={who} size={26} />
+          </span>
+        ) : null}
         <button type="button" className="d-icon-btn is-flat" onClick={() => setEditing((x) => !x)} aria-label={`Modifier : ${note.text}`} title="Modifier">
           <Icon name="pencil" size={16} sw={1.9} />
         </button>
