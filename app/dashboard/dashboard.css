@@ -2325,37 +2325,22 @@ button.d-rsvp:hover {
     right: 0;
     bottom: 0;
     z-index: 40;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    min-height: 64px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #ffffff;
     border-top: 1px solid var(--d-line);
   }
 
   .d-tab-item {
+    flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 2px;
-    min-height: 50px;
-    padding: 2px 0;
+    justify-content: center;
     font-size: 11px;
-    font-weight: 500;
     color: var(--d-muted);
     text-decoration: none;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  .d-tab-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 28px;
-    border-radius: 999px;
-    transition: background 0.15s ease;
   }
 
   .d-tab-item.is-on {
@@ -2363,8 +2348,10 @@ button.d-rsvp:hover {
     font-weight: 600;
   }
 
-  .d-tab-item.is-on .d-tab-icon {
+  .d-tab-pill {
     background: var(--d-lime);
+    border-radius: 999px;
+    padding: 4px 16px;
   }
 
   /* Zone principale */
