@@ -16,6 +16,7 @@ const NAV = [
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet" },
   { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
+  { href: "/dashboard/pense-bete", label: "Pense-bête", short: "Notes", icon: "notepad" },
 ];
 const SOON = ["Prestataires", "Site de mariage", "Liste & cagnotte"];
 
