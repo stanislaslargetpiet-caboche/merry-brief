@@ -1154,6 +1154,81 @@ button.d-rsvp:hover {
   background: var(--d-panel);
 }
 
+/* Pense-bête, téléphone : ligne nue, glisser à gauche révèle Supprimer, à droite révèle Modifier */
+.d-pb-swipe {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.d-pb-swipe + .d-pb-swipe {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-pb-swipe-del,
+.d-pb-swipe-edit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.d-pb-swipe-del {
+  justify-content: flex-end;
+}
+
+.d-pb-swipe-edit {
+  justify-content: flex-start;
+}
+
+.d-pb-swipe-del button,
+.d-pb-swipe-edit button {
+  flex: none;
+  width: 72px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.d-pb-swipe-del button {
+  background: #e4453a;
+}
+
+.d-pb-swipe-edit button {
+  background: var(--d-ink);
+}
+
+.d-pb-swipe-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  touch-action: pan-y;
+}
+
+.d-pb-swipe-row input[type="checkbox"] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--d-ink);
+}
+
+.d-pb-swipe-row span {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.d-pb-swipe-row span.is-done {
+  color: var(--d-muted);
+  text-decoration: line-through;
+}
+
 /* ---------- Formulaires ---------- */
 
 .d-field {
