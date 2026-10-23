@@ -578,65 +578,40 @@ function AddGuests({ onClose }) {
   );
 }
 
-// Téléphone : un invité par carte, les réponses sur une ligne, les coordonnées repliées
-function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, selected, onToggle }) {
-  const dash = useDash();
-  const [open, setOpen] = useState(false);
+// Téléphone : une ligne par invité, qui mène à la fiche ; en mode sélection, une case à cocher
+// remplace le lien, comme sur la maquette (2m)
+function GuestCard({ guest: g, events, idx, byId, groupById, selected, onToggle, selectMode }) {
   const r = idx.get(g.id) || {};
   const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
-  const custom = g.custom || {};
-  const saveCustom = (f, v) => {
-    const next = { ...custom };
-    if (v) next[f.id] = v;
-    else delete next[f.id];
-    dash.update("guests", g.id, { custom: next });
-  };
   const status = guestStatus(r, events);
+  const label = guestLabel(g, byId) || (host ? `+1 de ${fullName(host)}` : "Sans nom");
+  const group = groupById.get(g.group_id);
+  const p = pastel(group?.color);
+  const sub = [g.age ? `${g.age} ans` : null, host && !fullName(g) ? "À nommer" : null, group ? group.name : "Sans groupe"].filter(Boolean).join(" · ");
+  const inner = (
+    <>
+      <span className="d-gavatar" style={{ background: group ? p.bg : "#e4e2dc" }} aria-hidden="true">
+        {(label || "?").charAt(0).toUpperCase()}
+      </span>
+      <span className="d-gcard-name">
+        <strong style={status === "non" ? { textDecoration: "line-through", color: "var(--d-muted)" } : undefined}>{label}</strong>
+        <span className="d-guest-sub">{sub}</span>
+      </span>
+      <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
+    </>
+  );
+  if (selectMode) {
+    return (
+      <button type="button" className={`d-gcard d-gcard-row${selected ? " is-selected" : ""}`} onClick={onToggle} aria-pressed={!!selected}>
+        <input type="checkbox" className="d-check" checked={!!selected} readOnly tabIndex={-1} style={{ pointerEvents: "none" }} aria-label={`Sélectionner ${label}`} />
+        {inner}
+      </button>
+    );
+  }
   return (
-    <div className={`d-gcard${selected ? " is-selected" : ""}`}>
-      <div className="d-gcard-top">
-        <input type="checkbox" className="d-check" checked={!!selected} onChange={onToggle} aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`} style={{ marginTop: 3 }} />
-        <div className="d-gcard-name">
-          <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", g.id, splitName(v))} />
-          <span className="d-guest-sub">
-            {g.age ? <span>{g.age} ans</span> : null}
-            {host && !fullName(g) ? <span>À nommer</span> : null}
-            <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
-          </span>
-        </div>
-        <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
-        <Link href={`/dashboard/invites/${g.id}`} className="d-icon-btn" aria-label={`Voir la fiche de ${guestLabel(g, byId) || "cet invité"}`} title="Voir la fiche">
-          <Icon name="external" size={16} sw={2} />
-        </Link>
-        <button type="button" className={`d-gcard-more${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Masquer les coordonnées" : "Voir les coordonnées"}>
-          <Icon name={open ? "chevDown" : "chev"} size={18} sw={2} />
-        </button>
-      </div>
-      {open ? (
-        <div className="d-gcard-details">
-          {events.map((ev) => (
-            <span key={ev.id} style={{ display: "contents" }}>
-              <small>{ev.short_name}</small>
-              <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} />
-            </span>
-          ))}
-          <small>Régime</small>
-          <InlineEdit value={g.diet} label="régime" onSave={(v) => dash.update("guests", g.id, { diet: v })} />
-          <small>Adresse</small>
-          <InlineEdit value={g.address} label="adresse" multiline onSave={(v) => dash.update("guests", g.id, { address: v })} />
-          <small>Mail</small>
-          <InlineEdit value={g.email} label="mail" onSave={(v) => dash.update("guests", g.id, { email: v })} />
-          <small>Téléphone</small>
-          <InlineEdit value={g.phone} label="téléphone" onSave={(v) => dash.update("guests", g.id, { phone: v })} />
-          {fields.map((f) => (
-            <span key={f.id} style={{ display: "contents" }}>
-              <small>{f.name}</small>
-              {f.kind === "choice" ? <ChoiceCell value={custom[f.id]} options={f.options} label={f.name} onChange={(v) => saveCustom(f, v)} /> : <InlineEdit value={custom[f.id]} label={f.name} onSave={(v) => saveCustom(f, v)} />}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <Link href={`/dashboard/invites/${g.id}`} className="d-gcard d-gcard-row">
+      {inner}
+    </Link>
   );
 }
 
@@ -654,6 +629,8 @@ export default function Invites() {
   const [addingCol, setAddingCol] = useState(false);
   const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
   const [bulkSheet, setBulkSheet] = useState(false); // téléphone : écran « Modifier en masse »
+  const [selectMode, setSelectMode] = useState(false); // téléphone : affiche les cases à cocher
+  const [groupPick, setGroupPick] = useState(false); // téléphone : menu « Groupe »
 
   // Un moment supprimé ne reste pas sélectionné
   const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
@@ -915,22 +892,51 @@ export default function Invites() {
             </button>
           </div>
           </div>
-          <div className="d-mob-only">
-            <div className="d-filters-m">
-              <button type="button" onClick={() => setMoments(true)}>
-                <Icon name="pencil" size={13} sw={2} />
-                Moments
-              </button>
-              <button type="button" onClick={() => setGroupsModal(true)}>
-                <Icon name="pencil" size={13} sw={2} />
-                Groupes
-              </button>
-            </div>
-          </div>
           <label className="d-search">
             <Icon name="search" size={15} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
           </label>
+          <div className="d-mob-only">
+            <span className="d-anchor">
+              <button type="button" className="d-group-pick" onClick={() => setGroupPick((o) => !o)} aria-haspopup="menu" aria-expanded={groupPick}>
+                {groupFilter ? groupById.get(groupFilter)?.name : "Groupe"}
+                <Icon name="chevDown" size={13} sw={2.2} />
+              </button>
+              <Popover open={groupPick} onClose={() => setGroupPick(false)} align="right">
+                <button type="button" className={`d-pop-item${!groupFilter ? " is-on" : ""}`} onClick={() => { setGroupFilter(null); setGroupPick(false); }}>
+                  <span className="d-pop-label">Tous · {base.length}</span>
+                </button>
+                {groups.map((gr) => (
+                  <button
+                    key={gr.id}
+                    type="button"
+                    className={`d-pop-item${groupFilter === gr.id ? " is-on" : ""}`}
+                    onClick={() => { setGroupFilter(gr.id); setGroupPick(false); }}
+                  >
+                    <GroupChip group={gr} />
+                    <span className="d-pop-label">· {base.filter((x) => x.group_id === gr.id).length}</span>
+                  </button>
+                ))}
+              </Popover>
+            </span>
+          </div>
+        </div>
+
+        <div className="d-mob-only">
+          <div className="d-filters-m">
+            <button type="button" className={selectMode ? "is-on" : ""} onClick={() => { setSelectMode((o) => !o); if (selectMode) clearSel(); }}>
+              <Icon name={selectMode ? "x" : "check"} size={13} sw={2.2} />
+              {selectMode ? "Annuler" : "Sélectionner"}
+            </button>
+            <button type="button" onClick={() => setMoments(true)}>
+              <Icon name="pencil" size={13} sw={2} />
+              Moments
+            </button>
+            <button type="button" onClick={() => setGroupsModal(true)}>
+              <Icon name="pencil" size={13} sw={2} />
+              Groupes
+            </button>
+          </div>
         </div>
         <div className="d-filters d-desk-only" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-scroll-x">
@@ -1079,19 +1085,33 @@ export default function Invites() {
             </div>
           </>
         ) : (
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
-              <Icon name="check" size={14} sw={2.2} />
-              Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
-            </button>
-          </div>
+          <>
+            <div className="d-desk-only">
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
+                  <Icon name="check" size={14} sw={2.2} />
+                  Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
+                </button>
+              </div>
+            </div>
+            {selectMode ? (
+              <div className="d-mob-only">
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
+                    <Icon name="check" size={14} sw={2.2} />
+                    Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
         )
       ) : null}
 
       {guests.length ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} groups={groups} fields={fields} idx={idx} byId={byId} groupById={groupById} selected={!!selected[g.id]} onToggle={() => toggle(g.id)} />
+            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} selected={!!selected[g.id]} onToggle={() => toggle(g.id)} selectMode={selectMode} />
           ))}
           {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
         </div>
