@@ -503,7 +503,7 @@ export default function Budget() {
         }
       />
 
-      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
+      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" mobileLimit={3} />
 
       <section className="d-card d-desk-only" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>

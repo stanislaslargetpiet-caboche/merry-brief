@@ -761,7 +761,7 @@ export default function Invites() {
         }
       />
 
-      <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
+      <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" mobileLimit={3} />
 
       <div className="d-desk-only">
         <GuestsNote />

@@ -2525,6 +2525,15 @@ button.d-rsvp:hover {
     display: none;
   }
 
+  /* Moins d'indicateurs que sur ordinateur (maquette téléphone) : le nombre voulu tient sur une ligne */
+  .d-stats-m3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .d-stats-m3 .d-stat-value {
+    font-size: 20px !important;
+  }
+
   /* Accueil */
   .d-home-head {
     gap: 12px;
