@@ -128,3 +128,13 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (5 et 5
 **Sources d'un document** : « Depuis cet ordinateur » (ou « Depuis le téléphone » : Fichiers, photothèque, Google Drive, iCloud, selon le sélecteur du système), « Drive, Dropbox ou un lien » (Merry garde l'adresse, sans copie) et « Scanner un papier » : photos prises avec l'appareil photo (`capture`), plusieurs pages, noir et blanc au choix, réunies dans le navigateur en un seul PDF (`lib/dash/pdf.js`, sans dépendance) puis déposées comme un fichier. Pas de détection des bords ni de redressement de la page. Pas de sélecteur Google Drive intégré (il demanderait une connexion OAuth) : le lien ou le sélecteur du téléphone font l'affaire.
 
 **Pas encore fait** : rattacher un fichier déposé à un prestataire ou à un poste depuis la page Documents (passe encore par le budget), dossiers privés au couple, partage d'un dossier au conseiller, aperçu des fichiers dans la page.
+
+## 11. Pense-bête
+
+L'écran suit le canvas « Merry · Carte brief », page Dashboard (6 et 6m), validé le 23 octobre 2026.
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/pense-bete.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `pense_bete_items`. Tant qu'il n'est pas lancé, la page Pense-bête explique quoi faire et le reste du tableau de bord fonctionne.
+
+**Principe** : une liste à cocher en vrac (courses, idées, question à poser à un prestataire…), partagée entre tous les organisateurs. Chaque ligne garde qui l'a ajoutée ; un bouton crayon modifie le texte, une poubelle la supprime. Deux groupes : « À faire » puis « Cochées ».
+
+**Pas encore fait** : catégories ou étiquettes, réordonnancement à la main.
