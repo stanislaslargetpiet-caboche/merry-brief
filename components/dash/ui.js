@@ -151,11 +151,15 @@ export function OkPill({ children = "Payés", small }) {
   );
 }
 
-export function KpiBar({ items, plusHref, compact }) {
+export function KpiBar({ items, plusHref, compact, mobileLimit }) {
   return (
-    <div className={`d-stats${compact ? " is-compact" : ""}`} data-n={items.length} style={{ "--cols": items.length + (plusHref ? 1 : 0) }}>
-      {items.map((it) => (
-        <div key={it.id || it.label} className="d-stat">
+    <div
+      className={`d-stats${compact ? " is-compact" : ""}${mobileLimit ? ` d-stats-m${mobileLimit}` : ""}`}
+      data-n={items.length}
+      style={{ "--cols": items.length + (plusHref ? 1 : 0) }}
+    >
+      {items.map((it, i) => (
+        <div key={it.id || it.label} className={`d-stat${mobileLimit && i >= mobileLimit ? " d-desk-only" : ""}`}>
           <span className="d-stat-value">
             {it.value}
             {it.sub ? <span className="d-stat-sub"> {it.sub}</span> : null}

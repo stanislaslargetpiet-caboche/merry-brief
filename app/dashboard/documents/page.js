@@ -55,7 +55,7 @@ export default function Documents() {
         </div>
       ) : null}
 
-      <div className="d-card is-panel d-filterbar" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
+      <div className="d-card is-panel d-filterbar d-desk-only" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, padding: "18px 24px" }}>
         <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
           <strong style={{ fontSize: 26, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{documents.length}</strong>
           <span className="d-small d-muted">
@@ -102,18 +102,22 @@ export default function Documents() {
       ) : (
         <>
           <div className="d-col" style={{ gap: 12 }}>
-            <Section title="Dossiers" count={folders.length} />
+            <span className="d-desk-only">
+              <Section title="Dossiers" count={folders.length} />
+            </span>
             <div className="d-g3 d-folders">
               {folders.map((f) => (
                 <FolderCard key={f.id} folder={f} docs={folderDocs(documents, f.id)} members={members} />
               ))}
-              <button type="button" className="d-folder is-new" onClick={() => setCreating(true)}>
-                <span className="d-team-plus" style={{ width: 44, height: 44 }}>
-                  <Icon name="plus" size={18} sw={2} />
-                </span>
-                <strong>Créer un dossier</strong>
-                <span className="d-small d-muted">Factures et devis, mairie, cérémonie, voyage de noces…</span>
-              </button>
+              <span className="d-desk-only">
+                <button type="button" className="d-folder is-new" onClick={() => setCreating(true)}>
+                  <span className="d-team-plus" style={{ width: 44, height: 44 }}>
+                    <Icon name="plus" size={18} sw={2} />
+                  </span>
+                  <strong>Créer un dossier</strong>
+                  <span className="d-small d-muted">Factures et devis, mairie, cérémonie, voyage de noces…</span>
+                </button>
+              </span>
             </div>
           </div>
 

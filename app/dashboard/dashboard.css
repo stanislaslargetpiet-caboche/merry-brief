@@ -2520,24 +2520,18 @@ button.d-rsvp:hover {
     padding: 1px 9px;
   }
 
+  /* Pas d'entrée « Indicateurs » sur la maquette téléphone */
   .d-stat-plus {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 2px;
-    font-size: 12px;
+    display: none;
   }
 
-  .d-stat-plus-btn {
-    width: 22px;
-    height: 22px;
-    border-width: 1px;
+  /* Moins d'indicateurs que sur ordinateur (maquette téléphone) : le nombre voulu tient sur une ligne */
+  .d-stats-m3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 
-  .d-stat-plus-btn svg {
-    width: 12px;
-    height: 12px;
+  .d-stats-m3 .d-stat-value {
+    font-size: 20px !important;
   }
 
   /* Accueil */

@@ -434,9 +434,11 @@ export function FolderCard({ folder, docs, members }) {
           ))}
         </span>
         {linked ? (
-          <span className="d-doc-budget">
-            <Icon name="wallet" size={11} sw={2.2} />
-            {linked} dans le budget
+          <span className="d-desk-only">
+            <span className="d-doc-budget">
+              <Icon name="wallet" size={11} sw={2.2} />
+              {linked} dans le budget
+            </span>
           </span>
         ) : null}
       </span>

@@ -278,7 +278,7 @@ export default function Budget() {
               {posteName(it)}
             </button>
             {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : null}
-            <button type="button" className="d-add-line-link" onClick={() => addLine(it.category || it.label)}>
+            <button type="button" className="d-add-line-link d-desk-only" onClick={() => addLine(it.category || it.label)}>
               Ajouter une ligne
             </button>
           </span>
@@ -503,7 +503,7 @@ export default function Budget() {
         }
       />
 
-      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
+      <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" mobileLimit={3} />
 
       <section className="d-card d-desk-only" style={{ padding: "24px 24px 26px" }}>
         <h2>Répartition</h2>
@@ -612,14 +612,16 @@ export default function Budget() {
 
         <div className="d-cards d-mob-only">
           {groups.map((g) => (g.multi ? renderGroupCard(g) : renderCard(g.items[0])))}
-          <div className="d-pcard-total">
-            <span>
-              Total <strong>{euros(b.sumBudgeted)}</strong>
-            </span>
-            <small>
-              {euros(b.engaged)} engagés · {euros(b.paid)} payés
-            </small>
-          </div>
+          <span className="d-desk-only">
+            <div className="d-pcard-total">
+              <span>
+                Total <strong>{euros(b.sumBudgeted)}</strong>
+              </span>
+              <small>
+                {euros(b.engaged)} engagés · {euros(b.paid)} payés
+              </small>
+            </div>
+          </span>
         </div>
 
         <div className="d-mob-only">

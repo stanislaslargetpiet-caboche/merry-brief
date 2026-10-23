@@ -166,7 +166,9 @@ export default function TaskRow({ task }) {
     <div className={`d-task${task.done ? " is-done" : ""}`}>
       <div className="d-task-main">
         <Checkbox done={task.done} onChange={toggle} label={task.done ? `Décocher : ${task.title}` : `Cocher : ${task.title}`} />
-        <Tile name={task.icon || guessIcon(task.title)} />
+        <span className="d-desk-only">
+          <Tile name={task.icon || guessIcon(task.title)} />
+        </span>
         <button type="button" className="d-task-title" onClick={() => setEditing((x) => !x)} title="Modifier la tâche">
           <span>{task.title}</span>
           {task.added_by_merry ? (
@@ -179,17 +181,19 @@ export default function TaskRow({ task }) {
       </div>
       <div className="d-task-side">
         {commentsOn ? (
-          <button
-            type="button"
-            className={`d-bubble${talk ? " is-open" : ""}${mine.length ? "" : " is-empty"}`}
-            onClick={() => setTalk((x) => !x)}
-            aria-expanded={talk}
-            aria-label={mine.length ? `${mine.length} commentaire${mine.length > 1 ? "s" : ""} sur : ${task.title}` : `Commenter : ${task.title}`}
-            title={talk ? "Masquer les commentaires" : mine.length ? "Voir les commentaires" : "Commenter"}
-          >
-            <Icon name="bubble" size={14} sw={2} />
-            {mine.length ? mine.length : null}
-          </button>
+          <span className="d-desk-only">
+            <button
+              type="button"
+              className={`d-bubble${talk ? " is-open" : ""}${mine.length ? "" : " is-empty"}`}
+              onClick={() => setTalk((x) => !x)}
+              aria-expanded={talk}
+              aria-label={mine.length ? `${mine.length} commentaire${mine.length > 1 ? "s" : ""} sur : ${task.title}` : `Commenter : ${task.title}`}
+              title={talk ? "Masquer les commentaires" : mine.length ? "Voir les commentaires" : "Commenter"}
+            >
+              <Icon name="bubble" size={14} sw={2} />
+              {mine.length ? mine.length : null}
+            </button>
+          </span>
         ) : null}
         <span className={`d-task-date${late ? " is-late" : ""}`}>{task.done ? "Fait" : task.due_date ? shortDate(task.due_date) : "Sans date"}</span>
         <span className="d-task-who">
