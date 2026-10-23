@@ -130,6 +130,12 @@ export default function Documents() {
         </>
       )}
 
+      {!dropping ? (
+        <button type="button" className="d-fab" aria-label="Ajouter un document" onClick={() => setDropping(true)}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
+      ) : null}
+
       {creating ? <FolderModal onClose={() => setCreating(false)} onCreated={(f) => router.push(`/dashboard/documents/${f.id}`)} /> : null}
     </>
   );

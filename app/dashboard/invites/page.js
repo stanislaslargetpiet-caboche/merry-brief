@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
-import { kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
+import { GUEST_STATUS_LABEL, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
 import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
@@ -474,6 +474,7 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, sel
     else delete next[f.id];
     dash.update("guests", g.id, { custom: next });
   };
+  const status = guestStatus(r, events);
   return (
     <div className={`d-gcard${selected ? " is-selected" : ""}`}>
       <div className="d-gcard-top">
@@ -486,6 +487,7 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, sel
             <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
           </span>
         </div>
+        <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
         <Link href={`/dashboard/invites/${g.id}`} className="d-icon-btn" aria-label={`Voir la fiche de ${guestLabel(g, byId) || "cet invité"}`} title="Voir la fiche">
           <Icon name="external" size={16} sw={2} />
         </Link>
@@ -493,16 +495,14 @@ function GuestCard({ guest: g, events, groups, fields, idx, byId, groupById, sel
           <Icon name={open ? "chevDown" : "chev"} size={18} sw={2} />
         </button>
       </div>
-      <div className="d-gcard-rsvps">
-        {events.map((ev) => (
-          <span key={ev.id} className="d-gcard-rsvp">
-            <small>{ev.short_name}</small>
-            <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} />
-          </span>
-        ))}
-      </div>
       {open ? (
         <div className="d-gcard-details">
+          {events.map((ev) => (
+            <span key={ev.id} style={{ display: "contents" }}>
+              <small>{ev.short_name}</small>
+              <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} />
+            </span>
+          ))}
           <small>Régime</small>
           <InlineEdit value={g.diet} label="régime" onSave={(v) => dash.update("guests", g.id, { diet: v })} />
           <small>Adresse</small>
@@ -859,10 +859,13 @@ export default function Invites() {
       </div>
 
       {guests.length ? (
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
             Ajouter des invités
           </Btn>
+          <Link href="/dashboard/invites/importer" className="d-link d-mob-only">
+            Importer une liste
+          </Link>
         </div>
       ) : null}
 
