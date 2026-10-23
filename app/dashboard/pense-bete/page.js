@@ -99,7 +99,16 @@ export default function PenseBete() {
       </form>
 
       <div className="d-col" style={{ gap: 12 }}>
-        <Section title="À faire" count={todo.length} />
+        <Section
+          title="À faire"
+          count={todo.length}
+          right={
+            <span className="d-mob-only" style={{ marginLeft: "auto", fontSize: 11, color: "#9a9890", textAlign: "right" }}>
+              Glisser à gauche : supprimer
+              <br />à droite : modifier
+            </span>
+          }
+        />
         {todo.length ? (
           <div className="d-tasks">
             {todo.map((n) => (
