@@ -41,6 +41,26 @@ const LINE_ICONS = {
   folderPlus: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v6M9 14h6"/>',
   dots: '<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 13v5.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H11"/>',
+  // Prestataires (canvas 7 à 7v)
+  store: '<path d="M4 9h16l-1.5-5h-13z"/><path d="M5 9v11h14V9M10 20v-5h4v5"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  prev: '<path d="M15 5l-7 7 7 7"/>',
+  next: '<path d="M9 5l7 7-7 7"/>',
+  arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  map: '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6zM9 4v14M15 6v14"/>',
+  minus: '<path d="M5 12h14"/>',
+  calendarPlain: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  requests: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/>',
+  seat: '<path d="M7 11V5.5A1.5 1.5 0 0 1 8.5 4h7A1.5 1.5 0 0 1 17 5.5V11M5 11h14v3H5zM7 14v6M17 14v6"/>',
+  bed: '<path d="M3 18V7M3 13h18v5M21 13v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="10.5" r="1.8"/>',
+  plane: '<path d="M10.5 13.5 4 11l1.5-1.5 7 1L17 6a1.6 1.6 0 0 1 2.3 2.3L14.8 13l1 7-1.5 1.5-2.5-6.5L9 17.8V20l-1.2 1.2-1.6-3.4L3 16.2 4.2 15H6.4z"/>',
+  train: '<rect x="5.5" y="3.5" width="13" height="13" rx="3"/><path d="M5.5 10.5h13M9 20l-1.5 1.5M15 20l1.5 1.5M9 13.5h.01M15 13.5h.01"/>',
+  parking: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M10 16V8h3a2.5 2.5 0 0 1 0 5h-3"/>',
+  chef: '<path d="M7 14v6h10v-6M7 14a4 4 0 0 1-1-7.9A4.5 4.5 0 0 1 12 4a4.5 4.5 0 0 1 6 2.1A4 4 0 0 1 17 14z"/>',
+  zoom: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+  star: '<path d="m12 3.5 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6-4.5-4.2 6.1-.7z" fill="currentColor" stroke="none"/>',
 };
 
 const DUO_ICONS = {
@@ -71,14 +91,14 @@ const DUO_ICONS = {
   dossier: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="FILL"/><path d="M3.5 11h17"/>',
 };
 
-export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, className, style }) {
+export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, className, style, fill = "none" }) {
   const inner = Object.hasOwn(LINE_ICONS, name) ? LINE_ICONS[name] : LINE_ICONS.plus;
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke={stroke}
       strokeWidth={sw}
       strokeLinecap="round"

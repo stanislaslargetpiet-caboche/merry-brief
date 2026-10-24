@@ -138,3 +138,25 @@ L'écran suit le canvas « Merry · Carte brief », page Dashboard (6 et 6m), va
 **Principe** : une liste à cocher en vrac (courses, idées, question à poser à un prestataire…), partagée entre tous les organisateurs. Chaque ligne garde qui l'a ajoutée ; un bouton crayon modifie le texte, une poubelle la supprime. Deux groupes : « À faire » puis « Cochées ».
 
 **Pas encore fait** : catégories ou étiquettes, réordonnancement à la main.
+
+## 12. Prestataires
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (7 à 7j pour l'ordinateur, 7m à 7v pour le téléphone).
+
+| Page | Contenu |
+|---|---|
+| `/dashboard/prestataires` | Trouver des prestataires : « Votre brief » (une puce par réponse, qui mène au brief), « Préciser mes envies », onglets par catégorie (Lieux, Traiteurs, DJ et animation, Fleuristes, Photographes, Autres), vue Liste ou Carte (`?vue=carte`), fiche d'un lieu (`?fiche=<id>`), bandeau « Ma sélection » et « Demander les devis » |
+| `/dashboard/prestataires/lieux` | La sélection de lieux, d'après le brief, avec « Affiner la sélection » |
+| `/dashboard/prestataires/autour` | Autour de votre lieu : traiteurs, DJ, fleuristes et photographes près du lieu retenu, « Pas besoin » par catégorie |
+| `/dashboard/prestataires/mes` | Mes prestataires : ceux gardés d'un cœur, où en est chaque demande, case à cocher pour la prochaine demande |
+| `/dashboard/prestataires/demandes` | Vos demandes de devis : envoyée, réponse reçue, devis reçu |
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/prestataires.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée `vendor_picks` (la sélection du couple), `vendor_wishes` (les envies et les catégories « Pas besoin », une ligne par mariage) et `quote_requests` (les demandes envoyées), avec les mêmes droits pour tous les organisateurs. Tant qu'il n'est pas lancé, les pages Prestataires l'expliquent et le reste du tableau de bord fonctionne.
+
+**D'où viennent les propositions** : du catalogue Merry (`supabase/catalog.sql`, schéma `catalog`), seulement les prestataires au statut `active`, près de la région du brief (ou du lieu retenu pour « Autour de votre lieu »), photos en liens signés. Le schéma doit être exposé : Supabase > Project Settings > API > Exposed schemas, ajouter `catalog`. Tant que le catalogue n'a aucun prestataire validé pour la catégorie, la page montre la sélection d'exemple du canvas (`lib/dash/catalog.js`) avec la mention « Sélection d'exemple ». Le fond de carte (`lib/dash/provenceMap.js`) couvre le Sud-Est, comme la maquette.
+
+**Principe** : le cœur garde un prestataire (avec un instantané de son nom, sa photo et son prix). Une demande de devis est un message, adapté à chacun (un mot personnel, les questions de sa catégorie, les dates, le budget si on le partage) : elle crée ou retrouve le prestataire dans le budget (`vendors`) et range le message sur sa fiche (`/dashboard/budget/prestataires/[id]`). Le statut se lit ensuite dans les données existantes : une réponse notée sur la fiche donne « Réponse reçue », un devis dans le budget (ou `vendor_picks.quote_amount`) « Devis reçu ». Le lieu retenu est celui du brief (`weddings.venue`), sinon le premier lieu dont on a le devis. Les critères de « Votre style » sont tirés de la description par mots-clés, sans IA.
+
+**Démo** : `/dashboard/prestataires?demo=1` reprend l'état du canvas (demandes envoyées il y a une semaine, réponses du Mas de la Source et de Duo Lavande, quatre prestataires pas encore contactés).
+
+**Pas encore fait** : envoi des demandes par mail (elles sont seulement rangées sur la fiche du prestataire), comparaison côte à côte des lieux et des devis (« Comparer », « Comparer les devis » préviennent que cela arrive), avis des couples, critères de style lus par l'IA, fond de carte hors du Sud-Est.
