@@ -282,7 +282,20 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
   const [tall, setTall] = useState(false);
   const boundsRef = useRef(null);
 
-  const inPrice = (v, r = price) => !r || (v.price && v.price >= r[0] && v.price <= r[1]);
+  // Catalogue : la carte se centre sur les prestataires trouvés (le cadre du canvas montre la Provence)
+  const listKey = list.map((v) => v.id).join(",");
+  useEffect(() => {
+    if (source !== "catalogue") return;
+    const pts = list.map(mapPoint).filter(Boolean);
+    if (!pts.length) return;
+    const x = pts.reduce((a, p) => a + p.x, 0) / pts.length;
+    const y = pts.reduce((a, p) => a + p.y, 0) / pts.length;
+    // Téléphone : les épingles au-dessus du tiroir de la liste
+    setCenter({ x, y: phone ? y + 180 : y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, listKey, phone]);
+
+  const inPrice =(v, r = price) => !r || (v.price && v.price >= r[0] && v.price <= r[1]);
   const inZone = (v) => {
     if (!zone) return true;
     const p = mapPoint(v);

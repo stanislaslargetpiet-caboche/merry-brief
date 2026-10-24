@@ -97,17 +97,21 @@ export function vendorFromPick(p) {
 export function useRecommendations(category, near) {
   const dash = useDash();
   const region = dash.data.wedding.region || dash.data.brief?.region;
-  const [state, setState] = useState({ vendors: [], source: null, loading: true });
+  const venue = dash.data.wedding.venue;
+  // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
+  const places = category === "lieu" ? [region, venue] : [venue, region];
+  const placesKey = places.join("|");
+  const [state, setState] = useState({ vendors: [], source: null, center: null, loading: true });
   const nearKey = near ? `${near.lat},${near.lng}` : "";
   useEffect(() => {
     let live = true;
     setState((s) => ({ ...s, loading: true }));
-    loadRecommendations({ mode: dash.mode, category, region, near }).then((res) => live && setState({ ...res, loading: false }));
+    loadRecommendations({ mode: dash.mode, category, places: places.filter(Boolean), near }).then((res) => live && setState({ ...res, loading: false }));
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dash.mode, category, region, nearKey]);
+  }, [dash.mode, category, placesKey, nearKey]);
   return state;
 }
 
