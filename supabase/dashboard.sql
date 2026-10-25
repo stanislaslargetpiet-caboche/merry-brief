@@ -327,16 +327,18 @@ create policy "indicateurs: les siens" on public.kpi_prefs for all to authentica
 -- status, owner, notes) par cette fonction.
 drop policy if exists "brief: lecture par les organisateurs" on public.briefs;
 
-create or replace function public.merry_brief(w uuid)
+-- drop d'abord : le type de retour a changé (colonne help retirée, voir onboarding-simplifie.sql).
+drop function if exists public.merry_brief(uuid);
+create function public.merry_brief(w uuid)
 returns table (stage text, team text, first_name text, partner_first_name text, wedding_date date,
-               region text, guests text, format text, vibes text[], budget text, help text[])
+               region text, guests text, format text, vibes text[], budget text)
 language sql
 stable
 security definer
 set search_path = public
 as $$
   select b.stage, b.team, b.first_name, b.partner_first_name, b.wedding_date,
-         b.region, b.guests, b.format, b.vibes, b.budget, b.help
+         b.region, b.guests, b.format, b.vibes, b.budget
     from public.weddings wd
     join public.briefs b on b.id = wd.brief_id
    where wd.id = w and public.is_wedding_member(w);
