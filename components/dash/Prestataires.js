@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
+import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, guestsLabel, legendFor, monthYear, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { addDays, euros, toDate } from "@/lib/dash/format";
@@ -94,11 +95,12 @@ export function vendorFromPick(p) {
   return { ...(p.data || {}), ...(SAMPLE_BY_ID[p.catalog_ref] || {}), id: p.catalog_ref, category: p.category };
 }
 
-// Recommandations d'une catégorie, page par page. Catalogue : les prestataires proches arrivent par lots,
-// l'IA note chacun pour ce couple (lib/dash/match.js), la liste suit la note et écarte les hors-sujet ;
-// more() montre les suivants, puis va chercher un nouveau lot. Sélection d'exemple : telle quelle.
+// Recommandations d'une catégorie, page par page. Lieux : les envies du couple sont des filtres stricts
+// (lib/dash/filters.js) ; d'abord les lieux qui les tiennent preuve à l'appui, puis ceux dont l'information
+// manque (« à confirmer »), jamais ceux qui les contredisent. more() charge la page suivante.
 // bbox ({ south, north, west, east }) cherche dans la zone de la carte.
-const POOL = 24;
+// La comparaison par l'IA (lib/dash/match.js) est en réserve : NEXT_PUBLIC_MERRY_AI_MATCH=1 la rallume.
+const AI_MATCH = process.env.NEXT_PUBLIC_MERRY_AI_MATCH === "1";
 
 function withMatch(v, m) {
   if (!m) return v;
@@ -112,34 +114,70 @@ export function useRecommendations(category, near, bbox = null) {
   const venue = data.wedding.venue;
   // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
   const places = [category === "lieu" ? region : venue, category === "lieu" ? venue : region].filter(Boolean);
-  const ctxKey = contextKey(coupleContext(data), category);
-  const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", ctxKey].join("/");
+  const wishes = category === "lieu" ? data.wishes?.wishes || null : null;
+  const filters = hardFilters(wishes);
+  const city = cityFilter(wishes);
+  const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
+  const filterKey = JSON.stringify([filters.map((f) => [f.col, f.op, f.value]), city]);
+  const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", filterKey, ctxKey].join("/");
   const step = pageSize(category);
-  const [state, setState] = useState({ ranked: [], shown: step, rawCount: 0, rawMore: false, source: null, center: null, loading: true, loadingMore: false, ai: null });
+  const empty = { vendors: [], tier: "confirmed", offset: 0, done: false, source: null, center: null, loading: true, loadingMore: false, ai: null, filtersMissing: false };
+  const [state, setState] = useState(empty);
   const keyRef = useRef(key);
   keyRef.current = key;
   const dataRef = useRef(data);
   dataRef.current = data;
-  const args = { mode: dash.mode, category, places, near, bbox };
+  const args = { mode: dash.mode, category, places, near, bbox, filters, city };
 
-  // Un lot du catalogue, noté par l'IA quand elle est disponible
-  const fetchBatch = async (offset, center) => {
-    const res = await loadRecommendations({ ...args, offset, limit: POOL });
-    if (res.source !== "catalogue" || !res.vendors.length) return { ...res, scored: res.vendors, ai: null };
-    const { matches, ai } = await scoreVendors({ data: dataRef.current, category, vendors: res.vendors, center: res.center || center });
-    const scored = res.vendors
-      .map((v) => withMatch(v, matches.get(v.catalogId)))
-      .filter((v) => v.matchScore === undefined || v.matchScore >= MIN_SCORE)
-      .sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
-    return { ...res, scored, ai };
+  // Une page : on lit les lieux confirmés, puis les « à confirmer », jusqu'à en avoir assez à montrer
+  const fetchPage = async (from) => {
+    let { tier, offset } = from;
+    const seen = new Set(from.vendors.map((v) => v.id));
+    const got = [];
+    let res = null;
+    let done = false;
+    let filtersMissing = from.filtersMissing;
+    for (let guard = 0; got.length < step && guard < 6; guard++) {
+      res = await loadRecommendations({ ...args, offset, limit: step, tier });
+      filtersMissing = filtersMissing || !!res.filtersMissing;
+      if (res.source !== "catalogue") {
+        got.push(...res.vendors);
+        done = true;
+        break;
+      }
+      offset += step;
+      // Deuxième passe : seulement ceux à qui il manque une information (les autres sont déjà là)
+      got.push(...res.vendors.filter((v) => !seen.has(v.id) && (tier === "confirmed" || v.unknown?.length)));
+      for (const v of res.vendors) seen.add(v.id);
+      if (!res.hasMore) {
+        if (tier === "confirmed" && filters.length && !res.filtersMissing) {
+          tier = "open";
+          offset = 0;
+        } else {
+          done = true;
+          break;
+        }
+      }
+    }
+    let ai = null;
+    let page = got;
+    if (AI_MATCH && res?.source === "catalogue" && got.length) {
+      const scored = await scoreVendors({ data: dataRef.current, category, vendors: got, center: res.center });
+      ai = scored.ai;
+      page = got
+        .map((v) => withMatch(v, scored.matches.get(v.catalogId)))
+        .filter((v) => v.matchScore === undefined || v.matchScore >= MIN_SCORE)
+        .sort((a, b) => (b.unknown?.length ? 0 : 1) - (a.unknown?.length ? 0 : 1) || (b.matchScore ?? -1) - (a.matchScore ?? -1));
+    }
+    return { page, tier, offset, done, source: res?.source || null, center: res?.center || null, ai, filtersMissing };
   };
 
   useEffect(() => {
     let live = true;
     setState((s) => ({ ...s, loading: true }));
-    fetchBatch(0, null).then((res) => {
+    fetchPage(empty).then((r) => {
       if (!live) return;
-      setState({ ranked: res.scored, shown: step, rawCount: res.vendors.length, rawMore: res.hasMore, source: res.source, center: res.center, loading: false, loadingMore: false, ai: res.ai });
+      setState({ ...empty, vendors: r.page, tier: r.tier, offset: r.offset, done: r.done, source: r.source, center: r.center, ai: r.ai, filtersMissing: r.filtersMissing, loading: false });
     });
     return () => {
       live = false;
@@ -147,30 +185,22 @@ export function useRecommendations(category, near, bbox = null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const hasMore = state.ranked.length > state.shown || state.rawMore;
-
   const more = useCallback(async () => {
-    if (state.loadingMore) return;
-    if (state.ranked.length >= state.shown + step || !state.rawMore) {
-      setState((s) => ({ ...s, shown: s.shown + step }));
-      return;
-    }
+    if (state.done || state.loadingMore) return;
     const at = keyRef.current;
     setState((s) => ({ ...s, loadingMore: true }));
-    const res = await fetchBatch(state.rawCount, state.center);
+    const r = await fetchPage(state);
     if (keyRef.current !== at) return;
     setState((s) => {
-      // Ce qui est déjà affiché ne bouge pas ; le reste et le nouveau lot suivent la note
-      const seen = new Set(s.ranked.map((v) => v.id));
-      const rest = [...s.ranked.slice(s.shown), ...res.scored.filter((v) => !seen.has(v.id))].sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
-      return { ...s, ranked: [...s.ranked.slice(0, s.shown), ...rest], shown: s.shown + step, rawCount: s.rawCount + res.vendors.length, rawMore: res.hasMore, loadingMore: false, ai: res.ai || s.ai };
+      const seen = new Set(s.vendors.map((v) => v.id));
+      return { ...s, vendors: [...s.vendors, ...r.page.filter((v) => !seen.has(v.id))], tier: r.tier, offset: r.offset, done: r.done, ai: r.ai || s.ai, filtersMissing: r.filtersMissing, loadingMore: false };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.loadingMore, state.ranked.length, state.shown, state.rawMore, state.rawCount, key]);
+  }, [state, key]);
 
-  // « Meilleur match » : le premier, s'il correspond vraiment
-  const vendors = state.ranked.slice(0, state.shown).map((v, i) => (v.matchScore === undefined ? v : { ...v, best: i === 0 && v.matchScore >= BEST_SCORE }));
-  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore, ai: state.ai, more };
+  // « Meilleur match » (comparaison par l'IA) : le premier, s'il correspond vraiment
+  const vendors = state.vendors.map((v, i) => (v.matchScore === undefined ? v : { ...v, best: i === 0 && v.matchScore >= BEST_SCORE }));
+  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore: !state.done, ai: state.ai, filtersMissing: state.filtersMissing, filters, city, more };
 }
 
 // « Voir plus de lieux » : page suivante du catalogue
@@ -266,7 +296,7 @@ export function PrecisionsBar({ onOpen }) {
         <span className="d-pr-precis-text">
           <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
           <span>
-            <strong>Dites-nous ce qui compte pour vous.</strong> L'ambiance, l'accès, le traiteur, le nombre de couchages… Merry compare chaque proposition à vos mots.
+            <strong>Dites-nous ce qui compte pour vous.</strong> Places, couchages, traiteur libre, aéroport ou gare à moins d'une heure… Seuls les lieux qui respectent vos critères vous sont proposés.
           </span>
         </span>
         <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
@@ -452,6 +482,7 @@ export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
             <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
           </div>
         ) : null}
+        <ToConfirm v={v} />
         {v.price ? (
           <div className="d-pr-card-price">
             <Price v={v} />
@@ -459,6 +490,45 @@ export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
         ) : null}
       </div>
     </article>
+  );
+}
+
+// Critères du couple que ce lieu n'a pas encore publiés (ni tenus, ni contredits)
+export function ToConfirm({ v }) {
+  if (!v.unknown?.length) return null;
+  return (
+    <div className="d-pr-confirm">
+      <span>À confirmer :</span> {v.unknown.join(", ")}
+    </div>
+  );
+}
+
+// Dans une grille, avant le premier lieu « à confirmer »
+export function ConfirmDivider({ list, index, category = "lieu" }) {
+  const v = list[index];
+  if (!v?.unknown?.length || list[index - 1]?.unknown?.length) return null;
+  const c = catOf(category);
+  return (
+    <div className="d-pr-tier" role="presentation">
+      <strong>À confirmer avec {category === "lieu" ? "le lieu" : "le prestataire"}</strong>
+      <span>
+        Ces {c.many} ne contredisent aucun de vos critères, mais n'ont pas encore publié tout ce qu'il faut pour le vérifier. Demandez-le-leur avec votre devis.
+      </span>
+    </div>
+  );
+}
+
+// Colonnes de filtre absentes du catalogue (supabase/catalog-filtres.sql pas encore lancé)
+export function FiltersNote({ rec }) {
+  const dash = useDash();
+  if (dash.mode !== "live" || !rec.filtersMissing) return null;
+  return (
+    <div className="d-card is-panel">
+      <strong>Vos critères ne peuvent pas encore être appliqués.</strong>
+      <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
+        Collez le fichier <code>supabase/catalog-filtres.sql</code> dans Supabase (SQL Editor), puis rechargez la page. En attendant, les propositions ne tiennent compte que de votre région.
+      </span>
+    </div>
   );
 }
 
@@ -591,7 +661,6 @@ function CloseBtn({ onClose, label = "Fermer" }) {
 
 const ACCESS = [
   { key: "parking", label: "Parking sur place" },
-  { key: "goudron", label: "Pas de chemin de terre" },
   { key: "pmr", label: "Accessible PMR" },
 ];
 const VENUE = [

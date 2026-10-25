@@ -9562,6 +9562,37 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+/* Filtres stricts : ce qu'il reste à confirmer avec le lieu */
+.d-pr-confirm {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--d-orange-ink);
+}
+
+.d-pr-confirm span {
+  font-weight: 600;
+}
+
+.d-pr-tier {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 0 2px;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-pr-tier strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-pr-tier span {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}
+
 /* « Voir plus de lieux » : page suivante du catalogue */
 .d-pr-more {
   display: flex;

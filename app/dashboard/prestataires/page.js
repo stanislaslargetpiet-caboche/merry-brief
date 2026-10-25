@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
@@ -15,9 +15,11 @@ import {
   BestMatch,
   BriefBar,
   CategoryTabs,
+  ConfirmDivider,
   DevisDialog,
   EnviesPanel,
   FichePanel,
+  FiltersNote,
   Heart,
   MapCanvas,
   Negotiated,
@@ -28,6 +30,7 @@ import {
   SampleNote,
   SelectionBar,
   Thumb,
+  ToConfirm,
   MAP_MIN_SCALE,
   MoreButton,
   PrecisionsBar,
@@ -120,8 +123,10 @@ export default function Trouver() {
       ? `Merry compare les ${c.many} proches de chez vous à votre brief…`
       : "Chargement des propositions…"
     : list.length
-      ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos envies" : ""}.`
-      : `Aucun ${c.one} à vous proposer pour l’instant.`;
+      ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos critères" : ""}.`
+      : wishesOn && cat === "lieu"
+        ? "Aucun lieu ne respecte tous vos critères dans cette zone. Assouplissez-en un, ou cherchez ailleurs sur la carte."
+        : `Aucun ${c.one} à vous proposer pour l’instant.`;
 
   const overlays = (
     <>
@@ -152,6 +157,7 @@ export default function Trouver() {
     <>
       <PrHead on="trouver" />
       <SampleNote source={source} />
+      <FiltersNote rec={rec} />
       <BriefBar onEnvies={() => setEnvies(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
@@ -170,8 +176,11 @@ export default function Trouver() {
           </div>
           <PrecisionsBar onOpen={() => setEnvies(true)} />
           <div className="d-pr-grid">
-            {list.map((v) => (
-              <VendorCard key={v.id} v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />
+            {list.map((v, i) => (
+              <Fragment key={v.id}>
+                <ConfirmDivider list={list} index={i} category={cat} />
+                <VendorCard v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />
+              </Fragment>
             ))}
           </div>
           <MoreButton rec={rec} category={cat} />
@@ -322,7 +331,8 @@ function MapView({ list, rec, onArea, cat, source, phone, isPicked, onToggle, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, list, phone, cat]);
 
-  const inPrice =(v, r = price) => !r || (v.price && v.price >= r[0] && v.price <= r[1]);
+  // Prix inconnu : gardé (« à confirmer »), comme pour les autres critères
+  const inPrice = (v, r = price) => !r || !v.price || (v.price >= r[0] && v.price <= r[1]);
   const inZone = (v) => {
     if (!zone || source !== "exemple") return true;
     const p = mapPoint(v);
@@ -529,6 +539,7 @@ function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
           <div className="d-pr-area">{v.area}</div>
         </div>
         {v.seats || v.beds !== undefined ? <div className="d-pr-mini-line">{[v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null].filter(Boolean).join(" · ")}</div> : null}
+        <ToConfirm v={v} />
         {v.best || v.negotiated ? (
           <div className="d-pr-mini-tags">
             {v.best ? <BestMatch small /> : null}
