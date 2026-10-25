@@ -183,3 +183,28 @@ $$;
 
 revoke all on function public.merry_place(text) from public, anon;
 grant execute on function public.merry_place(text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- E. Ce que l'IA pense de chaque prestataire pour ce couple (app/api/prestataires/match)
+--    Gardé par mariage et par « contexte » (empreinte du brief et des envies) : un prestataire n'est
+--    noté qu'une fois tant que le couple ne change pas ses envies. Sans cette table, la note est
+--    gardée le temps de la session du navigateur.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.vendor_matches (
+  wedding_id    uuid not null references public.weddings (id) on delete cascade,
+  catalog_id    uuid not null,
+  context       text not null check (length(context) between 1 and 64),
+  score         smallint not null check (score between 0 and 100),
+  why           text check (why is null or length(why) <= 200),
+  story         text check (story is null or length(story) <= 1000),
+  checks        text[] not null default '{}',
+  created_at    timestamptz not null default now(),
+  primary key (wedding_id, catalog_id, context)
+);
+
+alter table public.vendor_matches enable row level security;
+drop policy if exists "organisateurs: tout" on public.vendor_matches;
+create policy "organisateurs: tout" on public.vendor_matches for all to authenticated
+  using (public.is_wedding_member(wedding_id))
+  with check (public.is_wedding_member(wedding_id));

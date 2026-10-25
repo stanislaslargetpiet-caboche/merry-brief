@@ -30,6 +30,7 @@ import {
   Thumb,
   MAP_MIN_SCALE,
   MoreButton,
+  PrecisionsBar,
   useIsPhone,
   usePicks,
   useRecommendations,
@@ -115,7 +116,9 @@ export default function Trouver() {
 
   const wishesOn = wishes && Object.values(wishes).some((x) => (Array.isArray(x) ? x.length : x && typeof x === "object" ? x.on || x.name : x));
   const subtitle = loading
-    ? "Chargement des propositions…"
+    ? source === "catalogue" || dash.mode === "live"
+      ? `Merry compare les ${c.many} proches de chez vous à votre brief…`
+      : "Chargement des propositions…"
     : list.length
       ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos envies" : ""}.`
       : `Aucun ${c.one} à vous proposer pour l’instant.`;
@@ -165,6 +168,7 @@ export default function Trouver() {
             <h2>Nos recommandations pour vous</h2>
             <p>{subtitle}</p>
           </div>
+          <PrecisionsBar onOpen={() => setEnvies(true)} />
           <div className="d-pr-grid">
             {list.map((v) => (
               <VendorCard key={v.id} v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />

@@ -8,7 +8,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
-import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, guestsLabel, legendFor, monthYear, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { addDays, euros, toDate } from "@/lib/dash/format";
@@ -93,44 +94,83 @@ export function vendorFromPick(p) {
   return { ...(p.data || {}), ...(SAMPLE_BY_ID[p.catalog_ref] || {}), id: p.catalog_ref, category: p.category };
 }
 
-// Recommandations d'une catégorie (catalogue Merry, ou sélection d'exemple), page par page :
-// more() ajoute la page suivante ; bbox ({ south, north, west, east }) cherche dans la zone de la carte.
+// Recommandations d'une catégorie, page par page. Catalogue : les prestataires proches arrivent par lots,
+// l'IA note chacun pour ce couple (lib/dash/match.js), la liste suit la note et écarte les hors-sujet ;
+// more() montre les suivants, puis va chercher un nouveau lot. Sélection d'exemple : telle quelle.
+// bbox ({ south, north, west, east }) cherche dans la zone de la carte.
+const POOL = 24;
+
+function withMatch(v, m) {
+  if (!m) return v;
+  return { ...v, matchScore: m.score, why: m.why || v.why, story: m.story || v.story, checks: m.checks?.length ? m.checks : v.checks };
+}
+
 export function useRecommendations(category, near, bbox = null) {
   const dash = useDash();
-  const region = dash.data.wedding.region || dash.data.brief?.region;
-  const venue = dash.data.wedding.venue;
+  const data = dash.data;
+  const region = data.wedding.region || data.brief?.region;
+  const venue = data.wedding.venue;
   // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
   const places = [category === "lieu" ? region : venue, category === "lieu" ? venue : region].filter(Boolean);
-  const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : ""].join("/");
-  const [state, setState] = useState({ vendors: [], source: null, center: null, loading: true, hasMore: false, loadingMore: false });
+  const ctxKey = contextKey(coupleContext(data), category);
+  const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", ctxKey].join("/");
+  const step = pageSize(category);
+  const [state, setState] = useState({ ranked: [], shown: step, rawCount: 0, rawMore: false, source: null, center: null, loading: true, loadingMore: false, ai: null });
   const keyRef = useRef(key);
   keyRef.current = key;
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const args = { mode: dash.mode, category, places, near, bbox };
+
+  // Un lot du catalogue, noté par l'IA quand elle est disponible
+  const fetchBatch = async (offset, center) => {
+    const res = await loadRecommendations({ ...args, offset, limit: POOL });
+    if (res.source !== "catalogue" || !res.vendors.length) return { ...res, scored: res.vendors, ai: null };
+    const { matches, ai } = await scoreVendors({ data: dataRef.current, category, vendors: res.vendors, center: res.center || center });
+    const scored = res.vendors
+      .map((v) => withMatch(v, matches.get(v.catalogId)))
+      .filter((v) => v.matchScore === undefined || v.matchScore >= MIN_SCORE)
+      .sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
+    return { ...res, scored, ai };
+  };
 
   useEffect(() => {
     let live = true;
     setState((s) => ({ ...s, loading: true }));
-    loadRecommendations(args).then((res) => live && setState({ ...res, loading: false, loadingMore: false }));
+    fetchBatch(0, null).then((res) => {
+      if (!live) return;
+      setState({ ranked: res.scored, shown: step, rawCount: res.vendors.length, rawMore: res.hasMore, source: res.source, center: res.center, loading: false, loadingMore: false, ai: res.ai });
+    });
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  const hasMore = state.ranked.length > state.shown || state.rawMore;
+
   const more = useCallback(async () => {
-    if (!state.hasMore || state.loadingMore) return;
+    if (state.loadingMore) return;
+    if (state.ranked.length >= state.shown + step || !state.rawMore) {
+      setState((s) => ({ ...s, shown: s.shown + step }));
+      return;
+    }
     const at = keyRef.current;
     setState((s) => ({ ...s, loadingMore: true }));
-    const res = await loadRecommendations({ ...args, offset: state.vendors.length });
+    const res = await fetchBatch(state.rawCount, state.center);
     if (keyRef.current !== at) return;
     setState((s) => {
-      const seen = new Set(s.vendors.map((v) => v.id));
-      return { ...s, vendors: [...s.vendors, ...res.vendors.filter((v) => !seen.has(v.id))], hasMore: res.hasMore, loadingMore: false };
+      // Ce qui est déjà affiché ne bouge pas ; le reste et le nouveau lot suivent la note
+      const seen = new Set(s.ranked.map((v) => v.id));
+      const rest = [...s.ranked.slice(s.shown), ...res.scored.filter((v) => !seen.has(v.id))].sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
+      return { ...s, ranked: [...s.ranked.slice(0, s.shown), ...rest], shown: s.shown + step, rawCount: s.rawCount + res.vendors.length, rawMore: res.hasMore, loadingMore: false, ai: res.ai || s.ai };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.hasMore, state.loadingMore, state.vendors.length, key]);
+  }, [state.loadingMore, state.ranked.length, state.shown, state.rawMore, state.rawCount, key]);
 
-  return { ...state, more };
+  // « Meilleur match » : le premier, s'il correspond vraiment
+  const vendors = state.ranked.slice(0, state.shown).map((v, i) => (v.matchScore === undefined ? v : { ...v, best: i === 0 && v.matchScore >= BEST_SCORE }));
+  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore, ai: state.ai, more };
 }
 
 // « Voir plus de lieux » : page suivante du catalogue
@@ -192,6 +232,71 @@ export function BriefBar({ onEnvies }) {
       <button type="button" className="d-btn d-btn-ghost d-pr-envies-btn" onClick={onEnvies}>
         <Icon name="sparkle" size={15} sw={2} />
         Préciser mes envies
+      </button>
+    </div>
+  );
+}
+
+// Ce que le couple a précisé (panneau « Préciser mes envies »), en étiquettes courtes
+export function wishLabels(w) {
+  if (!w) return [];
+  const label = (list, key) => (list.find((x) => x.key === key) || {}).label;
+  return [
+    w.airport?.on ? `Près d'un aéroport${w.airport.max ? ` (${w.airport.max} min)` : ""}` : null,
+    w.station?.on ? `Près d'une gare TGV${w.station.max ? ` (${w.station.max} min)` : ""}` : null,
+    w.city?.name?.trim() ? `Près de ${w.city.name.trim()}${w.city.max ? ` (${w.city.max} min)` : ""}` : null,
+    ...(w.access || []).map((k) => label(ACCESS, k)),
+    w.seats ? `${w.seats} places assises` : null,
+    w.beds ? `${w.beds} couchages` : null,
+    ...(w.venue || []).map((k) => label(VENUE, k)),
+    w.caterer && w.caterer !== "indifferent" ? `Traiteur ${label(CATERER, w.caterer).toLowerCase()}` : null,
+    ...(w.criteria || []),
+  ].filter(Boolean);
+}
+
+// Juste sous « … d'après votre brief » : de quoi préciser ce que l'on cherche, en mots et en critères
+export function PrecisionsBar({ onOpen }) {
+  const dash = useDash();
+  const w = dash.data.wishes?.wishes || null;
+  const labels = wishLabels(w);
+  const text = w?.style?.trim();
+  if (!labels.length && !text) {
+    return (
+      <div className="d-pr-precis">
+        <span className="d-pr-precis-text">
+          <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
+          <span>
+            <strong>Dites-nous ce qui compte pour vous.</strong> L'ambiance, l'accès, le traiteur, le nombre de couchages… Merry compare chaque proposition à vos mots.
+          </span>
+        </span>
+        <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
+          Ajouter des précisions
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="d-pr-precis is-set">
+      <div className="d-pr-precis-text">
+        <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
+        <div className="d-pr-precis-body">
+          <span>
+            <strong>Vos précisions</strong>
+            {text ? ` · « ${text.length > 120 ? `${text.slice(0, 117)}…` : text} »` : ""}
+          </span>
+          {labels.length ? (
+            <div className="d-pr-optrow">
+              {labels.map((l) => (
+                <span key={l} className="d-pr-crit is-static">
+                  {l}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
+        Modifier mes précisions
       </button>
     </div>
   );
@@ -1105,6 +1210,20 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
             <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p>
+            {v.checks?.length ? (
+              <div className="d-pr-included">
+                <div className="d-pr-included-t">À vérifier avec {v.category === "lieu" ? "le lieu" : "le prestataire"}</div>
+                <ul>
+                  {v.checks.map((t) => (
+                    <li key={t}>
+                      <Icon name="arrowRight" size={15} sw={2} stroke="#6b6a63" style={{ flex: "none", marginTop: 2 }} />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {v.matchScore !== undefined ? <span className="d-pr-ai-note">Analyse Merry d'après votre brief et vos envies, à confirmer avec {v.category === "lieu" ? "le lieu" : "le prestataire"}.</span> : null}
           </section>
         ) : null}
         {v.rating ? (

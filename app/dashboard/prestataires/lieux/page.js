@@ -9,7 +9,7 @@ import { useDash } from "@/lib/dash/store";
 import { inWords, rank } from "@/lib/dash/catalog";
 import { chosenVenue, dateLong, guestsLabel } from "@/lib/dash/picks";
 import { Icon } from "@/components/dash/icons";
-import { DevisDialog, EnviesPanel, FichePanel, Negotiated, Price, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
+import { DevisDialog, EnviesPanel, FichePanel, MoreButton, Negotiated, Price, PrecisionsBar, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
 
 const FORMAT = { jour: "Une journée", weekend: "Un week-end" };
 
@@ -18,7 +18,8 @@ export default function Lieux() {
   const router = useRouter();
   const data = dash.data;
   const { picks, add } = usePicks();
-  const { vendors, source } = useRecommendations("lieu");
+  const rec = useRecommendations("lieu");
+  const { vendors, source } = rec;
   const list = useMemo(() => rank(vendors, data.wishes?.wishes || null, "lieu"), [vendors, data.wishes]);
   const [fiche, setFiche] = useState(null);
   const [envies, setEnvies] = useState(false);
@@ -58,6 +59,7 @@ export default function Lieux() {
         </span>
         <Link href="/dashboard/brief">Modifier le brief</Link>
       </div>
+      <PrecisionsBar onOpen={() => setEnvies(true)} />
       <div className="d-pr-grid is-lieux">
         {list.map((v) => {
           const photo = (v.photos || []).find(Boolean);
@@ -88,6 +90,7 @@ export default function Lieux() {
           );
         })}
       </div>
+      <MoreButton rec={rec} category="lieu" />
       <section className="d-pr-panelcta">
         <div>
           <h2>{inWords(n, "lieu")}, pas davantage</h2>

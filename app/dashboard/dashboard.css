@@ -9519,6 +9519,49 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+/* « Ajouter des précisions » : sous « … d'après votre brief » */
+.d-pr-precis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 16px 14px 18px;
+  border-radius: 16px;
+  background: var(--d-limetint);
+}
+
+.d-pr-precis-text {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--d-ok-ink);
+}
+
+.d-pr-precis-text strong {
+  font-weight: 600;
+}
+
+.d-pr-precis-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.d-pr-crit.is-static {
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.d-pr-ai-note {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
 /* « Voir plus de lieux » : page suivante du catalogue */
 .d-pr-more {
   display: flex;
@@ -10133,6 +10176,15 @@ body.d-noscroll {
 
   .d-pr-rowmore {
     width: 180px;
+  }
+
+  .d-pr-precis {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-pr-precis .d-btn {
+    min-height: 44px;
   }
 
   .d-pr-rowcard-img {
