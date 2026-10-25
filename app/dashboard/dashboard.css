@@ -7972,6 +7972,12 @@ body.d-noscroll {
   box-shadow: 0 2px 8px rgba(28, 28, 26, 0.16);
 }
 
+.d-pr-pin-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .d-pr-pin-img {
   flex: none;
   width: 28px;
@@ -9513,6 +9519,132 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+/* « Ajouter des précisions » : sous « … d'après votre brief » */
+.d-pr-precis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 16px 14px 18px;
+  border-radius: 16px;
+  background: var(--d-limetint);
+}
+
+.d-pr-precis-text {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--d-ok-ink);
+}
+
+.d-pr-precis-text strong {
+  font-weight: 600;
+}
+
+.d-pr-precis-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.d-pr-crit.is-static {
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.d-pr-ai-note {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+/* Filtres stricts : ce qu'il reste à confirmer avec le lieu */
+.d-pr-confirm {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--d-orange-ink);
+}
+
+.d-pr-confirm span {
+  font-weight: 600;
+}
+
+.d-pr-tier {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 0 2px;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-pr-tier strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-pr-tier span {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}
+
+/* « Voir plus de lieux » : page suivante du catalogue */
+.d-pr-more {
+  display: flex;
+  justify-content: center;
+}
+
+.d-pr-more.is-list {
+  flex: none;
+  padding: 4px 0 8px;
+}
+
+.d-pr-rowmore {
+  flex: none;
+  width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--d-border);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+/* Carte : villes en surimpression (taille fixe quel que soit le zoom) */
+.d-pr-map.is-live {
+  cursor: grab;
+}
+
+.d-pr-map.is-live:active {
+  cursor: grabbing;
+}
+
+.d-pr-city {
+  position: absolute;
+  transform: translate(-3px, -3px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--d-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 0 3px #f3eee2, 0 0 3px #f3eee2;
+}
+
+.d-pr-city i {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #9d978a;
+}
+
 @media (max-width: 1180px) {
   .d-pr-grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -10071,6 +10203,19 @@ body.d-noscroll {
 
   .d-pr-rowcard {
     width: 264px;
+  }
+
+  .d-pr-rowmore {
+    width: 180px;
+  }
+
+  .d-pr-precis {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-pr-precis .d-btn {
+    min-height: 44px;
   }
 
   .d-pr-rowcard-img {

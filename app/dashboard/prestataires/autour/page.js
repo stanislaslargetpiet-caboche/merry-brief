@@ -95,7 +95,8 @@ export default function Autour() {
 
 function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
   const c = catOf(cat);
-  const { vendors } = useRecommendations(cat, near);
+  const rec = useRecommendations(cat, near);
+  const { vendors } = rec;
   const scroller = useRef(null);
   const scroll = (d) => scroller.current?.scrollBy({ left: d * 316, behavior: "smooth" });
   const id = `row-${cat}`;
@@ -104,13 +105,13 @@ function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
       <div className="d-pr-row-head">
         <div>
           <h3 id={id}>{c.group}</h3>
-          <span>{vendors.length ? `${vendors.length} ${c.near} près ${venueName ? `du ${venueName}` : "de chez vous"}` : `Aucun ${c.one} près ${venueName ? `du ${venueName}` : "de chez vous"} pour l’instant.`}</span>
+          <span>{vendors.length ? `${rec.hasMore ? "Plus de " : ""}${vendors.length} ${c.near} près ${venueName ? `du ${venueName}` : "de chez vous"}` : `Aucun ${c.one} près ${venueName ? `du ${venueName}` : "de chez vous"} pour l’instant.`}</span>
         </div>
         <span className="d-pr-row-actions">
           <button type="button" className="d-pr-textbtn" onClick={onSkip}>
             Pas besoin
           </button>
-          {vendors.length > 3 ? (
+          {vendors.length > 3 || rec.hasMore ? (
             <span className="d-pr-row-arrows d-desk-only">
               <button type="button" aria-label={`${c.group} précédents`} onClick={() => scroll(-1)}>
                 <Icon name="prev" size={16} sw={2.2} stroke="#1c1c1a" />
@@ -163,6 +164,13 @@ function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
               </article>
             );
           })}
+          {rec.hasMore ? (
+            <div className="d-pr-rowmore">
+              <button type="button" className="d-btn d-btn-ghost" onClick={rec.more} disabled={rec.loadingMore}>
+                {rec.loadingMore ? "Chargement…" : `Voir plus de ${c.many}`}
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

@@ -4,10 +4,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
-import { project } from "@/lib/dash/provenceMap";
+import { project, unproject } from "@/lib/dash/provenceMap";
 import { euros } from "@/lib/dash/format";
 import { chosenVenue } from "@/lib/dash/picks";
 import { Icon } from "@/components/dash/icons";
@@ -15,9 +15,11 @@ import {
   BestMatch,
   BriefBar,
   CategoryTabs,
+  ConfirmDivider,
   DevisDialog,
   EnviesPanel,
   FichePanel,
+  FiltersNote,
   Heart,
   MapCanvas,
   Negotiated,
@@ -28,6 +30,10 @@ import {
   SampleNote,
   SelectionBar,
   Thumb,
+  ToConfirm,
+  MAP_MIN_SCALE,
+  MoreButton,
+  PrecisionsBar,
   useIsPhone,
   usePicks,
   useRecommendations,
@@ -72,7 +78,10 @@ export default function Trouver() {
 
   const venuePick = chosenVenue(dash.data, picks);
   const venueName = venuePick?.data?.name || dash.data.wedding.venue || null;
-  const { vendors, source, loading } = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null);
+  // Zone de la carte (« Rechercher dans cette zone ») : remplace la région du brief tant qu'elle est choisie
+  const [bbox, setBbox] = useState(null);
+  const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox);
+  const { vendors, source, loading } = rec;
   const wishes = dash.data.wishes?.wishes || null;
   const list = useMemo(() => rank(vendors, wishes, cat), [vendors, wishes, cat]);
   const pending = picks.filter((p) => !p.requested_at);
@@ -81,6 +90,7 @@ export default function Trouver() {
 
   const changeCat = (k) => {
     setCat(k);
+    setBbox(null);
     writeParams({ cat: k === "lieu" ? null : k });
   };
   const changeView = (v) => {
@@ -109,10 +119,14 @@ export default function Trouver() {
 
   const wishesOn = wishes && Object.values(wishes).some((x) => (Array.isArray(x) ? x.length : x && typeof x === "object" ? x.on || x.name : x));
   const subtitle = loading
-    ? "Chargement des propositions…"
+    ? source === "catalogue" || dash.mode === "live"
+      ? `Merry compare les ${c.many} proches de chez vous à votre brief…`
+      : "Chargement des propositions…"
     : list.length
-      ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos envies" : ""}.`
-      : `Aucun ${c.one} à vous proposer pour l’instant.`;
+      ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos critères" : ""}.`
+      : wishesOn && cat === "lieu"
+        ? "Aucun lieu ne respecte tous vos critères dans cette zone. Assouplissez-en un, ou cherchez ailleurs sur la carte."
+        : `Aucun ${c.one} à vous proposer pour l’instant.`;
 
   const overlays = (
     <>
@@ -133,7 +147,7 @@ export default function Trouver() {
   if (view === "carte" && phone) {
     return (
       <>
-        <MapView list={list} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} onList={() => changeView("liste")} pending={pending} />
+        <MapView list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} onList={() => changeView("liste")} pending={pending} />
         {overlays}
       </>
     );
@@ -143,6 +157,7 @@ export default function Trouver() {
     <>
       <PrHead on="trouver" />
       <SampleNote source={source} />
+      <FiltersNote rec={rec} />
       <BriefBar onEnvies={() => setEnvies(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
@@ -152,18 +167,23 @@ export default function Trouver() {
       </div>
 
       {view === "carte" ? (
-        <MapView list={list} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
+        <MapView list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
       ) : (
         <>
           <div className="d-pr-intro">
             <h2>Nos recommandations pour vous</h2>
             <p>{subtitle}</p>
           </div>
+          <PrecisionsBar onOpen={() => setEnvies(true)} />
           <div className="d-pr-grid">
-            {list.map((v) => (
-              <VendorCard key={v.id} v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />
+            {list.map((v, i) => (
+              <Fragment key={v.id}>
+                <ConfirmDivider list={list} index={i} category={cat} />
+                <VendorCard v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />
+              </Fragment>
             ))}
           </div>
+          <MoreButton rec={rec} category={cat} />
           <SelectionBar picks={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
         </>
       )}
@@ -270,7 +290,7 @@ function PriceFilter({ value, count, onApply, onClose }) {
   );
 }
 
-function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvies, onList, pending, onRequest, onClear }) {
+function MapView({ list, rec, onArea, cat, source, phone, isPicked, onToggle, onOpen, onEnvies, onList, pending, onRequest, onClear }) {
   const c = catOf(cat);
   const [center, setCenter] = useState(phone ? { x: 504.6, y: 755.4 } : { x: 500, y: 550 });
   const [scale, setScale] = useState(phone ? 0.788 : 1);
@@ -282,9 +302,39 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
   const [tall, setTall] = useState(false);
   const boundsRef = useRef(null);
 
-  const inPrice = (v, r = price) => !r || (v.price && v.price >= r[0] && v.price <= r[1]);
+  const onView = ({ center: c2, scale: s2 }) => {
+    setCenter(c2);
+    setScale(s2);
+  };
+
+  // Catalogue : la carte se centre une fois sur les premiers prestataires trouvés (le cadre du canvas
+  // montre la Provence) ; ensuite elle reste où on l'a mise (« Voir plus », recherche dans la zone)
+  const centeredFor = useRef(null);
+  useEffect(() => {
+    if (source !== "catalogue" || centeredFor.current === cat) return;
+    const pts = list.map(mapPoint).filter(Boolean);
+    if (!pts.length) return;
+    centeredFor.current = cat;
+    const xs = pts.map((p) => p.x);
+    const ys = pts.map((p) => p.y);
+    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    // Toutes les épingles à l'écran : taille de la carte lue sur le dernier rendu (sinon celle du canvas)
+    const b = boundsRef.current;
+    const w = b ? (b.x1 - b.x0) * scale : phone ? 390 : 670;
+    const h = (b ? (b.y1 - b.y0) * scale : phone ? 743 : 940) - (phone ? 360 : 0);
+    const fit = Math.min(1, (w - 120) / Math.max(1, maxX - minX), (h - 120) / Math.max(1, maxY - minY));
+    const next = Math.max(MAP_MIN_SCALE, fit);
+    const y = (minY + maxY) / 2;
+    setScale(next);
+    // Téléphone : les épingles au-dessus du tiroir de la liste
+    setCenter({ x: (minX + maxX) / 2, y: phone ? y + 180 / next : y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, list, phone, cat]);
+
+  // Prix inconnu : gardé (« à confirmer »), comme pour les autres critères
+  const inPrice = (v, r = price) => !r || !v.price || (v.price >= r[0] && v.price <= r[1]);
   const inZone = (v) => {
-    if (!zone) return true;
+    if (!zone || source !== "exemple") return true;
     const p = mapPoint(v);
     return p && p.x >= zone.x0 && p.x <= zone.x1 && p.y >= zone.y0 && p.y <= zone.y1;
   };
@@ -312,7 +362,7 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
   );
 
   const map = (
-    <MapCanvas center={center} scale={scale} onPan={setCenter} label={c.key === "lieu" ? "Carte des lieux" : `Carte des ${c.many}`} className={phone ? "is-phone" : "is-desk"}>
+    <MapCanvas center={center} scale={scale} onView={onView} label={c.key === "lieu" ? "Carte des lieux" : `Carte des ${c.many}`} className={phone ? "is-phone" : "is-desk"}>
       {({ toScreen, bounds }) => {
         boundsRef.current = bounds;
         const act = shown.find((v) => v.id === active);
@@ -329,7 +379,7 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
                   aria-label={`${k.count} lieux dans ${k.label}, zoomer`}
                   onClick={() => {
                     setCenter(project(k.lat, k.lng));
-                    setScale((s) => Math.min(4, s * 1.6));
+                    setScale((s) => Math.min(6, s * 1.6));
                   }}
                 >
                   {k.count}
@@ -349,7 +399,18 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
   );
 
   const searchZone = (
-    <button type="button" className="d-pr-zone" onClick={() => setZone({ ...boundsRef.current })}>
+    <button
+      type="button"
+      className="d-pr-zone"
+      onClick={() => {
+        const b = boundsRef.current;
+        // Catalogue : nouvelle recherche dans la zone affichée ; sélection d'exemple : on filtre ce qui est là
+        if (source !== "catalogue") return setZone({ ...b });
+        const nw = unproject(b.x0, b.y0);
+        const se = unproject(b.x1, b.y1);
+        onArea({ south: se.lat, north: nw.lat, west: nw.lng, east: se.lng });
+      }}
+    >
       <Icon name="zoom" size={15} sw={2} stroke="#1c1c1a" />
       Rechercher dans cette zone
     </button>
@@ -383,6 +444,7 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
             {shown.map((v) => (
               <MiniCard key={v.id} v={v} size={104} picked={isPicked(v)} active={false} onToggle={() => onToggle(v)} onOpen={() => onOpen(v)} />
             ))}
+            <MoreButton rec={rec} category={cat} className="is-list" />
           </div>
         </div>
       </div>
@@ -415,6 +477,7 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
             }}
           />
         ))}
+        <MoreButton rec={rec} category={cat} className="is-list" />
         {pending.length ? <CompactBar picks={pending} onRequest={onRequest} /> : null}
       </div>
       <div className="d-pr-split-map">
@@ -423,11 +486,11 @@ function MapView({ list, cat, source, phone, isPicked, onToggle, onOpen, onEnvie
         {priceOpen ? <PriceFilter value={price} count={priceCount} onApply={setPrice} onClose={() => setPriceOpen(false)} /> : null}
         {searchZone}
         <div className="d-pr-zoom">
-          <button type="button" aria-label="Zoomer" onClick={() => setScale((s) => Math.min(4, s * 1.4))}>
+          <button type="button" aria-label="Zoomer" onClick={() => setScale((s) => Math.min(6, s * 1.4))}>
             <Icon name="plus" size={16} sw={2.2} stroke="#1c1c1a" />
           </button>
           <span aria-hidden="true" />
-          <button type="button" aria-label="Dézoomer" onClick={() => setScale((s) => Math.max(0.5, s / 1.4))}>
+          <button type="button" aria-label="Dézoomer" onClick={() => setScale((s) => Math.max(MAP_MIN_SCALE, s / 1.4))}>
             <Icon name="minus" size={16} sw={2.2} stroke="#1c1c1a" />
           </button>
         </div>
@@ -476,6 +539,7 @@ function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
           <div className="d-pr-area">{v.area}</div>
         </div>
         {v.seats || v.beds !== undefined ? <div className="d-pr-mini-line">{[v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null].filter(Boolean).join(" · ")}</div> : null}
+        <ToConfirm v={v} />
         {v.best || v.negotiated ? (
           <div className="d-pr-mini-tags">
             {v.best ? <BestMatch small /> : null}

@@ -8,9 +8,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
-import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
+import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, guestsLabel, legendFor, monthYear, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
-import { MAP_BG, MAP_SVG, PRICE_BARS } from "@/lib/dash/provenceMap";
+import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { addDays, euros, toDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
 
@@ -93,22 +95,125 @@ export function vendorFromPick(p) {
   return { ...(p.data || {}), ...(SAMPLE_BY_ID[p.catalog_ref] || {}), id: p.catalog_ref, category: p.category };
 }
 
-// Recommandations d'une catégorie (catalogue Merry, ou sélection d'exemple)
-export function useRecommendations(category, near) {
+// Recommandations d'une catégorie, page par page. Lieux : les envies du couple sont des filtres stricts
+// (lib/dash/filters.js) ; d'abord les lieux qui les tiennent preuve à l'appui, puis ceux dont l'information
+// manque (« à confirmer »), jamais ceux qui les contredisent. more() charge la page suivante.
+// bbox ({ south, north, west, east }) cherche dans la zone de la carte.
+// La comparaison par l'IA (lib/dash/match.js) est en réserve : NEXT_PUBLIC_MERRY_AI_MATCH=1 la rallume.
+const AI_MATCH = process.env.NEXT_PUBLIC_MERRY_AI_MATCH === "1";
+
+function withMatch(v, m) {
+  if (!m) return v;
+  return { ...v, matchScore: m.score, why: m.why || v.why, story: m.story || v.story, checks: m.checks?.length ? m.checks : v.checks };
+}
+
+export function useRecommendations(category, near, bbox = null) {
   const dash = useDash();
-  const region = dash.data.wedding.region || dash.data.brief?.region;
-  const [state, setState] = useState({ vendors: [], source: null, loading: true });
-  const nearKey = near ? `${near.lat},${near.lng}` : "";
+  const data = dash.data;
+  const region = data.wedding.region || data.brief?.region;
+  const venue = data.wedding.venue;
+  // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
+  const places = [category === "lieu" ? region : venue, category === "lieu" ? venue : region].filter(Boolean);
+  const wishes = category === "lieu" ? data.wishes?.wishes || null : null;
+  const filters = hardFilters(wishes);
+  const city = cityFilter(wishes);
+  const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
+  const filterKey = JSON.stringify([filters.map((f) => [f.col, f.op, f.value]), city]);
+  const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", filterKey, ctxKey].join("/");
+  const step = pageSize(category);
+  const empty = { vendors: [], tier: "confirmed", offset: 0, done: false, source: null, center: null, loading: true, loadingMore: false, ai: null, filtersMissing: false };
+  const [state, setState] = useState(empty);
+  const keyRef = useRef(key);
+  keyRef.current = key;
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const args = { mode: dash.mode, category, places, near, bbox, filters, city };
+
+  // Une page : on lit les lieux confirmés, puis les « à confirmer », jusqu'à en avoir assez à montrer
+  const fetchPage = async (from) => {
+    let { tier, offset } = from;
+    const seen = new Set(from.vendors.map((v) => v.id));
+    const got = [];
+    let res = null;
+    let done = false;
+    let filtersMissing = from.filtersMissing;
+    for (let guard = 0; got.length < step && guard < 6; guard++) {
+      res = await loadRecommendations({ ...args, offset, limit: step, tier });
+      filtersMissing = filtersMissing || !!res.filtersMissing;
+      if (res.source !== "catalogue") {
+        got.push(...res.vendors);
+        done = true;
+        break;
+      }
+      offset += step;
+      // Deuxième passe : seulement ceux à qui il manque une information (les autres sont déjà là)
+      got.push(...res.vendors.filter((v) => !seen.has(v.id) && (tier === "confirmed" || v.unknown?.length)));
+      for (const v of res.vendors) seen.add(v.id);
+      if (!res.hasMore) {
+        if (tier === "confirmed" && filters.length && !res.filtersMissing) {
+          tier = "open";
+          offset = 0;
+        } else {
+          done = true;
+          break;
+        }
+      }
+    }
+    let ai = null;
+    let page = got;
+    if (AI_MATCH && res?.source === "catalogue" && got.length) {
+      const scored = await scoreVendors({ data: dataRef.current, category, vendors: got, center: res.center });
+      ai = scored.ai;
+      page = got
+        .map((v) => withMatch(v, scored.matches.get(v.catalogId)))
+        .filter((v) => v.matchScore === undefined || v.matchScore >= MIN_SCORE)
+        .sort((a, b) => (b.unknown?.length ? 0 : 1) - (a.unknown?.length ? 0 : 1) || (b.matchScore ?? -1) - (a.matchScore ?? -1));
+    }
+    return { page, tier, offset, done, source: res?.source || null, center: res?.center || null, ai, filtersMissing };
+  };
+
   useEffect(() => {
     let live = true;
     setState((s) => ({ ...s, loading: true }));
-    loadRecommendations({ mode: dash.mode, category, region, near }).then((res) => live && setState({ ...res, loading: false }));
+    fetchPage(empty).then((r) => {
+      if (!live) return;
+      setState({ ...empty, vendors: r.page, tier: r.tier, offset: r.offset, done: r.done, source: r.source, center: r.center, ai: r.ai, filtersMissing: r.filtersMissing, loading: false });
+    });
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dash.mode, category, region, nearKey]);
-  return state;
+  }, [key]);
+
+  const more = useCallback(async () => {
+    if (state.done || state.loadingMore) return;
+    const at = keyRef.current;
+    setState((s) => ({ ...s, loadingMore: true }));
+    const r = await fetchPage(state);
+    if (keyRef.current !== at) return;
+    setState((s) => {
+      const seen = new Set(s.vendors.map((v) => v.id));
+      return { ...s, vendors: [...s.vendors, ...r.page.filter((v) => !seen.has(v.id))], tier: r.tier, offset: r.offset, done: r.done, ai: r.ai || s.ai, filtersMissing: r.filtersMissing, loadingMore: false };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, key]);
+
+  // « Meilleur match » (comparaison par l'IA) : le premier, s'il correspond vraiment
+  const vendors = state.vendors.map((v, i) => (v.matchScore === undefined ? v : { ...v, best: i === 0 && v.matchScore >= BEST_SCORE }));
+  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore: !state.done, ai: state.ai, filtersMissing: state.filtersMissing, filters, city, more };
+}
+
+// « Voir plus de lieux » : page suivante du catalogue
+export function MoreButton({ rec, category, className = "" }) {
+  if (!rec.hasMore) return null;
+  const c = catOf(category);
+  return (
+    <div className={`d-pr-more ${className}`}>
+      <button type="button" className="d-btn d-btn-ghost" onClick={rec.more} disabled={rec.loadingMore}>
+        {rec.loadingMore ? "Chargement…" : `Voir plus de ${c.many}`}
+      </button>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +262,71 @@ export function BriefBar({ onEnvies }) {
       <button type="button" className="d-btn d-btn-ghost d-pr-envies-btn" onClick={onEnvies}>
         <Icon name="sparkle" size={15} sw={2} />
         Préciser mes envies
+      </button>
+    </div>
+  );
+}
+
+// Ce que le couple a précisé (panneau « Préciser mes envies »), en étiquettes courtes
+export function wishLabels(w) {
+  if (!w) return [];
+  const label = (list, key) => (list.find((x) => x.key === key) || {}).label;
+  return [
+    w.airport?.on ? `Près d'un aéroport${w.airport.max ? ` (${w.airport.max} min)` : ""}` : null,
+    w.station?.on ? `Près d'une gare TGV${w.station.max ? ` (${w.station.max} min)` : ""}` : null,
+    w.city?.name?.trim() ? `Près de ${w.city.name.trim()}${w.city.max ? ` (${w.city.max} min)` : ""}` : null,
+    ...(w.access || []).map((k) => label(ACCESS, k)),
+    w.seats ? `${w.seats} places assises` : null,
+    w.beds ? `${w.beds} couchages` : null,
+    ...(w.venue || []).map((k) => label(VENUE, k)),
+    w.caterer && w.caterer !== "indifferent" ? `Traiteur ${label(CATERER, w.caterer).toLowerCase()}` : null,
+    ...(w.criteria || []),
+  ].filter(Boolean);
+}
+
+// Juste sous « … d'après votre brief » : de quoi préciser ce que l'on cherche, en mots et en critères
+export function PrecisionsBar({ onOpen }) {
+  const dash = useDash();
+  const w = dash.data.wishes?.wishes || null;
+  const labels = wishLabels(w);
+  const text = w?.style?.trim();
+  if (!labels.length && !text) {
+    return (
+      <div className="d-pr-precis">
+        <span className="d-pr-precis-text">
+          <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
+          <span>
+            <strong>Dites-nous ce qui compte pour vous.</strong> Places, couchages, traiteur libre, aéroport ou gare à moins d'une heure… Seuls les lieux qui respectent vos critères vous sont proposés.
+          </span>
+        </span>
+        <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
+          Ajouter des précisions
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="d-pr-precis is-set">
+      <div className="d-pr-precis-text">
+        <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
+        <div className="d-pr-precis-body">
+          <span>
+            <strong>Vos précisions</strong>
+            {text ? ` · « ${text.length > 120 ? `${text.slice(0, 117)}…` : text} »` : ""}
+          </span>
+          {labels.length ? (
+            <div className="d-pr-optrow">
+              {labels.map((l) => (
+                <span key={l} className="d-pr-crit is-static">
+                  {l}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
+        Modifier mes précisions
       </button>
     </div>
   );
@@ -312,6 +482,7 @@ export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
             <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
           </div>
         ) : null}
+        <ToConfirm v={v} />
         {v.price ? (
           <div className="d-pr-card-price">
             <Price v={v} />
@@ -319,6 +490,45 @@ export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
         ) : null}
       </div>
     </article>
+  );
+}
+
+// Critères du couple que ce lieu n'a pas encore publiés (ni tenus, ni contredits)
+export function ToConfirm({ v }) {
+  if (!v.unknown?.length) return null;
+  return (
+    <div className="d-pr-confirm">
+      <span>À confirmer :</span> {v.unknown.join(", ")}
+    </div>
+  );
+}
+
+// Dans une grille, avant le premier lieu « à confirmer »
+export function ConfirmDivider({ list, index, category = "lieu" }) {
+  const v = list[index];
+  if (!v?.unknown?.length || list[index - 1]?.unknown?.length) return null;
+  const c = catOf(category);
+  return (
+    <div className="d-pr-tier" role="presentation">
+      <strong>À confirmer avec {category === "lieu" ? "le lieu" : "le prestataire"}</strong>
+      <span>
+        Ces {c.many} ne contredisent aucun de vos critères, mais n'ont pas encore publié tout ce qu'il faut pour le vérifier. Demandez-le-leur avec votre devis.
+      </span>
+    </div>
+  );
+}
+
+// Colonnes de filtre absentes du catalogue (supabase/catalog-filtres.sql pas encore lancé)
+export function FiltersNote({ rec }) {
+  const dash = useDash();
+  if (dash.mode !== "live" || !rec.filtersMissing) return null;
+  return (
+    <div className="d-card is-panel">
+      <strong>Vos critères ne peuvent pas encore être appliqués.</strong>
+      <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
+        Collez le fichier <code>supabase/catalog-filtres.sql</code> dans Supabase (SQL Editor), puis rechargez la page. En attendant, les propositions ne tiennent compte que de votre région.
+      </span>
+    </div>
   );
 }
 
@@ -451,7 +661,6 @@ function CloseBtn({ onClose, label = "Fermer" }) {
 
 const ACCESS = [
   { key: "parking", label: "Parking sur place" },
-  { key: "goudron", label: "Pas de chemin de terre" },
   { key: "pmr", label: "Accessible PMR" },
 ];
 const VENUE = [
@@ -705,47 +914,204 @@ function useSize(ref) {
   return size;
 }
 
-export function MapCanvas({ center, scale, className = "", children, onPan, label, role = "region", fixedSize }) {
+// Fond de France (lib/dash/franceMap.js, 130 Ko) : chargé seulement quand une carte s'affiche
+let franceSvg = null;
+function useFranceSvg() {
+  const [svg, setSvg] = useState(franceSvg);
+  useEffect(() => {
+    if (franceSvg) return undefined;
+    let live = true;
+    import("@/lib/dash/franceMap").then((m) => {
+      franceSvg = m.FRANCE_SVG;
+      if (live) setSvg(franceSvg);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  return svg;
+}
+
+// Villes affichées sur la carte : les grandes toujours, les autres une fois zoomé
+const CITIES = [
+  ["Paris", 48.8566, 2.3522, 1],
+  ["Lyon", 45.764, 4.8357, 1],
+  ["Marseille", 43.2965, 5.3698, 1],
+  ["Toulouse", 43.6047, 1.4442, 1],
+  ["Nice", 43.7102, 7.262, 1],
+  ["Nantes", 47.2184, -1.5536, 1],
+  ["Bordeaux", 44.8378, -0.5792, 1],
+  ["Lille", 50.6292, 3.0573, 1],
+  ["Strasbourg", 48.5734, 7.7521, 1],
+  ["Montpellier", 43.6108, 3.8767, 1],
+  ["Rennes", 48.1173, -1.6778, 1],
+  ["Avignon", 43.9493, 4.8055, 0],
+  ["Nîmes", 43.8367, 4.3601, 0],
+  ["Toulon", 43.1242, 5.928, 0],
+  ["Grenoble", 45.1885, 5.7245, 0],
+  ["Aix-en-Provence", 43.5297, 5.4474, 0],
+  ["Dijon", 47.322, 5.0415, 0],
+  ["Tours", 47.3941, 0.6848, 0],
+  ["Clermont-Ferrand", 45.7772, 3.087, 0],
+  ["Rouen", 49.4432, 1.0999, 0],
+  ["Caen", 49.1829, -0.3707, 0],
+  ["Reims", 49.2583, 4.0317, 0],
+  ["Brest", 48.3904, -4.4861, 0],
+  ["Biarritz", 43.4832, -1.5586, 0],
+  ["Annecy", 45.8992, 6.1294, 0],
+  ["Perpignan", 42.6887, 2.8948, 0],
+  ["Angers", 47.4784, -0.5632, 0],
+  ["Limoges", 45.8336, 1.2611, 0],
+  ["Ajaccio", 41.9192, 8.7386, 0],
+].map(([name, lat, lng, major]) => ({ name, major: !!major, ...project(lat, lng) }));
+
+export const MAP_MIN_SCALE = 0.12; // toute la France sur un écran de téléphone
+const MAP_MAX_SCALE = 6;
+const clampScale = (s) => Math.min(MAP_MAX_SCALE, Math.max(MAP_MIN_SCALE, s));
+
+// Carte : glisser pour se déplacer ; pincer (pavé tactile, ou deux doigts sur téléphone), Ctrl + molette
+// ou les boutons pour zoomer. onView reçoit { center, scale } ; sans onView, la carte est figée.
+export function MapCanvas({ center, scale, className = "", children, onView, label, role = "region", fixedSize }) {
   const ref = useRef(null);
   const measured = useSize(ref);
   const size = fixedSize || measured;
-  const drag = useRef(null);
+  const svg = useFranceSvg();
+  const view = useRef({ center, scale, size });
+  view.current = { center, scale, size };
+  const pointers = useRef(new Map());
+  const gesture = useRef(null);
   const x0 = center.x - size.w / 2 / scale;
   const y0 = center.y - size.h / 2 / scale;
   const toScreen = (p) => ({ left: (p.x - x0) * scale, top: (p.y - y0) * scale });
+
+  // Zoom autour d'un point de l'écran (px, py) : ce point de la carte reste sous les doigts
+  const zoomAt = useCallback(
+    (factor, px, py, from = view.current) => {
+      const { center: c, scale: s, size: sz } = from;
+      const next = clampScale(s * factor);
+      const mx = c.x - sz.w / 2 / s + px / s;
+      const my = c.y - sz.h / 2 / s + py / s;
+      onView?.({ scale: next, center: { x: mx - px / next + sz.w / 2 / next, y: my - py / next + sz.h / 2 / next } });
+    },
+    [onView],
+  );
+
+  // Molette et pavé tactile : écouteurs non passifs, pour empêcher la page de défiler ou de zoomer
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onView) return undefined;
+    const local = (e) => {
+      const r = el.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    };
+    const onWheel = (e) => {
+      e.preventDefault();
+      const [px, py] = local(e);
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      const dx = e.deltaMode === 1 ? e.deltaX * 16 : e.deltaX;
+      // Pincement sur le pavé tactile (Chrome, Firefox, Edge) ou Ctrl + molette : zoom
+      if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-dy * 0.01), px, py);
+      else {
+        const { center: c, scale: s } = view.current;
+        onView({ scale: s, center: { x: c.x + dx / s, y: c.y + dy / s } });
+      }
+    };
+    // Safari : le pincement arrive en « gesture »
+    const onGestureStart = (e) => {
+      e.preventDefault();
+      gesture.current = { from: view.current, at: local(e) };
+    };
+    const onGestureChange = (e) => {
+      e.preventDefault();
+      if (!gesture.current) return;
+      zoomAt(e.scale, gesture.current.at[0], gesture.current.at[1], gesture.current.from);
+    };
+    const onGestureEnd = (e) => {
+      e.preventDefault();
+      gesture.current = null;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("gesturestart", onGestureStart);
+    el.addEventListener("gesturechange", onGestureChange);
+    el.addEventListener("gestureend", onGestureEnd);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("gesturestart", onGestureStart);
+      el.removeEventListener("gesturechange", onGestureChange);
+      el.removeEventListener("gestureend", onGestureEnd);
+    };
+  }, [onView, zoomAt]);
+
+  // Glisser (souris, un doigt) et pincer (deux doigts sur écran tactile)
+  const local = (e) => {
+    const r = ref.current.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const startGesture = () => {
+    const pts = [...pointers.current.values()];
+    if (pts.length === 1) gesture.current = { kind: "pan", start: pts[0], from: view.current };
+    else if (pts.length === 2) {
+      const [a, b] = pts;
+      gesture.current = { kind: "pinch", dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, from: view.current };
+    } else gesture.current = null;
+  };
+  const handlers = onView
+    ? {
+        onPointerDown: (e) => {
+          if (e.target.closest("button, a, input, [role=dialog]")) return;
+          pointers.current.set(e.pointerId, local(e));
+          try {
+            e.currentTarget.setPointerCapture?.(e.pointerId);
+          } catch {
+            /* pointeur déjà relâché : le geste continue sans capture */
+          }
+          startGesture();
+        },
+        onPointerMove: (e) => {
+          if (!pointers.current.has(e.pointerId)) return;
+          pointers.current.set(e.pointerId, local(e));
+          const g = gesture.current;
+          if (!g) return;
+          const pts = [...pointers.current.values()];
+          if (g.kind === "pan" && pts.length === 1) {
+            const s = g.from.scale;
+            onView({ scale: s, center: { x: g.from.center.x - (pts[0].x - g.start.x) / s, y: g.from.center.y - (pts[0].y - g.start.y) / s } });
+          } else if (g.kind === "pinch" && pts.length === 2) {
+            const [a, b] = pts;
+            zoomAt(Math.hypot(a.x - b.x, a.y - b.y) / g.dist, g.mid.x, g.mid.y, g.from);
+          }
+        },
+        onPointerUp: (e) => {
+          pointers.current.delete(e.pointerId);
+          startGesture();
+        },
+        onPointerCancel: (e) => {
+          pointers.current.delete(e.pointerId);
+          startGesture();
+        },
+      }
+    : {};
+
   return (
-    <div
-      ref={ref}
-      className={`d-pr-map ${className}`}
-      role={role}
-      aria-label={label}
-      style={{ background: MAP_BG }}
-      onPointerDown={
-        onPan
-          ? (e) => {
-              if (e.target.closest("button, a, [role=dialog]")) return;
-              drag.current = { x: e.clientX, y: e.clientY, c: center };
-              e.currentTarget.setPointerCapture?.(e.pointerId);
-            }
-          : undefined
-      }
-      onPointerMove={
-        onPan
-          ? (e) => {
-              if (!drag.current) return;
-              const d = drag.current;
-              onPan({ x: d.c.x - (e.clientX - d.x) / scale, y: d.c.y - (e.clientY - d.y) / scale });
-            }
-          : undefined
-      }
-      onPointerUp={onPan ? () => (drag.current = null) : undefined}
-    >
-      {size.w ? (
+    <div ref={ref} className={`d-pr-map ${className}${onView ? " is-live" : ""}`} role={role} aria-label={label} style={{ background: MAP_BG }} {...handlers}>
+      {size.w && svg ? (
         <svg width={size.w} height={size.h} viewBox={`${x0} ${y0} ${size.w / scale} ${size.h / scale}`} aria-hidden="true" className="d-pr-map-svg">
-          <g dangerouslySetInnerHTML={{ __html: MAP_SVG }} />
+          <g dangerouslySetInnerHTML={{ __html: svg }} />
         </svg>
       ) : null}
-      {size.w ? children({ toScreen, bounds: { x0, y0, x1: x0 + size.w / scale, y1: y0 + size.h / scale }, size }) : null}
+      {size.w
+        ? CITIES.filter((c) => c.major || scale >= 0.7).map((c) => {
+            const at = toScreen(c);
+            if (at.left < -60 || at.top < -20 || at.left > size.w + 60 || at.top > size.h + 20) return null;
+            return (
+              <span key={c.name} className="d-pr-city" style={at} aria-hidden="true">
+                <i />
+                {c.name}
+              </span>
+            );
+          })
+        : null}
+      {size.w ? children({ toScreen, bounds: { x0, y0, x1: x0 + size.w / scale, y1: y0 + size.h / scale }, size, zoomAt }) : null}
     </div>
   );
 }
@@ -758,11 +1124,11 @@ export function PricePin({ v, at, active, picked, onClick, small }) {
       type="button"
       className={`d-pr-pin${active ? " is-active" : picked ? " is-picked" : ""}${small ? " is-small" : ""}`}
       style={{ left: at.left, top: at.top }}
-      aria-label={`${v.name}, à partir de ${euros(v.price)}${picked ? ", dans votre sélection" : ""}`}
+      aria-label={`${v.name}${v.price ? `, à partir de ${euros(v.price)}` : ""}${picked ? ", dans votre sélection" : ""}`}
       onClick={onClick}
     >
       <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }} />
-      {v.price ? euros(v.price) : v.name}
+      <span className="d-pr-pin-label">{v.price ? euros(v.price) : v.name}</span>
     </button>
   );
 }
@@ -913,6 +1279,20 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
             <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p>
+            {v.checks?.length ? (
+              <div className="d-pr-included">
+                <div className="d-pr-included-t">À vérifier avec {v.category === "lieu" ? "le lieu" : "le prestataire"}</div>
+                <ul>
+                  {v.checks.map((t) => (
+                    <li key={t}>
+                      <Icon name="arrowRight" size={15} sw={2} stroke="#6b6a63" style={{ flex: "none", marginTop: 2 }} />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {v.matchScore !== undefined ? <span className="d-pr-ai-note">Analyse Merry d'après votre brief et vos envies, à confirmer avec {v.category === "lieu" ? "le lieu" : "le prestataire"}.</span> : null}
           </section>
         ) : null}
         {v.rating ? (
