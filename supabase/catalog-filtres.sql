@@ -90,15 +90,19 @@ alter table catalog.vendors add column if not exists parking boolean
     case when (details ->> 'services') ~* '(parking|stationnement|places de parc)' then true end
   ) stored;
 
--- Fin de soirée après 2 h : « sans limite », « sans couvre-feu », ou une heure entre 3 h et 8 h
-alter table catalog.vendors add column if not exists late_party boolean
+-- Fin de soirée après 2 h : « sans limite », « jusqu'à l'aube », « aucune heure de fin imposée »…,
+-- ou une heure après 2 h (2 h 30, 3 h… 8 h). Une colonne générée ne se modifie pas : on la recrée
+-- (elle ne contient rien d'autre que ce qu'elle calcule depuis details).
+alter table catalog.vendors drop column if exists late_party;
+alter table catalog.vendors add column late_party boolean
   generated always as (
     case
       when details ->> 'music_end' is null then null
-      when (details ->> 'music_end') ~* '(sans (limite|couvre|horaire|restriction)|pas de (limite|couvre)|aucune limite|illimit|bout de la nuit|lever du (jour|soleil)|petit matin)' then true
-      when (details ->> 'music_end') ~ '(^|[^0-9])([3-8])\s*(h|heures?)' then true
+      when (details ->> 'music_end') ~* '(sans|pas de|pas d.|aucune?|ni) ?(heure|limit|couvre|horaire|restriction|contrainte)|illimit|bout de la nuit|aube|aurore|lever du (jour|soleil)|petit (matin|jour)|jusqu.au matin|premi.res heures|heure de fin (impos|fix)|toute la nuit' then true
+      when (details ->> 'music_end') ~ '(^|[^0-9])0?([3-8])\s*(h|heures?|:)' then true
+      when (details ->> 'music_end') ~ '(^|[^0-9])0?2\s*(h|:)\s*[0-5]?[1-9]' then true
       when (details ->> 'music_end') ~* 'minuit' then false
-      when (details ->> 'music_end') ~ '(^|[^0-9])(2[0-3]|1[0-9]|0?[0-2])\s*(h|heures?)' then false
+      when (details ->> 'music_end') ~ '(^|[^0-9])(2[0-3]|1[0-9]|0?[0-2])\s*(h|heures?|:)' then false
     end
   ) stored;
 
