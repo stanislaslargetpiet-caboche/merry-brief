@@ -88,6 +88,7 @@ end $$;
 --    merry_place le traduit en coordonnées, d'après le catalogue : numéro de département,
 --    nom d'un lieu, ville, nom de département ou de pays (Luberon, Pays Basque…), région.
 --    Ne renvoie que des coordonnées moyennes : rien du catalogue n'est exposé d'autre.
+--    Version rapide dans lieux-rapides.sql : si ce fichier-ci est relancé, relancer lieux-rapides.sql après.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.merry_norm(t text)
