@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
-import { cityFilter, hardFilters } from "@/lib/dash/filters";
+import { cityFilter, hardFilters, REGIONS } from "@/lib/dash/filters";
 import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, guestsLabel, legendFor, monthYear, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { addDays, euros, toDate } from "@/lib/dash/format";
@@ -274,6 +274,7 @@ export function wishLabels(w) {
   return [
     w.airport?.on ? `Près d'un aéroport${w.airport.max ? ` (${w.airport.max} min)` : ""}` : null,
     w.station?.on ? `Près d'une gare TGV${w.station.max ? ` (${w.station.max} min)` : ""}` : null,
+    ...(w.regions || []),
     w.city?.name?.trim() ? `Près de ${w.city.name.trim()}${w.city.max ? ` (${w.city.max} min)` : ""}` : null,
     ...(w.access || []).map((k) => label(ACCESS, k)),
     w.seats ? `${w.seats} places assises` : null,
@@ -735,7 +736,7 @@ function MaxRow({ value, onChange, label }) {
   );
 }
 
-const EMPTY_WISHES = { airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
+const EMPTY_WISHES = { regions: [], airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
 
 export function EnviesPanel({ onClose }) {
   const dash = useDash();
@@ -763,6 +764,23 @@ export function EnviesPanel({ onClose }) {
       <div className="d-pr-panel-body d-pr-envies">
         <p className="d-pr-lead">Vos recommandations partent de votre brief. Ajoutez ce qui compte pour vous.</p>
         <section className="d-pr-wsec">
+          <div className="d-pr-wsec-head">
+            <h3>Région</h3>
+            <span>Facultatif</span>
+          </div>
+          <div className="d-pr-wgroup">
+            <span className="d-pr-wlabel">{dash.data.wedding.region ? `Votre brief dit « ${dash.data.wedding.region} ». Choisissez une ou plusieurs régions pour chercher seulement là.` : "Une ou plusieurs régions : seuls les lieux qui s'y trouvent vous sont proposés."}</span>
+            <div className="d-pr-optrow">
+              {REGIONS.map((r) => (
+                <Choice key={r} on={w.regions.includes(r)} onClick={() => toggleIn("regions", r)}>
+                  {r}
+                </Choice>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="d-pr-wsec is-ruled">
           <div className="d-pr-wsec-head">
             <h3>Accès</h3>
             <span>Facultatif</span>
