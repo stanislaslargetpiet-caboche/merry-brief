@@ -10,6 +10,7 @@ import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/li
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { euros } from "@/lib/dash/format";
 import { chosenVenue } from "@/lib/dash/picks";
+import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
 import { CriteriaBox } from "@/components/dash/Criteria";
 import {
@@ -88,7 +89,7 @@ export default function Trouver() {
   const [bbox, setBbox] = useState(null);
   const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox);
   const { vendors, source, loading } = rec;
-  const wishes = dash.data.wishes?.wishes || null;
+  const wishes = cat === "lieu" ? searchWishes(dash.data) : null;
   const list = useMemo(() => rank(vendors, wishes, cat), [vendors, wishes, cat]);
   const pending = picks.filter((p) => !p.requested_at);
   const c = catOf(cat);
