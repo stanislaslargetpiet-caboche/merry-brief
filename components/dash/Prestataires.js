@@ -11,7 +11,7 @@ import { useDash } from "@/lib/dash/store";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters, REGIONS } from "@/lib/dash/filters";
-import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, guestsLabel, legendFor, monthYear, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
+import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { addDays, euros, toDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
@@ -1357,6 +1357,8 @@ function plusDays(d, n) {
   return x ? dateLong(addDays(x, n)) : "";
 }
 
+const MONTH_NAMES = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
 export function DevisDialog({ picks: initial, onClose, onSent }) {
   const dash = useDash();
   const data = dash.data;
@@ -1368,10 +1370,26 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
   const [questions, setQuestions] = useState(() => Object.fromEntries(CATEGORIES.map((c) => [c.key, (QUESTIONS[c.key] || []).map((q) => ({ q, on: true }))])));
   const [adding, setAdding] = useState({});
   const [dates, setDates] = useState(() => [dateLong(data.wedding.wedding_date), plusDays(data.wedding.wedding_date, 5), plusDays(data.wedding.wedding_date, 12)]);
+  // Dates flexibles : un ou plusieurs mois, une ou plusieurs années, à la place des trois dates
+  const weddingDay = toDate(data.wedding.wedding_date);
+  const firstYear = weddingDay ? weddingDay.getFullYear() : new Date().getFullYear() + 1;
+  const [flexible, setFlexible] = useState(false);
+  const [months, setMonths] = useState(() => (weddingDay ? [weddingDay.getMonth()] : []));
+  const [years, setYears] = useState(() => [firstYear]);
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const budget = budgetLabel(data);
   const by = picksBy(list);
+
+  // Le message par défaut suit les dates (précises ou flexibles) tant que le couple ne l'a pas réécrit
+  function setPeriod(nextFlexible, nextMonths, nextYears) {
+    const before = defaultMessage(data, flexible ? periodLabel(months, years) : null);
+    if (message === before) setMessage(defaultMessage(data, nextFlexible ? periodLabel(nextMonths, nextYears) : null));
+    setFlexible(nextFlexible);
+    setMonths(nextMonths);
+    setYears(nextYears);
+  }
+  const toggle = (xs, x) => (xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x]);
 
   async function send() {
     if (!list.length || !message.trim()) return;
@@ -1381,7 +1399,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
     }
     setBusy(true);
     const q = Object.fromEntries(cats.map((c) => [c.key, questions[c.key].filter((x) => x.on && x.q.trim()).map((x) => x.q.trim())]));
-    await dash.sendQuotes({ picks: list, message: message.trim(), questions: q, dates, budget: share ? budget : null, notes });
+    await dash.sendQuotes({ picks: list, message: message.trim(), questions: q, dates: flexible ? [flexibleDates(months, years)] : dates, budget: share ? budget : null, notes });
     setBusy(false);
     dash.setToast({ kind: "ok", text: `${list.length > 1 ? `${list.length} demandes enregistrées` : "Demande enregistrée"}, sur la fiche de chaque prestataire dans Budget.` });
     onSent?.();
@@ -1489,7 +1507,43 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
         ) : null}
         <section className="d-pr-dsec is-ruled is-12">
           <h3>Dates</h3>
-          {[[0], [1, 2]].map((row, ri) => (
+          <div className="d-pr-flex">
+            <div className="d-pr-dsec-t">
+              <span id="devis-flexible" className="d-pr-flex-t">
+                Nos dates sont flexibles
+              </span>
+              <span className="d-pr-dnote">Un mois ou une saison plutôt qu’un jour : les prestataires vous proposent leurs dates libres.</span>
+            </div>
+            <button type="button" role="switch" aria-checked={flexible} aria-labelledby="devis-flexible" className={`d-pr-switch${flexible ? " is-on" : ""}`} onClick={() => setPeriod(!flexible, months, years)}>
+              <span />
+            </button>
+          </div>
+          {flexible ? (
+            <>
+              <div role="group" aria-labelledby="devis-mois" className="d-pr-period">
+                <span id="devis-mois">Mois, un ou plusieurs</span>
+                <div className="d-pr-optrow">
+                  {MONTH_NAMES.map((m, k) => (
+                    <Choice key={m} on={months.includes(k)} onClick={() => setPeriod(true, toggle(months, k), years)}>
+                      {m}
+                    </Choice>
+                  ))}
+                </div>
+              </div>
+              <div role="group" aria-labelledby="devis-annee" className="d-pr-period">
+                <span id="devis-annee">Année</span>
+                <div className="d-pr-optrow">
+                  {[firstYear, firstYear + 1, firstYear + 2].map((y) => (
+                    <Choice key={y} on={years.includes(y)} onClick={() => setPeriod(true, months, toggle(years, y))}>
+                      {y}
+                    </Choice>
+                  ))}
+                </div>
+              </div>
+              <span className="d-pr-from-brief">Envoyé aux prestataires : {flexibleDates(months, years).replace(" : ", ", ")}</span>
+            </>
+          ) : null}
+          {flexible ? null : [[0], [1, 2]].map((row, ri) => (
             <div key={ri} className="d-pr-dates">
               {row.map((k) => (
                 <div key={k} className="d-pr-date">

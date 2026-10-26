@@ -8825,6 +8825,30 @@ body.d-noscroll {
   padding: 6px 0;
 }
 
+/* Dates flexibles (7h, 7t) */
+.d-pr-flex {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.d-pr-flex-t {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.d-pr-period {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-pr-period > span {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
 .d-pr-dates {
   display: flex;
   flex-wrap: wrap;
