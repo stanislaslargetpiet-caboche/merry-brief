@@ -173,6 +173,14 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (7 à 7
 
 **Pas encore fait** : recherche vectorielle dans tout le catalogue (il faudra d'abord enrichir les fiches et calculer les vecteurs), envoi des demandes par mail (elles sont seulement rangées sur la fiche du prestataire), comparaison côte à côte des lieux et des devis (« Comparer », « Comparer les devis » préviennent que cela arrive), avis des couples, critères de style lus par l'IA, fond de carte hors du Sud-Est.
 
+**Vos critères** (`lib/dash/criteria.js`, `components/dash/Criteria.js`) : une seule boîte en haut de Prestataires et de Lieux. Chaque critère est une puce modifiable sur place. Lieu, date, invités, budget et style sont ceux du brief : modifiés ici, ils le sont aussi dans le Brief (date, lieu et budget total sur `weddings`, fourchette d'invités, budget et style sur `briefs`). Le lieu est un seul critère : des régions, ou près d'une ville, ou un endroit libre ; choisir des régions remplace l'endroit du brief. Le reste (accès, places, couchages, fin de soirée, traiteur…) s'ajoute par « Préciser mes envies » et arrive dans la même boîte. Le nombre d'invités est partout la fourchette du brief (cartes, fiche, message de devis) ; la liste d'invités n'est qu'une indication. Chaque critère a son icône, la même sur les cartes, dans la fiche et dans « Pourquoi ce lieu » ; les faits d'un lieu qui y répondent sont en lime.
+
+**Commentaires des organisateurs** : sur chaque prestataire, dans Mes prestataires et dans sa fiche, avec réponses (comme les commentaires des tâches du rétroplanning). Supabase > SQL Editor, colle `supabase/commentaires-prestataires.sql`, Run (après `prestataires.sql`, relançable). Il crée `vendor_comments` et la fonction `merry_save_brief`, qui laisse chaque organisateur modifier les réponses du brief depuis « Vos critères » ; sans elle, seul celui qui a rempli le brief le peut, et la page le dit.
+
+**Catégories** : les onglets suivent `primary_category`, un prestataire n'apparaît que dans celui-là. `supabase/categories-principales.sql` (relançable) corrige les fiches mal classées à l'import : lieux de réception rangés en traiteurs et traiteurs rangés en lieux, d'après la première catégorie Google ; les fiches revendiquées dans l'espace prestataire ne sont pas touchées.
+
+**Photo de couverture d'un lieu** : la plus large des photos (paysage d'abord), pour une grille régulière ; si le lieu a rangé ses photos depuis l'espace prestataire, son ordre est gardé.
+
 ## 13. Suivi produit (PostHog)
 
 Qui s'est connecté et quand, le parcours d'un couple ou d'un organisateur (clics, temps passé, replay visuel de la session) et l'entonnoir d'onboarding (à quelle question les couples abandonnent).

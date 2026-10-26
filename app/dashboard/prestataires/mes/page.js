@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import VendorComments, { useVendorComments } from "@/components/dash/VendorComments";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
 import { pickStatus, picksBy } from "@/lib/dash/picks";
@@ -40,7 +41,6 @@ export default function Mes() {
         </div>
       ) : null}
       <div className="d-pr-mes-intro">
-        <p>Tous les prestataires que vous avez gardés, avec où vous en êtes. Cochez ceux à contacter et demandez vos devis en une fois.</p>
         <Link href="/dashboard/prestataires/demandes" className="d-btn d-btn-ghost d-pr-mes-requests">
           <Icon name="requests" size={16} sw={1.8} />
           Voir mes demandes de devis
@@ -110,6 +110,20 @@ export default function Mes() {
 
 function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
   const v = p.data || {};
+  const [talk, setTalk] = useState(false);
+  const comments = useVendorComments(p.catalog_ref);
+  const bubble = (
+    <button
+      type="button"
+      className={`d-bubble${talk ? " is-open" : ""}${comments.length ? "" : " is-empty"}`}
+      onClick={() => setTalk((x) => !x)}
+      aria-expanded={talk}
+      aria-label={comments.length ? `${comments.length} commentaire${comments.length > 1 ? "s" : ""} sur ${v.name}` : `Commenter : ${v.name}`}
+    >
+      <Icon name="bubble" size={14} sw={2} />
+      {comments.length ? comments.length : null}
+    </button>
+  );
   const todo = status.key === "todo";
   const line = status.line;
   const acts = <RowActions p={p} status={status} onFiche={onFiche} onCompare={onCompare} />;
@@ -135,7 +149,10 @@ function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
           </div>
           {line ? <div className="d-pr-line-text d-desk-only">{line}</div> : null}
         </div>
-        <div className="d-pr-line-acts d-desk-only-flex">{acts}</div>
+        <div className="d-pr-line-acts d-desk-only-flex">
+          {bubble}
+          {acts}
+        </div>
         <Heart on onClick={onRemove} label={`Retirer ${v.name} de mes prestataires`} size={18} className="d-pr-heart is-bare is-row" />
       </div>
       <div className="d-pr-mes-rest d-mob-only-flex">
@@ -143,8 +160,16 @@ function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
           <StatusChip k={status.key} />
         </div>
         {line ? <div className="d-pr-line-text">{line}</div> : null}
-        <div className="d-pr-line-acts">{acts}</div>
+        <div className="d-pr-line-acts">
+          {bubble}
+          {acts}
+        </div>
       </div>
+      {talk ? (
+        <div className="d-pr-mes-thread">
+          <VendorComments vendorRef={p.catalog_ref} name={v.name} />
+        </div>
+      ) : null}
     </li>
   );
 }
