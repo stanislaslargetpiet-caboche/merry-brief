@@ -6,6 +6,7 @@ import { SITE_URL } from "@/lib/site";
 import { useLang } from "@/lib/lang";
 import { BRIEF_TEXT } from "@/lib/i18n/brief";
 import LangSwitch from "@/components/LangSwitch";
+import { trackEvent } from "@/lib/analytics";
 
 /* ------------------------------------------------------------------ */
 /*  Contenu des écrans (source : canvas « Merry · Carte brief »,        */
@@ -16,6 +17,11 @@ import LangSwitch from "@/components/LangSwitch";
 // 7 questions après le choix de la fête (étape 0, sans compteur).
 const TOTAL = 7;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
+
+// Un nom stable par écran (indépendant de la langue affichée), pour que le
+// funnel PostHog ("onboarding_step_viewed") reste lisible : à quelle question
+// les couples s'arrêtent.
+const STEP_KEYS = ["fete", "avancement", "equipe", "date_et_region", "invites_et_format", "ambiance", "budget", "contact"];
 
 const EMPTY = {
   event: "mariage",
@@ -125,6 +131,13 @@ export default function Brief() {
     }
   }, [step, data, status]);
 
+  // Un événement par écran vu : permet de construire l'entonnoir d'onboarding
+  // dans PostHog et de voir précisément à quelle question les couples abandonnent.
+  useEffect(() => {
+    if (status === "done" || status === "confirm") return;
+    trackEvent("onboarding_step_viewed", { step, step_key: STEP_KEYS[step] || String(step) });
+  }, [step, status]);
+
   const set = (key, value) => setData((d) => ({ ...d, [key]: value }));
   const toggleIn = (key, value, max) =>
     setData((d) => {
@@ -195,6 +208,7 @@ export default function Brief() {
       setStatus("error");
       const m = res.error?.message || "";
       setErrorMsg(/already registered|already exists/i.test(m) ? s.errors.alreadyRegistered : s.errors.generic);
+      trackEvent("onboarding_signup_failed", { stage: res.stage || null });
       return;
     }
     try {
@@ -205,6 +219,7 @@ export default function Brief() {
     } catch {
       /* ignore */
     }
+    trackEvent("onboarding_completed", { needs_email_confirmation: !!res.needsEmailConfirmation });
     setStatus(res.needsEmailConfirmation ? "confirm" : "done");
   }
 

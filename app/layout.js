@@ -1,5 +1,6 @@
 import "./globals.css";
 import { LangProvider } from "@/lib/lang";
+import PostHogProvider from "@/components/PostHogProvider";
 
 export const metadata = {
   title: "Merry · Raconte-nous ton mariage",
@@ -26,7 +27,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <LangProvider>{children}</LangProvider>
+        <PostHogProvider>
+          <LangProvider>{children}</LangProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

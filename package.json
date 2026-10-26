@@ -12,6 +12,7 @@
     "fflate": "^0.8.3",
     "next": "^15.3.0",
     "pdf-lib": "^1.17.1",
+    "posthog-js": "^1.438.22",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "read-excel-file": "^9.3.12",

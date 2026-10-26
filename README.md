@@ -25,7 +25,7 @@ Sans `.env.local`, le parcours tourne quand même et la création de compte est 
 
 1. Pousse ce dossier sur un repo GitHub (privé).
 2. vercel.com > Add New > Project > importe le repo. Framework détecté : Next.js, rien à changer.
-3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs).
+3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs ; `NEXT_PUBLIC_POSTHOG_KEY` et `NEXT_PUBLIC_POSTHOG_HOST` pour le suivi produit, voir la section 12).
 4. Deploy. Tu obtiens une URL du type `merry-brief.vercel.app`.
 5. Settings > Domains : ajoute `app.merry.fr`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
 
@@ -138,3 +138,29 @@ L'écran suit le canvas « Merry · Carte brief », page Dashboard (6 et 6m), va
 **Principe** : une liste à cocher en vrac (courses, idées, question à poser à un prestataire…), partagée entre tous les organisateurs. Chaque ligne garde qui l'a ajoutée ; un bouton crayon modifie le texte, une poubelle la supprime. Deux groupes : « À faire » puis « Cochées ».
 
 **Pas encore fait** : catégories ou étiquettes, réordonnancement à la main.
+
+## 12. Suivi produit (PostHog)
+
+Qui s'est connecté et quand, le parcours d'un couple ou d'un organisateur (clics, temps passé, replay visuel de la session) et l'entonnoir d'onboarding (à quelle question les couples abandonnent).
+
+**Installer** (10 minutes) :
+
+1. Crée un compte sur [eu.posthog.com](https://eu.posthog.com) (hébergement UE ; c'est important, les briefs contiennent des données personnelles de couples européens).
+2. Crée un projet (« Merry » par exemple), puis Project Settings > copie la « Project API Key ».
+3. Colle-la dans `.env.local` (`NEXT_PUBLIC_POSTHOG_KEY=...`) et dans Vercel (Settings > Environment Variables), avec `NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com`.
+4. Dans le projet PostHog, Project Settings > Recordings : vérifie que « Record user sessions » est activé (c'est la case qui permet le replay).
+
+Sans cette clé, rien n'est envoyé (le code ne fait aucun appel réseau vers PostHog) : l'appli fonctionne à l'identique.
+
+**Ce qui est déjà branché dans le code** :
+
+- `lib/analytics.js` initialise PostHog une fois (`components/PostHogProvider.js`, chargé dans `app/layout.js`). Les clics et les pages vues sont suivis automatiquement (autocapture de PostHog), ainsi que le replay de session ; le contenu tapé dans les champs (email, mot de passe, budget…) n'est jamais enregistré (`maskAllInputs`).
+- `lib/dash/store.js` identifie la personne (`posthog.identify`, avec son email et son prénom) dès que le tableau de bord est chargé, et réinitialise (`posthog.reset`) à la déconnexion.
+- `components/Brief.js` envoie un événement `onboarding_step_viewed` à chaque écran de l'onboarding (avec `step` et `step_key` : `fete`, `avancement`, `equipe`, `date_et_region`, `invites_et_format`, `ambiance`, `budget`, `contact`), puis `onboarding_completed` ou `onboarding_signup_failed`.
+
+**Pour lire les résultats dans PostHog** :
+
+- *Qui est connecté, et son parcours* : Persons (ou People), cherche le prénom ou l'email, ouvre la personne > onglet « Session recordings » pour le replay clic par clic, et « Activity » pour la liste des pages et clics avec horodatage.
+- *L'entonnoir d'onboarding* : Product analytics > Insights > New insight > Funnel, ajoute les étapes dans l'ordre à partir de `onboarding_step_viewed` (filtré par `step_key`, une étape par écran) puis `onboarding_completed` en dernière étape. PostHog affiche le nombre et le pourcentage de perte à chaque question.
+
+**Pas encore fait** : bandeau de consentement cookies sur l'onboarding (à voir avec les CGU/confidentialité du site), tableau de bord interne dans Merry (on passe par l'interface PostHog pour l'instant, suffisante pour le volume actuel).
