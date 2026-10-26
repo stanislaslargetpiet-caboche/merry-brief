@@ -25,7 +25,7 @@ Sans `.env.local`, le parcours tourne quand même et la création de compte est 
 
 1. Pousse ce dossier sur un repo GitHub (privé).
 2. vercel.com > Add New > Project > importe le repo. Framework détecté : Next.js, rien à changer.
-3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs ; `NEXT_PUBLIC_POSTHOG_KEY` et `NEXT_PUBLIC_POSTHOG_HOST` pour le suivi produit, voir la section 12).
+3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs ; `NEXT_PUBLIC_POSTHOG_KEY` et `NEXT_PUBLIC_POSTHOG_HOST` pour le suivi produit, voir la section 13).
 4. Deploy. Tu obtiens une URL du type `merry-brief.vercel.app`.
 5. Settings > Domains : ajoute `app.merry.fr`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
 
@@ -69,6 +69,8 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 | `/dashboard/indicateurs/accueil` et `/budget` | Choix des indicateurs (cinq au maximum) |
 
 **Installer** : Supabase > SQL Editor > New query, colle `supabase/dashboard.sql`, Run (après `schema.sql`, le fichier peut être relancé sans risque). Au premier passage, chaque compte reçoit un mariage créé à partir de son brief : organisateurs, moments, groupes, postes de budget et rétroplanning type.
+
+**Brief vide chez les organisateurs (correctif)** : si la page Brief est vide et que la région et le style manquent, lance `supabase/merry-brief-sans-help.sql` (Supabase > SQL Editor, Run, après `dashboard.sql` et `onboarding-simplifie.sql`, relançable). La fonction `merry_brief` renvoyait encore la colonne `help`, supprimée par `onboarding-simplifie.sql`, et échouait pour tous les organisateurs. Une installation neuve avec le `dashboard.sql` actuel n'en a pas besoin.
 
 **Colonnes ajoutées** : chaque colonne a un auteur et un format. « Rempli par les invités » ajoute la question au formulaire invités (texte libre ou réponses prédéfinies) ; « Pour les organisateurs » reste interne, en texte libre ou avec des réponses prédéfinies (« Oui / Non / Ne sait pas » par défaut) choisies d'un clic dans la case. Installer : Supabase > SQL Editor, colle `supabase/colonnes.sql`, Run (relançable). Sans lui, les colonnes restent du texte libre pour les organisateurs. Les colonnes se déplacent (glisser l'en-tête) et s'élargissent (poignée à droite) ; cet ordre et ces largeurs sont propres à chaque navigateur.
 
@@ -139,7 +141,39 @@ L'écran suit le canvas « Merry · Carte brief », page Dashboard (6 et 6m), va
 
 **Pas encore fait** : catégories ou étiquettes, réordonnancement à la main.
 
-## 12. Suivi produit (PostHog)
+## 12. Prestataires
+
+Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (7 à 7j pour l'ordinateur, 7m à 7v pour le téléphone).
+
+| Page | Contenu |
+|---|---|
+| `/dashboard/prestataires` | Trouver des prestataires : « Votre brief » (une puce par réponse, qui mène au brief), « Préciser mes envies », onglets par catégorie (Lieux, Traiteurs, DJ et animation, Fleuristes, Photographes, Autres), vue Liste ou Carte (`?vue=carte`), fiche d'un lieu (`?fiche=<id>`), bandeau « Ma sélection » et « Demander les devis » |
+| `/dashboard/prestataires/lieux` | La sélection de lieux, d'après le brief, avec « Affiner la sélection » |
+| `/dashboard/prestataires/autour` | Autour de votre lieu : traiteurs, DJ, fleuristes et photographes près du lieu retenu, « Pas besoin » par catégorie |
+| `/dashboard/prestataires/mes` | Mes prestataires : ceux gardés d'un cœur, où en est chaque demande, case à cocher pour la prochaine demande |
+| `/dashboard/prestataires/demandes` | Vos demandes de devis : envoyée, réponse reçue, devis reçu |
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/prestataires.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée `vendor_picks` (la sélection du couple), `vendor_wishes` (les envies et les catégories « Pas besoin », une ligne par mariage) et `quote_requests` (les demandes envoyées), avec les mêmes droits pour tous les organisateurs, et la fonction `merry_place`, qui traduit le lieu ou la région saisis dans le brief (texte libre : « etretat », « Saint Georges sur Loire (49) », « Pays Basque ») en coordonnées d'après le catalogue. Tant qu'il n'est pas lancé, les pages Prestataires l'expliquent et le reste du tableau de bord fonctionne.
+
+**Dates d'une demande de devis** : une date souhaitée et deux dates de repli, ou « Nos dates sont flexibles » (artboards 7h et 7t, dates flexibles) : un ou plusieurs mois, une ou plusieurs années. La période part dans le message (« Dates flexibles : juin ou juillet 2027 ») et dans `quote_requests.dates`, sans changement de schéma. Le message par défaut suit les dates tant que le couple ne l'a pas réécrit.
+
+**D'où viennent les propositions** : du catalogue Merry (`supabase/catalog.sql`, schéma `catalog`), seulement les prestataires au statut `active`, à environ 100 km du lieu ou de la région du brief (`merry_place` ; sans elle, la région filtre par son nom), ceux avec photo d'abord, photos en liens signés. Le schéma doit être exposé : Supabase > Project Settings > API > Exposed schemas, ajouter `catalog`. Tant que le catalogue n'a aucun prestataire validé pour la catégorie, la page montre la sélection d'exemple du canvas (`lib/dash/catalog.js`) avec la mention « Sélection d'exemple ». Six lieux, ou huit prestataires, à la fois : « Voir plus » charge la page suivante (sous la grille, dans les listes de la carte, au bout de chaque rangée d'« Autour de votre lieu »). La carte s'ouvre sur les prestataires trouvés ; on la déplace en glissant, on zoome en pinçant (pavé tactile, deux doigts sur téléphone), avec Ctrl + molette ou les boutons, jusqu'à voir toute la France ; « Rechercher dans cette zone » cherche dans le catalogue la zone affichée. Fond de carte : départements (france-geojson, Licence Ouverte) et pays voisins (Natural Earth) dans `lib/dash/franceMap.js`, chargé seulement avec la carte.
+
+**Principe** : le cœur garde un prestataire (avec un instantané de son nom, sa photo et son prix). Une demande de devis est un message, adapté à chacun (un mot personnel, les questions de sa catégorie, les dates, le budget si on le partage) : elle crée ou retrouve le prestataire dans le budget (`vendors`) et range le message sur sa fiche (`/dashboard/budget/prestataires/[id]`). Le statut se lit ensuite dans les données existantes : une réponse notée sur la fiche donne « Réponse reçue », un devis dans le budget (ou `vendor_picks.quote_amount`) « Devis reçu ». Le lieu retenu est celui du brief (`weddings.venue`), sinon le premier lieu dont on a le devis. Les critères de « Votre style » sont tirés de la description par mots-clés, sans IA.
+
+**Critères du couple, appliqués à la lettre** (`lib/dash/filters.js`) : chaque choix de « Préciser mes envies » est un filtre strict sur le catalogue. Un lieu qui contredit un critère n'est jamais proposé. Viennent d'abord les lieux qui tiennent tous les critères, preuve à l'appui ; puis, sous « À confirmer avec le lieu », ceux dont une information manque (avec la liste de ce qu'il faut leur demander). Critères : région (une ou plusieurs, parmi les 13 régions de France métropolitaine ; utile quand le brief n'en donne pas), places assises et couchages au moins, traiteur libre ou imposé, parking, accès PMR, cérémonie en extérieur, exclusivité, fin de soirée après 2 h, aéroport et gare TGV à moins de N minutes (temps de route réel), ville à moins de N minutes (estimation prudente, 1,9 min par km à vol d'oiseau, que 95 % des trajets réels respectent). « Pas de chemin de terre » a été retiré : aucune source ne permet de le vérifier.
+
+**Installer** : Supabase > SQL Editor, colle `supabase/catalog-filtres.sql`, Run (après `catalog.sql`, relançable). Il crée `catalog.transport_hubs` (47 aéroports à vols réguliers, OurAirports ; 182 gares TGV, data.gouv.fr, Licence Ouverte, positions corrigées d'après la liste officielle SNCF « Gares de voyageurs »), les colonnes d'accès des lieux (aéroport et gare TGV les plus proches, km et minutes de route) et les colonnes de filtre, générées à partir de `details` (rempli par `scripts/catalog/10-structure.mjs`) : elles suivent toutes seules les nouvelles lectures de sites. Puis `node scripts/catalog/11-acces.mjs --upload` calcule les temps de route (OSRM, serveur public d'OpenStreetMap, un appel par seconde, lots de 40 lieux ; relançable) et les enregistre. Sans le fichier SQL, les pages le disent et ne filtrent que par région.
+
+**Positions rapides** : Supabase > SQL Editor, colle `supabase/lieux-rapides.sql`, Run (après `prestataires.sql`, relançable). `merry_place` (« Bordeaux », « Luberon », « (49) » traduits en coordonnées) lisait tout le catalogue à chaque appel, 30 s, au-delà du délai de 8 s de l'API : la ville du couple restait sans position et aucun lieu n'apparaissait. Le fichier précalcule les positions moyennes des lieux, villes, départements et régions dans `catalog.place_centers` (vue matérialisée, non exposée par l'API) ; `merry_place` y lit une ligne. Après un nouvel import du catalogue : `refresh materialized view catalog.place_centers;`. Si `prestataires.sql` est relancé, relancer `lieux-rapides.sql` après.
+
+**Ce que l'IA compare** (en réserve : `NEXT_PUBLIC_MERRY_AI_MATCH=1` pour l'activer) (`app/api/prestataires/match`, `lib/dash/match.js`) : pour chaque lot de 24 prestataires proches, Claude note de 0 à 100 à quel point chacun correspond au couple (brief, envies, description libre de « Ajouter des précisions »), d'après ce que le catalogue sait de lui (catégories Google, ville, distance, avis, description, site). La liste suit la note ; sous 30 (pas fait pour un mariage, trop loin, hors sujet), le prestataire n'est pas proposé ; le premier, à 75 ou plus, porte « Meilleur match ». La note écrit aussi la phrase « Pourquoi ce lieu » des cartes et, sur la fiche, une explication et ce qu'il reste à vérifier avec le prestataire. Elle est gardée dans `vendor_matches` (partie E de `supabase/prestataires.sql`, à relancer) par mariage et par version des envies : changer ses précisions relance la comparaison, revenir sur la page ne la repaie pas. Même clé `ANTHROPIC_API_KEY` et même compteur quotidien que les autres lectures par l'IA (200 appels par compte et par jour pour cette route) ; `MERRY_AI_MODEL_FAST` choisit le modèle s'il est défini. Sans clé, la liste reste celle du catalogue (avec photos d'abord), sans note ni explication. Le catalogue n'a pas encore de vecteurs (`embedding`) : la recherche sémantique passe par cette comparaison, pas par une recherche vectorielle.
+
+**Démo** : `/dashboard/prestataires?demo=1` reprend l'état du canvas (demandes envoyées il y a une semaine, réponses du Mas de la Source et de Duo Lavande, quatre prestataires pas encore contactés).
+
+**Pas encore fait** : recherche vectorielle dans tout le catalogue (il faudra d'abord enrichir les fiches et calculer les vecteurs), envoi des demandes par mail (elles sont seulement rangées sur la fiche du prestataire), comparaison côte à côte des lieux et des devis (« Comparer », « Comparer les devis » préviennent que cela arrive), avis des couples, critères de style lus par l'IA, fond de carte hors du Sud-Est.
+
+## 13. Suivi produit (PostHog)
 
 Qui s'est connecté et quand, le parcours d'un couple ou d'un organisateur (clics, temps passé, replay visuel de la session) et l'entonnoir d'onboarding (à quelle question les couples abandonnent).
 
