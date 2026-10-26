@@ -8,7 +8,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { inWords, rank } from "@/lib/dash/catalog";
 import { chosenVenue } from "@/lib/dash/picks";
-import { venueFacts } from "@/lib/dash/criteria";
+import { searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
 import { CriteriaBox, FactChips } from "@/components/dash/Criteria";
 import {
@@ -33,7 +33,7 @@ export default function Lieux() {
   const { picks, add } = usePicks();
   const rec = useRecommendations("lieu");
   const { vendors, source } = rec;
-  const list = useMemo(() => rank(vendors, data.wishes?.wishes || null, "lieu"), [vendors, data.wishes]);
+  const list = useMemo(() => rank(vendors, searchWishes(data), "lieu"), [vendors, data]);
   const [fiche, setFiche] = useState(null);
   const [envies, setEnvies] = useState(false);
   const [devis, setDevis] = useState(null);

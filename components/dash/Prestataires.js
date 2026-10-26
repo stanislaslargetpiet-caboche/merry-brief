@@ -13,7 +13,7 @@ import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, 
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
-import { venueFacts } from "@/lib/dash/criteria";
+import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
@@ -114,11 +114,13 @@ function withMatch(v, m) {
 export function useRecommendations(category, near, bbox = null) {
   const dash = useDash();
   const data = dash.data;
-  const region = data.wedding.region || data.brief?.region;
+  // Lieu retiré des critères : on cherche partout
+  const lieuOff = isOff(data, "lieu");
+  const region = lieuOff ? null : data.wedding.region || data.brief?.region;
   const venue = data.wedding.venue;
   // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
-  const places = [category === "lieu" ? region : venue, category === "lieu" ? venue : region].filter(Boolean);
-  const wishes = category === "lieu" ? data.wishes?.wishes || null : null;
+  const places = [category === "lieu" ? region : venue, category === "lieu" && !lieuOff ? venue : region].filter(Boolean);
+  const wishes = category === "lieu" ? searchWishes(data) : null;
   const filters = hardFilters(wishes);
   const city = cityFilter(wishes);
   const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
@@ -666,15 +668,29 @@ export function EnviesPanel({ onClose }) {
   const toggleIn = (key, v) => set({ [key]: w[key].includes(v) ? w[key].filter((x) => x !== v) : [...w[key], v] });
   const criteria = styleCriteria(w.style).filter((c) => !w.removed.includes(c));
 
-  async function save() {
+  // Chaque choix s'applique tout de suite aux recommandations (le texte libre, après une courte pause)
+  const ready = useRef(false);
+  const latest = useRef(w);
+  latest.current = w;
+  const warned = useRef(false);
+  const apply = () => {
     if (dash.mode === "live" && !dash.data.picksSetup) {
-      dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
+      if (!warned.current) dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
+      warned.current = true;
       return;
     }
-    await dash.saveWishes({ wishes: { ...w, criteria } });
-    dash.setToast({ kind: "ok", text: "Recommandations mises à jour d'après vos envies." });
-    onClose();
-  }
+    const x = latest.current;
+    dash.saveWishes({ wishes: { ...x, criteria: styleCriteria(x.style).filter((c) => !x.removed.includes(c)) } });
+  };
+  useEffect(() => {
+    if (!ready.current) {
+      ready.current = true;
+      return undefined;
+    }
+    const t = setTimeout(apply, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w]);
 
   return (
     <Layer kind="drawer" labelledBy="envies-titre" onClose={onClose}>
@@ -799,8 +815,8 @@ export function EnviesPanel({ onClose }) {
         <button type="button" className="d-pr-textbtn" onClick={() => setW({ ...EMPTY_WISHES, regions: w.regions, city: w.city })}>
           Effacer
         </button>
-        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={save}>
-          Mettre à jour mes recommandations
+        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={onClose}>
+          Voir les résultats
         </button>
       </div>
     </Layer>
@@ -1312,14 +1328,16 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
   const weddingId = data.wedding.id;
   const weddingDay = toDate(data.wedding.wedding_date);
   const firstYear = weddingDay ? weddingDay.getFullYear() : new Date().getFullYear() + 1;
+  // Dates flexibles choisies dans « Vos critères » : la demande part de cette période
+  const when = data.wishes?.wishes?.when;
   const fresh = useMemo(
     () => ({
-      message: defaultMessage(data),
+      message: defaultMessage(data, when ? periodLabel(when.months || [], when.years || []) : null),
       questions: Object.fromEntries(CATEGORIES.map((c) => [c.key, (QUESTIONS[c.key] || []).map((q) => ({ q, on: true }))])),
       dates: [dateLong(data.wedding.wedding_date), "", ""],
-      flexible: false,
-      months: weddingDay ? [weddingDay.getMonth()] : [],
-      years: [firstYear],
+      flexible: !!when,
+      months: when ? when.months || [] : weddingDay ? [weddingDay.getMonth()] : [],
+      years: when ? when.years || [] : [firstYear],
       share: false,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
