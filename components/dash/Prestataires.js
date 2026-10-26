@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
+import { supabase } from "@/lib/supabase";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
@@ -1091,6 +1092,12 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
   const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
+  // Une vue de plus sur la fiche du prestataire (« Ce mois-ci » de son espace, supabase/espace-prestataire.sql)
+  const weddingId = dash.data.wedding?.id;
+  useEffect(() => {
+    if (dash.mode !== "live" || !supabase || !v.catalogId || !weddingId) return;
+    supabase.rpc("merry_log_view", { v: v.catalogId, w: weddingId }).then(() => {});
+  }, [dash.mode, v.catalogId, weddingId]);
   return (
     <Layer kind="fiche" labelledBy="fiche-titre" onClose={onClose}>
       <div className="d-pr-panel-head is-fiche">

@@ -206,3 +206,33 @@ Sans cette clé, rien n'est envoyé (le code ne fait aucun appel réseau vers Po
 - *L'entonnoir d'onboarding* : Product analytics > Insights > New insight > Funnel, ajoute les étapes dans l'ordre à partir de `onboarding_step_viewed` (filtré par `step_key`, une étape par écran) puis `onboarding_completed` en dernière étape. PostHog affiche le nombre et le pourcentage de perte à chaque question.
 
 **Pas encore fait** : bandeau de consentement cookies sur l'onboarding (à voir avec les CGU/confidentialité du site), tableau de bord interne dans Merry (on passe par l'interface PostHog pour l'instant, suffisante pour le volume actuel).
+
+## 14. Espace prestataire (`/pro`)
+
+L'espace des prestataires inscrits sur Merry (maquettes « Espace prestataire », page *Vendors Dashboard* du canvas, V0 à V9, ordinateur et téléphone). Séparé du tableau de bord des couples : sa propre adresse, ses dossiers (`app/pro`, `components/pro`, `lib/pro`, `app/pro/pro.css`, `app/api/pro`) et ses tables (`pro_…`). Rien n'y mène depuis le tableau de bord des couples : on y arrive par le lien direct, par exemple `https://merry-brief.vercel.app/pro`. Mêmes comptes Supabase, mais seules les fiches rattachées au compte (`pro_members`) s'ouvrent.
+
+| Page | Contenu |
+| --- | --- |
+| `/pro` sans compte | Revendiquer sa fiche (V0) : retrouver son établissement par son nom ou son SIRET, puis un code à 6 chiffres envoyé à l'adresse mail de la fiche. Sert aussi de connexion quand on revient. |
+| `/pro` | Accueil (V1) : fiche complète à … %, demandes à traiter, couples à relancer, prochaines dates réservées, chiffres du mois, crédits |
+| `/pro/fiche` | Ma fiche (V2) : photos (la première sert de couverture, glisser pour l'ordre), vidéo ou visite virtuelle, présentation, style, capacités, traiteur, fin de soirée, accès. `?apercu=1` : aperçu côté couples (V2b), avec la carte et la fiche des couples |
+| `/pro/tarifs` | Formules (haute et basse saison), options, saisons (V3). Le prix le plus bas devient le « À partir de » des couples |
+| `/pro/disponibilites` | Calendrier : libre, option (avec sa fin) ou réservé ; lien d'agenda privé pour Google Agenda, Apple Calendrier ou Outlook (V4) |
+| `/pro/demandes` | Les demandes de devis des couples (V5) : leur brief, leur message, leurs dates ; réponse avec un PDF ou un devis calculé depuis les formules, et option posée sur la date |
+| `/pro/clients` | Suivi par étape, de la demande à la réservation (V6), fiche du client avec notes, messages et documents ; clients « Hors Merry » ajoutés à la main |
+| `/pro/projets` | Projets de mariage (V7) : couples de la région qui acceptent d'être contactés, prénoms et message masqués jusqu'au déblocage en crédits |
+| `/pro/credits` | Solde, formules d'abonnement, packs, historique (V8) |
+| « Proposer une fonctionnalité » | Un mot à l'équipe Merry, avec une capture si besoin (V9), et l'état des propositions envoyées |
+
+Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navigateur) ; `/pro?demo=1&revendiquer=1` pour l'écran V0.
+
+**Installer** :
+
+1. Supabase > SQL Editor, colle `supabase/espace-prestataire.sql`, Run (après `catalog.sql`, `catalog-filtres.sql`, `prestataires.sql` et `lieux-rapides.sql` ; relançable). Il crée les tables `pro_…`, les fonctions `pro_…`, le stockage privé `pro-fichiers` (vidéos, devis, captures), les droits des prestataires sur leur dossier de `catalog-photos`, et recrée les colonnes `outdoor_ceremony` et `parking` du catalogue pour que le choix du prestataire passe avant ce que Merry a lu sur son site (une seule réécriture de la table). Tant que le fichier n'est pas lancé, `/pro` le dit et renvoie vers la démo.
+2. Vercel > Settings > Environment Variables : `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API keys, clé `service_role`). Le serveur s'en sert pour lire l'adresse mail d'une fiche sans la montrer, rattacher la fiche au compte, signer les photos de la recherche, et servir l'agenda iCal. Sans elle, la vérification et l'agenda répondent qu'ils ne sont pas branchés.
+3. Supabase > Authentication > Emails > Magic Link : le mail doit contenir le code, par exemple « Votre code Merry : {{ .Token }} ». Le code fait 6 chiffres (Authentication > Providers > Email > Email OTP Length). Le service d'envoi intégré de Supabase est limité à quelques mails par heure : brancher un SMTP (Resend…) avant d'ouvrir l'espace à beaucoup de prestataires.
+4. Prix et crédits : Table Editor > `pro_offer` (une ligne). `plans` (prix mensuel et annuel, crédits par mois de Essentiel, Confort et Pro), `packs` (crédits et prix des trois packs), `unlock_cost` (crédits pour débloquer un projet ; vide = déblocage impossible), `explainer` (« Comment sont utilisés les crédits »). Vide = « à définir » à l'écran.
+
+**Comment c'est relié aux couples** : quand un couple envoie « Demander les devis » à un lieu du catalogue, la demande apparaît dans les Demandes de ce lieu dès qu'il a revendiqué sa fiche (`pro_sync`), et devient un client « Nouvelle demande ». La réponse du prestataire (`pro_send`) arrive dans le tableau de bord du couple, sur la fiche du prestataire dans Budget, et compte comme « Réponse reçue ». Ce que le prestataire change dans Ma fiche et Tarifs est écrit dans `catalog.vendors` et se voit tout de suite dans la page Prestataires des couples. Les vues de la fiche viennent de `merry_log_view`, appelée quand un couple ouvre la fiche. Si le catalogue est réimporté par les scripts, ne pas écraser les fiches présentes dans `pro_vendors`.
+
+**Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours), et la création d'une fiche pour un établissement absent du catalogue (« Mon établissement n'apparaît pas » renvoie vers bonjour@merry.fr).
