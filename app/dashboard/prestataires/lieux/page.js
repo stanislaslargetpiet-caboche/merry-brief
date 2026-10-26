@@ -9,6 +9,7 @@ import { useDash } from "@/lib/dash/store";
 import { inWords, rank } from "@/lib/dash/catalog";
 import { chosenVenue, dateLong, guestsLabel } from "@/lib/dash/picks";
 import { Icon } from "@/components/dash/icons";
+import { CriteriaBox } from "@/components/dash/Criteria";
 import {
   ConfirmDivider,
   DevisDialog,
@@ -18,7 +19,6 @@ import {
   MoreButton,
   Negotiated,
   Price,
-  PrecisionsBar,
   SampleNote,
   ToConfirm,
   usePicks,
@@ -76,14 +76,7 @@ export default function Lieux() {
       </div>
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <div className="d-pr-briefline">
-        <span>
-          <strong>D'après votre brief</strong>
-          {briefBits ? ` · ${briefBits}` : ""}
-        </span>
-        <Link href="/dashboard/brief">Modifier le brief</Link>
-      </div>
-      <PrecisionsBar onOpen={() => setEnvies(true)} />
+      <CriteriaBox onEnvies={() => setEnvies(true)} />
       <div className="d-pr-grid is-lieux">
         {list.map((v, i) => {
           const photo = (v.photos || []).find(Boolean);

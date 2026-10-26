@@ -11,9 +11,9 @@ import { project, unproject } from "@/lib/dash/provenceMap";
 import { euros } from "@/lib/dash/format";
 import { chosenVenue } from "@/lib/dash/picks";
 import { Icon } from "@/components/dash/icons";
+import { CriteriaBox } from "@/components/dash/Criteria";
 import {
   BestMatch,
-  BriefBar,
   CategoryTabs,
   ConfirmDivider,
   DevisDialog,
@@ -33,7 +33,6 @@ import {
   ToConfirm,
   MAP_MIN_SCALE,
   MoreButton,
-  PrecisionsBar,
   useIsPhone,
   usePicks,
   useRecommendations,
@@ -158,7 +157,7 @@ export default function Trouver() {
       <PrHead on="trouver" />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <BriefBar onEnvies={() => setEnvies(true)} />
+      <CriteriaBox onEnvies={() => setEnvies(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
         <div className="d-pr-tabrow-right">
@@ -174,7 +173,6 @@ export default function Trouver() {
             <h2>Nos recommandations pour vous</h2>
             <p>{subtitle}</p>
           </div>
-          <PrecisionsBar onOpen={() => setEnvies(true)} />
           <div className="d-pr-grid">
             {list.map((v, i) => (
               <Fragment key={v.id}>
@@ -565,7 +563,7 @@ function CompactBar({ picks, onRequest }) {
         ))}
       </span>
       <strong>{one ? `${countLabel(picks.length, picks[0].category)} sélectionné${picks.length > 1 ? "s" : ""}` : `${picks.length} sélectionnés`}</strong>
-      <Link href="/dashboard/prestataires/lieux" className="d-pr-bar-ghost is-small">
+      <Link href="/dashboard/prestataires/mes" className="d-pr-bar-ghost is-small">
         Comparer
       </Link>
       <button type="button" className="d-pr-bar-cta is-small" onClick={onRequest}>
