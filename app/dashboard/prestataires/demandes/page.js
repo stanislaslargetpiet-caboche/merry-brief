@@ -22,7 +22,6 @@ export default function Demandes() {
       <PrHead on="mes" />
       <div className="d-pr-req-intro">
         <h2>Vos demandes de devis</h2>
-        <p>Les réponses arrivent ici et dans Budget, sur la fiche de chaque prestataire.</p>
       </div>
       {sections.length ? (
         <div className="d-pr-boxes is-req">

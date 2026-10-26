@@ -11,9 +11,9 @@ import { project, unproject } from "@/lib/dash/provenceMap";
 import { euros } from "@/lib/dash/format";
 import { chosenVenue } from "@/lib/dash/picks";
 import { Icon } from "@/components/dash/icons";
+import { CriteriaBox } from "@/components/dash/Criteria";
 import {
   BestMatch,
-  BriefBar,
   CategoryTabs,
   ConfirmDivider,
   DevisDialog,
@@ -33,7 +33,6 @@ import {
   ToConfirm,
   MAP_MIN_SCALE,
   MoreButton,
-  PrecisionsBar,
   useIsPhone,
   usePicks,
   useRecommendations,
@@ -44,7 +43,7 @@ import {
 function readParams() {
   if (typeof window === "undefined") return {};
   const p = new URLSearchParams(window.location.search);
-  return { cat: p.get("cat"), vue: p.get("vue"), fiche: p.get("fiche"), envies: p.get("envies") };
+  return { cat: p.get("cat"), vue: p.get("vue"), fiche: p.get("fiche"), envies: p.get("envies"), lieu: p.get("lieu") };
 }
 
 function writeParams(patch) {
@@ -67,6 +66,8 @@ export default function Trouver() {
   const [envies, setEnvies] = useState(false);
   const [ficheId, setFicheId] = useState(null);
   const [devis, setDevis] = useState(null);
+  // « Voir sur la carte » : la vue Carte se centre sur ce prestataire
+  const [focusId, setFocusId] = useState(null);
 
   useEffect(() => {
     const p = readParams();
@@ -74,6 +75,11 @@ export default function Trouver() {
     if (p.vue === "carte") setView("carte");
     if (p.fiche) setFicheId(p.fiche);
     if (p.envies) setEnvies(true);
+    if (p.lieu) {
+      setView("carte");
+      setFocusId(p.lieu);
+      writeParams({ lieu: null });
+    }
   }, []);
 
   const venuePick = chosenVenue(dash.data, picks);
@@ -105,6 +111,13 @@ export default function Trouver() {
     setFicheId(null);
     writeParams({ fiche: null });
   };
+  const showOnMap = (v) => {
+    setFicheId(null);
+    setFocusId(v.id);
+    setView("carte");
+    writeParams({ fiche: null, vue: "carte" });
+    window.scrollTo({ top: 0 });
+  };
   async function requestOne(v) {
     const p = await add(v);
     if (!p) return;
@@ -119,13 +132,11 @@ export default function Trouver() {
 
   const wishesOn = wishes && Object.values(wishes).some((x) => (Array.isArray(x) ? x.length : x && typeof x === "object" ? x.on || x.name : x));
   const subtitle = loading
-    ? source === "catalogue" || dash.mode === "live"
-      ? `Merry compare les ${c.many} proches de chez vous à votre brief…`
-      : "Chargement des propositions…"
+    ? "Chargement…"
     : list.length
-      ? `${inWords(list.length, cat)} choisi${list.length > 1 ? "s" : ""} d'après votre brief${wishesOn && cat === "lieu" ? " et vos critères" : ""}.`
+      ? `${inWords(list.length, cat)} d'après vos critères.`
       : wishesOn && cat === "lieu"
-        ? "Aucun lieu ne respecte tous vos critères dans cette zone. Assouplissez-en un, ou cherchez ailleurs sur la carte."
+        ? "Aucun lieu ne tient tous vos critères ici."
         : `Aucun ${c.one} à vous proposer pour l’instant.`;
 
   const overlays = (
@@ -138,7 +149,7 @@ export default function Trouver() {
           }}
         />
       ) : null}
-      {fiche ? <FichePanel v={fiche} index={Math.max(0, list.indexOf(fiche))} total={list.length} onClose={closeFiche} onRequest={requestOne} /> : null}
+      {fiche ? <FichePanel v={fiche} index={Math.max(0, list.indexOf(fiche))} total={list.length} onClose={closeFiche} onRequest={requestOne} onMap={showOnMap} /> : null}
       {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
     </>
   );
@@ -147,7 +158,7 @@ export default function Trouver() {
   if (view === "carte" && phone) {
     return (
       <>
-        <MapView list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} onList={() => changeView("liste")} pending={pending} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} onList={() => changeView("liste")} pending={pending} />
         {overlays}
       </>
     );
@@ -158,7 +169,7 @@ export default function Trouver() {
       <PrHead on="trouver" />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <BriefBar onEnvies={() => setEnvies(true)} />
+      <CriteriaBox onEnvies={() => setEnvies(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
         <div className="d-pr-tabrow-right">
@@ -167,19 +178,18 @@ export default function Trouver() {
       </div>
 
       {view === "carte" ? (
-        <MapView list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
       ) : (
         <>
           <div className="d-pr-intro">
             <h2>Nos recommandations pour vous</h2>
             <p>{subtitle}</p>
           </div>
-          <PrecisionsBar onOpen={() => setEnvies(true)} />
           <div className="d-pr-grid">
             {list.map((v, i) => (
               <Fragment key={v.id}>
                 <ConfirmDivider list={list} index={i} category={cat} />
-                <VendorCard v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} venueName={venueName} />
+                <VendorCard v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} onMap={showOnMap} venueName={venueName} />
               </Fragment>
             ))}
           </div>
@@ -290,7 +300,7 @@ function PriceFilter({ value, count, onApply, onClose }) {
   );
 }
 
-function MapView({ list, rec, onArea, cat, source, phone, isPicked, onToggle, onOpen, onEnvies, onList, pending, onRequest, onClear }) {
+function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onToggle, onOpen, onEnvies, onList, pending, onRequest, onClear }) {
   const c = catOf(cat);
   const [center, setCenter] = useState(phone ? { x: 504.6, y: 755.4 } : { x: 500, y: 550 });
   const [scale, setScale] = useState(phone ? 0.788 : 1);
@@ -330,6 +340,22 @@ function MapView({ list, rec, onArea, cat, source, phone, isPicked, onToggle, on
     setCenter({ x: (minX + maxX) / 2, y: phone ? y + 180 / next : y });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, list, phone, cat]);
+
+  // « Voir sur la carte » : centré sur le lieu demandé, plus près, et mis en avant
+  const focused = useRef(null);
+  useEffect(() => {
+    if (!focusId || focused.current === focusId) return;
+    const v = list.find((x) => x.id === focusId);
+    const p = v && mapPoint(v);
+    if (!p) return;
+    focused.current = focusId;
+    centeredFor.current = cat;
+    const next = Math.max(scale, 2.2);
+    setScale(next);
+    setCenter({ x: p.x, y: phone ? p.y + 180 / next : p.y });
+    setActive(v.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, list]);
 
   // Prix inconnu : gardé (« à confirmer »), comme pour les autres critères
   const inPrice = (v, r = price) => !r || !v.price || (v.price >= r[0] && v.price <= r[1]);
@@ -565,7 +591,7 @@ function CompactBar({ picks, onRequest }) {
         ))}
       </span>
       <strong>{one ? `${countLabel(picks.length, picks[0].category)} sélectionné${picks.length > 1 ? "s" : ""}` : `${picks.length} sélectionnés`}</strong>
-      <Link href="/dashboard/prestataires/lieux" className="d-pr-bar-ghost is-small">
+      <Link href="/dashboard/prestataires/mes" className="d-pr-bar-ghost is-small">
         Comparer
       </Link>
       <button type="button" className="d-pr-bar-cta is-small" onClick={onRequest}>
