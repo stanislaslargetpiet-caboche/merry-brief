@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
@@ -26,7 +26,28 @@ import VendorComments from "./VendorComments";
 
 export function usePicks() {
   const dash = useDash();
-  const { picks = [], picksSetup, meId } = dash.data;
+  const { picks: saved = [], picksSetup, meId } = dash.data;
+  // Photos des lieux du catalogue redemandées : celles gardées avec la sélection ne valent qu'une heure
+  const [covers, setCovers] = useState(() => new Map());
+  const catalogIds = saved.map((p) => /^catalog:(.+)$/.exec(p.catalog_ref || "")?.[1]).filter(Boolean);
+  const idsKey = catalogIds.join(",");
+  useEffect(() => {
+    if (dash.mode !== "live" || !catalogIds.length) return undefined;
+    let live = true;
+    freshCovers(catalogIds).then((m) => live && setCovers(m));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey, dash.mode]);
+  const picks = useMemo(
+    () =>
+      saved.map((p) => {
+        const url = covers.get(/^catalog:(.+)$/.exec(p.catalog_ref || "")?.[1]);
+        return url ? { ...p, data: { ...(p.data || {}), photos: [url] } } : p;
+      }),
+    [saved, covers],
+  );
   const byRef = useMemo(() => new Map(picks.map((p) => [p.catalog_ref, p])), [picks]);
 
   const ready = useCallback(() => {
@@ -457,16 +478,61 @@ export function FiltersNote({ rec }) {
 // Bandeau « Ma sélection » : noir pour une seule catégorie (7), blanc pour plusieurs (7g)
 // ---------------------------------------------------------------------------
 
+// Bandeau réduit en pastille « 3 ♥ » : mémorisé pour la session
+const REDUCED_KEY = "merry-selection-reduite";
+export function useReducedBar() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    try {
+      setReduced(window.sessionStorage.getItem(REDUCED_KEY) === "1");
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+  const set = (on) => {
+    setReduced(on);
+    try {
+      if (on) window.sessionStorage.setItem(REDUCED_KEY, "1");
+      else window.sessionStorage.removeItem(REDUCED_KEY);
+    } catch {
+      /* stockage indisponible */
+    }
+  };
+  return [reduced, set];
+}
+
+export function SelectionPill({ count, onOpen, label = "Rouvrir ma sélection" }) {
+  return (
+    <div className="d-pr-selpill-wrap">
+      <button type="button" className="d-pr-selpill" aria-label={`${label} : ${count}`} onClick={onOpen}>
+        {count}
+        <Icon name="heart" size={15} sw={2} />
+      </button>
+    </div>
+  );
+}
+
+function ReduceBtn({ onClick, light }) {
+  return (
+    <button type="button" className={`d-pr-bar-reduce${light ? " is-light" : ""}`} aria-label="Réduire ma sélection" onClick={onClick}>
+      <Icon name="x" size={14} sw={2.2} />
+    </button>
+  );
+}
+
 export function SelectionBar({ picks, onRequest, onClear }) {
   const by = picksBy(picks);
   const groups = CATEGORIES.filter((c) => by[c.key].length);
+  const [reduced, setReduced] = useReducedBar();
   if (!picks.length) return null;
+  if (reduced) return <SelectionPill count={picks.length} onOpen={() => setReduced(false)} />;
   if (groups.length === 1) {
     const c = groups[0];
     const list = by[c.key];
     const names = list.map((p) => p.data?.name).join(", ");
     return (
       <div role="region" aria-label="Ma sélection" className="d-pr-bar is-dark">
+        <ReduceBtn onClick={() => setReduced(true)} />
         <div className="d-pr-bar-main">
           <span className="d-pr-stack">
             {list.slice(0, 3).map((p, i) => (
@@ -496,6 +562,7 @@ export function SelectionBar({ picks, onRequest, onClear }) {
   }
   return (
     <div role="region" aria-label="Ma sélection" className="d-pr-bar is-light">
+      <ReduceBtn onClick={() => setReduced(true)} light />
       <div className="d-pr-bar-groups">
         {groups.map((c, gi) => (
           <span key={c.key} className="d-pr-bar-groupwrap">

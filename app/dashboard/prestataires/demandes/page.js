@@ -7,12 +7,13 @@ import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
 import { pickStatus, picksBy } from "@/lib/dash/picks";
 import { shortDate } from "@/lib/dash/format";
-import { PrHead, RowActions, StatusChip, Thumb } from "@/components/dash/Prestataires";
+import { PrHead, RowActions, StatusChip, Thumb, usePicks } from "@/components/dash/Prestataires";
 
 export default function Demandes() {
   const dash = useDash();
   const data = dash.data;
-  const sent = (data.picks || []).filter((p) => p.requested_at);
+  const { picks } = usePicks();
+  const sent = picks.filter((p) => p.requested_at);
   const by = picksBy(sent);
   const sections = CATEGORIES.filter((c) => by[c.key].length);
   const compare = () => dash.setToast({ kind: "ok", text: "La comparaison des devis arrive bientôt dans Merry." });
