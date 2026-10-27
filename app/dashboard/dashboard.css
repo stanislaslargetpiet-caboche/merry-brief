@@ -11312,3 +11312,29 @@ body.d-noscroll {
     min-height: 44px;
   }
 }
+
+/* Mes prestataires, téléphone : barre compacte d'une ligne (le texte prenait 260 px de haut) */
+@media (max-width: 700px) {
+  .d-pr-nextbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 16px;
+  }
+
+  .d-pr-nextbar-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .d-pr-nextbar-text span {
+    display: none;
+  }
+
+  .d-pr-nextbar .d-btn {
+    width: auto;
+    flex: none;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
