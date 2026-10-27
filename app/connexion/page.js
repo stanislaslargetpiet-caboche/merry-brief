@@ -216,159 +216,160 @@ export default function Connexion() {
     setMode(token ? "signup" : "login");
   }
 
+  const isForm = !["checking", "signedin", "expired", "join", "badlink", "sent", "confirm"].includes(mode);
+
   return (
-    <div className="shell">
-      <aside className="panel">
-        <LangSwitch />
-        <a className="panel-logo" href={SITE_URL} aria-label={s.logoAria}>
+    <div className="ob cx">
+      <div className="cx-glow" aria-hidden="true" />
+      <header className="ob-header">
+        <a className="ob-logo" href={SITE_URL} aria-label={s.logoAria}>
           Merry
         </a>
-        <div className="panel-word" aria-hidden="true">
-          {s.panelWord}
+        <div className="ob-header-right">
+          <LangSwitch />
+          <a className="cx-site" href={SITE_URL}>
+            <span className="cx-site-long">{s.backToSite}</span>
+            <span className="cx-site-short">{s.backToSiteShort}</span>
+          </a>
         </div>
-        <div className="panel-caption" aria-hidden="true">
-          {s.panelCaption}
-        </div>
-      </aside>
-      <main className="stage">
-        <section className="card">
-          <div className="eyebrow">{token && mode !== "login" ? s.eyebrowInvitation : s.eyebrowLogin}</div>
-          <h1 className="question">{titles[mode]}</h1>
+      </header>
 
-          {!supabase ? (
-            <>
-              <p className="help">{s.noSupabase}</p>
-              <div className="actions">
-                <a className="btn" href="/dashboard?demo=1">
-                  {s.seeDemo}
-                </a>
+      <main className="ob-main cx-main">
+        <div className="cx-head">
+          <span className="ob-tag">{token && mode !== "login" ? s.eyebrowInvitation : s.eyebrowLogin}</span>
+          <h1 className="cx-title">{titles[mode]}</h1>
+        </div>
+
+        {!supabase ? (
+          <>
+            <p className="cx-help">{s.noSupabase}</p>
+            <a className="ob-btn accent cx-wide" href="/dashboard?demo=1">
+              {s.seeDemo}
+            </a>
+          </>
+        ) : mode === "checking" ? (
+          <p className="cx-help">{s.oneMoment}</p>
+        ) : mode === "signedin" ? (
+          <>
+            <p className="cx-help">{s.signedInAs(user?.email)}</p>
+            <a className="ob-btn accent cx-wide" href={next}>
+              {s.goToDashboard}
+            </a>
+            <button type="button" className="ob-link cx-center" onClick={signOut}>
+              {s.signOut}
+            </button>
+          </>
+        ) : mode === "expired" ? (
+          <>
+            <p className="cx-help">{s.expiredHelp}</p>
+            <button type="button" className="ob-btn accent cx-wide" onClick={() => setMode("forgot")}>
+              {s.getNewLink}
+            </button>
+          </>
+        ) : mode === "join" ? (
+          <>
+            <p className="cx-help">{s.joinHelp(invite?.invited_as)}</p>
+            <button type="button" className="ob-btn accent cx-wide" onClick={join} disabled={busy}>
+              {s.join}
+            </button>
+            <button
+              type="button"
+              className="ob-link cx-center"
+              onClick={() => {
+                dropToken();
+                window.location.replace("/dashboard");
+              }}
+            >
+              {s.notNow}
+            </button>
+          </>
+        ) : mode === "badlink" ? (
+          <>
+            <p className="cx-help">{s.badlinkHelp}</p>
+            <a className="ob-btn accent cx-wide" href="/dashboard">
+              {s.goToDashboard}
+            </a>
+          </>
+        ) : mode === "sent" ? (
+          <p className="cx-help">{s.sentHelp(email)}</p>
+        ) : mode === "confirm" ? (
+          <p className="cx-help">{s.confirmHelp(email)}</p>
+        ) : null}
+
+        {supabase && isForm ? (
+          <form onSubmit={submit} className="cx-form">
+            {mode === "reset" ? <p className="cx-help">{s.resetHelp(user?.email)}</p> : null}
+            {mode === "signup" && token ? <p className="cx-help">{s.signupInvitedHelp}</p> : null}
+            {mode === "signup" ? (
+              <div className="ob-field">
+                <label htmlFor="c-first">{s.firstNameLabel}</label>
+                <input id="c-first" className="ob-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" required />
               </div>
-            </>
-          ) : mode === "checking" ? (
-            <p className="help">{s.oneMoment}</p>
-          ) : mode === "signedin" ? (
-            <>
-              <p className="help">{s.signedInAs(user?.email)}</p>
-              <div className="actions">
-                <button type="button" className="skip" onClick={signOut}>
-                  {s.signOut}
-                </button>
-                <a className="btn" href={next}>
-                  {s.goToDashboard}
-                </a>
+            ) : null}
+            {mode !== "reset" ? (
+              <div className="ob-field">
+                <label htmlFor="c-email">{s.emailLabel}</label>
+                <input
+                  id="c-email"
+                  className="ob-input"
+                  type="email"
+                  placeholder={s.emailPlaceholder}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
               </div>
-            </>
-          ) : mode === "expired" ? (
-            <>
-              <p className="help">{s.expiredHelp}</p>
-              <div className="actions">
-                <button type="button" className="btn" onClick={() => setMode("forgot")}>
-                  {s.getNewLink}
-                </button>
-              </div>
-            </>
-          ) : mode === "join" ? (
-            <>
-              <p className="help">{s.joinHelp(invite?.invited_as)}</p>
-              <div className="actions">
-                <button
-                  type="button"
-                  className="skip"
-                  onClick={() => {
-                    dropToken();
-                    window.location.replace("/dashboard");
-                  }}
-                >
-                  {s.notNow}
-                </button>
-                <button type="button" className="btn" onClick={join} disabled={busy}>
-                  {s.join}
-                </button>
-              </div>
-            </>
-          ) : mode === "badlink" ? (
-            <>
-              <p className="help">{s.badlinkHelp}</p>
-              <div className="actions">
-                <a className="btn" href="/dashboard">
-                  {s.goToDashboard}
-                </a>
-              </div>
-            </>
-          ) : mode === "sent" ? (
-            <p className="help">{s.sentHelp(email)}</p>
-          ) : mode === "confirm" ? (
-            <p className="help">{s.confirmHelp(email)}</p>
-          ) : (
-            <form onSubmit={submit} className="fields">
-              {mode === "reset" ? (
-                <p className="help" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                  {s.resetHelp(user?.email)}
-                </p>
-              ) : null}
-              {mode === "signup" && token ? (
-                <p className="help" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                  {s.signupInvitedHelp}
-                </p>
-              ) : null}
-              {mode === "signup" ? (
-                <div className="field full">
-                  <label htmlFor="c-first">{s.firstNameLabel}</label>
-                  <input id="c-first" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" required />
-                </div>
-              ) : null}
-              {mode !== "reset" ? (
-                <div className="field full">
-                  <label htmlFor="c-email">{s.emailLabel}</label>
-                  <input id="c-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-                </div>
-              ) : null}
-              {mode !== "forgot" ? (
-                <div className="field full">
+            ) : null}
+            {mode !== "forgot" ? (
+              <div className="ob-field">
+                <div className="cx-label-row">
                   <label htmlFor="c-password">{mode === "reset" ? s.newPasswordLabel : s.passwordLabel}</label>
-                  <input
-                    id="c-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    minLength={mode === "login" ? undefined : 8}
-                    required
-                  />
+                  {mode === "login" ? (
+                    <button type="button" className="ob-link" onClick={() => setMode("forgot")}>
+                      {s.forgotPassword}
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
-              {error ? <p className="error">{error}</p> : null}
-              <div className="actions" style={{ gridColumn: "1 / -1" }}>
-                {mode === "login" ? (
-                  <button type="button" className="skip" onClick={() => setMode("forgot")}>
-                    {s.forgotPassword}
-                  </button>
-                ) : mode === "signup" ? (
-                  <button type="button" className="skip" onClick={() => setMode("login")}>
-                    {s.haveAccount}
-                  </button>
-                ) : mode === "reset" ? (
-                  <button type="button" className="skip" onClick={signOut}>
-                    {s.cancel}
-                  </button>
-                ) : (
-                  <button type="button" className="skip" onClick={() => setMode("login")}>
-                    {s.back}
-                  </button>
-                )}
-                <button type="submit" className="btn" disabled={busy}>
-                  {mode === "login" ? s.submit.login : mode === "signup" ? s.submit.signup : mode === "forgot" ? s.submit.forgot : s.submit.reset}
-                </button>
+                <input
+                  id="c-password"
+                  className="ob-input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  minLength={mode === "login" ? undefined : 8}
+                  required
+                />
               </div>
-            </form>
-          )}
+            ) : null}
+            {error ? <p className="ob-error">{error}</p> : null}
+            <button type="submit" className="ob-btn accent cx-wide" disabled={busy}>
+              {mode === "login" ? s.submit.login : mode === "signup" ? s.submit.signup : mode === "forgot" ? s.submit.forgot : s.submit.reset}
+            </button>
+            {mode === "signup" ? (
+              <button type="button" className="ob-link cx-center" onClick={() => setMode("login")}>
+                {s.haveAccount}
+              </button>
+            ) : mode === "reset" ? (
+              <button type="button" className="ob-link cx-center" onClick={signOut}>
+                {s.cancel}
+              </button>
+            ) : mode === "forgot" ? (
+              <button type="button" className="ob-link cx-center" onClick={() => setMode("login")}>
+                {s.back}
+              </button>
+            ) : null}
+          </form>
+        ) : null}
 
-          {mode === "login" && !token ? (
-            <p className="footnote">
-              {s.footnoteLead}<a href="/">{s.footnoteLink}</a>{s.footnoteTail}
-            </p>
-          ) : null}
-        </section>
+        {mode === "login" && !token ? (
+          <p className="cx-foot">
+            {s.footnoteLead}
+            <a href="/">{s.footnoteLink}</a>
+          </p>
+        ) : null}
       </main>
     </div>
   );

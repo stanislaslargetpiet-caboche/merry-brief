@@ -1488,6 +1488,101 @@ h1.question {
   }
 }
 
+/* Connexion (app/connexion/page.js), mêmes codes que l'onboarding V2 */
+.cx-glow {
+  position: absolute;
+  top: -180px;
+  right: -160px;
+  width: 520px;
+  height: 520px;
+  border-radius: 999px;
+  background: var(--lime);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.cx-site {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.cx-site-short {
+  display: none;
+}
+
+.ob-main.cx-main {
+  position: relative;
+  width: 460px;
+  gap: 24px;
+}
+
+.cx-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cx-head .ob-tag {
+  align-self: flex-start;
+}
+
+.cx-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.cx-help {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.cx-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cx-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.cx-wide {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 4px;
+}
+
+.ob-link.cx-center {
+  align-self: center;
+}
+
+.cx-foot {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.cx-foot a {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 /* Téléphone : une colonne, actions fixées en bas */
 @media (max-width: 700px) {
   .ob-header {
@@ -1662,6 +1757,37 @@ h1.question {
 
   .ob-done {
     padding: 24px;
+  }
+
+  .cx-glow {
+    top: -140px;
+    right: -140px;
+    width: 320px;
+    height: 320px;
+  }
+
+  .cx-site {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .cx-site-long {
+    display: none;
+  }
+
+  .cx-site-short {
+    display: inline;
+  }
+
+  .ob-main.cx-main {
+    padding-top: 8px;
+    padding-bottom: 24px;
+    gap: 24px;
+  }
+
+  .cx-title {
+    font-size: 26px;
   }
 
   .ob-main.ob-prep {
