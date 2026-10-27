@@ -1,11 +1,11 @@
 # Merry · Onboarding et compte
 
-Le parcours d'inscription des couples (choix de la fête + 7 écrans + bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page Onboarding, validé le 22 octobre 2026.
+Le parcours d'inscription des couples (4 étapes : la fête, l'équipe, l'essentiel, le compte, puis bienvenue), à héberger sur Vercel et à relier aux boutons « C'est parti ! » du site Squarespace. Il crée le compte du couple (Supabase Auth, email et mot de passe) et enregistre le brief dans la table `briefs`. Les écrans suivent le canvas « Merry · Carte brief », page « Onboarding & connexion v2 », validée le 27 octobre 2026.
 
 ## 1. Supabase (15 minutes)
 
 1. Crée un projet sur supabase.com (région EU, Francfort ou Paris).
-2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run, puis de `supabase/onboarding-simplifie.sql`, Run.
+2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run, puis de `supabase/onboarding-simplifie.sql`, Run, puis de `supabase/onboarding-v2.sql`, Run (date flexible sur plusieurs mois, fourchettes min / max d'invités et de budget).
 3. Authentication > Providers > Email : laisse Email activé.
    Pour le lancement, désactive « Confirm email » (Authentication > Providers > Email > Confirm email) : le couple arrive sur son tableau de bord sans passer par sa boîte mail. Si tu le laisses activé, le code gère le cas (écran « vérifie ta boîte mail », brief envoyé à la première connexion).
 4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.withmerry.com).
@@ -198,7 +198,7 @@ Sans cette clé, rien n'est envoyé (le code ne fait aucun appel réseau vers Po
 
 - `lib/analytics.js` initialise PostHog une fois (`components/PostHogProvider.js`, chargé dans `app/layout.js`). Les clics et les pages vues sont suivis automatiquement (autocapture de PostHog), ainsi que le replay de session ; le contenu tapé dans les champs (email, mot de passe, budget…) n'est jamais enregistré (`maskAllInputs`).
 - `lib/dash/store.js` identifie la personne (`posthog.identify`, avec son email et son prénom) dès que le tableau de bord est chargé, et réinitialise (`posthog.reset`) à la déconnexion.
-- `components/Brief.js` envoie un événement `onboarding_step_viewed` à chaque écran de l'onboarding (avec `step` et `step_key` : `fete`, `avancement`, `equipe`, `date_et_region`, `invites_et_format`, `ambiance`, `budget`, `contact`), puis `onboarding_completed` ou `onboarding_signup_failed`.
+- `components/Brief.js` envoie un événement `onboarding_step_viewed` à chaque écran de l'onboarding (avec `step` et `step_key` : `fete`, `equipe`, `essentiel`, `compte`), puis `onboarding_completed` ou `onboarding_signup_failed`.
 
 **Pour lire les résultats dans PostHog** :
 

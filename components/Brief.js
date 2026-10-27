@@ -1,93 +1,300 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createAccountAndBrief } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { useLang } from "@/lib/lang";
-import { BRIEF_TEXT } from "@/lib/i18n/brief";
+import { BRIEF_TEXT, VIBE_UNSURE } from "@/lib/i18n/brief";
 import LangSwitch from "@/components/LangSwitch";
 import { trackEvent } from "@/lib/analytics";
+import { searchPlaces } from "@/lib/places";
 
 /* ------------------------------------------------------------------ */
-/*  Contenu des écrans (source : canvas « Merry · Carte brief »,        */
-/*  page Onboarding, validé le 21 oct. 2026). Textes FR/EN : voir       */
-/*  lib/i18n/brief.js.                                                  */
+/*  Onboarding V2 (source : canvas « Merry · Carte brief », page        */
+/*  « Onboarding & connexion v2 », validé le 27 oct. 2026).             */
+/*  4 étapes : la fête, l'équipe, l'essentiel, le compte.               */
+/*  Textes FR/EN : voir lib/i18n/brief.js.                              */
 /* ------------------------------------------------------------------ */
 
-// 7 questions après le choix de la fête (étape 0, sans compteur).
-const TOTAL = 7;
+const TOTAL = 4;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
 
 // Un nom stable par écran (indépendant de la langue affichée), pour que le
-// funnel PostHog ("onboarding_step_viewed") reste lisible : à quelle question
+// funnel PostHog ("onboarding_step_viewed") reste lisible : à quelle étape
 // les couples s'arrêtent.
-const STEP_KEYS = ["fete", "avancement", "equipe", "date_et_region", "invites_et_format", "ambiance", "budget", "contact"];
+const STEP_KEYS = ["fete", "equipe", "essentiel", "compte"];
+
+// Bornes des jauges : la valeur maximale vaut « et plus ».
+const GUESTS = { max: 300, step: 10 };
+const BUDGET = { max: 100000, step: 1000 };
+const MAX_VIBES = 3;
 
 const EMPTY = {
   event: "mariage",
-  stage: "",
   team: "",
-  wedding_date: "",
-  date_unknown: false,
+  stage: "",
   region: "",
+  region_pick: null, // { label, lat, lon } : le lieu choisi dans la liste de suggestions
   region_unknown: false,
-  guests: "",
-  format: "",
+  date_mode: "precise",
+  wedding_date: "",
+  flex_months: [],
+  guests_min: 80,
+  guests_max: 120,
+  budget_min: 20000,
+  budget_max: 40000,
+  budget_unknown: false,
   vibes: [],
-  pinterest: "",
-  budget: "",
   first_name: "",
   partner_first_name: "",
   email: "",
   password: "",
-  partner_email: "",
 };
 
-const STORAGE_KEY = "merry-brief-draft-v2";
+const STORAGE_KEY = "merry-brief-draft-v4";
 const PENDING_KEY = "merry-brief-pending";
+
+// Les 12 prochains mois, à partir du mois suivant : « 2027-06 »
+function nextMonths() {
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + 1 + i, 1);
+    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, month: d.getMonth(), year: d.getFullYear() };
+  });
+}
+
+// Durée de l'écran « on prépare ton tableau de bord », entre l'essentiel et le compte.
+const PREPARE_MS = 5600;
+
+// Tranches lues par le tableau de bord (lib/dash/criteria.js) : on garde la plus proche du milieu de la fourchette.
+function guestsCode(min, max) {
+  const mid = (min + max) / 2;
+  if (mid < 50) return "<50";
+  if (mid < 100) return "50-100";
+  if (mid < 150) return "100-150";
+  if (mid <= 200) return "150-200";
+  return ">200";
+}
+
+function budgetCode(min, max, unknown) {
+  if (unknown) return "aucune_idee";
+  const mid = (min + max) / 2;
+  if (mid < 15000) return "<15k";
+  if (mid < 30000) return "15-30k";
+  if (mid <= 50000) return "30-50k";
+  return ">50k";
+}
 
 /* ------------------------------------------------------------------ */
 /*  Petits composants                                                  */
 /* ------------------------------------------------------------------ */
 
-function Chip({ selected, onClick, children, tag, quote }) {
+function Chip({ selected, onClick, dashed, children }) {
   return (
-    <button type="button" className="chip" aria-pressed={selected} onClick={onClick}>
-      <span>{children}</span>
-      {tag ? <span className={"tag" + (quote ? " quote" : "")}>{tag}</span> : null}
+    <button type="button" className={"ob-chip" + (dashed ? " dashed" : "")} aria-pressed={selected} onClick={onClick}>
+      {children}
     </button>
-  );
-}
-
-function Check() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12.5l4.5 4.5L19 7" />
-    </svg>
-  );
-}
-
-function CheckSmall() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none", marginLeft: "auto" }}>
-      <path d="M5 12.5l4.5 4.5L19 7" />
-    </svg>
   );
 }
 
 function ArrowLeft() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" />
     </svg>
   );
 }
 
-function CloseIcon() {
+function Check({ size = 26 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7" />
     </svg>
+  );
+}
+
+function Heart() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21s-7-4.35-9.5-8.5C.8 9 2.2 5.5 5.5 5c2-.3 3.8.7 4.8 2.3L12 9l1.7-1.7C14.7 5.7 16.5 4.7 18.5 5c3.3.5 4.7 4 3 7.5C19 16.65 12 21 12 21z" />
+    </svg>
+  );
+}
+
+// Fêtes à venir : fond pastel très clair, icône de la même teinte (canvas, 27 oct.)
+const SOON_LOOK = [
+  { bg: "#f4f9fd", ink: "#a9c2d8", path: <><path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z" /><path d="M12 13v5M9 21h6" /></> },
+  { bg: "#fdf9ee", ink: "#d8c184", path: <><path d="M4 11h16v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8z" /><path d="M3 8h18v3H3zM12 8V4M9 5c0-1.5 1-2 3-3 0 1-1 2 0 3M15 5c0-1.5-1-2-3-3" /></> },
+  { bg: "#fdf6f7", ink: "#d8a9ad", path: <><path d="M12 4L3 20h18L12 4z" /><path d="M12 10l5 10M12 4v16" /></> },
+  { bg: "#f4faf5", ink: "#a0c9a8", path: <><rect x="3" y="8" width="18" height="12" rx="2" /><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" /></> },
+  { bg: "#fdf8f3", ink: "#d8b48e", path: <path d="M12 3l2.1 5.6 6 .3-4.6 3.8 1.6 5.8L12 15.6 6.9 18.5l1.6-5.8-4.6-3.8 6-.3L12 3z" /> },
+];
+
+// Jauge à deux poignées (minimum et maximum)
+function RangeSlider({ min, max, step, low, high, onChange, lowAria, highAria, disabled }) {
+  const pct = (v) => (v / max) * 100;
+  return (
+    <div className={"ob-range" + (disabled ? " off" : "")}>
+      <span className="ob-range-track" />
+      <span className="ob-range-fill" style={{ left: `${pct(low)}%`, width: `${pct(high) - pct(low)}%` }} />
+      <input
+        type="range" min={min} max={max} step={step} value={low} aria-label={lowAria} disabled={disabled}
+        onChange={(e) => onChange(Math.min(Number(e.target.value), high - step), high)}
+      />
+      <input
+        type="range" min={min} max={max} step={step} value={high} aria-label={highAria} disabled={disabled}
+        onChange={(e) => onChange(low, Math.max(Number(e.target.value), low + step))}
+      />
+    </div>
+  );
+}
+
+// Champ « Où » : le couple tape, puis choisit dans une liste de lieux existants
+// (pas de faute de frappe dans le brief). Si le service de suggestions ne
+// répond pas, le texte libre est accepté (onUnavailable).
+function PlaceField({ value, picked, disabled, lang, placeholder, ariaLabel, noResult, onType, onPick, onUnavailable }) {
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const typed = useRef(false);
+
+  useEffect(() => {
+    if (!typed.current || picked || value.trim().length < 2) {
+      setItems([]);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    setLoading(true);
+    const timer = setTimeout(() => {
+      searchPlaces(value, { lang, signal: ctrl.signal })
+        .then((list) => {
+          setItems(list);
+          setActive(0);
+          setOpen(true);
+          setLoading(false);
+        })
+        .catch((err) => {
+          if (err.name === "AbortError") return;
+          setLoading(false);
+          onUnavailable();
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [value, picked, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pick = (item) => {
+    onPick(item);
+    setOpen(false);
+    setItems([]);
+  };
+
+  const onKeyDown = (e) => {
+    if (!open || !items.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => (i + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => (i - 1 + items.length) % items.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  const showList = open && !picked && value.trim().length >= 2 && !loading;
+
+  return (
+    <div className="ob-place">
+      <input
+        className={"ob-input" + (picked ? " picked" : "")}
+        value={value}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls="ob-place-list"
+        aria-autocomplete="list"
+        autoComplete="off"
+        disabled={disabled}
+        onChange={(e) => {
+          typed.current = true;
+          onType(e.target.value);
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => items.length && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {showList ? (
+        <ul className="ob-place-list" id="ob-place-list" role="listbox">
+          {items.length ? (
+            items.map((item, i) => (
+              <li
+                key={item.label}
+                role="option"
+                aria-selected={i === active}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(item);
+                }}
+                onMouseEnter={() => setActive(i)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z" />
+                  <circle cx="12" cy="10" r="2.3" />
+                </svg>
+                {item.label}
+              </li>
+            ))
+          ) : (
+            <li className="ob-place-empty">{noResult}</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+// Écran de transition : les réponses du couple arrivent une à une, se croisent,
+// puis Merry en sort une première sélection avant d'ouvrir le compte.
+function Preparing({ s, chips, onDone }) {
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(onDone, reduce ? 1500 : PREPARE_MS);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const p = s.preparing;
+  return (
+    <main className="ob-main ob-prep" aria-live="polite">
+      <div className="ob-prep-stage" aria-hidden="true">
+        {chips.map((c, i) => (
+          <span key={i} className="ob-prep-chip" style={{ "--i": i, "--x": `${c.x}px`, "--y": `${c.y}px`, "--r": `${c.r}deg` }}>
+            {c.text}
+          </span>
+        ))}
+        <div className="ob-prep-core" />
+        <div className="ob-prep-results">
+          {p.results.map((r, i) => (
+            <span key={r} className="ob-prep-result" style={{ "--i": i }}>
+              <Check size={16} />
+              {r}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="ob-prep-lines">
+        {p.lines.map((line, i) => (
+          <p key={line} className="ob-prep-line" style={{ "--i": i }}>{line}</p>
+        ))}
+      </div>
+    </main>
   );
 }
 
@@ -98,11 +305,14 @@ function CloseIcon() {
 export default function Brief() {
   const { lang } = useLang();
   const s = BRIEF_TEXT[lang];
+  const months = useMemo(nextMonths, []);
 
   const [step, setStep] = useState(0);
   const [data, setData] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | done | confirm | error
   const [errorMsg, setErrorMsg] = useState("");
+  const [placesDown, setPlacesDown] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
   // Brouillon par navigateur : le couple qui ferme l'onglet ne repart pas de zéro.
   // Le mot de passe n'est jamais mis dans le brouillon.
@@ -113,7 +323,7 @@ export default function Brief() {
         const saved = JSON.parse(raw);
         if (saved && saved.data) {
           setData({ ...EMPTY, ...saved.data, password: "" });
-          setStep(Math.min(saved.step || 0, TOTAL));
+          setStep(Math.min(saved.step || 0, TOTAL - 1));
         }
       }
     } catch {
@@ -132,7 +342,7 @@ export default function Brief() {
   }, [step, data, status]);
 
   // Un événement par écran vu : permet de construire l'entonnoir d'onboarding
-  // dans PostHog et de voir précisément à quelle question les couples abandonnent.
+  // dans PostHog et de voir précisément à quelle étape les couples abandonnent.
   useEffect(() => {
     if (status === "done" || status === "confirm") return;
     trackEvent("onboarding_step_viewed", { step, step_key: STEP_KEYS[step] || String(step) });
@@ -145,6 +355,15 @@ export default function Brief() {
       return { ...d, [key]: max ? list.slice(-max) : list };
     });
 
+  // « On ne sait pas » exclut les autres ambiances, et inversement.
+  const toggleVibe = (value) =>
+    setData((d) => {
+      if (value === VIBE_UNSURE) return { ...d, vibes: d.vibes.includes(VIBE_UNSURE) ? [] : [VIBE_UNSURE] };
+      const rest = d.vibes.filter((v) => v !== VIBE_UNSURE);
+      const list = rest.includes(value) ? rest.filter((v) => v !== value) : [...rest, value];
+      return { ...d, vibes: list.slice(-MAX_VIBES) };
+    });
+
   const isMail = (str) => /.+@.+\..+/.test(str);
 
   const canContinue = useMemo(() => {
@@ -152,55 +371,61 @@ export default function Brief() {
       case 0:
         return data.event === "mariage";
       case 1:
-        return !!data.stage;
+        return !!data.team && !!data.stage;
       case 2:
-        return !!data.team;
-      case 3:
         return (
-          (data.date_unknown || data.wedding_date) &&
-          (data.region_unknown || data.region.trim().length > 0)
+          (data.region_unknown || !!data.region_pick || (placesDown && data.region.trim().length > 0)) &&
+          (data.date_mode === "precise" ? !!data.wedding_date : data.flex_months.length > 0) &&
+          data.vibes.length > 0
         );
-      case 4:
-        return !!data.guests && !!data.format;
-      case 5:
-        return data.vibes.length > 0;
-      case 6:
-        return !!data.budget;
-      case 7:
+      case 3:
         return (
           data.first_name.trim().length > 0 &&
           data.partner_first_name.trim().length > 0 &&
           isMail(data.email) &&
-          data.password.length >= 8 &&
-          (data.partner_email.trim() === "" || isMail(data.partner_email))
+          data.password.length >= 8
         );
       default:
         return false;
     }
   }, [step, data]);
 
-  const next = () => setStep((st) => Math.min(st + 1, TOTAL));
+  // Après l'essentiel, l'écran de préparation s'intercale avant le compte.
+  const next = () => {
+    if (step === 2) {
+      setPreparing(true);
+      trackEvent("onboarding_step_viewed", { step: 2.5, step_key: "preparation" });
+      return;
+    }
+    setStep((st) => Math.min(st + 1, TOTAL - 1));
+  };
   const back = () => setStep((st) => Math.max(st - 1, 0));
 
   async function submit() {
     setStatus("sending");
     setErrorMsg("");
+    const flexible = data.date_mode === "flexible";
     const brief = {
       stage: data.stage,
       team: data.team,
-      wedding_date: data.date_unknown ? null : data.wedding_date || null,
-      date_unknown: data.date_unknown,
-      region: data.region_unknown ? null : data.region.trim() || null,
+      region: data.region_unknown ? null : data.region_pick?.label || data.region.trim() || null,
+      region_lat: data.region_unknown ? null : data.region_pick?.lat ?? null,
+      region_lon: data.region_unknown ? null : data.region_pick?.lon ?? null,
       region_unknown: data.region_unknown,
-      guests: data.guests,
-      format: data.format,
+      date_mode: data.date_mode,
+      wedding_date: flexible ? null : data.wedding_date || null,
+      date_unknown: flexible,
+      flex_months: flexible ? [...data.flex_months].sort() : [],
+      guests_min: data.guests_min,
+      guests_max: data.guests_max,
+      guests: guestsCode(data.guests_min, data.guests_max),
+      budget_min: data.budget_unknown ? null : data.budget_min,
+      budget_max: data.budget_unknown ? null : data.budget_max,
+      budget: budgetCode(data.budget_min, data.budget_max, data.budget_unknown),
       vibes: data.vibes,
-      pinterest: data.pinterest.trim() || null,
-      budget: data.budget,
       first_name: data.first_name.trim(),
       partner_first_name: data.partner_first_name.trim(),
       email: data.email.trim().toLowerCase(),
-      partner_email: data.partner_email.trim().toLowerCase() || null,
       source: typeof window !== "undefined" ? window.location.search.slice(0, 200) || null : null,
     };
     const res = await createAccountAndBrief({ email: brief.email, password: data.password, brief });
@@ -227,49 +452,49 @@ export default function Brief() {
 
   function renderStep() {
     switch (step) {
-      case 0: {
-        const t = s.steps[0];
+      case 0:
         return (
           <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices events">
-              {s.events.map((o) =>
-                o.available ? (
-                  <button key={o.value} type="button" className="chip event" aria-pressed={data.event === o.value} onClick={() => set("event", o.value)}>
-                    <span className="event-text">
-                      <span className="event-name">{o.label}</span>
-                      <span className="event-sub">{o.sub}</span>
-                    </span>
-                    {data.event === o.value ? <CheckSmall /> : null}
-                  </button>
-                ) : (
-                  <button key={o.value} type="button" className="chip event soon" disabled aria-disabled="true">
-                    <span className="event-name">{o.label}</span>
-                    <span className="tag soon-tag">{s.soonTag}</span>
-                  </button>
-                )
-              )}
+            <button type="button" className="ob-event" aria-pressed={data.event === "mariage"} onClick={() => set("event", "mariage")}>
+              <span className="ob-event-icon"><Heart /></span>
+              <span className="ob-event-name">{s.wedding}</span>
+              <Check />
+            </button>
+            <div className="ob-soon">
+              <span className="ob-marker">{s.soon}</span>
+              <div className="ob-soon-grid">
+                {s.soonEvents.map((name, i) => (
+                  <span key={name} className="ob-soon-item" style={{ background: SOON_LOOK[i].bg }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={SOON_LOOK[i].ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      {SOON_LOOK[i].path}
+                    </svg>
+                    {name}
+                  </span>
+                ))}
+              </div>
             </div>
-            <p className="note">{t.note}</p>
           </>
         );
-      }
 
       case 1: {
         const t = s.steps[1];
         return (
           <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices stack">
-              {s.stages.map((o) => (
-                <Chip key={o.value} selected={data.stage === o.value} onClick={() => set("stage", o.value)}>
-                  {o.label}
-                </Chip>
-              ))}
+            <div className="ob-group">
+              <h2 className="ob-title">{t.teamQuestion}</h2>
+              <div className="ob-chips">
+                {s.teams.map((o) => (
+                  <Chip key={o.value} selected={data.team === o.value} onClick={() => set("team", o.value)}>{o.label}</Chip>
+                ))}
+              </div>
+            </div>
+            <div className="ob-group">
+              <h2 className="ob-title">{t.stageQuestion}</h2>
+              <div className="ob-chips">
+                {s.stages.map((o) => (
+                  <Chip key={o.value} selected={data.stage === o.value} onClick={() => set("stage", o.value)}>{o.label}</Chip>
+                ))}
+              </div>
             </div>
           </>
         );
@@ -277,19 +502,98 @@ export default function Brief() {
 
       case 2: {
         const t = s.steps[2];
+        const guestsMaxLabel = data.guests_max >= GUESTS.max ? `${GUESTS.max}+` : data.guests_max;
+        const budgetMaxLabel = s.euros(data.budget_max) + (data.budget_max >= BUDGET.max ? "+" : "");
         return (
-          <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices stack">
-              {s.teams.map((o) => (
-                <Chip key={o.value} selected={data.team === o.value} onClick={() => set("team", o.value)}>
-                  {o.label}
-                </Chip>
-              ))}
+          <div className="ob-box">
+            <div className="ob-row">
+              <h2 className="ob-title">{t.where}</h2>
+              <div className="ob-inline">
+                <PlaceField
+                  value={data.region}
+                  picked={!!data.region_pick}
+                  disabled={data.region_unknown}
+                  lang={lang}
+                  placeholder={t.wherePlaceholder}
+                  ariaLabel={t.where}
+                  noResult={t.whereNoResult}
+                  onType={(v) => setData((d) => ({ ...d, region: v, region_pick: null }))}
+                  onPick={(item) => setData((d) => ({ ...d, region: item.label, region_pick: item }))}
+                  onUnavailable={() => setPlacesDown(true)}
+                />
+                <button type="button" className="ob-link" aria-pressed={data.region_unknown} onClick={() => set("region_unknown", !data.region_unknown)}>
+                  {s.unsure}
+                </button>
+              </div>
             </div>
-          </>
+
+            <div className="ob-row">
+              <div className="ob-row-head">
+                <h2 className="ob-title">{t.when}</h2>
+                <div className="ob-toggle" role="group" aria-label={t.when}>
+                  <button type="button" aria-pressed={data.date_mode === "precise"} onClick={() => set("date_mode", "precise")}>{t.precise}</button>
+                  <button type="button" aria-pressed={data.date_mode === "flexible"} onClick={() => set("date_mode", "flexible")}>{t.flexible}</button>
+                </div>
+              </div>
+              {data.date_mode === "precise" ? (
+                <input className="ob-input" type="date" aria-label={t.precise} value={data.wedding_date} onChange={(e) => set("wedding_date", e.target.value)} />
+              ) : (
+                <>
+                  <p className="ob-help">{t.monthsHelp}</p>
+                  <div className="ob-months">
+                    {months.map((m) => (
+                      <button key={m.key} type="button" className="ob-month" aria-pressed={data.flex_months.includes(m.key)} onClick={() => toggleIn("flex_months", m.key)}>
+                        <span>{s.monthShort[m.month]}</span>
+                        <span className="ob-month-year">{m.year}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="ob-row">
+              <div className="ob-slider-row">
+                <h2 className="ob-title">{t.guests}</h2>
+                <span className="ob-scale">0</span>
+                <RangeSlider
+                  min={0} max={GUESTS.max} step={GUESTS.step} low={data.guests_min} high={data.guests_max}
+                  lowAria={t.guestsMinAria} highAria={t.guestsMaxAria}
+                  onChange={(lo, hi) => setData((d) => ({ ...d, guests_min: lo, guests_max: hi }))}
+                />
+                <span className="ob-scale">{GUESTS.max}+</span>
+                <span className="ob-value">{t.guestsRange(data.guests_min, guestsMaxLabel)}</span>
+              </div>
+            </div>
+
+            <div className="ob-row">
+              <div className="ob-slider-row">
+                <h2 className="ob-title">{t.budget}</h2>
+                <span className="ob-scale">{s.euros(0)}</span>
+                <RangeSlider
+                  min={0} max={BUDGET.max} step={BUDGET.step} low={data.budget_min} high={data.budget_max}
+                  lowAria={t.budgetMinAria} highAria={t.budgetMaxAria} disabled={data.budget_unknown}
+                  onChange={(lo, hi) => setData((d) => ({ ...d, budget_min: lo, budget_max: hi }))}
+                />
+                <span className="ob-scale">{s.euros(BUDGET.max)}+</span>
+                <span className="ob-value">{data.budget_unknown ? t.budgetTbd : t.guestsRange(s.euros(data.budget_min), budgetMaxLabel)}</span>
+              </div>
+              <button type="button" className="ob-link" aria-pressed={data.budget_unknown} onClick={() => set("budget_unknown", !data.budget_unknown)}>
+                {data.budget_unknown ? t.budgetKnown : t.budgetUnsure}
+              </button>
+            </div>
+
+            <div className="ob-row">
+              <h2 className="ob-title">{t.vibes}</h2>
+              <div className="ob-chips small">
+                {s.vibes.map((o) => (
+                  <Chip key={o.value} selected={data.vibes.includes(o.value)} dashed={o.value === VIBE_UNSURE} onClick={() => toggleVibe(o.value)}>
+                    {o.label}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </div>
         );
       }
 
@@ -297,135 +601,36 @@ export default function Brief() {
         const t = s.steps[3];
         return (
           <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="fields">
-              <div className="field">
-                <label htmlFor="wedding_date">{t.dateLabel}</label>
-                <input id="wedding_date" type="date" value={data.wedding_date} disabled={data.date_unknown} onChange={(e) => set("wedding_date", e.target.value)} />
-                <label className="toggle">
-                  <input type="checkbox" checked={data.date_unknown} onChange={(e) => set("date_unknown", e.target.checked)} />
-                  {t.unsureToggle}
-                </label>
+            <h2 className="ob-title">{t.title}</h2>
+            <div className="ob-form">
+              <div className="ob-pair">
+                <div className="ob-field">
+                  <label htmlFor="first_name">{t.firstNameLabel}</label>
+                  <input id="first_name" className="ob-input" value={data.first_name} onChange={(e) => set("first_name", e.target.value)} autoComplete="given-name" />
+                </div>
+                <div className="ob-field">
+                  <label htmlFor="partner_first_name">{t.partnerFirstNameLabel}</label>
+                  <input id="partner_first_name" className="ob-input" value={data.partner_first_name} onChange={(e) => set("partner_first_name", e.target.value)} />
+                </div>
               </div>
-              <div className="field">
-                <label htmlFor="region">{t.regionLabel}</label>
-                <input id="region" placeholder={t.regionPlaceholder} value={data.region} disabled={data.region_unknown} onChange={(e) => set("region", e.target.value)} />
-                <label className="toggle">
-                  <input type="checkbox" checked={data.region_unknown} onChange={(e) => set("region_unknown", e.target.checked)} />
-                  {t.unsureToggle}
-                </label>
-              </div>
-            </div>
-          </>
-        );
-      }
-
-      case 4: {
-        const t = s.steps[4];
-        return (
-          <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices">
-              {s.guests.map((o) => (
-                <Chip key={o.value} selected={data.guests === o.value} onClick={() => set("guests", o.value)}>
-                  {o.label}
-                </Chip>
-              ))}
-            </div>
-            <p className="subhead">{t.subhead}</p>
-            <div className="choices">
-              {s.formats.map((o) => (
-                <Chip key={o.value} selected={data.format === o.value} onClick={() => set("format", o.value)}>
-                  {o.label}
-                </Chip>
-              ))}
-            </div>
-          </>
-        );
-      }
-
-      case 5: {
-        const t = s.steps[5];
-        return (
-          <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices">
-              {s.vibes.map((v) => (
-                <Chip key={v} selected={data.vibes.includes(v)} onClick={() => toggleIn("vibes", v, 3)}>
-                  {v}
-                </Chip>
-              ))}
-            </div>
-            <div className="field">
-              <label htmlFor="pinterest">{t.pinterestLabel}</label>
-              <input id="pinterest" placeholder={t.pinterestPlaceholder} value={data.pinterest} onChange={(e) => set("pinterest", e.target.value)} inputMode="url" />
-            </div>
-          </>
-        );
-      }
-
-      case 6: {
-        const t = s.steps[6];
-        return (
-          <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="choices stack">
-              {s.budgets.map((o) => (
-                <Chip key={o.value} selected={data.budget === o.value} onClick={() => set("budget", o.value)}>
-                  {o.label}
-                </Chip>
-              ))}
-            </div>
-          </>
-        );
-      }
-
-      case 7: {
-        const t = s.steps[7];
-        const partnerName = data.partner_first_name.trim() || t.partnerEmailDefaultName;
-        return (
-          <>
-            <div className="eyebrow">{t.eyebrow}</div>
-            <h1 className="question">{t.question}</h1>
-            <p className="help">{t.help}</p>
-            <div className="fields">
-              <div className="field">
-                <label htmlFor="first_name">{t.firstNameLabel}</label>
-                <input id="first_name" value={data.first_name} onChange={(e) => set("first_name", e.target.value)} autoComplete="given-name" />
-              </div>
-              <div className="field">
-                <label htmlFor="partner_first_name">{t.partnerFirstNameLabel}</label>
-                <input id="partner_first_name" value={data.partner_first_name} onChange={(e) => set("partner_first_name", e.target.value)} />
-              </div>
-              <div className="field">
+              <div className="ob-field">
                 <label htmlFor="email">{t.emailLabel}</label>
-                <input id="email" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" />
+                <input id="email" className="ob-input" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" />
               </div>
-              <div className="field">
+              <div className="ob-field">
                 <label htmlFor="password">{t.passwordLabel}</label>
-                <input id="password" type="password" value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" />
+                <input id="password" className="ob-input" type="password" placeholder={t.passwordPlaceholder} value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" />
               </div>
+              {status === "error" ? <p className="ob-error">{errorMsg}</p> : null}
+              <p className="ob-footnote">
+                {t.footnoteLead}{" "}
+                <a href="https://www.withmerry.com/cgu" target="_blank" rel="noreferrer">{t.footnoteTos}</a>{" "}
+                {t.footnoteAnd}{" "}
+                <a href="https://www.withmerry.com/confidentialite" target="_blank" rel="noreferrer">{t.footnotePrivacy}</a>
+                {t.footnoteTail}
+              </p>
+              <a className="ob-link ob-login-mobile" href="/connexion">{t.loginLink}</a>
             </div>
-            <div className="field">
-              <label htmlFor="partner_email">{t.partnerEmailLabel(partnerName)}</label>
-              <input id="partner_email" type="email" value={data.partner_email} onChange={(e) => set("partner_email", e.target.value)} inputMode="email" />
-            </div>
-            {status === "error" ? <p className="error">{errorMsg}</p> : null}
-            <p className="footnote">
-              {t.footnoteLead}{" "}
-              <a href="https://www.withmerry.com/cgu" target="_blank" rel="noreferrer">{t.footnoteTos}</a>{" "}
-              {t.footnoteAnd}{" "}
-              <a href="https://www.withmerry.com/confidentialite" target="_blank" rel="noreferrer">{t.footnotePrivacy}</a>
-              {t.footnoteTail}
-            </p>
           </>
         );
       }
@@ -437,77 +642,95 @@ export default function Brief() {
 
   /* ------------------------------ rendu ------------------------------- */
 
-  const isLast = step === TOTAL;
-  const names = [data.first_name.trim(), data.partner_first_name.trim()].filter(Boolean).join(" et ");
+  const isLast = step === TOTAL - 1;
+  const names = [data.first_name.trim(), data.partner_first_name.trim()].filter(Boolean).join(lang === "fr" ? " et " : " and ");
   const finished = status === "done" || status === "confirm";
+  const n = step + 1;
+
+  // Les réponses du couple, en étiquettes qui arrivent de partout sur l'écran de préparation.
+  const t2 = s.steps[2];
+  const monthsPicked = data.flex_months
+    .slice()
+    .sort()
+    .map((k) => `${s.monthShort[Number(k.slice(5)) - 1]} ${k.slice(0, 4)}`);
+  const prepTexts = [
+    data.region_unknown ? null : (data.region_pick?.label || data.region).split(",")[0],
+    data.date_mode === "precise" && data.wedding_date
+      ? new Date(data.wedding_date).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", year: "numeric" })
+      : monthsPicked.join(", ") || null,
+    `${t2.guestsRange(data.guests_min, data.guests_max >= GUESTS.max ? `${GUESTS.max}+` : data.guests_max)} ${t2.guests.toLowerCase()}`,
+    data.budget_unknown ? null : t2.guestsRange(s.euros(data.budget_min), s.euros(data.budget_max)),
+    ...data.vibes.map((v) => s.vibes.find((o) => o.value === v)?.label || v),
+    s.teams.find((o) => o.value === data.team)?.label,
+  ].filter(Boolean);
+  const SPOTS = [
+    [-230, -110, -6], [210, -120, 5], [-250, 40, 4], [240, 30, -5], [-150, 130, -3], [170, 135, 6], [0, -150, 3], [10, 160, -4],
+  ];
+  const k = typeof window !== "undefined" && window.innerWidth < 700 ? 0.42 : 1;
+  const prepChips = prepTexts.slice(0, SPOTS.length).map((text, i) => ({ text, x: SPOTS[i][0] * k, y: SPOTS[i][1] * (k < 1 ? 0.85 : 1), r: SPOTS[i][2] }));
 
   return (
-    <div className="shell">
-      <aside className="panel">
-        <LangSwitch />
-        <a className="panel-logo" href={SITE_URL} aria-label={s.logoAria}>Merry</a>
-        <div className="panel-word" aria-hidden="true">{finished ? s.panelWordDone : s.panelWords[step]}</div>
-        <div className="panel-caption" aria-hidden="true">{s.panelCaption}</div>
-      </aside>
+    <div className="ob">
+      <header className="ob-header">
+        <a className="ob-logo" href={SITE_URL} aria-label={s.logoAria}>Merry</a>
+        <div className="ob-header-right">
+          <LangSwitch />
+          {finished || preparing ? null : <a className="ob-quit" href={SITE_URL} title={s.quitTitle}>{s.quit}</a>}
+        </div>
+      </header>
 
-      <main className="stage">
-        {finished ? (
-          <section className="card done" aria-live="polite">
-            <div className="check"><Check /></div>
-            <h1 className="question">{s.done.welcome(names)}</h1>
-            {status === "confirm" ? (
-              <p className="help">{s.done.confirmMsg(data.email.trim())}</p>
-            ) : (
-              <p className="help">{s.done.doneMsg}</p>
-            )}
-            {status === "done" ? (
-              <a className="btn" href={DASHBOARD_URL}>{s.done.dashboardBtn}</a>
-            ) : null}
-            <a className="skip" href={SITE_URL}>{s.done.backToSite}</a>
-          </section>
-        ) : (
-          <>
-            <div className="topbar">
-              <button type="button" className="back" onClick={back} disabled={step === 0} aria-label={s.backAria}>
-                <ArrowLeft />
-              </button>
-              {step === 0 ? (
-                <div style={{ flex: 1 }} />
-              ) : (
-                <>
-                  <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={step}>
-                    <span style={{ width: `${(step / TOTAL) * 100}%` }} />
-                  </div>
-                  <div className="counter">{step} / {TOTAL}</div>
-                </>
-              )}
-              <a className="close" href={SITE_URL} aria-label={s.closeAria} title={s.closeTitle}>
-                <CloseIcon />
-              </a>
+      {preparing ? (
+        <Preparing
+          s={s}
+          chips={prepChips}
+          onDone={() => {
+            setPreparing(false);
+            setStep(3);
+          }}
+        />
+      ) : finished ? (
+        <main className="ob-main ob-done" aria-live="polite">
+          <div className="ob-done-glow" aria-hidden="true" />
+          <div className="ob-done-check"><Check size={30} /></div>
+          <h1 className="ob-done-title">{s.done.welcome(names)}</h1>
+          <p className="ob-done-text">{status === "confirm" ? s.done.confirmMsg(data.email.trim()) : s.done.doneMsg}</p>
+          {status === "done" ? <a className="ob-btn" href={DASHBOARD_URL}>{s.done.dashboardBtn}</a> : null}
+          <a className="ob-link" href={SITE_URL}>{s.done.backToSite}</a>
+        </main>
+      ) : (
+        <main className={"ob-main" + (step === 2 ? " wide" : step === 3 ? " narrow" : "")} key={step}>
+          <div className="ob-top">
+            <div className="ob-tagline">
+              {step > 0 ? (
+                <button type="button" className="ob-back" onClick={back} aria-label={s.backAria}><ArrowLeft /></button>
+              ) : null}
+              <span className="ob-tag">{s.steps[step].tag}</span>
             </div>
+            <div className="ob-progress" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={n} aria-label={s.progressAria(n, TOTAL)}>
+              <div className="ob-progress-bar"><span style={{ width: `${(n / TOTAL) * 100}%` }} /></div>
+              <span className="ob-progress-count">{n}/{TOTAL}</span>
+            </div>
+          </div>
 
-            <section className="card" key={step}>
-              {renderStep()}
-              <div className="actions">
-                {step === 5 ? (
-                  <button type="button" className="skip" onClick={() => { set("vibes", [s.vibes[s.vibes.length - 1]]); next(); }}>{s.skip}</button>
-                ) : step === 7 ? (
-                  <a className="skip" href="/connexion">{s.loginLink}</a>
-                ) : <span />}
-                {isLast ? (
-                  <button type="button" className="btn" onClick={submit} disabled={!canContinue || status === "sending"}>
-                    {status === "sending" ? s.submitting : s.submitDone}
-                  </button>
-                ) : (
-                  <button type="button" className="btn" onClick={next} disabled={!canContinue}>
-                    {s.next}
-                  </button>
-                )}
-              </div>
-            </section>
-          </>
-        )}
-      </main>
+          {renderStep()}
+
+          <div className="ob-actions">
+            {step > 0 ? (
+              <button type="button" className="ob-back ob-back-mobile" onClick={back} aria-label={s.backAria}><ArrowLeft /></button>
+            ) : null}
+            {isLast ? (
+              <>
+                <a className="ob-link ob-login" href="/connexion">{s.steps[3].loginLink}</a>
+                <button type="button" className="ob-btn accent" onClick={submit} disabled={!canContinue || status === "sending"}>
+                  {status === "sending" ? s.submitting : s.submitDone}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="ob-btn" onClick={next} disabled={!canContinue}>{s.next}</button>
+            )}
+          </div>
+        </main>
+      )}
     </div>
   );
 }
