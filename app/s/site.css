@@ -1565,3 +1565,90 @@
   .st-rivage .rv-simple { padding: 54px 24px; }
   .st-rivage .rv-lieu-photo .s-photo { height: 240px; }
 }
+
+/* ===================================================================== */
+/* Tablettes et petits ordinateurs (761 à 1 180 px) : les colonnes fixes   */
+/* des maquettes à 1 440 px se resserrent ou passent l'une sous l'autre   */
+/* ===================================================================== */
+
+@container site (min-width: 761px) and (max-width: 1180px) {
+  /* Horizon : les deux colonnes se partagent la largeur */
+  .st-horizon .hz-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); padding: 0 24px; }
+  .st-horizon .hz-col.is-left { margin-top: 140px; }
+  .st-horizon .hz-pad { padding: 48px 32px; }
+  .st-horizon .hz-pad-wide { padding: 48px 36px; }
+  .st-horizon .hz-head .hz-it { font-size: 40px; }
+  .st-horizon .hz-hero-photo { height: 440px; }
+  .st-horizon .hz-hero-names .hz-it { font-size: min(64px, calc(64px * 7 / var(--nl))); }
+  .st-horizon .hz-count > div { padding: 0 12px; }
+  .st-horizon .hz-actions { flex-direction: column; }
+  .st-horizon .hz-collage { width: 300px; height: 246px; }
+  .st-horizon .hz-shot.is-a .s-photo { height: 174px; }
+  .st-horizon .hz-shot.is-b .s-photo { height: 150px; }
+  .st-horizon .hz-share { flex-direction: column; align-items: stretch; }
+
+  /* Terracotta : l'en-tête en une colonne, la photo au milieu */
+  .st-terracotta .tc-hero { display: flex; flex-direction: column; gap: 34px; padding: 40px 40px 56px; }
+  .st-terracotta .tc-hero-photo { width: 100%; max-width: 560px; }
+  .st-terracotta .tc-hero-photo .s-photo { height: 520px; }
+  .st-terracotta .tc-sprig .s-ornament { width: 200px; height: 200px; }
+  .st-terracotta .s-row.is-split { gap: 40px; padding: 64px 32px; }
+  .st-terracotta .s-row.is-split > * + * { padding-left: 40px; margin-left: -20px; }
+  .st-terracotta .tc-prat > div { padding: 0 16px; }
+
+  /* Perle : les rubriques côte à côte passent l'une sous l'autre */
+  .st-perle .pe-hero { gap: 40px; padding: 56px 40px 72px; }
+  .st-perle .pe-hero-names h1 { font-size: min(96px, calc(96px * 6.2 / var(--nl))); }
+  .st-perle .pe-hero-sc { font-size: 64px; margin-top: -18px; }
+  .st-perle .pe-hero-pearls svg { width: 340px; }
+  .st-perle .pe-hero-photo { height: 540px; }
+  .st-perle .s-row.is-half { grid-template-columns: minmax(0, 1fr); }
+  .st-perle .s-row.is-half > .pe-block + .pe-block { border-left: 0; border-top: 1px solid var(--s-bg-line); }
+  .st-perle .pe-header { padding: 18px 32px; }
+  .st-perle .pe-header nav { gap: 0 22px; }
+
+  /* Embarquement : le billet au-dessus du titre, les billets deux par ligne */
+  .st-embarquement .em-header { padding: 18px 32px; }
+  .st-embarquement .em-header nav { gap: 0 22px; }
+  .st-embarquement .em-hero { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 40px; padding: 48px 32px 64px; }
+  .st-embarquement .em-pass { width: 100%; max-width: 520px; }
+  .st-embarquement .em-hero-text { align-items: center; text-align: center; }
+  .st-embarquement .em-hero-text .em-planerule { width: min(380px, 100%) !important; }
+  .st-embarquement .s-row.is-third,
+  .st-embarquement .s-row.is-third.is-n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 900px; padding: 0 32px 64px; gap: 32px; }
+  .st-embarquement .em-flight .s-ornament,
+  .st-embarquement .em-flight-end .s-ornament { max-width: 100%; }
+  .st-embarquement .em-band { padding: 64px 32px; }
+  .st-embarquement .em-band-grid { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 40px; }
+  .st-embarquement .em-frame { width: 100%; max-width: 680px; }
+
+  /* Belvédère : les colonnes de décor disparaissent, la photo et le texte restent */
+  .st-belvedere .bv-hero-text { left: 48px; }
+  .st-belvedere .bv-hero-ms { right: 48px; }
+  .st-belvedere .bv-welcome,
+  .st-belvedere .bv-savoir { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; padding: 56px 40px; }
+  .st-belvedere .bv-rose,
+  .st-belvedere .bv-quote,
+  .st-belvedere .bv-venir-side,
+  .st-belvedere .bv-story > .s-photo:last-child { display: none; }
+  .st-belvedere .bv-venir,
+  .st-belvedere .bv-story { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-right: 32px; }
+  .st-belvedere .bv-prog { grid-template-columns: 160px minmax(0, 1fr) 160px; }
+  .st-belvedere .bv-prog-ms { font-size: 30px; }
+}
+
+@container site (min-width: 761px) and (max-width: 900px) {
+  .st-terracotta .s-row.is-split,
+  .st-terracotta .s-row.is-half { display: flex; flex-direction: column; }
+  .st-terracotta .s-row.is-split > * + *,
+  .st-terracotta .s-row.is-half > * + * { border-left: 0; padding-left: 0; margin-left: 0; border-top: 1px solid var(--s-line); padding-top: 48px; }
+  .st-embarquement .s-row.is-third,
+  .st-embarquement .s-row.is-third.is-n2 { grid-template-columns: minmax(0, 560px); justify-content: center; }
+  .st-belvedere .bv-prog { grid-template-columns: minmax(0, 1fr); }
+  .st-belvedere .bv-prog-side { display: none; }
+  .st-belvedere .bv-prog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .st-belvedere .bv-prog-grid > div:nth-child(2n + 1) { border-left: 0; }
+  .st-horizon .hz-cols { grid-template-columns: minmax(0, 1fr); max-width: 620px; margin: 0 auto; }
+  .st-horizon .hz-col { display: contents; }
+  .st-horizon .hz-cols { display: flex; flex-direction: column; align-items: stretch; }
+}
