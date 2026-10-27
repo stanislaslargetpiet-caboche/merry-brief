@@ -3,6 +3,8 @@
 // Revendiquer sa fiche (maquettes V0 et V0m) : retrouver son établissement dans le catalogue Merry,
 // puis prouver que c'est bien soi avec un code reçu à l'adresse mail de la fiche. Sert aussi de connexion :
 // un prestataire qui revient refait ces deux étapes et retrouve son espace.
+// Créer sa fiche (maquettes V0c et V0cm) : l'établissement n'est pas dans le catalogue, le prestataire donne
+// son nom, son activité, son adresse et son adresse mail ; le code reçu à cette adresse crée la fiche.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +12,37 @@ import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "./icons";
 
 const CONTACT = "bonjour@withmerry.com";
+
+// Les catégories du catalogue (catalog.categories)
+const CATEGORIES = [
+  ["lieu", "Lieu de réception"],
+  ["photographe", "Photographe"],
+  ["videaste", "Vidéaste"],
+  ["traiteur", "Traiteur"],
+  ["dj", "DJ et animation"],
+  ["musiciens", "Musiciens et groupes"],
+  ["fleuriste", "Fleuriste"],
+  ["decoration", "Décoration et location"],
+  ["wedding_planner", "Wedding planner"],
+  ["patisserie", "Pâtissier et wedding cake"],
+  ["beaute", "Coiffure et maquillage"],
+  ["robe", "Robes et costumes"],
+  ["transport", "Transport"],
+  ["officiant", "Officiant de cérémonie"],
+];
+const EMPTY_FORM = { name: "", category: "lieu", address: "", postal_code: "", city: "", email: "", phone: "", siret: "" };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Ce qui manque au formulaire « Créer votre fiche », dans l'ordre de l'écran
+function formProblem(f) {
+  if (f.name.trim().length < 2) return "Indiquez le nom de votre établissement.";
+  if (!f.address.trim()) return "Indiquez l’adresse de votre établissement.";
+  if (!/^\d{5}$/.test(f.postal_code.replace(/\s/g, ""))) return "Le code postal compte 5 chiffres.";
+  if (!f.city.trim()) return "Indiquez la ville.";
+  if (!EMAIL_RE.test(f.email.trim())) return "Indiquez une adresse mail valide : le code y sera envoyé.";
+  if (f.siret.trim() && !/^\d{14}$/.test(f.siret.replace(/\s/g, ""))) return "Le SIRET compte 14 chiffres. Vous pouvez aussi le laisser vide.";
+  return "";
+}
 
 async function call(body) {
   try {
@@ -40,6 +73,8 @@ const ERRORS = {
   bad_code: "Ce code ne correspond pas, ou il a expiré. Vérifiez-le, ou demandez-en un nouveau.",
   setup: "L’espace prestataire n’est pas encore installé sur la base de données (supabase/espace-prestataire.sql).",
   link_failed: "Le code est bon, mais la fiche n’a pas pu être rattachée à votre compte. Réessayez.",
+  address: "Nous ne trouvons pas cette adresse. Vérifiez le code postal et la ville, puis validez de nouveau le code.",
+  create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
   network: "La connexion a échoué. Vérifiez votre réseau, puis réessayez.",
 };
 
@@ -50,7 +85,6 @@ export default function Claim() {
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [setupMissing, setSetupMissing] = useState(false);
-  const [notFound, setNotFound] = useState(false);
   const [picked, setPicked] = useState(null);
   const [channel, setChannel] = useState("mail");
   const [sent, setSent] = useState(false);
@@ -58,7 +92,10 @@ export default function Claim() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [fixNote, setFixNote] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, email: pro.data?.user?.email || "" }));
   const boxes = useRef([]);
+  const demo = pro.mode === "demo";
 
   // Recherche au fil de la frappe
   useEffect(() => {
@@ -107,6 +144,48 @@ export default function Claim() {
     if (r.email_hint) sendCode(r);
   }
 
+  function startCreate() {
+    setCreating(true);
+    setStep(1);
+    setError("");
+    setSent(false);
+    if (q.trim().length >= 3 && !/^\d[\d\s]*$/.test(q) && !form.name) setForm((f) => ({ ...f, name: q.trim() }));
+  }
+
+  function backToSearch() {
+    setCreating(false);
+    setStep(1);
+    setError("");
+  }
+
+  const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
+  const formFields = () => ({ ...form, email: undefined });
+
+  async function sendCreateCode() {
+    const problem = formProblem(form);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setError("");
+    if (demo) {
+      setStep(2);
+      setSent(true);
+      return;
+    }
+    setBusy(true);
+    const res = await call({ action: "create_send", email: form.email.trim(), fields: formFields() });
+    setBusy(false);
+    if (!res.ok) {
+      setError(ERRORS[res.error] || ERRORS.send_failed);
+      return;
+    }
+    setStep(2);
+    setSent(true);
+    setCode(["", "", "", "", "", ""]);
+    setTimeout(() => boxes.current[0]?.focus(), 50);
+  }
+
   async function validate() {
     const c = code.join("");
     if (c.length < 6) {
@@ -115,7 +194,13 @@ export default function Claim() {
     }
     setBusy(true);
     setError("");
-    const res = await call({ action: "verify", vendorId: picked.id, code: c });
+    if (creating && demo) {
+      window.location.assign("/pro/fiche?demo=1");
+      return;
+    }
+    const res = creating
+      ? await call({ action: "create_verify", email: form.email.trim(), code: c, fields: formFields() })
+      : await call({ action: "verify", vendorId: picked.id, code: c });
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.bad_code);
@@ -144,8 +229,44 @@ export default function Claim() {
     if (digits && i < 5) boxes.current[i + 1]?.focus();
   }
 
-  const cardTitle = step === 1 ? "Retrouvez votre établissement" : picked?.name;
-  const eyebrow = step === 1 ? "Espace prestataire" : "Votre fiche";
+  const cardTitle = step === 2 ? (creating ? form.name.trim() : picked?.name) : creating ? "Créez votre fiche" : "Retrouvez votre établissement";
+  const eyebrow = step === 2 ? "Votre fiche" : creating ? "Nouvelle fiche" : "Espace prestataire";
+  const goBack = step === 2 ? () => setStep(1) : creating ? backToSearch : null;
+
+  const codeBlock = (label, resend) => (
+    <div className="p-claim-code">
+      <span id="code-label">{label}</span>
+      <div role="group" aria-labelledby="code-label" className="p-claim-digits">
+        {code.map((d, i) => (
+          <input
+            key={i}
+            ref={(el) => (boxes.current[i] = el)}
+            type="text"
+            inputMode="numeric"
+            autoComplete={i === 0 ? "one-time-code" : "off"}
+            maxLength={i === 0 ? 6 : 1}
+            value={d}
+            aria-label={`Chiffre ${i + 1} sur 6`}
+            onChange={(e) => typeDigit(i, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Backspace" && !code[i] && i > 0) boxes.current[i - 1]?.focus();
+              if (e.key === "Enter") validate();
+            }}
+          />
+        ))}
+      </div>
+      <button type="button" className="p-claim-resend" onClick={resend} disabled={busy}>
+        {sent ? "Renvoyer le code" : "Envoyer le code"}
+      </button>
+    </div>
+  );
+  const errorBox = error ? (
+    <p className="p-claim-error" role="alert">
+      {error}{" "}
+      {/Écrivez-nous/.test(error) ? <a href={`mailto:${CONTACT}?subject=Accès à ma fiche Merry${picked ? ` : ${picked.name}` : ""}`}>{CONTACT}</a> : null}
+    </p>
+  ) : null;
+  const categoryLabel = CATEGORIES.find(([slug]) => slug === form.category)?.[1];
 
   return (
     <div className="p-claim">
@@ -160,8 +281,8 @@ export default function Claim() {
       <div className="p-claim-stage">
         <div className="p-claim-band">
           <div className="p-claim-top">
-            {step === 2 ? (
-              <button type="button" className="p-claim-back" aria-label="Étape précédente" onClick={() => setStep(1)}>
+            {goBack ? (
+              <button type="button" className="p-claim-back" aria-label="Étape précédente" onClick={goBack}>
                 <ProIcon name="prev" size={18} sw={2} />
               </button>
             ) : (
@@ -181,7 +302,101 @@ export default function Claim() {
           <div className="p-claim-eyebrow p-desk-only">{eyebrow}</div>
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
 
-          {step === 1 ? (
+          {creating && step === 1 ? (
+            <>
+              <p className="p-claim-help">Quelques informations pour commencer. Photos, prix et capacités se complètent ensuite dans Ma fiche.</p>
+              <div className="p-claim-field">
+                <label htmlFor="pro-name">Nom de l’établissement</label>
+                <input id="pro-name" className="p-claim-input" autoComplete="organization" {...field("name")} />
+              </div>
+              <div className="p-claim-field">
+                <label htmlFor="pro-cat">Activité</label>
+                <select id="pro-cat" className="p-claim-input p-claim-select" {...field("category")}>
+                  {CATEGORIES.map(([slug, label]) => (
+                    <option key={slug} value={slug}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="p-claim-field">
+                <label htmlFor="pro-adr">Adresse</label>
+                <input id="pro-adr" className="p-claim-input" autoComplete="address-line1" {...field("address")} />
+              </div>
+              <div className="p-claim-row">
+                <div className="p-claim-field is-cp">
+                  <label htmlFor="pro-cp">Code postal</label>
+                  <input id="pro-cp" className="p-claim-input" inputMode="numeric" autoComplete="postal-code" maxLength={6} {...field("postal_code")} />
+                </div>
+                <div className="p-claim-field">
+                  <label htmlFor="pro-ville">Ville</label>
+                  <input id="pro-ville" className="p-claim-input" autoComplete="address-level2" {...field("city")} />
+                </div>
+              </div>
+              <div className="p-claim-field">
+                <label htmlFor="pro-mail">Adresse mail de l’établissement</label>
+                <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" {...field("email")} />
+                <span className="p-claim-hint">Nous y envoyons un code pour vérifier que c’est bien vous. C’est aussi là qu’arrivent les demandes des couples.</span>
+              </div>
+              <div className="p-claim-row is-wrap">
+                <div className="p-claim-field">
+                  <label htmlFor="pro-tel">
+                    Téléphone <span className="p-claim-opt">(facultatif)</span>
+                  </label>
+                  <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" {...field("phone")} />
+                </div>
+                <div className="p-claim-field">
+                  <label htmlFor="pro-siret">
+                    SIRET <span className="p-claim-opt">(facultatif)</span>
+                  </label>
+                  <input id="pro-siret" className="p-claim-input" inputMode="numeric" {...field("siret")} />
+                </div>
+              </div>
+              <button type="button" className="p-claim-link p-claim-tel-only" onClick={backToSearch}>
+                Retrouver une fiche existante
+              </button>
+              {errorBox}
+              <div className="p-claim-actions is-split">
+                <button type="button" className="p-claim-link p-desk-only" onClick={backToSearch}>
+                  Retrouver une fiche existante
+                </button>
+                <button type="button" className="p-claim-submit" onClick={sendCreateCode} disabled={busy}>
+                  Recevoir mon code
+                </button>
+              </div>
+            </>
+          ) : creating ? (
+            <>
+              <div className="p-claim-recap">
+                <span className="p-claim-vname">{form.name.trim()}</span>
+                <ul>
+                  <li>
+                    <ProIcon name="pin" size={16} stroke="#5f5e58" />
+                    <span>
+                      {form.address.trim()}, {form.postal_code.trim()} {form.city.trim()}
+                    </span>
+                  </li>
+                  <li>
+                    <ProIcon name="fiche" size={16} stroke="#5f5e58" />
+                    <span>{categoryLabel}</span>
+                  </li>
+                </ul>
+                <button type="button" className="p-claim-fix" onClick={() => setStep(1)}>
+                  Modifier
+                </button>
+              </div>
+              <p className="p-claim-intro">Votre fiche est proposée aux couples dès que vous validez le code. Ajoutez ensuite vos photos, vos prix et vos capacités dans Ma fiche.</p>
+              <div className="p-claim-rule" />
+              <div className="p-claim-legend">Vérifions que c’est bien vous</div>
+              {codeBlock(`Le code à 6 chiffres envoyé à ${form.email.trim()}`, sendCreateCode)}
+              {errorBox}
+              <div className="p-claim-actions">
+                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
+                  Créer ma fiche
+                </button>
+              </div>
+            </>
+          ) : step === 1 ? (
             <>
               <p className="p-claim-help">Merry a peut-être déjà une fiche pour vous. Retrouvez-la pour en prendre la main.</p>
               {setupMissing ? <p className="p-claim-error">{ERRORS.setup}</p> : null}
@@ -212,16 +427,15 @@ export default function Claim() {
               ) : q.trim().length >= 3 && !searching && !setupMissing ? (
                 <p className="p-claim-help">Aucune fiche ne porte ce nom. Essayez le nom tel qu’il apparaît sur Google, ou votre numéro SIRET.</p>
               ) : null}
-              <div className="p-claim-center">
-                <button type="button" className="p-claim-link" onClick={() => setNotFound((x) => !x)}>
-                  Mon établissement n’apparaît pas
+              <div className="p-claim-new">
+                <span>
+                  <span className="p-claim-new-title">Mon établissement n’apparaît pas</span>
+                  <span className="p-claim-new-sub">Créez votre fiche en deux minutes.</span>
+                </span>
+                <button type="button" className="p-btn p-btn-ghost" onClick={startCreate}>
+                  Créer ma fiche
                 </button>
               </div>
-              {notFound ? (
-                <p className="p-claim-help p-claim-centered">
-                  Écrivez-nous à <a href={`mailto:${CONTACT}?subject=Créer ma fiche Merry`}>{CONTACT}</a> avec le nom et la ville de votre établissement : nous créons votre fiche.
-                </p>
-              ) : null}
             </>
           ) : (
             <>
@@ -280,39 +494,8 @@ export default function Claim() {
                   </label>
                 </div>
               </fieldset>
-              {channel === "mail" && picked.email_hint ? (
-                <div className="p-claim-code">
-                  <span id="code-label">{sent ? "Le code à 6 chiffres reçu par mail" : "Nous envoyons un code à 6 chiffres à cette adresse"}</span>
-                  <div role="group" aria-labelledby="code-label" className="p-claim-digits">
-                    {code.map((d, i) => (
-                      <input
-                        key={i}
-                        ref={(el) => (boxes.current[i] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={i === 0 ? "one-time-code" : "off"}
-                        maxLength={i === 0 ? 6 : 1}
-                        value={d}
-                        aria-label={`Chiffre ${i + 1} sur 6`}
-                        onChange={(e) => typeDigit(i, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Backspace" && !code[i] && i > 0) boxes.current[i - 1]?.focus();
-                          if (e.key === "Enter") validate();
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <button type="button" className="p-claim-resend" onClick={() => sendCode()} disabled={busy}>
-                    {sent ? "Renvoyer le code" : "Envoyer le code"}
-                  </button>
-                </div>
-              ) : null}
-              {error ? (
-                <p className="p-claim-error" role="alert">
-                  {error}{" "}
-                  {/Écrivez-nous/.test(error) ? <a href={`mailto:${CONTACT}?subject=Accès à ma fiche Merry : ${picked.name}`}>{CONTACT}</a> : null}
-                </p>
-              ) : null}
+              {channel === "mail" && picked.email_hint ? codeBlock(sent ? "Le code à 6 chiffres reçu par mail" : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode()) : null}
+              {errorBox}
               <div className="p-claim-actions">
                 <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || channel !== "mail" || !picked.email_hint}>
                   Valider

@@ -216,6 +216,7 @@ L'espace des prestataires inscrits sur Merry (maquettes « Espace prestataire »
 | Page | Contenu |
 | --- | --- |
 | `/pro` sans compte | Revendiquer sa fiche (V0) : retrouver son établissement par son nom ou son SIRET, puis un code à 6 chiffres envoyé à l'adresse mail de la fiche. Sert aussi de connexion quand on revient. |
+| `/pro` sans compte, « Créer ma fiche » | Créer sa fiche (V0c) pour un établissement absent du catalogue : nom, activité, adresse, adresse mail, téléphone et SIRET facultatifs, puis le code reçu à cette adresse. L'adresse est placée sur la carte par la Géoplateforme de l'IGN ; la fiche est créée active dans `catalog.vendors`, visible des couples tout de suite, et s'ouvre dans Ma fiche. Si une fiche active porte déjà cette adresse mail, c'est elle qui est rattachée. |
 | `/pro` | Accueil (V1) : fiche complète à … %, demandes à traiter, couples à relancer, prochaines dates réservées, chiffres du mois, crédits |
 | `/pro/fiche` | Ma fiche (V2) : photos (la première sert de couverture, glisser pour l'ordre), vidéo ou visite virtuelle, présentation, style, capacités, traiteur, fin de soirée, accès. `?apercu=1` : aperçu côté couples (V2b), avec la carte et la fiche des couples |
 | `/pro/tarifs` | Formules (haute et basse saison), options, saisons (V3). Le prix le plus bas devient le « À partir de » des couples |
@@ -226,7 +227,7 @@ L'espace des prestataires inscrits sur Merry (maquettes « Espace prestataire »
 | `/pro/credits` | Solde, formules d'abonnement, packs, historique (V8) |
 | « Proposer une fonctionnalité » | Un mot à l'équipe Merry, avec une capture si besoin (V9), et l'état des propositions envoyées |
 
-Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navigateur) ; `/pro?demo=1&revendiquer=1` pour l'écran V0.
+Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navigateur) ; `/pro?demo=1&revendiquer=1` pour les écrans V0 et V0c (en démo, aucun code n'est envoyé).
 
 **Installer** :
 
@@ -237,7 +238,7 @@ Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navi
 
 **Comment c'est relié aux couples** : quand un couple envoie « Demander les devis » à un lieu du catalogue, la demande apparaît dans les Demandes de ce lieu dès qu'il a revendiqué sa fiche (`pro_sync`), et devient un client « Nouvelle demande ». La réponse du prestataire (`pro_send`) arrive dans le tableau de bord du couple, sur la fiche du prestataire dans Budget, et compte comme « Réponse reçue ». Ce que le prestataire change dans Ma fiche et Tarifs est écrit dans `catalog.vendors` et se voit tout de suite dans la page Prestataires des couples. Les vues de la fiche viennent de `merry_log_view`, appelée quand un couple ouvre la fiche. Si le catalogue est réimporté par les scripts, ne pas écraser les fiches présentes dans `pro_vendors`.
 
-**Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours), et la création d'une fiche pour un établissement absent du catalogue (« Mon établissement n'apparaît pas » renvoie vers bonjour@withmerry.com).
+**Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours).
 
 ## 15. Site de mariage (`/s/…`)
 
