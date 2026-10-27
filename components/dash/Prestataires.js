@@ -8,13 +8,17 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
+import { supabase } from "@/lib/supabase";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
-import { cityFilter, hardFilters, REGIONS } from "@/lib/dash/filters";
-import { briefChips, briefLine, budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, STATUS, summary } from "@/lib/dash/picks";
+import { cityFilter, hardFilters } from "@/lib/dash/filters";
+import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
+import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
-import { addDays, euros, toDate } from "@/lib/dash/format";
+import { euros, toDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
+import { CritIcon, FactChips } from "./Criteria";
+import VendorComments from "./VendorComments";
 
 // ---------------------------------------------------------------------------
 // Sélection du mariage (vendor_picks)
@@ -110,11 +114,13 @@ function withMatch(v, m) {
 export function useRecommendations(category, near, bbox = null) {
   const dash = useDash();
   const data = dash.data;
-  const region = data.wedding.region || data.brief?.region;
+  // Lieu retiré des critères : on cherche partout
+  const lieuOff = isOff(data, "lieu");
+  const region = lieuOff ? null : data.wedding.region || data.brief?.region;
   const venue = data.wedding.venue;
   // Lieux : autour de la région choisie ; autres catégories : autour du lieu s'il est connu
-  const places = [category === "lieu" ? region : venue, category === "lieu" ? venue : region].filter(Boolean);
-  const wishes = category === "lieu" ? data.wishes?.wishes || null : null;
+  const places = [category === "lieu" ? region : venue, category === "lieu" && !lieuOff ? venue : region].filter(Boolean);
+  const wishes = category === "lieu" ? searchWishes(data) : null;
   const filters = hardFilters(wishes);
   const city = cityFilter(wishes);
   const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
@@ -239,97 +245,6 @@ export function Segment({ on }) {
         Mes prestataires
       </Link>
     </nav>
-  );
-}
-
-// « Votre brief » : une puce par réponse, chacune mène au brief
-export function BriefBar({ onEnvies }) {
-  const data = useDash().data;
-  const chips = briefChips(data);
-  return (
-    <div className="d-pr-briefrow">
-      <div className="d-pr-brief">
-        <span className="d-pr-brief-label">Votre brief</span>
-        <div className="d-pr-brief-chips">
-          {chips.map((c) => (
-            <Link key={c} href="/dashboard/brief" className="d-pr-chip" aria-label={`Modifier : ${c}`}>
-              {c}
-              <Icon name="edit" size={12} sw={2} stroke="#6b6a63" />
-            </Link>
-          ))}
-        </div>
-      </div>
-      <button type="button" className="d-btn d-btn-ghost d-pr-envies-btn" onClick={onEnvies}>
-        <Icon name="sparkle" size={15} sw={2} />
-        Préciser mes envies
-      </button>
-    </div>
-  );
-}
-
-// Ce que le couple a précisé (panneau « Préciser mes envies »), en étiquettes courtes
-export function wishLabels(w) {
-  if (!w) return [];
-  const label = (list, key) => (list.find((x) => x.key === key) || {}).label;
-  return [
-    w.airport?.on ? `Près d'un aéroport${w.airport.max ? ` (${w.airport.max} min)` : ""}` : null,
-    w.station?.on ? `Près d'une gare TGV${w.station.max ? ` (${w.station.max} min)` : ""}` : null,
-    ...(w.regions || []),
-    w.city?.name?.trim() ? `Près de ${w.city.name.trim()}${w.city.max ? ` (${w.city.max} min)` : ""}` : null,
-    ...(w.access || []).map((k) => label(ACCESS, k)),
-    w.seats ? `${w.seats} places assises` : null,
-    w.beds ? `${w.beds} couchages` : null,
-    ...(w.venue || []).map((k) => label(VENUE, k)),
-    w.caterer && w.caterer !== "indifferent" ? `Traiteur ${label(CATERER, w.caterer).toLowerCase()}` : null,
-    ...(w.criteria || []),
-  ].filter(Boolean);
-}
-
-// Juste sous « … d'après votre brief » : de quoi préciser ce que l'on cherche, en mots et en critères
-export function PrecisionsBar({ onOpen }) {
-  const dash = useDash();
-  const w = dash.data.wishes?.wishes || null;
-  const labels = wishLabels(w);
-  const text = w?.style?.trim();
-  if (!labels.length && !text) {
-    return (
-      <div className="d-pr-precis">
-        <span className="d-pr-precis-text">
-          <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
-          <span>
-            <strong>Dites-nous ce qui compte pour vous.</strong> Places, couchages, traiteur libre, aéroport ou gare à moins d'une heure… Seuls les lieux qui respectent vos critères vous sont proposés.
-          </span>
-        </span>
-        <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
-          Ajouter des précisions
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="d-pr-precis is-set">
-      <div className="d-pr-precis-text">
-        <Icon name="sparkle" size={16} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
-        <div className="d-pr-precis-body">
-          <span>
-            <strong>Vos précisions</strong>
-            {text ? ` · « ${text.length > 120 ? `${text.slice(0, 117)}…` : text} »` : ""}
-          </span>
-          {labels.length ? (
-            <div className="d-pr-optrow">
-              {labels.map((l) => (
-                <span key={l} className="d-pr-crit is-static">
-                  {l}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={onOpen}>
-        Modifier mes précisions
-      </button>
-    </div>
   );
 }
 
@@ -458,7 +373,9 @@ export function Photos({ v, height, children, onOpen }) {
   );
 }
 
-export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
+export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
+  const data = useDash().data;
+  const facts = venueFacts(v, data);
   return (
     <article className="d-pr-card">
       <Photos v={v} onOpen={onOpen}>
@@ -477,16 +394,22 @@ export function VendorCard({ v, picked, onToggle, onOpen, venueName }) {
           </div>
           {v.negotiated ? <Negotiated /> : null}
         </div>
-        {details(v, venueName) ? <div className="d-pr-details">{details(v, venueName)}</div> : null}
+        {facts.length ? <FactChips facts={facts} /> : details(v, venueName) ? <div className="d-pr-details">{details(v, venueName)}</div> : null}
         {v.why ? (
           <div className="d-pr-why">
             <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
           </div>
         ) : null}
         <ToConfirm v={v} />
-        {v.price ? (
+        {v.price || (onMap && mapPoint(v)) ? (
           <div className="d-pr-card-price">
             <Price v={v} />
+            {onMap && mapPoint(v) ? (
+              <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
+                <Icon name="map" size={14} sw={2} />
+                Voir sur la carte
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -508,13 +431,9 @@ export function ToConfirm({ v }) {
 export function ConfirmDivider({ list, index, category = "lieu" }) {
   const v = list[index];
   if (!v?.unknown?.length || list[index - 1]?.unknown?.length) return null;
-  const c = catOf(category);
   return (
     <div className="d-pr-tier" role="presentation">
       <strong>À confirmer avec {category === "lieu" ? "le lieu" : "le prestataire"}</strong>
-      <span>
-        Ces {c.many} ne contredisent aucun de vos critères, mais n'ont pas encore publié tout ce qu'il faut pour le vérifier. Demandez-le-leur avec votre devis.
-      </span>
     </div>
   );
 }
@@ -564,7 +483,7 @@ export function SelectionBar({ picks, onRequest, onClear }) {
           <button type="button" className="d-pr-bar-clear" onClick={onClear}>
             Tout retirer
           </button>
-          <Link href="/dashboard/prestataires/lieux" className="d-pr-bar-ghost">
+          <Link href="/dashboard/prestataires/mes" className="d-pr-bar-ghost">
             Comparer
           </Link>
           <button type="button" className="d-pr-bar-cta" onClick={onRequest}>
@@ -622,10 +541,14 @@ export function SelectionBar({ picks, onRequest, onClear }) {
 function Layer({ kind, label, labelledBy, onClose, children }) {
   const [host, setHost] = useState(null);
   const ref = useRef(null);
+  // onClose peut changer pendant que la fenêtre est ouverte (garde de la demande de devis) :
+  // lu par une référence, pour ne pas reprendre le focus à chaque changement
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => setHost(document.querySelector(".d-root") || document.body), []);
   useEffect(() => {
     if (!host) return undefined;
-    const onKey = (e) => e.key === "Escape" && onClose();
+    const onKey = (e) => e.key === "Escape" && closeRef.current();
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
     ref.current?.querySelector("button")?.focus();
@@ -635,7 +558,7 @@ function Layer({ kind, label, labelledBy, onClose, children }) {
       document.body.classList.remove("d-noscroll");
       prev?.focus?.();
     };
-  }, [host, onClose]);
+  }, [host]);
   if (!host) return null;
   return createPortal(
     <div className={`d-pr-layer is-${kind}`}>
@@ -745,15 +668,29 @@ export function EnviesPanel({ onClose }) {
   const toggleIn = (key, v) => set({ [key]: w[key].includes(v) ? w[key].filter((x) => x !== v) : [...w[key], v] });
   const criteria = styleCriteria(w.style).filter((c) => !w.removed.includes(c));
 
-  async function save() {
+  // Chaque choix s'applique tout de suite aux recommandations (le texte libre, après une courte pause)
+  const ready = useRef(false);
+  const latest = useRef(w);
+  latest.current = w;
+  const warned = useRef(false);
+  const apply = () => {
     if (dash.mode === "live" && !dash.data.picksSetup) {
-      dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
+      if (!warned.current) dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
+      warned.current = true;
       return;
     }
-    await dash.saveWishes({ wishes: { ...w, criteria } });
-    dash.setToast({ kind: "ok", text: "Recommandations mises à jour d'après vos envies." });
-    onClose();
-  }
+    const x = latest.current;
+    dash.saveWishes({ wishes: { ...x, criteria: styleCriteria(x.style).filter((c) => !x.removed.includes(c)) } });
+  };
+  useEffect(() => {
+    if (!ready.current) {
+      ready.current = true;
+      return undefined;
+    }
+    const t = setTimeout(apply, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w]);
 
   return (
     <Layer kind="drawer" labelledBy="envies-titre" onClose={onClose}>
@@ -762,25 +699,7 @@ export function EnviesPanel({ onClose }) {
         <CloseBtn onClose={onClose} />
       </div>
       <div className="d-pr-panel-body d-pr-envies">
-        <p className="d-pr-lead">Vos recommandations partent de votre brief. Ajoutez ce qui compte pour vous.</p>
         <section className="d-pr-wsec">
-          <div className="d-pr-wsec-head">
-            <h3>Région</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">{dash.data.wedding.region ? `Votre brief dit « ${dash.data.wedding.region} ». Choisissez une ou plusieurs régions pour chercher seulement là.` : "Une ou plusieurs régions : seuls les lieux qui s'y trouvent vous sont proposés."}</span>
-            <div className="d-pr-optrow">
-              {REGIONS.map((r) => (
-                <Choice key={r} on={w.regions.includes(r)} onClick={() => toggleIn("regions", r)}>
-                  {r}
-                </Choice>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
           <div className="d-pr-wsec-head">
             <h3>Accès</h3>
             <span>Facultatif</span>
@@ -802,14 +721,6 @@ export function EnviesPanel({ onClose }) {
               </Choice>
             </div>
             {w.station.on ? <MaxRow label="Temps de trajet maximum depuis la gare" value={w.station.max} onChange={(max) => set({ station: { ...w.station, max } })} /> : null}
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Près d'une ville</span>
-            <label htmlFor="envies-ville" className="d-sr">
-              Ville
-            </label>
-            <input id="envies-ville" className="d-input d-pr-field" type="text" value={w.city.name} placeholder="Ville, par ex. Aix-en-Provence" onChange={(e) => set({ city: { ...w.city, name: e.target.value } })} />
-            {w.city.name.trim() ? <MaxRow label="Temps de route maximum depuis la ville" value={w.city.max} onChange={(max) => set({ city: { ...w.city, max } })} /> : null}
           </div>
           <div className="d-pr-wgroup">
             <span className="d-pr-wlabel">Accès facile</span>
@@ -885,10 +796,6 @@ export function EnviesPanel({ onClose }) {
             <textarea id="envies-style" rows={3} className="d-textarea d-pr-field" placeholder="Décrivez votre lieu idéal en quelques mots" value={w.style} onChange={(e) => set({ style: e.target.value })} />
             {criteria.length ? (
               <>
-                <div className="d-pr-hint">
-                  <Icon name="sparkle" size={14} sw={2} stroke="#35520a" style={{ flex: "none", marginTop: 2 }} />
-                  <span>Merry transforme votre description en critères. Retirez ceux qui ne vous ressemblent pas.</span>
-                </div>
                 <div className="d-pr-optrow">
                   {criteria.map((c) => (
                     <span key={c} className="d-pr-crit">
@@ -905,11 +812,11 @@ export function EnviesPanel({ onClose }) {
         </section>
       </div>
       <div className="d-pr-panel-foot is-split">
-        <button type="button" className="d-pr-textbtn" onClick={() => setW(EMPTY_WISHES)}>
+        <button type="button" className="d-pr-textbtn" onClick={() => setW({ ...EMPTY_WISHES, regions: w.regions, city: w.city })}>
           Effacer
         </button>
-        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={save}>
-          Mettre à jour mes recommandations
+        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={onClose}>
+          Voir les résultats
         </button>
       </div>
     </Layer>
@@ -1185,7 +1092,7 @@ function factsOf(v) {
   return out;
 }
 
-export function FichePanel({ v, index, total, list, onClose, onRequest, onMes }) {
+export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, onMap }) {
   const dash = useDash();
   const { isPicked, toggle } = usePicks();
   const picked = isPicked(v);
@@ -1194,9 +1101,19 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
   const [i, setI] = useState(0);
   const n = Math.max(photos.length, 5);
   const cur = photos[i] || null;
-  const facts = factsOf(v);
+  // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
+  const vf = venueFacts(v, dash.data, { all: true });
+  const facts = vf.length ? vf.map((f) => [f.key, f.label, f.value, f.match]) : factsOf(v).map(([icon, k, val]) => [icon, k, val, false]);
+  const matched = vf.filter((f) => f.match);
+  const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
+  // Une vue de plus sur la fiche du prestataire (« Ce mois-ci » de son espace, supabase/espace-prestataire.sql)
+  const weddingId = dash.data.wedding?.id;
+  useEffect(() => {
+    if (dash.mode !== "live" || !supabase || !v.catalogId || !weddingId) return;
+    supabase.rpc("merry_log_view", { v: v.catalogId, w: weddingId }).then(() => {});
+  }, [dash.mode, v.catalogId, weddingId]);
   return (
     <Layer kind="fiche" labelledBy="fiche-titre" onClose={onClose}>
       <div className="d-pr-panel-head is-fiche">
@@ -1246,9 +1163,9 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
         </div>
         {facts.length ? (
           <div className="d-pr-facts">
-            {facts.map(([icon, k, val]) => (
-              <div key={k} className="d-pr-fact">
-                <Icon name={icon} size={18} sw={1.7} stroke="#1c1c1a" style={{ flex: "none", marginTop: 1 }} />
+            {facts.map(([icon, k, val, match]) => (
+              <div key={k} className={`d-pr-fact${match ? " is-match" : ""}`}>
+                <span className="d-pr-fact-ic">{vf.length ? <CritIcon k={icon} size={18} tint={match} /> : <Icon name={icon} size={18} sw={1.7} stroke="#1c1c1a" />}</span>
                 <span>
                   <small>{k}</small>
                   <strong>{val}</strong>
@@ -1293,10 +1210,20 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
             ) : null}
           </section>
         ) : null}
-        {v.story || v.why ? (
+        {v.story || v.why || matched.length ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
-            <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p>
+            {matched.length ? (
+              <ul className="d-pr-why-list" aria-label="Ce qui répond à vos critères">
+                {matched.map((f) => (
+                  <li key={f.key}>
+                    <CritIcon k={f.key} size={16} tint />
+                    <span>{f.text}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {v.story || v.why ? <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p> : null}
             {v.checks?.length ? (
               <div className="d-pr-included">
                 <div className="d-pr-included-t">À vérifier avec {v.category === "lieu" ? "le lieu" : "le prestataire"}</div>
@@ -1330,10 +1257,28 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
         {mapPoint(v) ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Où se trouve le domaine" : "Où le trouver"}</h2>
-            <MiniMap v={v} />
+            <MiniMap v={v} height={180} />
             {v.where ? <div className="d-pr-where">{v.where}</div> : null}
+            <div className="d-pr-maplinks">
+              {onMap ? (
+                <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
+                  <Icon name="map" size={14} sw={2} />
+                  Voir sur la carte
+                </button>
+              ) : null}
+              {gmaps ? (
+                <a className="d-pr-maplink" href={gmaps} target="_blank" rel="noopener noreferrer">
+                  <Icon name="external" size={14} sw={2} />
+                  Ouvrir dans Google Maps
+                </a>
+              ) : null}
+            </div>
           </section>
         ) : null}
+        <section className="d-pr-fsec">
+          <h2>Vos commentaires</h2>
+          <VendorComments vendorRef={v.id} name={v.name} />
+        </section>
       </div>
       <div className="d-pr-panel-foot is-fiche">
         <button type="button" className="d-btn d-btn-primary d-pr-big" aria-pressed={picked} onClick={() => toggle(v)}>
@@ -1352,44 +1297,77 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes })
 // Demander les devis (7h et 7t)
 // ---------------------------------------------------------------------------
 
-function plusDays(d, n) {
-  const x = toDate(d);
-  return x ? dateLong(addDays(x, n)) : "";
-}
 
 const MONTH_NAMES = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
+const DRAFT_KEY = "merry-devis-brouillon";
+
+function readDraft(weddingId) {
+  try {
+    const raw = window.sessionStorage.getItem(`${DRAFT_KEY}:${weddingId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(weddingId, draft) {
+  try {
+    if (draft) window.sessionStorage.setItem(`${DRAFT_KEY}:${weddingId}`, JSON.stringify(draft));
+    else window.sessionStorage.removeItem(`${DRAFT_KEY}:${weddingId}`);
+  } catch {
+    /* stockage indisponible : le brouillon vit le temps de la fenêtre */
+  }
+}
+
+// Le brouillon (message, questions, dates, budget) est gardé jusqu'à l'envoi : fermer la fenêtre ou retirer
+// un prestataire ne l'efface jamais. Fermer une demande modifiée demande confirmation.
 export function DevisDialog({ picks: initial, onClose, onSent }) {
   const dash = useDash();
   const data = dash.data;
-  const [list, setList] = useState(initial);
-  const [message, setMessage] = useState(() => defaultMessage(data));
-  const [notes, setNotes] = useState(() => Object.fromEntries(initial.filter((p) => p.note).map((p) => [p.id, p.note])));
-  const [noteOpen, setNoteOpen] = useState(() => new Set(initial.filter((p) => p.note).map((p) => p.id)));
-  const cats = CATEGORIES.filter((c) => list.some((p) => p.category === c.key));
-  const [questions, setQuestions] = useState(() => Object.fromEntries(CATEGORIES.map((c) => [c.key, (QUESTIONS[c.key] || []).map((q) => ({ q, on: true }))])));
-  const [adding, setAdding] = useState({});
-  const [dates, setDates] = useState(() => [dateLong(data.wedding.wedding_date), plusDays(data.wedding.wedding_date, 5), plusDays(data.wedding.wedding_date, 12)]);
-  // Dates flexibles : un ou plusieurs mois, une ou plusieurs années, à la place des trois dates
+  const weddingId = data.wedding.id;
   const weddingDay = toDate(data.wedding.wedding_date);
   const firstYear = weddingDay ? weddingDay.getFullYear() : new Date().getFullYear() + 1;
-  const [flexible, setFlexible] = useState(false);
-  const [months, setMonths] = useState(() => (weddingDay ? [weddingDay.getMonth()] : []));
-  const [years, setYears] = useState(() => [firstYear]);
-  const [share, setShare] = useState(false);
+  // Dates flexibles choisies dans « Vos critères » : la demande part de cette période
+  const when = data.wishes?.wishes?.when;
+  const fresh = useMemo(
+    () => ({
+      message: defaultMessage(data, when ? periodLabel(when.months || [], when.years || []) : null),
+      questions: Object.fromEntries(CATEGORIES.map((c) => [c.key, (QUESTIONS[c.key] || []).map((q) => ({ q, on: true }))])),
+      dates: [dateLong(data.wedding.wedding_date), "", ""],
+      flexible: !!when,
+      months: when ? when.months || [] : weddingDay ? [weddingDay.getMonth()] : [],
+      years: when ? when.years || [] : [firstYear],
+      share: false,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [draft, setDraft] = useState(() => ({ ...fresh, ...(readDraft(weddingId) || {}) }));
+  const { message, questions, dates, flexible, months, years, share } = draft;
+  const set = (patch) => setDraft((d) => ({ ...d, ...(typeof patch === "function" ? patch(d) : patch) }));
+  const [list, setList] = useState(initial);
+  const [adding, setAdding] = useState({});
   const [busy, setBusy] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const cats = CATEGORIES.filter((c) => list.some((p) => p.category === c.key));
   const budget = budgetLabel(data);
   const by = picksBy(list);
+  const changed = JSON.stringify(draft) !== JSON.stringify(fresh);
+
+  useEffect(() => writeDraft(weddingId, changed ? draft : null), [weddingId, draft, changed]);
+
+  const requestClose = useCallback(() => (changed ? setConfirmClose(true) : onClose()), [changed, onClose]);
 
   // Le message par défaut suit les dates (précises ou flexibles) tant que le couple ne l'a pas réécrit
   function setPeriod(nextFlexible, nextMonths, nextYears) {
     const before = defaultMessage(data, flexible ? periodLabel(months, years) : null);
-    if (message === before) setMessage(defaultMessage(data, nextFlexible ? periodLabel(nextMonths, nextYears) : null));
-    setFlexible(nextFlexible);
-    setMonths(nextMonths);
-    setYears(nextYears);
+    set({ flexible: nextFlexible, months: nextMonths, years: nextYears, ...(message === before ? { message: defaultMessage(data, nextFlexible ? periodLabel(nextMonths, nextYears) : null) } : {}) });
   }
   const toggle = (xs, x) => (xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x]);
+  const finalQuestions = () => Object.fromEntries(cats.map((c) => [c.key, questions[c.key].filter((x) => x.on && x.q.trim()).map((x) => x.q.trim())]));
+  const finalDates = () => (flexible ? [flexibleDates(months, years)] : dates.filter((d, i) => i === 0 || d.trim()));
 
   async function send() {
     if (!list.length || !message.trim()) return;
@@ -1398,28 +1376,28 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       return;
     }
     setBusy(true);
-    const q = Object.fromEntries(cats.map((c) => [c.key, questions[c.key].filter((x) => x.on && x.q.trim()).map((x) => x.q.trim())]));
-    await dash.sendQuotes({ picks: list, message: message.trim(), questions: q, dates: flexible ? [flexibleDates(months, years)] : dates, budget: share ? budget : null, notes });
+    await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {} });
     setBusy(false);
+    writeDraft(weddingId, null);
     dash.setToast({ kind: "ok", text: `${list.length > 1 ? `${list.length} demandes enregistrées` : "Demande enregistrée"}, sur la fiche de chaque prestataire dans Budget.` });
     onSent?.();
   }
 
+  const shown = preview ? list.find((p) => p.id === preview) || list[0] : null;
+
   return (
-    <Layer kind="dialog" labelledBy="devis-titre" onClose={onClose}>
+    <Layer kind="dialog" labelledBy="devis-titre" onClose={requestClose}>
       <div className="d-pr-panel-head is-dialog">
         <h2 id="devis-titre">Demander les devis</h2>
-        <CloseBtn onClose={onClose} />
+        <CloseBtn onClose={requestClose} />
       </div>
       <div className="d-pr-panel-body d-pr-devis">
-        <p className="d-pr-lead">Un seul message, envoyé à chacun. Merry l’adapte à chaque prestataire.</p>
         <section className="d-pr-dsec">
           <h3>À qui</h3>
           <span className="d-pr-dsub">{summary(list) || "Personne pour l’instant"}</span>
           <ul className="d-pr-to">
             {list.map((p) => {
               const c = catOf(p.category);
-              const open = noteOpen.has(p.id);
               return (
                 <li key={p.id}>
                   <Thumb v={p.data} size={44} />
@@ -1429,17 +1407,6 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                       {c.label}
                       {p.data?.area ? ` · ${p.data.area}` : ""}
                     </span>
-                    {open ? (
-                      <div className="d-pr-to-note">
-                        <label htmlFor={`mot-${p.id}`}>Un mot pour {p.data?.name}</label>
-                        <textarea id={`mot-${p.id}`} rows={2} className="d-textarea d-pr-field is-note" value={notes[p.id] || ""} onChange={(e) => setNotes((x) => ({ ...x, [p.id]: e.target.value }))} autoFocus={!notes[p.id]} />
-                      </div>
-                    ) : (
-                      <button type="button" className="d-pr-addbtn" onClick={() => setNoteOpen((s) => new Set([...s, p.id]))}>
-                        <Icon name="plus" size={13} sw={2.2} stroke="#1c1c1a" />
-                        Ajouter un mot pour ce prestataire
-                      </button>
-                    )}
                   </div>
                   <button type="button" className="d-pr-close" aria-label={`Retirer ${p.data?.name} de la demande`} onClick={() => setList((l) => l.filter((x) => x.id !== p.id))}>
                     <Icon name="x" size={14} sw={2} stroke="#1c1c1a" />
@@ -1453,14 +1420,12 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
           <label htmlFor="devis-message" className="d-pr-dtitle">
             Votre message
           </label>
-          <textarea id="devis-message" rows={8} className="d-textarea d-pr-field is-message" value={message} onChange={(e) => setMessage(e.target.value)} />
-          {briefLine(data) ? <span className="d-pr-from-brief">Repris de votre brief : {briefLine(data)}</span> : null}
+          <textarea id="devis-message" rows={8} className="d-textarea d-pr-field is-message" value={message} onChange={(e) => set({ message: e.target.value })} />
         </section>
         {cats.length ? (
           <section className="d-pr-dsec is-ruled">
             <div className="d-pr-dsec-t">
               <h3>Questions selon le prestataire</h3>
-              <span className="d-pr-dnote">Merry ajoute à chaque demande les questions qui le concernent. Décochez celles qui ne vous servent pas.</span>
             </div>
             {cats.map((c) => (
               <fieldset key={c.key} className="d-pr-qset">
@@ -1472,11 +1437,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                 </legend>
                 {questions[c.key].map((x, k) => (
                   <label key={k} className="d-pr-q">
-                    <input
-                      type="checkbox"
-                      checked={x.on}
-                      onChange={() => setQuestions((qs) => ({ ...qs, [c.key]: qs[c.key].map((y, j) => (j === k ? { ...y, on: !y.on } : y)) }))}
-                    />
+                    <input type="checkbox" checked={x.on} onChange={() => set((d) => ({ questions: { ...d.questions, [c.key]: d.questions[c.key].map((y, j) => (j === k ? { ...y, on: !y.on } : y)) } }))} />
                     {x.q}
                   </label>
                 ))}
@@ -1486,7 +1447,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                     onSubmit={(e) => {
                       e.preventDefault();
                       const q = adding[c.key].trim();
-                      if (q) setQuestions((qs) => ({ ...qs, [c.key]: [...qs[c.key], { q, on: true }] }));
+                      if (q) set((d) => ({ questions: { ...d.questions, [c.key]: [...d.questions[c.key], { q, on: true }] } }));
                       setAdding(({ [c.key]: _drop, ...rest }) => rest);
                     }}
                   >
@@ -1508,12 +1469,9 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
         <section className="d-pr-dsec is-ruled is-12">
           <h3>Dates</h3>
           <div className="d-pr-flex">
-            <div className="d-pr-dsec-t">
-              <span id="devis-flexible" className="d-pr-flex-t">
-                Nos dates sont flexibles
-              </span>
-              <span className="d-pr-dnote">Un mois ou une saison plutôt qu’un jour : les prestataires vous proposent leurs dates libres.</span>
-            </div>
+            <span id="devis-flexible" className="d-pr-flex-t">
+              Nos dates sont flexibles
+            </span>
             <button type="button" role="switch" aria-checked={flexible} aria-labelledby="devis-flexible" className={`d-pr-switch${flexible ? " is-on" : ""}`} onClick={() => setPeriod(!flexible, months, years)}>
               <span />
             </button>
@@ -1540,22 +1498,33 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                   ))}
                 </div>
               </div>
-              <span className="d-pr-from-brief">Envoyé aux prestataires : {flexibleDates(months, years).replace(" : ", ", ")}</span>
             </>
-          ) : null}
-          {flexible ? null : [[0], [1, 2]].map((row, ri) => (
-            <div key={ri} className="d-pr-dates">
-              {row.map((k) => (
-                <div key={k} className="d-pr-date">
-                  <label htmlFor={`devis-date-${k}`}>{["Date souhaitée", "Date de repli", "Autre date de repli"][k]}</label>
+          ) : (
+            <>
+              <div className="d-pr-dates">
+                <div className="d-pr-date">
+                  <label htmlFor="devis-date-0">Date souhaitée</label>
                   <div className="d-pr-datebox">
                     <Icon name="calendarPlain" size={16} sw={1.8} stroke="#6b6a63" />
-                    <input id={`devis-date-${k}`} type="text" value={dates[k]} onChange={(e) => setDates((d) => d.map((x, j) => (j === k ? e.target.value : x)))} />
+                    <input id="devis-date-0" type="text" value={dates[0]} onChange={(e) => set((d) => ({ dates: [e.target.value, d.dates[1], d.dates[2]] }))} />
                   </div>
                 </div>
-              ))}
-            </div>
-          ))}
+              </div>
+              <div role="group" aria-labelledby="devis-autres" className="d-pr-period">
+                <span id="devis-autres">Autres dates possibles</span>
+                <div className="d-pr-dates">
+                  {[1, 2].map((k) => (
+                    <div key={k} className="d-pr-date">
+                      <div className="d-pr-datebox">
+                        <Icon name="calendarPlain" size={16} sw={1.8} stroke="#6b6a63" />
+                        <input type="text" aria-label={`Autre date possible ${k}`} placeholder="Facultatif" value={dates[k]} onChange={(e) => set((d) => ({ dates: d.dates.map((x, j) => (j === k ? e.target.value : x)) }))} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </section>
         {budget ? (
           <section className="d-pr-dsec is-ruled is-switch">
@@ -1563,20 +1532,57 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
               <span id="devis-budget" className="d-pr-dtitle">
                 Partager notre budget
               </span>
-              <span className="d-pr-dnote">{budget} au total. Les prestataires ajustent souvent leur proposition quand ils le connaissent.</span>
+              <span className="d-pr-dnote">Facultatif. Certains prestataires adaptent leur proposition au budget annoncé.</span>
             </div>
-            <button type="button" role="switch" aria-checked={share} aria-labelledby="devis-budget" className={`d-pr-switch${share ? " is-on" : ""}`} onClick={() => setShare((s) => !s)}>
+            <button type="button" role="switch" aria-checked={share} aria-labelledby="devis-budget" className={`d-pr-switch${share ? " is-on" : ""}`} onClick={() => set((d) => ({ share: !d.share }))}>
               <span />
             </button>
           </section>
         ) : null}
+        {list.length ? (
+          <section className="d-pr-dsec is-ruled">
+            <button type="button" className="d-pr-linkbtn" aria-expanded={!!shown} onClick={() => setPreview(shown ? null : list[0].id)}>
+              {shown ? "Masquer le message envoyé" : "Voir ce qui sera envoyé"}
+            </button>
+            {shown ? (
+              <div className="d-pr-preview">
+                {list.length > 1 ? (
+                  <div className="d-pr-optrow" role="radiogroup" aria-label="Prestataire">
+                    {list.map((p) => (
+                      <Choice key={p.id} role="radio" small on={p.id === shown.id} onClick={() => setPreview(p.id)}>
+                        {p.data?.name}
+                      </Choice>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="d-pr-preview-to">À {shown.data?.name}</div>
+                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null })}</p>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </div>
-      <div className="d-pr-panel-foot is-devis">
-        <span className="d-pr-dnote">Les réponses arrivent dans Budget, sur la fiche de chaque prestataire.</span>
-        <button type="button" className="d-btn d-btn-primary d-pr-big" disabled={busy || !list.length || !message.trim()} onClick={send}>
-          {list.length > 1 ? `Envoyer les ${list.length} demandes` : "Envoyer la demande"}
-        </button>
-      </div>
+      {confirmClose ? (
+        <div className="d-pr-panel-foot is-devis is-confirm" role="alertdialog" aria-labelledby="devis-quitter">
+          <span id="devis-quitter" className="d-pr-confirm-t">
+            Fermer sans envoyer ? Votre message est gardé.
+          </span>
+          <span className="d-pr-confirm-btns">
+            <button type="button" className="d-btn d-btn-ghost" onClick={() => setConfirmClose(false)} autoFocus>
+              Continuer
+            </button>
+            <button type="button" className="d-btn d-btn-primary" onClick={onClose}>
+              Fermer
+            </button>
+          </span>
+        </div>
+      ) : (
+        <div className="d-pr-panel-foot is-devis">
+          <button type="button" className="d-btn d-btn-primary d-pr-big" disabled={busy || !list.length || !message.trim()} onClick={send}>
+            {list.length > 1 ? `Envoyer les ${list.length} demandes` : "Envoyer la demande"}
+          </button>
+        </div>
+      )}
     </Layer>
   );
 }

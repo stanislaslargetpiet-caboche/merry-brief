@@ -10345,3 +10345,302 @@ body.d-noscroll {
     gap: 10px;
   }
 }
+
+/* ---------- Prestataires : « Vos critères », faits des lieux, carte, commentaires (retours des tests couples) ---------- */
+
+.d-pr-crits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background: var(--d-panel);
+}
+
+.d-pr-crits-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.d-pr-crits-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.d-pr-crits-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-pr-chip.is-crit {
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.d-pr-chip.is-crit.is-empty {
+  color: var(--d-muted);
+  border-style: dashed;
+}
+
+.d-pr-chip.is-crit.is-off {
+  gap: 6px;
+  color: var(--d-muted);
+  background: transparent;
+  border-style: dashed;
+}
+
+.d-pr-crits-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.d-pr-crits-none {
+  align-self: center;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-pr-chip.is-crit.is-open {
+  border-color: var(--d-ink);
+}
+
+.d-pr-chip-t {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-pop.d-pr-critpop {
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(60dvh, 480px);
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.d-pr-crited {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-pr-crited-t {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-pr-crited-sub {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-pr-crited-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.d-pr-critfield {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.d-pr-critfield label {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-pr-crited-remove {
+  align-self: flex-start;
+  min-height: 36px;
+}
+
+/* Faits d'un lieu sur les cartes : lime quand ils répondent à un critère */
+.d-pr-facttags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.d-pr-facttags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: var(--d-panel);
+  font-size: 12.5px;
+  color: var(--d-ink);
+}
+
+.d-pr-facttags li.is-match {
+  background: var(--d-limetint);
+  color: var(--d-ok-ink);
+  font-weight: 500;
+}
+
+.d-pr-fact.is-match {
+  background: var(--d-limetint);
+}
+
+.d-pr-fact.is-match strong,
+.d-pr-fact.is-match small {
+  color: var(--d-ok-ink);
+}
+
+.d-pr-fact-ic {
+  flex: none;
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.d-pr-why-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.d-pr-why-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--d-limetint);
+  color: var(--d-ok-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.d-pr-card-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.d-pr-maplinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.d-pr-maplink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Commentaires des organisateurs sur un prestataire */
+.d-thread.d-pr-thread {
+  margin: 0;
+}
+
+.d-pr-thread-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-pr-reply {
+  margin-left: 38px;
+}
+
+.d-pr-mes-thread {
+  padding: 4px 0 12px;
+}
+
+/* Demande de devis : aperçu du message, confirmation avant de fermer */
+.d-pr-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--d-panel);
+}
+
+.d-pr-preview-to {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--d-muted);
+}
+
+.d-pr-preview-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.d-pr-panel-foot.is-devis {
+  justify-content: flex-end;
+}
+
+.d-pr-panel-foot.is-confirm {
+  justify-content: space-between;
+  background: var(--d-limetint);
+}
+
+.d-pr-confirm-t {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ok-ink);
+}
+
+.d-pr-confirm-btns {
+  display: inline-flex;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .d-pr-crits {
+    padding: 12px;
+  }
+  .d-pr-crits-head .d-pr-envies-btn {
+    width: auto;
+    min-height: 40px;
+  }
+  .d-pr-chip-t {
+    max-width: 200px;
+  }
+  .d-pr-panel-foot.is-confirm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .d-pr-confirm-btns .d-btn {
+    flex: 1;
+  }
+  .d-pr-reply {
+    margin-left: 24px;
+  }
+}

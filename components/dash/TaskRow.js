@@ -7,21 +7,7 @@ import { isBoth } from "@/lib/dash/model";
 import { refineIcon } from "@/lib/dash/aiIcon";
 import { Tile, Icon, guessIcon } from "./icons";
 import { Avatar, Btn, Checkbox, Field, PersonChip } from "./ui";
-
-// « à l'instant », « il y a 5 min », « il y a 2 h », « hier », puis la date
-function ago(iso) {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return "";
-  const min = Math.round((Date.now() - t) / 60000);
-  if (min < 1) return "à l'instant";
-  if (min < 60) return `il y a ${min} min`;
-  const h = Math.round(min / 60);
-  if (h < 24 && new Date(t).toDateString() === new Date().toDateString()) return `il y a ${h} h`;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (new Date(t).toDateString() === yesterday.toDateString()) return "hier";
-  return shortDate(iso.slice(0, 10));
-}
+import { ago } from "./VendorComments";
 
 // Fil de commentaires d'une tâche : chaque organisateur écrit en son nom
 function TaskThread({ task, comments, onClose }) {
