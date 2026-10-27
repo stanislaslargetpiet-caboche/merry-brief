@@ -10,11 +10,12 @@ import { inWords, rank } from "@/lib/dash/catalog";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
-import { CriteriaBox, FactChips } from "@/components/dash/Criteria";
+import { FactChips } from "@/components/dash/Criteria";
+import { FiltersPanel, SearchSummary, inPrice } from "@/components/dash/Filtres";
+import { withArticle } from "@/lib/dash/format";
 import {
   ConfirmDivider,
   DevisDialog,
-  EnviesPanel,
   FichePanel,
   FiltersNote,
   MoreButton,
@@ -33,9 +34,10 @@ export default function Lieux() {
   const { picks, add } = usePicks();
   const rec = useRecommendations("lieu");
   const { vendors, source } = rec;
-  const list = useMemo(() => rank(vendors, searchWishes(data), "lieu"), [vendors, data]);
+  const [price, setPrice] = useState(null);
+  const list = useMemo(() => rank(vendors, searchWishes(data), "lieu").filter((v) => inPrice(v, price)), [vendors, data, price]);
   const [fiche, setFiche] = useState(null);
-  const [envies, setEnvies] = useState(false);
+  const [filters, setFilters] = useState(false);
   const [devis, setDevis] = useState(null);
   const venue = chosenVenue(data, picks);
   const n = list.length;
@@ -56,12 +58,12 @@ export default function Lieux() {
         <h1 className="d-title">Lieux.</h1>
         <p>
           {inWords(n, "lieu")} choisi{n > 1 ? "s" : ""} d'après votre brief.
-          {venue ? ` Vous avez retenu le ${venue.data?.name}.` : ""}
+          {venue?.data?.name ? ` Vous avez retenu ${withArticle(venue.data.name, "")}.` : ""}
         </p>
       </div>
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <CriteriaBox onEnvies={() => setEnvies(true)} />
+      <SearchSummary category="lieu" price={price} busy={rec.loading} onOpen={() => setFilters(true)} />
       <div className="d-pr-grid is-lieux">
         {list.map((v, i) => {
           const photo = (v.photos || []).find(Boolean);
@@ -132,7 +134,7 @@ export default function Lieux() {
           }}
         />
       ) : null}
-      {envies ? <EnviesPanel onClose={() => setEnvies(false)} /> : null}
+      {filters ? <FiltersPanel category="lieu" price={price} onClose={() => setFilters(false)} onApply={setPrice} /> : null}
       {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
     </>
   );

@@ -17,7 +17,7 @@ import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { CritIcon, FactChips } from "./Criteria";
+import { FactChips } from "./Criteria";
 import VendorComments from "./VendorComments";
 
 // ---------------------------------------------------------------------------
@@ -606,7 +606,7 @@ export function SelectionBar({ picks, onRequest, onClear }) {
 // Panneaux : tiroir à droite (envies, fiche) et fenêtre centrée (demande de devis)
 // ---------------------------------------------------------------------------
 
-function Layer({ kind, label, labelledBy, onClose, children }) {
+export function Layer({ kind, label, labelledBy, onClose, children }) {
   const [host, setHost] = useState(null);
   const ref = useRef(null);
   // onClose peut changer pendant que la fenêtre est ouverte (garde de la demande de devis) :
@@ -639,7 +639,7 @@ function Layer({ kind, label, labelledBy, onClose, children }) {
   );
 }
 
-function CloseBtn({ onClose, label = "Fermer" }) {
+export function CloseBtn({ onClose, label = "Fermer" }) {
   return (
     <button type="button" className="d-pr-close" aria-label={label} onClick={onClose}>
       <Icon name="x" size={18} sw={2} stroke="#1c1c1a" />
@@ -651,16 +651,16 @@ function CloseBtn({ onClose, label = "Fermer" }) {
 // Préciser mes envies (7c et 7o)
 // ---------------------------------------------------------------------------
 
-const ACCESS = [
+export const ACCESS = [
   { key: "parking", label: "Parking sur place" },
   { key: "pmr", label: "Accessible PMR" },
 ];
-const VENUE = [
+export const VENUE = [
   { key: "ceremonie_exterieur", label: "Cérémonie en extérieur" },
   { key: "exclusivite", label: "Lieu en exclusivité" },
   { key: "fin_tardive", label: "Fin de soirée après 2 h" },
 ];
-const CATERER = [
+export const CATERER = [
   { key: "libre", label: "Libre" },
   { key: "impose", label: "Imposé" },
   { key: "indifferent", label: "Indifférent" },
@@ -693,7 +693,7 @@ export function styleCriteria(text) {
 
 const MINUTES = [30, 45, 60];
 
-function Choice({ on, children, onClick, role = "button", small }) {
+export function Choice({ on, children, onClick, role = "button", small }) {
   const props = role === "radio" ? { role: "radio", "aria-checked": on } : { "aria-pressed": on };
   return (
     <button type="button" {...props} className={`d-pr-opt${on ? " is-on" : ""}${small ? " is-small" : ""}`} onClick={onClick}>
@@ -703,7 +703,7 @@ function Choice({ on, children, onClick, role = "button", small }) {
   );
 }
 
-function OtherNumber({ value, presets, onChange, label, suffix }) {
+export function OtherNumber({ value, presets, onChange, label, suffix }) {
   const custom = value && !presets.includes(value);
   return (
     <label className={`d-pr-other${custom ? " is-on" : ""}`}>
@@ -713,7 +713,7 @@ function OtherNumber({ value, presets, onChange, label, suffix }) {
   );
 }
 
-function MaxRow({ value, onChange, label }) {
+export function MaxRow({ value, onChange, label }) {
   return (
     <div role="radiogroup" aria-label={label} className="d-pr-optrow is-indent">
       <span className="d-pr-optrow-label">Au plus</span>
@@ -727,169 +727,7 @@ function MaxRow({ value, onChange, label }) {
   );
 }
 
-const EMPTY_WISHES = { regions: [], airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
-
-export function EnviesPanel({ onClose }) {
-  const dash = useDash();
-  const [w, setW] = useState(() => ({ ...EMPTY_WISHES, ...(dash.data.wishes?.wishes || {}) }));
-  const set = (patch) => setW((x) => ({ ...x, ...patch }));
-  const toggleIn = (key, v) => set({ [key]: w[key].includes(v) ? w[key].filter((x) => x !== v) : [...w[key], v] });
-  const criteria = styleCriteria(w.style).filter((c) => !w.removed.includes(c));
-
-  // Chaque choix s'applique tout de suite aux recommandations (le texte libre, après une courte pause)
-  const ready = useRef(false);
-  const latest = useRef(w);
-  latest.current = w;
-  const warned = useRef(false);
-  const apply = () => {
-    if (dash.mode === "live" && !dash.data.picksSetup) {
-      if (!warned.current) dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
-      warned.current = true;
-      return;
-    }
-    const x = latest.current;
-    dash.saveWishes({ wishes: { ...x, criteria: styleCriteria(x.style).filter((c) => !x.removed.includes(c)) } });
-  };
-  useEffect(() => {
-    if (!ready.current) {
-      ready.current = true;
-      return undefined;
-    }
-    const t = setTimeout(apply, 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [w]);
-
-  return (
-    <Layer kind="drawer" labelledBy="envies-titre" onClose={onClose}>
-      <div className="d-pr-panel-head">
-        <h2 id="envies-titre">Préciser mes envies</h2>
-        <CloseBtn onClose={onClose} />
-      </div>
-      <div className="d-pr-panel-body d-pr-envies">
-        <section className="d-pr-wsec">
-          <div className="d-pr-wsec-head">
-            <h3>Accès</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Près d'un aéroport</span>
-            <div className="d-pr-optrow">
-              <Choice on={w.airport.on} onClick={() => set({ airport: { ...w.airport, on: !w.airport.on } })}>
-                Près d'un aéroport
-              </Choice>
-            </div>
-            {w.airport.on ? <MaxRow label="Temps de trajet maximum depuis l'aéroport" value={w.airport.max} onChange={(max) => set({ airport: { ...w.airport, max } })} /> : null}
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Près d'une gare</span>
-            <div className="d-pr-optrow">
-              <Choice on={w.station.on} onClick={() => set({ station: { ...w.station, on: !w.station.on } })}>
-                Près d'une gare TGV
-              </Choice>
-            </div>
-            {w.station.on ? <MaxRow label="Temps de trajet maximum depuis la gare" value={w.station.max} onChange={(max) => set({ station: { ...w.station, max } })} /> : null}
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Accès facile</span>
-            <div className="d-pr-optrow">
-              {ACCESS.map((a) => (
-                <Choice key={a.key} on={w.access.includes(a.key)} onClick={() => toggleIn("access", a.key)}>
-                  {a.label}
-                </Choice>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Le lieu</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Places assises, au moins</span>
-            <div role="radiogroup" aria-label="Places assises, au moins" className="d-pr-optrow">
-              {[80, 120, 160].map((n) => (
-                <Choice key={n} role="radio" small on={w.seats === n} onClick={() => set({ seats: w.seats === n ? null : n })}>
-                  {n}
-                </Choice>
-              ))}
-              <OtherNumber value={w.seats} presets={[80, 120, 160]} onChange={(seats) => set({ seats })} label="Autre nombre de places" />
-            </div>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Couchages sur place, au moins</span>
-            <div role="radiogroup" aria-label="Couchages sur place, au moins" className="d-pr-optrow">
-              {[10, 20, 30].map((n) => (
-                <Choice key={n} role="radio" small on={w.beds === n} onClick={() => set({ beds: w.beds === n ? null : n })}>
-                  {n}
-                </Choice>
-              ))}
-              <OtherNumber value={w.beds} presets={[10, 20, 30]} onChange={(beds) => set({ beds })} label="Autre nombre de couchages" />
-            </div>
-          </div>
-          <div className="d-pr-optrow">
-            {VENUE.map((a) => (
-              <Choice key={a.key} on={w.venue.includes(a.key)} onClick={() => toggleIn("venue", a.key)}>
-                {a.label}
-              </Choice>
-            ))}
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Traiteur</h3>
-            <span>Facultatif</span>
-          </div>
-          <div role="radiogroup" aria-label="Traiteur" className="d-pr-optrow">
-            {CATERER.map((c) => (
-              <Choice key={c.key} role="radio" on={w.caterer === c.key} onClick={() => set({ caterer: w.caterer === c.key ? null : c.key })}>
-                {c.label}
-              </Choice>
-            ))}
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Votre style</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup is-10">
-            <label htmlFor="envies-style" className="d-pr-wlabel">
-              Décrivez votre lieu idéal en quelques mots
-            </label>
-            <textarea id="envies-style" rows={3} className="d-textarea d-pr-field" placeholder="Décrivez votre lieu idéal en quelques mots" value={w.style} onChange={(e) => set({ style: e.target.value })} />
-            {criteria.length ? (
-              <>
-                <div className="d-pr-optrow">
-                  {criteria.map((c) => (
-                    <span key={c} className="d-pr-crit">
-                      {c}
-                      <button type="button" aria-label={`Retirer ${c}`} onClick={() => set({ removed: [...w.removed, c] })}>
-                        <Icon name="x" size={11} sw={2.6} stroke="#35520a" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </div>
-        </section>
-      </div>
-      <div className="d-pr-panel-foot is-split">
-        <button type="button" className="d-pr-textbtn" onClick={() => setW({ ...EMPTY_WISHES, regions: w.regions, city: w.city })}>
-          Effacer
-        </button>
-        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={onClose}>
-          Voir les résultats
-        </button>
-      </div>
-    </Layer>
-  );
-}
+export const EMPTY_WISHES = { regions: [], airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
 
 // ---------------------------------------------------------------------------
 // Fond de carte (7d, 7e, 7p, 7q) : un repère commun, chaque vue choisit son centre et son échelle
@@ -1110,18 +948,26 @@ export function MapCanvas({ center, scale, className = "", children, onView, lab
 }
 
 // Étiquette de prix d'un lieu sur la carte
+// Marqueur de la carte : la photo du lieu, en rond ; un cœur s'il est dans la sélection. Le nom reste dans la liste.
 export function PricePin({ v, at, active, picked, onClick, small }) {
   const photo = (v.photos || []).find(Boolean);
   return (
     <button
       type="button"
-      className={`d-pr-pin${active ? " is-active" : picked ? " is-picked" : ""}${small ? " is-small" : ""}`}
+      className={`d-pr-pin is-photo${active ? " is-active" : ""}${small ? " is-small" : ""}`}
       style={{ left: at.left, top: at.top }}
       aria-label={`${v.name}${v.price ? `, à partir de ${euros(v.price)}` : ""}${picked ? ", dans votre sélection" : ""}`}
+      aria-pressed={active}
       onClick={onClick}
     >
-      <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }} />
-      <span className="d-pr-pin-label">{v.price ? euros(v.price) : v.name}</span>
+      <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }}>
+        {photo ? null : initialsOf(v.name)}
+      </span>
+      {picked ? (
+        <span aria-hidden="true" className="d-pr-pin-heart">
+          <Icon name="heart" size={10} sw={2} stroke="#ffffff" fill="#ffffff" />
+        </span>
+      ) : null}
     </button>
   );
 }

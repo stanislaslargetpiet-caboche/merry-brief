@@ -8,17 +8,15 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
-import { euros } from "@/lib/dash/format";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
-import { CriteriaBox } from "@/components/dash/Criteria";
+import { FiltersPanel, SearchSummary, activeFilters, inPrice } from "@/components/dash/Filtres";
 import {
   BestMatch,
   CategoryTabs,
   ConfirmDivider,
   DevisDialog,
-  EnviesPanel,
   FichePanel,
   FiltersNote,
   Heart,
@@ -27,7 +25,6 @@ import {
   PrHead,
   Price,
   PricePin,
-  PRICE_BARS,
   SampleNote,
   SelectionBar,
   Thumb,
@@ -64,7 +61,11 @@ export default function Trouver() {
   const { picks, isPicked, toggle, add, removeMany } = usePicks();
   const [cat, setCat] = useState("lieu");
   const [view, setView] = useState("liste");
-  const [envies, setEnvies] = useState(false);
+  const [filters, setFilters] = useState(false);
+  // Fourchette de prix (panneau Filtres) : appliquée à la liste et à la carte
+  const [price, setPrice] = useState(null);
+  // « Rechercher » : un état de chargement sur les résultats, le temps que la recherche reparte
+  const [searching, setSearching] = useState(false);
   const [ficheId, setFicheId] = useState(null);
   const [devis, setDevis] = useState(null);
   // « Voir sur la carte » : la vue Carte se centre sur ce prestataire
@@ -75,7 +76,7 @@ export default function Trouver() {
     if (p.cat && catOf(p.cat).key === p.cat) setCat(p.cat);
     if (p.vue === "carte") setView("carte");
     if (p.fiche) setFicheId(p.fiche);
-    if (p.envies) setEnvies(true);
+    if (p.envies) setFilters(true);
     if (p.lieu) {
       setView("carte");
       setFocusId(p.lieu);
@@ -90,7 +91,12 @@ export default function Trouver() {
   const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox);
   const { vendors, source, loading } = rec;
   const wishes = cat === "lieu" ? searchWishes(dash.data) : null;
-  const list = useMemo(() => rank(vendors, wishes, cat), [vendors, wishes, cat]);
+  const list = useMemo(() => rank(vendors, wishes, cat).filter((v) => inPrice(v, price)), [vendors, wishes, cat, price]);
+  useEffect(() => {
+    if (!searching || loading) return undefined;
+    const t = setTimeout(() => setSearching(false), 450);
+    return () => clearTimeout(t);
+  }, [searching, loading]);
   const pending = picks.filter((p) => !p.requested_at);
   const c = catOf(cat);
   const fiche = ficheId ? list.find((v) => v.id === ficheId) || vendors.find((v) => v.id === ficheId) : null;
@@ -132,8 +138,8 @@ export default function Trouver() {
   }
 
   const wishesOn = wishes && Object.values(wishes).some((x) => (Array.isArray(x) ? x.length : x && typeof x === "object" ? x.on || x.name : x));
-  const subtitle = loading
-    ? "Chargement…"
+  const subtitle = loading || searching
+    ? "Recherche en cours…"
     : list.length
       ? `${inWords(list.length, cat)} d'après vos critères.`
       : wishesOn && cat === "lieu"
@@ -142,11 +148,18 @@ export default function Trouver() {
 
   const overlays = (
     <>
-      {envies ? (
-        <EnviesPanel
+      {filters ? (
+        <FiltersPanel
+          category={cat}
+          price={price}
           onClose={() => {
-            setEnvies(false);
+            setFilters(false);
             writeParams({ envies: null });
+          }}
+          onApply={(p) => {
+            setPrice(p);
+            setSearching(true);
+            window.scrollTo({ top: 0 });
           }}
         />
       ) : null}
@@ -159,7 +172,7 @@ export default function Trouver() {
   if (view === "carte" && phone) {
     return (
       <>
-        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} onList={() => changeView("liste")} pending={pending} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={activeFilters(dash.data, price)} onList={() => changeView("liste")} pending={pending} />
         {overlays}
       </>
     );
@@ -170,7 +183,7 @@ export default function Trouver() {
       <PrHead on="trouver" />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <CriteriaBox onEnvies={() => setEnvies(true)} />
+      <SearchSummary category={cat} venueName={venueName} price={price} busy={searching} onOpen={() => setFilters(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
         <div className="d-pr-tabrow-right">
@@ -179,14 +192,14 @@ export default function Trouver() {
       </div>
 
       {view === "carte" ? (
-        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onEnvies={() => setEnvies(true)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={activeFilters(dash.data, price)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
       ) : (
         <>
           <div className="d-pr-intro">
             <h2>Nos recommandations pour vous</h2>
             <p>{subtitle}</p>
           </div>
-          <div className="d-pr-grid">
+          <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
             {list.map((v, i) => (
               <Fragment key={v.id}>
                 <ConfirmDivider list={list} index={i} category={cat} />
@@ -204,114 +217,23 @@ export default function Trouver() {
 }
 
 // ---------------------------------------------------------------------------
-// Vue carte (7d, 7p)
+// Vue carte (7d, 7p) : marqueurs photo, la liste à côté (ordinateur) ou dans un tiroir à trois hauteurs
+// (téléphone : replié, à mi-hauteur, plein écran). Toucher un marqueur met sa carte en avant dans la liste.
 // ---------------------------------------------------------------------------
 
-const PRICE_MAX = 30000;
+const SHEET = ["peek", "half", "full"];
 
-function fmt(n) {
-  return Math.round(n).toLocaleString("fr-FR").replace(/\s/g, " ");
-}
-
-function PriceFilter({ value, count, onApply, onClose }) {
-  const [range, setRange] = useState(value || [7000, 13000]);
-  const track = useRef(null);
-  const drag = (k) => (e) => {
-    e.preventDefault();
-    const el = track.current;
-    const move = (ev) => {
-      const r = el.getBoundingClientRect();
-      const pct = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
-      const v = Math.round((pct * PRICE_MAX) / 100) * 100;
-      setRange((x) => (k === 0 ? [Math.min(v, x[1] - 500), x[1]] : [x[0], Math.max(v, x[0] + 500)]));
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-  const lo = (range[0] / PRICE_MAX) * 100;
-  const hi = (range[1] / PRICE_MAX) * 100;
-  const parse = (s) => Number(String(s).replace(/[^\d]/g, "")) || 0;
-  return (
-    <div role="dialog" aria-label="Fourchette de prix" className="d-pr-pricepop">
-      <div className="d-pr-pricepop-t">
-        <strong>Fourchette de prix</strong>
-        <span>Location du lieu, prix de départ</span>
-      </div>
-      <div>
-        <svg width="236" height="56" viewBox="0 0 236 56" aria-hidden="true" style={{ display: "block", width: "100%" }} preserveAspectRatio="none">
-          {PRICE_BARS.map((h, i) => {
-            const x = 10.8 + i * 9.83;
-            const on = x >= (lo / 100) * 236 && x + 7.8 <= (hi / 100) * 236;
-            return <rect key={i} x={x} y={56 - h} width="7.8" height={h} rx="1.5" fill={on ? "#1c1c1a" : "#d9d7cf"} />;
-          })}
-        </svg>
-        <div className="d-pr-slider" ref={track}>
-          <span className="d-pr-slider-track" />
-          <span className="d-pr-slider-fill" style={{ left: `${lo}%`, width: `${hi - lo}%` }} />
-          <button type="button" role="slider" aria-label="Prix minimum" aria-valuemin={0} aria-valuemax={PRICE_MAX} aria-valuenow={range[0]} aria-valuetext={euros(range[0])} style={{ left: `${lo}%` }} onPointerDown={drag(0)} />
-          <button type="button" role="slider" aria-label="Prix maximum" aria-valuemin={0} aria-valuemax={PRICE_MAX} aria-valuenow={range[1]} aria-valuetext={euros(range[1])} style={{ left: `${hi}%` }} onPointerDown={drag(1)} />
-        </div>
-      </div>
-      <div className="d-pr-pricepop-inputs">
-        <div>
-          <label htmlFor="prix-min">Minimum</label>
-          <div className="d-pr-eurbox">
-            <input id="prix-min" type="text" inputMode="numeric" value={fmt(range[0])} onChange={(e) => setRange((x) => [Math.min(parse(e.target.value), x[1]), x[1]])} />
-            <span aria-hidden="true">€</span>
-          </div>
-        </div>
-        <span aria-hidden="true" className="d-pr-pricepop-a">
-          à
-        </span>
-        <div>
-          <label htmlFor="prix-max">Maximum</label>
-          <div className="d-pr-eurbox">
-            <input id="prix-max" type="text" inputMode="numeric" value={fmt(range[1])} onChange={(e) => setRange((x) => [x[0], Math.max(parse(e.target.value), x[0])])} />
-            <span aria-hidden="true">€</span>
-          </div>
-        </div>
-      </div>
-      <div className="d-pr-pricepop-foot">
-        <button
-          type="button"
-          className="d-pr-textbtn is-small"
-          onClick={() => {
-            onApply(null);
-            onClose();
-          }}
-        >
-          Effacer
-        </button>
-        <button
-          type="button"
-          className="d-btn d-btn-primary d-btn-small"
-          onClick={() => {
-            onApply(range);
-            onClose();
-          }}
-        >
-          Voir {count(range)}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onToggle, onOpen, onEnvies, onList, pending, onRequest, onClear }) {
+function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onToggle, onOpen, onFilters, filtersCount, onList, pending, onRequest }) {
   const c = catOf(cat);
   const [center, setCenter] = useState(phone ? { x: 504.6, y: 755.4 } : { x: 500, y: 550 });
   const [scale, setScale] = useState(phone ? 0.788 : 1);
   const [activeId, setActive] = useState(null);
-  const active = activeId ?? list[0]?.id ?? null;
-  const [price, setPrice] = useState(null);
-  const [priceOpen, setPriceOpen] = useState(false);
+  const active = activeId;
   const [zone, setZone] = useState(null);
-  const [tall, setTall] = useState(false);
+  const [sheet, setSheet] = useState("half");
   const boundsRef = useRef(null);
+  const listRef = useRef(null);
+  const dragRef = useRef(null);
 
   const onView = ({ center: c2, scale: s2 }) => {
     setCenter(c2);
@@ -329,7 +251,6 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
     const xs = pts.map((p) => p.x);
     const ys = pts.map((p) => p.y);
     const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-    // Toutes les épingles à l'écran : taille de la carte lue sur le dernier rendu (sinon celle du canvas)
     const b = boundsRef.current;
     const w = b ? (b.x1 - b.x0) * scale : phone ? 390 : 670;
     const h = (b ? (b.y1 - b.y0) * scale : phone ? 743 : 940) - (phone ? 360 : 0);
@@ -337,7 +258,6 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
     const next = Math.max(MAP_MIN_SCALE, fit);
     const y = (minY + maxY) / 2;
     setScale(next);
-    // Téléphone : les épingles au-dessus du tiroir de la liste
     setCenter({ x: (minX + maxX) / 2, y: phone ? y + 180 / next : y });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, list, phone, cat]);
@@ -358,41 +278,27 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, list]);
 
-  // Prix inconnu : gardé (« à confirmer »), comme pour les autres critères
-  const inPrice = (v, r = price) => !r || !v.price || (v.price >= r[0] && v.price <= r[1]);
   const inZone = (v) => {
     if (!zone || source !== "exemple") return true;
     const p = mapPoint(v);
     return p && p.x >= zone.x0 && p.x <= zone.x1 && p.y >= zone.y0 && p.y <= zone.y1;
   };
-  const shown = list.filter((v) => inPrice(v) && inZone(v));
+  const shown = list.filter(inZone);
   const clusters = source === "exemple" && cat === "lieu" ? sampleClusters() : [];
   const title = `${countLabel(shown.length, cat)} dans cette zone`;
-  const priceCount = (r) => {
-    const n = list.filter((v) => inPrice(v, r) && inZone(v)).length;
-    return `${n} ${n > 1 ? c.many : c.one}`;
-  };
 
-  const chips = (
-    <div className="d-pr-mapchips">
-      <button type="button" aria-haspopup="true" aria-expanded={priceOpen} className={`d-pr-mapchip${price || priceOpen ? " is-on" : ""}`} onClick={() => setPriceOpen((o) => !o)}>
-        {price ? `Prix : ${fmt(price[0])} à ${fmt(price[1])} €` : "Prix"}
-        <Icon name="chevDown" size={13} sw={2.2} />
-      </button>
-      {["Capacité", "Style", "Accès"].map((l) => (
-        <button key={l} type="button" aria-haspopup="true" aria-expanded={false} className="d-pr-mapchip" onClick={onEnvies}>
-          {l}
-          <Icon name="chevDown" size={13} sw={2.2} />
-        </button>
-      ))}
-    </div>
-  );
+  // Le marqueur touché : sa carte en avant dans la liste, qui défile jusqu'à elle (tiroir ouvert au besoin)
+  const pick = (v) => {
+    if (v.id === active && phone) return onOpen(v);
+    setActive(v.id);
+    if (phone && sheet === "peek") setSheet("half");
+    requestAnimationFrame(() => listRef.current?.querySelector(`[data-id="${CSS.escape(v.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  };
 
   const map = (
     <MapCanvas center={center} scale={scale} onView={onView} label={c.key === "lieu" ? "Carte des lieux" : `Carte des ${c.many}`} className={phone ? "is-phone" : "is-desk"}>
       {({ toScreen, bounds }) => {
         boundsRef.current = bounds;
-        const act = shown.find((v) => v.id === active);
         return (
           <>
             {clusters.map((k) => {
@@ -416,9 +322,8 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
             {shown.map((v) => {
               const p = mapPoint(v);
               if (!p) return null;
-              return <PricePin key={v.id} v={v} at={toScreen(p)} active={v.id === active} picked={isPicked(v)} small={phone} onClick={() => (v.id === active && phone ? onOpen(v) : setActive(v.id))} />;
+              return <PricePin key={v.id} v={v} at={toScreen(p)} active={v.id === active} picked={isPicked(v)} small={phone} onClick={() => pick(v)} />;
             })}
-            {!phone && act && mapPoint(act) ? <MapPopup v={act} at={toScreen(mapPoint(act))} /> : null}
           </>
         );
       }}
@@ -443,74 +348,81 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
     </button>
   );
 
+  const filtersBtn = (
+    <button type="button" className={`d-pr-filters-btn is-float${filtersCount ? " is-on" : ""}`} onClick={onFilters} aria-haspopup="dialog">
+      <Icon name="list" size={16} sw={2} />
+      Filtres
+      {filtersCount ? <span className="d-pr-filters-badge">{filtersCount}</span> : null}
+    </button>
+  );
+
+  const cards = shown.map((v) => (
+    <MiniCard key={v.id} v={v} size={phone ? 96 : 120} picked={isPicked(v)} active={v.id === active} onToggle={() => onToggle(v)} onOpen={() => onOpen(v)} onFocus={phone ? undefined : () => setActive(v.id)} />
+  ));
+
   if (phone) {
+    // Tiroir : la poignée se tire vers le haut ou le bas, ou se touche pour passer à la hauteur suivante
+    const step = (d) => setSheet((s) => SHEET[Math.min(2, Math.max(0, SHEET.indexOf(s) + d))]);
+    const onDown = (e) => (dragRef.current = e.clientY);
+    const onUp = (e) => {
+      const y0 = dragRef.current;
+      dragRef.current = null;
+      if (y0 === null || y0 === undefined) return;
+      const dy = e.clientY - y0;
+      if (Math.abs(dy) < 12) step(sheet === "full" ? -2 : 1);
+      else step(dy < 0 ? 1 : -1);
+    };
     return (
       <div className="d-pr-mapm">
         {map}
-        {chips}
-        {priceOpen ? <PriceFilter value={price} count={priceCount} onApply={setPrice} onClose={() => setPriceOpen(false)} /> : null}
-        {searchZone}
-        <div role="region" aria-label={`${c.tab} dans cette zone`} className={`d-pr-sheet${tall ? " is-tall" : ""}`}>
-          <button type="button" className="d-pr-sheet-handle" aria-label={tall ? "Réduire la liste" : "Agrandir la liste"} onClick={() => setTall((t) => !t)}>
+        <div className="d-pr-maptop">
+          <button type="button" className="d-pr-mapback" onClick={onList} aria-label="Revenir à la liste">
+            <Icon name="back" size={18} sw={2.2} />
+          </button>
+          {filtersBtn}
+        </div>
+        {sheet !== "full" ? searchZone : null}
+        <div role="region" aria-label={`${c.tab} dans cette zone`} className={`d-pr-sheet is-${sheet}`}>
+          <button type="button" className="d-pr-sheet-handle" aria-label={sheet === "full" ? "Réduire la liste" : "Agrandir la liste"} onPointerDown={onDown} onPointerUp={onUp}>
             <span />
           </button>
-          <div className="d-pr-sheet-head">
+          <div className="d-pr-sheet-head" onPointerDown={onDown} onPointerUp={onUp}>
             <h2>{title}</h2>
-            <span className="d-pr-sheet-links">
-              <Link href="/dashboard/prestataires/mes" className="d-pr-pillink">
-                <Icon name="heart" size={14} sw={2} />
-                Mes prestataires
-              </Link>
-              <button type="button" className="d-pr-pillink is-plain" onClick={onList}>
-                <Icon name="list" size={15} sw={2} />
-                Liste
-              </button>
-            </span>
           </div>
-          <div className="d-pr-sheet-list">
-            {shown.map((v) => (
-              <MiniCard key={v.id} v={v} size={104} picked={isPicked(v)} active={false} onToggle={() => onToggle(v)} onOpen={() => onOpen(v)} />
-            ))}
+          <div className="d-pr-sheet-list" ref={listRef}>
+            {cards}
             <MoreButton rec={rec} category={cat} className="is-list" />
           </div>
         </div>
+        {sheet === "full" ? (
+          <button type="button" className="d-pr-maplistbtn" onClick={() => setSheet("peek")}>
+            <Icon name="map" size={16} sw={2} />
+            Carte
+          </button>
+        ) : (
+          <button type="button" className="d-pr-maplistbtn" onClick={onList}>
+            <Icon name="list" size={16} sw={2} />
+            Liste
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="d-pr-split">
-      <div className="d-pr-split-list">
+      <div className="d-pr-split-list" ref={listRef}>
         <div className="d-pr-split-head">
           <h2>{title}</h2>
           <span>Par pertinence</span>
         </div>
-        {shown.map((v) => (
-          <MiniCard
-            key={v.id}
-            v={v}
-            size={120}
-            picked={isPicked(v)}
-            active={v.id === active}
-            onToggle={() => onToggle(v)}
-            onOpen={() => {
-              setActive(v.id);
-              onOpen(v);
-            }}
-            onFocus={() => {
-              setActive(v.id);
-              const p = mapPoint(v);
-              if (p) setCenter(p);
-            }}
-          />
-        ))}
+        {cards}
         <MoreButton rec={rec} category={cat} className="is-list" />
         {pending.length ? <CompactBar picks={pending} onRequest={onRequest} /> : null}
       </div>
       <div className="d-pr-split-map">
         {map}
-        {chips}
-        {priceOpen ? <PriceFilter value={price} count={priceCount} onApply={setPrice} onClose={() => setPriceOpen(false)} /> : null}
+        <div className="d-pr-maptop is-desk">{filtersBtn}</div>
         {searchZone}
         <div className="d-pr-zoom">
           <button type="button" aria-label="Zoomer" onClick={() => setScale((s) => Math.min(6, s * 1.4))}>
@@ -526,33 +438,10 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
   );
 }
 
-function MapPopup({ v, at }) {
-  const photo = (v.photos || []).find(Boolean);
-  return (
-    <div role="dialog" aria-label={v.name} className="d-pr-popup" style={{ left: at.left - 24, top: at.top - 24 }}>
-      <div role="img" aria-label={`${v.name}, ${v.area}`} className="d-pr-popup-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }} />
-      <div className="d-pr-popup-body">
-        <div className="d-pr-popup-name">
-          <strong>{v.name}</strong>
-          <span>{v.area}</span>
-        </div>
-        <div className="d-pr-popup-name">
-          <Price v={v} unit=" " />
-          {v.priceRange ? <span>{v.priceRange}</span> : null}
-        </div>
-        <Link href="/dashboard/prestataires/lieux" className="d-pr-arrowlink">
-          Voir le lieu
-          <Icon name="arrowRight" size={15} sw={2} />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 // Carte compacte de la liste à côté de la carte (7d) et du tiroir téléphone (7p)
 function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
   return (
-    <article className={`d-pr-mini${active ? " is-active" : ""}`} onMouseEnter={onFocus}>
+    <article className={`d-pr-mini${active ? " is-active" : ""}`} data-id={v.id} onMouseEnter={onFocus}>
       <button type="button" className="d-pr-mini-img" style={{ width: size, height: size, backgroundImage: (v.photos || []).find(Boolean) ? `url("${(v.photos || []).find(Boolean)}")` : undefined }} aria-label={v.name} onClick={onOpen}>
         {(v.photos || []).find(Boolean) ? null : <span>Photo à venir</span>}
       </button>
