@@ -15,7 +15,7 @@ import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
 import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
-import { euros, toDate } from "@/lib/dash/format";
+import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { CritIcon, FactChips } from "./Criteria";
 import VendorComments from "./VendorComments";
@@ -329,7 +329,8 @@ export function Price({ v, unit, big }) {
 // Détail d'une carte : « 140 places assises · 32 couchages · 35 min de l'aéroport de Marseille »
 export function details(v, venueName) {
   if (v.category === "lieu") return [v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null, v.access].filter(Boolean).join(" · ");
-  if (v.km !== undefined) return `${v.works && venueName ? `Intervient au ${venueName}` : "Près de votre lieu"} · ${v.km} km`;
+  // Distance au lieu choisi : c'est la référence des prestataires qui ne sont pas des lieux
+  if (v.km !== undefined) return v.works && venueName ? `Intervient ${withArticle(venueName)} · à ${v.km} km` : `À ${v.km} km ${venueName ? withArticle(venueName, "de") : "de votre lieu"}`;
   return v.area || "";
 }
 
@@ -1638,14 +1639,7 @@ export function SampleNote({ source }) {
           </span>
         </div>
       ) : null}
-      {source === "exemple" ? (
-        <div className="d-card is-panel">
-          <strong>Sélection d'exemple.</strong>
-          <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
-            Le catalogue Merry n'a pas encore de prestataire validé dans votre région : ces propositions illustrent la page. Les demandes de devis s'enregistrent sur la fiche de chaque prestataire, sans mail envoyé.
-          </span>
-        </div>
-      ) : null}
+      {source === "exemple" ? <p className="d-pr-samplenote">Exemples : pas encore de prestataire validé dans votre région.</p> : null}
     </>
   );
 }

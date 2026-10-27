@@ -11169,3 +11169,10 @@ body.d-noscroll {
     background: #ffffff;
   }
 }
+
+/* Sélection d'exemple : une ligne, pas un bloc */
+.d-pr-samplenote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--d-muted);
+}
