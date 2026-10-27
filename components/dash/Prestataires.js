@@ -9,15 +9,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
-import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
+import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
 import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
-import { euros, toDate } from "@/lib/dash/format";
+import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { CritIcon, FactChips } from "./Criteria";
+import { FactChips } from "./Criteria";
 import VendorComments from "./VendorComments";
 
 // ---------------------------------------------------------------------------
@@ -26,7 +26,28 @@ import VendorComments from "./VendorComments";
 
 export function usePicks() {
   const dash = useDash();
-  const { picks = [], picksSetup, meId } = dash.data;
+  const { picks: saved = [], picksSetup, meId } = dash.data;
+  // Photos des lieux du catalogue redemandées : celles gardées avec la sélection ne valent qu'une heure
+  const [covers, setCovers] = useState(() => new Map());
+  const catalogIds = saved.map((p) => /^catalog:(.+)$/.exec(p.catalog_ref || "")?.[1]).filter(Boolean);
+  const idsKey = catalogIds.join(",");
+  useEffect(() => {
+    if (dash.mode !== "live" || !catalogIds.length) return undefined;
+    let live = true;
+    freshCovers(catalogIds).then((m) => live && setCovers(m));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey, dash.mode]);
+  const picks = useMemo(
+    () =>
+      saved.map((p) => {
+        const url = covers.get(/^catalog:(.+)$/.exec(p.catalog_ref || "")?.[1]);
+        return url ? { ...p, data: { ...(p.data || {}), photos: [url] } } : p;
+      }),
+    [saved, covers],
+  );
   const byRef = useMemo(() => new Map(picks.map((p) => [p.catalog_ref, p])), [picks]);
 
   const ready = useCallback(() => {
@@ -329,7 +350,8 @@ export function Price({ v, unit, big }) {
 // Détail d'une carte : « 140 places assises · 32 couchages · 35 min de l'aéroport de Marseille »
 export function details(v, venueName) {
   if (v.category === "lieu") return [v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null, v.access].filter(Boolean).join(" · ");
-  if (v.km !== undefined) return `${v.works && venueName ? `Intervient au ${venueName}` : "Près de votre lieu"} · ${v.km} km`;
+  // Distance au lieu choisi : c'est la référence des prestataires qui ne sont pas des lieux
+  if (v.km !== undefined) return v.works && venueName ? `Intervient ${withArticle(venueName)} · à ${v.km} km` : `À ${v.km} km ${venueName ? withArticle(venueName, "de") : "de votre lieu"}`;
   return v.area || "";
 }
 
@@ -456,16 +478,61 @@ export function FiltersNote({ rec }) {
 // Bandeau « Ma sélection » : noir pour une seule catégorie (7), blanc pour plusieurs (7g)
 // ---------------------------------------------------------------------------
 
+// Bandeau réduit en pastille « 3 ♥ » : mémorisé pour la session
+const REDUCED_KEY = "merry-selection-reduite";
+export function useReducedBar() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    try {
+      setReduced(window.sessionStorage.getItem(REDUCED_KEY) === "1");
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+  const set = (on) => {
+    setReduced(on);
+    try {
+      if (on) window.sessionStorage.setItem(REDUCED_KEY, "1");
+      else window.sessionStorage.removeItem(REDUCED_KEY);
+    } catch {
+      /* stockage indisponible */
+    }
+  };
+  return [reduced, set];
+}
+
+export function SelectionPill({ count, onOpen, label = "Rouvrir ma sélection" }) {
+  return (
+    <div className="d-pr-selpill-wrap">
+      <button type="button" className="d-pr-selpill" aria-label={`${label} : ${count}`} onClick={onOpen}>
+        {count}
+        <Icon name="heart" size={15} sw={2} />
+      </button>
+    </div>
+  );
+}
+
+function ReduceBtn({ onClick, light }) {
+  return (
+    <button type="button" className={`d-pr-bar-reduce${light ? " is-light" : ""}`} aria-label="Réduire ma sélection" onClick={onClick}>
+      <Icon name="x" size={14} sw={2.2} />
+    </button>
+  );
+}
+
 export function SelectionBar({ picks, onRequest, onClear }) {
   const by = picksBy(picks);
   const groups = CATEGORIES.filter((c) => by[c.key].length);
+  const [reduced, setReduced] = useReducedBar();
   if (!picks.length) return null;
+  if (reduced) return <SelectionPill count={picks.length} onOpen={() => setReduced(false)} />;
   if (groups.length === 1) {
     const c = groups[0];
     const list = by[c.key];
     const names = list.map((p) => p.data?.name).join(", ");
     return (
       <div role="region" aria-label="Ma sélection" className="d-pr-bar is-dark">
+        <ReduceBtn onClick={() => setReduced(true)} />
         <div className="d-pr-bar-main">
           <span className="d-pr-stack">
             {list.slice(0, 3).map((p, i) => (
@@ -495,6 +562,7 @@ export function SelectionBar({ picks, onRequest, onClear }) {
   }
   return (
     <div role="region" aria-label="Ma sélection" className="d-pr-bar is-light">
+      <ReduceBtn onClick={() => setReduced(true)} light />
       <div className="d-pr-bar-groups">
         {groups.map((c, gi) => (
           <span key={c.key} className="d-pr-bar-groupwrap">
@@ -538,7 +606,7 @@ export function SelectionBar({ picks, onRequest, onClear }) {
 // Panneaux : tiroir à droite (envies, fiche) et fenêtre centrée (demande de devis)
 // ---------------------------------------------------------------------------
 
-function Layer({ kind, label, labelledBy, onClose, children }) {
+export function Layer({ kind, label, labelledBy, onClose, children }) {
   const [host, setHost] = useState(null);
   const ref = useRef(null);
   // onClose peut changer pendant que la fenêtre est ouverte (garde de la demande de devis) :
@@ -571,7 +639,7 @@ function Layer({ kind, label, labelledBy, onClose, children }) {
   );
 }
 
-function CloseBtn({ onClose, label = "Fermer" }) {
+export function CloseBtn({ onClose, label = "Fermer" }) {
   return (
     <button type="button" className="d-pr-close" aria-label={label} onClick={onClose}>
       <Icon name="x" size={18} sw={2} stroke="#1c1c1a" />
@@ -583,16 +651,16 @@ function CloseBtn({ onClose, label = "Fermer" }) {
 // Préciser mes envies (7c et 7o)
 // ---------------------------------------------------------------------------
 
-const ACCESS = [
+export const ACCESS = [
   { key: "parking", label: "Parking sur place" },
   { key: "pmr", label: "Accessible PMR" },
 ];
-const VENUE = [
+export const VENUE = [
   { key: "ceremonie_exterieur", label: "Cérémonie en extérieur" },
   { key: "exclusivite", label: "Lieu en exclusivité" },
   { key: "fin_tardive", label: "Fin de soirée après 2 h" },
 ];
-const CATERER = [
+export const CATERER = [
   { key: "libre", label: "Libre" },
   { key: "impose", label: "Imposé" },
   { key: "indifferent", label: "Indifférent" },
@@ -625,7 +693,7 @@ export function styleCriteria(text) {
 
 const MINUTES = [30, 45, 60];
 
-function Choice({ on, children, onClick, role = "button", small }) {
+export function Choice({ on, children, onClick, role = "button", small }) {
   const props = role === "radio" ? { role: "radio", "aria-checked": on } : { "aria-pressed": on };
   return (
     <button type="button" {...props} className={`d-pr-opt${on ? " is-on" : ""}${small ? " is-small" : ""}`} onClick={onClick}>
@@ -635,7 +703,7 @@ function Choice({ on, children, onClick, role = "button", small }) {
   );
 }
 
-function OtherNumber({ value, presets, onChange, label, suffix }) {
+export function OtherNumber({ value, presets, onChange, label, suffix }) {
   const custom = value && !presets.includes(value);
   return (
     <label className={`d-pr-other${custom ? " is-on" : ""}`}>
@@ -645,7 +713,7 @@ function OtherNumber({ value, presets, onChange, label, suffix }) {
   );
 }
 
-function MaxRow({ value, onChange, label }) {
+export function MaxRow({ value, onChange, label }) {
   return (
     <div role="radiogroup" aria-label={label} className="d-pr-optrow is-indent">
       <span className="d-pr-optrow-label">Au plus</span>
@@ -659,169 +727,7 @@ function MaxRow({ value, onChange, label }) {
   );
 }
 
-const EMPTY_WISHES = { regions: [], airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
-
-export function EnviesPanel({ onClose }) {
-  const dash = useDash();
-  const [w, setW] = useState(() => ({ ...EMPTY_WISHES, ...(dash.data.wishes?.wishes || {}) }));
-  const set = (patch) => setW((x) => ({ ...x, ...patch }));
-  const toggleIn = (key, v) => set({ [key]: w[key].includes(v) ? w[key].filter((x) => x !== v) : [...w[key], v] });
-  const criteria = styleCriteria(w.style).filter((c) => !w.removed.includes(c));
-
-  // Chaque choix s'applique tout de suite aux recommandations (le texte libre, après une courte pause)
-  const ready = useRef(false);
-  const latest = useRef(w);
-  latest.current = w;
-  const warned = useRef(false);
-  const apply = () => {
-    if (dash.mode === "live" && !dash.data.picksSetup) {
-      if (!warned.current) dash.setToast({ kind: "error", text: "Vos envies ne peuvent pas encore être enregistrées : collez supabase/prestataires.sql dans Supabase (SQL Editor)." });
-      warned.current = true;
-      return;
-    }
-    const x = latest.current;
-    dash.saveWishes({ wishes: { ...x, criteria: styleCriteria(x.style).filter((c) => !x.removed.includes(c)) } });
-  };
-  useEffect(() => {
-    if (!ready.current) {
-      ready.current = true;
-      return undefined;
-    }
-    const t = setTimeout(apply, 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [w]);
-
-  return (
-    <Layer kind="drawer" labelledBy="envies-titre" onClose={onClose}>
-      <div className="d-pr-panel-head">
-        <h2 id="envies-titre">Préciser mes envies</h2>
-        <CloseBtn onClose={onClose} />
-      </div>
-      <div className="d-pr-panel-body d-pr-envies">
-        <section className="d-pr-wsec">
-          <div className="d-pr-wsec-head">
-            <h3>Accès</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Près d'un aéroport</span>
-            <div className="d-pr-optrow">
-              <Choice on={w.airport.on} onClick={() => set({ airport: { ...w.airport, on: !w.airport.on } })}>
-                Près d'un aéroport
-              </Choice>
-            </div>
-            {w.airport.on ? <MaxRow label="Temps de trajet maximum depuis l'aéroport" value={w.airport.max} onChange={(max) => set({ airport: { ...w.airport, max } })} /> : null}
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Près d'une gare</span>
-            <div className="d-pr-optrow">
-              <Choice on={w.station.on} onClick={() => set({ station: { ...w.station, on: !w.station.on } })}>
-                Près d'une gare TGV
-              </Choice>
-            </div>
-            {w.station.on ? <MaxRow label="Temps de trajet maximum depuis la gare" value={w.station.max} onChange={(max) => set({ station: { ...w.station, max } })} /> : null}
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Accès facile</span>
-            <div className="d-pr-optrow">
-              {ACCESS.map((a) => (
-                <Choice key={a.key} on={w.access.includes(a.key)} onClick={() => toggleIn("access", a.key)}>
-                  {a.label}
-                </Choice>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Le lieu</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Places assises, au moins</span>
-            <div role="radiogroup" aria-label="Places assises, au moins" className="d-pr-optrow">
-              {[80, 120, 160].map((n) => (
-                <Choice key={n} role="radio" small on={w.seats === n} onClick={() => set({ seats: w.seats === n ? null : n })}>
-                  {n}
-                </Choice>
-              ))}
-              <OtherNumber value={w.seats} presets={[80, 120, 160]} onChange={(seats) => set({ seats })} label="Autre nombre de places" />
-            </div>
-          </div>
-          <div className="d-pr-wgroup">
-            <span className="d-pr-wlabel">Couchages sur place, au moins</span>
-            <div role="radiogroup" aria-label="Couchages sur place, au moins" className="d-pr-optrow">
-              {[10, 20, 30].map((n) => (
-                <Choice key={n} role="radio" small on={w.beds === n} onClick={() => set({ beds: w.beds === n ? null : n })}>
-                  {n}
-                </Choice>
-              ))}
-              <OtherNumber value={w.beds} presets={[10, 20, 30]} onChange={(beds) => set({ beds })} label="Autre nombre de couchages" />
-            </div>
-          </div>
-          <div className="d-pr-optrow">
-            {VENUE.map((a) => (
-              <Choice key={a.key} on={w.venue.includes(a.key)} onClick={() => toggleIn("venue", a.key)}>
-                {a.label}
-              </Choice>
-            ))}
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Traiteur</h3>
-            <span>Facultatif</span>
-          </div>
-          <div role="radiogroup" aria-label="Traiteur" className="d-pr-optrow">
-            {CATERER.map((c) => (
-              <Choice key={c.key} role="radio" on={w.caterer === c.key} onClick={() => set({ caterer: w.caterer === c.key ? null : c.key })}>
-                {c.label}
-              </Choice>
-            ))}
-          </div>
-        </section>
-
-        <section className="d-pr-wsec is-ruled">
-          <div className="d-pr-wsec-head">
-            <h3>Votre style</h3>
-            <span>Facultatif</span>
-          </div>
-          <div className="d-pr-wgroup is-10">
-            <label htmlFor="envies-style" className="d-pr-wlabel">
-              Décrivez votre lieu idéal en quelques mots
-            </label>
-            <textarea id="envies-style" rows={3} className="d-textarea d-pr-field" placeholder="Décrivez votre lieu idéal en quelques mots" value={w.style} onChange={(e) => set({ style: e.target.value })} />
-            {criteria.length ? (
-              <>
-                <div className="d-pr-optrow">
-                  {criteria.map((c) => (
-                    <span key={c} className="d-pr-crit">
-                      {c}
-                      <button type="button" aria-label={`Retirer ${c}`} onClick={() => set({ removed: [...w.removed, c] })}>
-                        <Icon name="x" size={11} sw={2.6} stroke="#35520a" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </div>
-        </section>
-      </div>
-      <div className="d-pr-panel-foot is-split">
-        <button type="button" className="d-pr-textbtn" onClick={() => setW({ ...EMPTY_WISHES, regions: w.regions, city: w.city })}>
-          Effacer
-        </button>
-        <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={onClose}>
-          Voir les résultats
-        </button>
-      </div>
-    </Layer>
-  );
-}
+export const EMPTY_WISHES = { regions: [], airport: { on: false, max: null }, station: { on: false, max: null }, city: { name: "", max: null }, access: [], seats: null, beds: null, venue: [], caterer: null, style: "", removed: [] };
 
 // ---------------------------------------------------------------------------
 // Fond de carte (7d, 7e, 7p, 7q) : un repère commun, chaque vue choisit son centre et son échelle
@@ -1042,18 +948,26 @@ export function MapCanvas({ center, scale, className = "", children, onView, lab
 }
 
 // Étiquette de prix d'un lieu sur la carte
+// Marqueur de la carte : la photo du lieu, en rond ; un cœur s'il est dans la sélection. Le nom reste dans la liste.
 export function PricePin({ v, at, active, picked, onClick, small }) {
   const photo = (v.photos || []).find(Boolean);
   return (
     <button
       type="button"
-      className={`d-pr-pin${active ? " is-active" : picked ? " is-picked" : ""}${small ? " is-small" : ""}`}
+      className={`d-pr-pin is-photo${active ? " is-active" : ""}${small ? " is-small" : ""}`}
       style={{ left: at.left, top: at.top }}
       aria-label={`${v.name}${v.price ? `, à partir de ${euros(v.price)}` : ""}${picked ? ", dans votre sélection" : ""}`}
+      aria-pressed={active}
       onClick={onClick}
     >
-      <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }} />
-      <span className="d-pr-pin-label">{v.price ? euros(v.price) : v.name}</span>
+      <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: photo ? `url("${photo}")` : undefined }}>
+        {photo ? null : initialsOf(v.name)}
+      </span>
+      {picked ? (
+        <span aria-hidden="true" className="d-pr-pin-heart">
+          <Icon name="heart" size={10} sw={2} stroke="#ffffff" fill="#ffffff" />
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -1162,17 +1076,21 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
         {facts.length ? (
-          <div className="d-pr-facts">
-            {facts.map(([icon, k, val, match]) => (
-              <div key={k} className={`d-pr-fact${match ? " is-match" : ""}`}>
-                <span className="d-pr-fact-ic">{vf.length ? <CritIcon k={icon} size={18} tint={match} /> : <Icon name={icon} size={18} sw={1.7} stroke="#1c1c1a" />}</span>
-                <span>
-                  <small>{k}</small>
-                  <strong>{val}</strong>
-                </span>
-              </div>
-            ))}
-          </div>
+          // Le détail des faits, replié : la liste « Pourquoi ce lieu » dit déjà l'essentiel
+          <details className="d-pr-fdetails">
+            <summary>
+              Tous les détails
+              <Icon name="chevDown" size={14} sw={2.2} />
+            </summary>
+            <dl>
+              {facts.map(([icon, k, val]) => (
+                <div key={k}>
+                  <dt>{k}</dt>
+                  <dd>{val}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
         ) : null}
         {v.price ? (
           <section className="d-pr-offer">
@@ -1210,19 +1128,10 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
             ) : null}
           </section>
         ) : null}
-        {v.story || v.why || matched.length ? (
+        {v.story || v.why || matched.length || vf.length ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
-            {matched.length ? (
-              <ul className="d-pr-why-list" aria-label="Ce qui répond à vos critères">
-                {matched.map((f) => (
-                  <li key={f.key}>
-                    <CritIcon k={f.key} size={16} tint />
-                    <span>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            {matched.length ? <FactChips facts={matched} className="is-fiche" /> : vf.length ? <FactChips facts={vf.slice(0, 4)} className="is-fiche" /> : null}
             {v.story || v.why ? <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p> : null}
             {v.checks?.length ? (
               <div className="d-pr-included">
@@ -1343,7 +1252,15 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const [draft, setDraft] = useState(() => ({ ...fresh, ...(readDraft(weddingId) || {}) }));
+  // Brouillon gardé : un ancien message finissait par la signature, désormais ajoutée en dernier à l'envoi
+  const [draft, setDraft] = useState(() => {
+    const saved = readDraft(weddingId) || {};
+    if (saved.message) {
+      const { body, closing } = splitSignature(saved.message);
+      if (!closing || /^merci beaucoup/i.test(closing)) saved.message = body;
+    }
+    return { ...fresh, ...saved };
+  });
   const { message, questions, dates, flexible, months, years, share } = draft;
   const set = (patch) => setDraft((d) => ({ ...d, ...(typeof patch === "function" ? patch(d) : patch) }));
   const [list, setList] = useState(initial);
@@ -1394,7 +1311,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       <div className="d-pr-panel-body d-pr-devis">
         <section className="d-pr-dsec">
           <h3>À qui</h3>
-          <span className="d-pr-dsub">{summary(list) || "Personne pour l’instant"}</span>
+          {list.length ? null : <span className="d-pr-dsub">Personne pour l’instant</span>}
           <ul className="d-pr-to">
             {list.map((p) => {
               const c = catOf(p.category);
@@ -1429,12 +1346,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
             </div>
             {cats.map((c) => (
               <fieldset key={c.key} className="d-pr-qset">
-                <legend>
-                  {legendFor(c.key, by[c.key].length)}{" "}
-                  <span>
-                    · envoyé à {by[c.key].length} prestataire{by[c.key].length > 1 ? "s" : ""}
-                  </span>
-                </legend>
+                <legend>{legendFor(c.key, by[c.key].length)}</legend>
                 {questions[c.key].map((x, k) => (
                   <label key={k} className="d-pr-q">
                     <input type="checkbox" checked={x.on} onChange={() => set((d) => ({ questions: { ...d.questions, [c.key]: d.questions[c.key].map((y, j) => (j === k ? { ...y, on: !y.on } : y)) } }))} />
@@ -1530,9 +1442,8 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
           <section className="d-pr-dsec is-ruled is-switch">
             <div className="d-pr-dsec-t">
               <span id="devis-budget" className="d-pr-dtitle">
-                Partager notre budget
+                Partager notre budget ({budget})
               </span>
-              <span className="d-pr-dnote">Facultatif. Certains prestataires adaptent leur proposition au budget annoncé.</span>
             </div>
             <button type="button" role="switch" aria-checked={share} aria-labelledby="devis-budget" className={`d-pr-switch${share ? " is-on" : ""}`} onClick={() => set((d) => ({ share: !d.share }))}>
               <span />
@@ -1556,7 +1467,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                   </div>
                 ) : null}
                 <div className="d-pr-preview-to">À {shown.data?.name}</div>
-                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null })}</p>
+                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null, sign: signature(data.wedding) })}</p>
               </div>
             ) : null}
           </section>
@@ -1636,14 +1547,7 @@ export function SampleNote({ source }) {
           </span>
         </div>
       ) : null}
-      {source === "exemple" ? (
-        <div className="d-card is-panel">
-          <strong>Sélection d'exemple.</strong>
-          <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
-            Le catalogue Merry n'a pas encore de prestataire validé dans votre région : ces propositions illustrent la page. Les demandes de devis s'enregistrent sur la fiche de chaque prestataire, sans mail envoyé.
-          </span>
-        </div>
-      ) : null}
+      {source === "exemple" ? <p className="d-pr-samplenote">Exemples : pas encore de prestataire validé dans votre région.</p> : null}
     </>
   );
 }

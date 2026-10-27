@@ -11169,3 +11169,568 @@ body.d-noscroll {
     background: #ffffff;
   }
 }
+
+/* Sélection d'exemple : une ligne, pas un bloc */
+.d-pr-samplenote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+/* Bandeau « Ma sélection » : croix pour le réduire en pastille, pastille pour le rouvrir */
+.d-pr-bar {
+  position: sticky;
+}
+
+.d-pr-bar-reduce {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.d-pr-bar-reduce::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+}
+
+.d-pr-selpill-wrap {
+  position: sticky;
+  bottom: 24px;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.d-pr-selpill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--d-ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(28, 28, 26, 0.24);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .d-pr-selpill-wrap {
+    bottom: calc(64px + 12px + env(safe-area-inset-bottom));
+    margin-bottom: 8px;
+  }
+
+  .d-pr-bar-reduce {
+    top: 8px;
+    right: 10px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+  }
+
+  .d-pr-bar-reduce.is-light {
+    background: var(--d-panel);
+    color: var(--d-ink);
+  }
+
+  /* Une seule ligne : photos, nombre, bouton principal */
+  .d-pr-bar.is-dark {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 48px 12px 14px;
+  }
+
+  .d-pr-bar.is-dark .d-pr-bar-main {
+    flex: 1;
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .d-pr-bar.is-dark .d-pr-thumb {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .d-pr-bar.is-dark .d-pr-bar-text > span,
+  .d-pr-bar.is-dark .d-pr-bar-ghost {
+    display: none;
+  }
+
+  .d-pr-bar.is-dark .d-pr-bar-actions {
+    flex: none;
+  }
+
+  .d-pr-bar.is-dark .d-pr-bar-cta {
+    flex: none;
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  .d-pr-bar.is-light {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 48px 12px 14px;
+  }
+
+  .d-pr-bar.is-light .d-pr-bar-text {
+    display: none;
+  }
+
+  .d-pr-bar.is-light .d-pr-bar-actions {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .d-pr-bar.is-light .d-pr-thumb {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .d-pr-bar-send {
+    min-height: 44px;
+  }
+}
+
+/* Mes prestataires, téléphone : barre compacte d'une ligne (le texte prenait 260 px de haut) */
+@media (max-width: 700px) {
+  .d-pr-nextbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 16px;
+  }
+
+  .d-pr-nextbar-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .d-pr-nextbar-text span {
+    display: none;
+  }
+
+  .d-pr-nextbar .d-btn {
+    width: auto;
+    flex: none;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
+
+/* Fiche prestataire : détails repliés au lieu des tuiles, textes plus petits */
+.d-pr-fdetails {
+  border-top: 1px solid var(--d-line);
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-pr-fdetails summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.d-pr-fdetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.d-pr-fdetails[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.d-pr-fdetails dl {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.d-pr-fdetails dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.d-pr-fdetails dt {
+  color: var(--d-muted);
+}
+
+.d-pr-fdetails dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+
+.d-pr-facttags.is-fiche {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .d-pr-fiche-title h1 {
+    font-size: 22px;
+  }
+
+  .d-pr-fiche-place {
+    font-size: 13px;
+  }
+
+  .d-pr-fsec h2,
+  .d-pr-reviews h2 {
+    font-size: 15px;
+  }
+
+  .d-pr-fsec p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .d-pr-estimate-note,
+  .d-pr-included li {
+    font-size: 13px;
+  }
+}
+
+/* ---------- Recherche : résumé, bouton Filtres, panneau (retours mobile, octobre 2026) ---------- */
+
+.d-pr-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-pr-summary-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--d-ink);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(28, 28, 26, 0.06);
+}
+
+.d-pr-summary-text > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-pr-summary-busy {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-pr-filters-btn {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.d-pr-filters-btn.is-on {
+  border-color: var(--d-ink);
+}
+
+.d-pr-filters-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-pr-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.d-pr-fsect {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 0;
+}
+
+.d-pr-fsect:first-child {
+  padding-top: 4px;
+}
+
+.d-pr-fsect.is-ruled {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-pr-fsect h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-pr-fieldline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-pr-dateinput {
+  max-width: 240px;
+}
+
+.d-pr-pricerange {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-pr-grid {
+  transition: opacity 0.2s ease;
+}
+
+.d-pr-grid.is-loading {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .d-pr-summary-text {
+    min-height: 46px;
+    padding: 0 14px;
+    font-size: 13.5px;
+  }
+
+  .d-pr-filters-btn {
+    min-height: 46px;
+    padding: 0 14px;
+  }
+}
+
+/* ---------- Carte : marqueurs photo, tiroir à trois hauteurs, boutons flottants ---------- */
+
+.d-pr-pin.is-photo {
+  padding: 0;
+  background: #ffffff;
+  border-radius: 999px;
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(28, 28, 26, 0.28);
+}
+
+.d-pr-pin.is-photo .d-pr-pin-img {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-ink);
+}
+
+.d-pr-pin.is-photo.is-small {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+
+.d-pr-pin.is-photo.is-small .d-pr-pin-img {
+  width: 34px;
+  height: 34px;
+}
+
+.d-pr-pin.is-photo.is-active {
+  background: var(--d-ink);
+  width: 52px;
+  height: 52px;
+  z-index: 5;
+}
+
+.d-pr-pin.is-photo.is-active .d-pr-pin-img {
+  width: 46px;
+  height: 46px;
+}
+
+.d-pr-pin-heart {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--d-ink);
+  border: 2px solid #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-pr-mini.is-active {
+  outline: 2px solid var(--d-ink);
+  outline-offset: 0;
+  background: var(--d-limetint);
+}
+
+.d-pr-maptop {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.d-pr-maptop > * {
+  pointer-events: auto;
+}
+
+.d-pr-maptop.is-desk {
+  justify-content: flex-start;
+}
+
+.d-pr-filters-btn.is-float {
+  box-shadow: 0 6px 18px rgba(28, 28, 26, 0.16);
+  border-color: transparent;
+}
+
+.d-pr-mapback {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 0;
+  background: #ffffff;
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(28, 28, 26, 0.16);
+  cursor: pointer;
+}
+
+.d-pr-maplistbtn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 16px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--d-ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(28, 28, 26, 0.28);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .d-pr-mapm .d-pr-zone {
+    top: 70px;
+    bottom: auto;
+  }
+
+  .d-pr-sheet {
+    touch-action: none;
+  }
+
+  .d-pr-sheet-list {
+    touch-action: pan-y;
+  }
+
+  /* Replié : seulement « 7 lieux dans cette zone » */
+  .d-pr-sheet.is-peek {
+    height: 76px;
+  }
+
+  .d-pr-sheet.is-peek .d-pr-sheet-list {
+    display: none;
+  }
+
+  .d-pr-sheet.is-half {
+    height: 48%;
+  }
+
+  .d-pr-sheet.is-full {
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .d-pr-sheet.is-half ~ .d-pr-maplistbtn {
+    bottom: calc(48% + 12px);
+  }
+
+  .d-pr-sheet.is-peek ~ .d-pr-maplistbtn {
+    bottom: 88px;
+  }
+
+  .d-pr-sheet-head {
+    cursor: grab;
+  }
+}
