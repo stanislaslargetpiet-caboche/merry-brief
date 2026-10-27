@@ -205,7 +205,9 @@ Sans cette clé, rien n'est envoyé (le code ne fait aucun appel réseau vers Po
 - *Qui est connecté, et son parcours* : Persons (ou People), cherche le prénom ou l'email, ouvre la personne > onglet « Session recordings » pour le replay clic par clic, et « Activity » pour la liste des pages et clics avec horodatage.
 - *L'entonnoir d'onboarding* : Product analytics > Insights > New insight > Funnel, ajoute les étapes dans l'ordre à partir de `onboarding_step_viewed` (filtré par `step_key`, une étape par écran) puis `onboarding_completed` en dernière étape. PostHog affiche le nombre et le pourcentage de perte à chaque question.
 
-**Pas encore fait** : bandeau de consentement cookies sur l'onboarding (à voir avec les CGU/confidentialité du site), tableau de bord interne dans Merry (on passe par l'interface PostHog pour l'instant, suffisante pour le volume actuel).
+**Consentement** : `components/CookieBanner.js` (chargé dans `app/layout.js`) demande l'accord une fois, avec « Refuser » et « Accepter » au même niveau. Tant que la personne n'a pas accepté, PostHog n'est pas initialisé : aucun cookie, aucun événement, aucun replay. Le choix est gardé dans le navigateur (`localStorage`, clé `merry-cookies`) ; sans clé PostHog, le bandeau ne s'affiche pas. Conséquence : l'entonnoir et les replays ne comptent que les personnes qui ont accepté.
+
+**Pas encore fait** : tableau de bord interne dans Merry (on passe par l'interface PostHog pour l'instant, suffisante pour le volume actuel).
 
 ## 14. Espace prestataire (`/pro`)
 

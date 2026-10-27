@@ -1820,3 +1820,67 @@ h1.question {
     font-size: 15px;
   }
 }
+
+/* ---------- Bandeau cookies (components/CookieBanner.js) ---------- */
+
+.cookie {
+  position: fixed;
+  z-index: 1000;
+  left: 24px;
+  bottom: 24px;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  box-shadow: 0 16px 40px rgba(28, 28, 26, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.cookie-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.cookie-text a {
+  color: var(--muted);
+}
+
+.cookie-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cookie-btn {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cookie-btn.dark {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+@media (max-width: 700px) {
+  .cookie {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    max-width: none;
+  }
+}

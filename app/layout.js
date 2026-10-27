@@ -1,6 +1,7 @@
 import "./globals.css";
 import { LangProvider } from "@/lib/lang";
 import PostHogProvider from "@/components/PostHogProvider";
+import CookieBanner from "@/components/CookieBanner";
 
 export const metadata = {
   title: "Merry · Raconte-nous ton mariage",
@@ -28,7 +29,10 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <PostHogProvider>
-          <LangProvider>{children}</LangProvider>
+          <LangProvider>
+            {children}
+            <CookieBanner />
+          </LangProvider>
         </PostHogProvider>
       </body>
     </html>
