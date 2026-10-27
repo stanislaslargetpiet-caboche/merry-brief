@@ -236,3 +236,23 @@ Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navi
 **Comment c'est relié aux couples** : quand un couple envoie « Demander les devis » à un lieu du catalogue, la demande apparaît dans les Demandes de ce lieu dès qu'il a revendiqué sa fiche (`pro_sync`), et devient un client « Nouvelle demande ». La réponse du prestataire (`pro_send`) arrive dans le tableau de bord du couple, sur la fiche du prestataire dans Budget, et compte comme « Réponse reçue ». Ce que le prestataire change dans Ma fiche et Tarifs est écrit dans `catalog.vendors` et se voit tout de suite dans la page Prestataires des couples. Les vues de la fiche viennent de `merry_log_view`, appelée quand un couple ouvre la fiche. Si le catalogue est réimporté par les scripts, ne pas écraser les fiches présentes dans `pro_vendors`.
 
 **Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours), et la création d'une fiche pour un établissement absent du catalogue (« Mon établissement n'apparaît pas » renvoie vers bonjour@withmerry.com).
+
+## 15. Site de mariage (`/s/…`)
+
+Le lien que les couples donnent à leurs invités : le programme, le lieu et tout le pratique du week-end. Maquettes du canvas « Merry · Carte brief », page *Site de mariage · invités* : les huit modèles (1 à 8, ordinateur et téléphone) et les réglages du tableau de bord (9, ordinateur et téléphone).
+
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/site-mariage.sql`, Run (après `dashboard.sql`, relançable sans risque). Il crée la table `wedding_sites`, la fonction ouverte sans compte `merry_site_public` et, s'il n'existe pas encore, le stockage public `merry-covers` des photos (le même que le formulaire invités). Tant que le fichier n'est pas lancé, la page « Site de mariage » du tableau de bord explique quoi faire et le reste fonctionne.
+
+**Réglages** (`/dashboard/site`, nouvelle entrée de la navigation) :
+
+| Bloc | Contenu |
+| --- | --- |
+| Partager | L'adresse du site (`https://<ton domaine>/s/stanislas-et-margue-k7q2`), Copier le lien, « Site en ligne » (éteint, le lien affiche « Ce site n'est pas encore ouvert ») |
+| L'apparence | Le modèle (Horizon, Terracotta, Perle, Embarquement, Colline, Belvédère, Moisson, Rivage ; celui qui va avec le style du brief est choisi au départ), les couleurs (celles du modèle, blanc pur, très clair, sauge, rose poudré, bleu brume), la police (dix accords titre, écriture, texte) et l'aperçu ordinateur ou téléphone, mis à jour à chaque modification |
+| Les rubriques | L'ordre (flèches), l'affichage (œil) et le contenu de chaque rubrique : l'en-tête, le mot d'accueil, le jour, le programme, le lieu, la tenue, venir / se loger / les enfants, notre histoire, nos moments, une photo et une phrase, l'album, la réponse de l'invité, les questions et les témoins, le partage. « Revenir à l'ordre du modèle » remet l'ordre de la maquette |
+
+Tout s'enregistre au fil de la frappe dans `wedding_sites` (`template`, `palette`, `fonts`, `sections`, `content`). Les prénoms et la date viennent du mariage ; les moments du programme sont ceux de la liste d'invités (le site y ajoute l'heure, le lieu, l'adresse et un petit mot, ou masque un moment).
+
+**Côté invités** : `/s/<adresse>` lit le site par `merry_site_public` (aucune table lisible). Une rubrique vide n'apparaît pas. « Votre réponse » rappelle à l'invité ce qu'il a répondu au formulaire (gardé sur son téléphone par `/f/<adresse>` après l'envoi), sinon l'invite à répondre ; sans formulaire en ligne, elle n'apparaît pas. Les boutons « Ajouter à mon agenda » (fichier .ics des moments), « Voir l'itinéraire » (Google Maps), le QR code et le partage WhatsApp marchent sans réglage. Démo : `/dashboard/site?demo=1`, puis « Visualiser le site ».
+
+**Pas encore fait** : la liste de mariage et la cagnotte (rien sur le site pour l’instant ; les réglages les annoncent « bientôt »), la version anglaise (le sélecteur FR / EN des maquettes n'est pas affiché), une adresse à la carte (elle finit par quatre caractères tirés au hasard), le recadrage des photos.
