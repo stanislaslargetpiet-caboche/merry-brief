@@ -253,7 +253,6 @@ export default function Accueil() {
             <div className="d-g3 d-soon-grid">
               {[
                 ["boutique", "Prestataires", "peche"],
-                ["ecran", "Site de mariage", "bleu"],
                 ["cadeau", "Liste & cagnotte", "lavande"],
               ].map(([icon, label, tone]) => (
                 // Chaque brique à venir a son pastel clair

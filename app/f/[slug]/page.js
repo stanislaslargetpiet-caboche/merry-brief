@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { longDate, dayMonth } from "@/lib/dash/format";
 import { DIETS, fieldLabel, fieldMode, formTheme, withPresets } from "@/lib/dash/form";
+import { RESPONSE_KEY } from "@/lib/site/model";
 
 /*
  * Page publique du formulaire invités : le lien que le couple partage sur
@@ -171,9 +172,24 @@ export default function GuestFormPage() {
       mot: note,
       custom: Object.fromEntries(Object.entries(custom).map(([k, v]) => [k, v === "oui" ? "Oui" : v === "non" ? "Non" : v])),
     };
+    // Gardée sur ce navigateur : le site de mariage la rappelle à l'invité (« Vous serez des nôtres »)
+    const remember = () => {
+      try {
+        const names = [`${me.first_name} ${me.last_name}`.trim(), withPlus ? `${other.first_name} ${other.last_name}`.trim() : ""].filter(Boolean);
+        const yes = events.filter((e) => payload.answers[e.id] === "oui").map((e) => e.name);
+        const answered = Object.values(payload.answers).filter(Boolean);
+        window.localStorage.setItem(
+          RESPONSE_KEY(String(slug)),
+          JSON.stringify({ names: names.length > 1 ? `${names[0]} et ${names[1]}` : names[0], moments: yes.map((n, i) => (i ? n.charAt(0).toLowerCase() + n.slice(1) : n)), present: answered.length ? yes.length > 0 : null, at: new Date().toISOString() }),
+        );
+      } catch {
+        // stockage indisponible : le site invitera simplement à répondre
+      }
+    };
     setSending(true);
     if (form.demo || !supabase) {
       console.info("[merry] démo : réponse simulée", payload);
+      remember();
       setDone({ known: false });
       setSending(false);
       return;
@@ -186,6 +202,7 @@ export default function GuestFormPage() {
       setDone({ error: /Liste complète/.test(error.message || "") ? "full" : "failed" });
       return;
     }
+    remember();
     setDone({ known: !!data?.known });
   }
 

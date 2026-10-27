@@ -18,8 +18,9 @@ const NAV = [
   { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
   { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
   { href: "/dashboard/pense-bete", label: "Pense-bête", short: "Notes", icon: "notepad" },
+  { href: "/dashboard/site", label: "Site de mariage", short: "Site", icon: "globe" },
 ];
-const SOON = ["Site de mariage", "Liste & cagnotte"];
+const SOON = ["Liste & cagnotte"];
 
 export default function Shell({ children }) {
   return (
