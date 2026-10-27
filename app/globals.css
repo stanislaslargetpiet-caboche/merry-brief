@@ -1264,6 +1264,230 @@ h1.question {
   align-self: center;
 }
 
+/* Lieu : liste de suggestions */
+.ob-place {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.ob-input.picked {
+  border-color: var(--ink);
+}
+
+.ob-place-list {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(28, 28, 26, 0.12);
+}
+
+.ob-place-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.ob-place-list li svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.ob-place-list li[aria-selected="true"] {
+  background: var(--ground);
+}
+
+.ob-place-list li.ob-place-empty {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* Préparation du tableau de bord : les réponses arrivent, se croisent, puis la sélection sort */
+.ob-prep {
+  align-items: center;
+  gap: 18px;
+}
+
+.ob-prep-stage {
+  position: relative;
+  width: 100%;
+  height: 380px;
+}
+
+.ob-prep-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  background: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(28, 28, 26, 0.1);
+  animation:
+    ob-chip-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) calc(0.15s + var(--i) * 0.22s) both,
+    ob-chip-mix 1.3s cubic-bezier(0.6, 0, 0.3, 1) 2.4s forwards;
+}
+
+@keyframes ob-chip-in {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--x) * 1.7), calc(var(--y) * 1.7)) rotate(var(--r)) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(var(--r));
+  }
+}
+
+@keyframes ob-chip-mix {
+  0% {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(var(--r));
+  }
+  45% {
+    opacity: 1;
+    transform: translate(calc(var(--y) * -0.6), calc(var(--x) * 0.25)) rotate(calc(var(--r) * -3));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.3);
+  }
+}
+
+.ob-prep-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 999px;
+  background: var(--lime);
+  opacity: 0;
+  animation: ob-core 2s ease 2.6s forwards;
+}
+
+@keyframes ob-core {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(2.6);
+  }
+}
+
+.ob-prep-results {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ob-prep-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1.5px solid var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(28, 28, 26, 0.12);
+  opacity: 0;
+  animation: ob-result 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) calc(3.7s + var(--i) * 0.35s) forwards;
+}
+
+.ob-prep-result svg {
+  flex: none;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--lime);
+}
+
+@keyframes ob-result {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ob-prep-lines {
+  position: relative;
+  width: 100%;
+  height: 28px;
+}
+
+.ob-prep-line {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  opacity: 0;
+  animation: ob-line 1.8s ease calc(var(--i) * 1.8s) forwards;
+}
+
+.ob-prep-line:last-child {
+  animation-name: ob-line-last;
+}
+
+@keyframes ob-line {
+  0% { opacity: 0; transform: translateY(6px); }
+  15%, 80% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes ob-line-last {
+  0% { opacity: 0; transform: translateY(6px); }
+  15%, 100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-prep-chip,
+  .ob-prep-core,
+  .ob-prep-line {
+    animation: none;
+    opacity: 0;
+  }
+
+  .ob-prep-result,
+  .ob-prep-line:last-child {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Téléphone : une colonne, actions fixées en bas */
 @media (max-width: 700px) {
   .ob-header {
@@ -1438,6 +1662,28 @@ h1.question {
 
   .ob-done {
     padding: 24px;
+  }
+
+  .ob-main.ob-prep {
+    justify-content: center;
+    padding-bottom: 60px;
+  }
+
+  .ob-prep-stage {
+    height: 340px;
+  }
+
+  .ob-prep-lines {
+    height: 48px;
+  }
+
+  .ob-prep-chip {
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+
+  .ob-prep-line {
+    font-size: 16px;
   }
 
   .ob-done-title {

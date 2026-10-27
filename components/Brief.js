@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createAccountAndBrief } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { useLang } from "@/lib/lang";
 import { BRIEF_TEXT, VIBE_UNSURE } from "@/lib/i18n/brief";
 import LangSwitch from "@/components/LangSwitch";
 import { trackEvent } from "@/lib/analytics";
+import { searchPlaces } from "@/lib/places";
 
 /* ------------------------------------------------------------------ */
 /*  Onboarding V2 (source : canvas « Merry · Carte brief », page        */
@@ -33,8 +34,9 @@ const EMPTY = {
   team: "",
   stage: "",
   region: "",
+  region_pick: null, // { label, lat, lon } : le lieu choisi dans la liste de suggestions
   region_unknown: false,
-  date_mode: "flexible",
+  date_mode: "precise",
   wedding_date: "",
   flex_months: [],
   guests_min: 80,
@@ -49,7 +51,7 @@ const EMPTY = {
   password: "",
 };
 
-const STORAGE_KEY = "merry-brief-draft-v3";
+const STORAGE_KEY = "merry-brief-draft-v4";
 const PENDING_KEY = "merry-brief-pending";
 
 // Les 12 prochains mois, à partir du mois suivant : « 2027-06 »
@@ -60,6 +62,9 @@ function nextMonths() {
     return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, month: d.getMonth(), year: d.getFullYear() };
   });
 }
+
+// Durée de l'écran « on prépare ton tableau de bord », entre l'essentiel et le compte.
+const PREPARE_MS = 5600;
 
 // Tranches lues par le tableau de bord (lib/dash/criteria.js) : on garde la plus proche du milieu de la fourchette.
 function guestsCode(min, max) {
@@ -144,6 +149,155 @@ function RangeSlider({ min, max, step, low, high, onChange, lowAria, highAria, d
   );
 }
 
+// Champ « Où » : le couple tape, puis choisit dans une liste de lieux existants
+// (pas de faute de frappe dans le brief). Si le service de suggestions ne
+// répond pas, le texte libre est accepté (onUnavailable).
+function PlaceField({ value, picked, disabled, lang, placeholder, ariaLabel, noResult, onType, onPick, onUnavailable }) {
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const typed = useRef(false);
+
+  useEffect(() => {
+    if (!typed.current || picked || value.trim().length < 2) {
+      setItems([]);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    setLoading(true);
+    const timer = setTimeout(() => {
+      searchPlaces(value, { lang, signal: ctrl.signal })
+        .then((list) => {
+          setItems(list);
+          setActive(0);
+          setOpen(true);
+          setLoading(false);
+        })
+        .catch((err) => {
+          if (err.name === "AbortError") return;
+          setLoading(false);
+          onUnavailable();
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [value, picked, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pick = (item) => {
+    onPick(item);
+    setOpen(false);
+    setItems([]);
+  };
+
+  const onKeyDown = (e) => {
+    if (!open || !items.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => (i + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => (i - 1 + items.length) % items.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  const showList = open && !picked && value.trim().length >= 2 && !loading;
+
+  return (
+    <div className="ob-place">
+      <input
+        className={"ob-input" + (picked ? " picked" : "")}
+        value={value}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls="ob-place-list"
+        aria-autocomplete="list"
+        autoComplete="off"
+        disabled={disabled}
+        onChange={(e) => {
+          typed.current = true;
+          onType(e.target.value);
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => items.length && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {showList ? (
+        <ul className="ob-place-list" id="ob-place-list" role="listbox">
+          {items.length ? (
+            items.map((item, i) => (
+              <li
+                key={item.label}
+                role="option"
+                aria-selected={i === active}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(item);
+                }}
+                onMouseEnter={() => setActive(i)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z" />
+                  <circle cx="12" cy="10" r="2.3" />
+                </svg>
+                {item.label}
+              </li>
+            ))
+          ) : (
+            <li className="ob-place-empty">{noResult}</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+// Écran de transition : les réponses du couple arrivent une à une, se croisent,
+// puis Merry en sort une première sélection avant d'ouvrir le compte.
+function Preparing({ s, chips, onDone }) {
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(onDone, reduce ? 1500 : PREPARE_MS);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const p = s.preparing;
+  return (
+    <main className="ob-main ob-prep" aria-live="polite">
+      <div className="ob-prep-stage" aria-hidden="true">
+        {chips.map((c, i) => (
+          <span key={i} className="ob-prep-chip" style={{ "--i": i, "--x": `${c.x}px`, "--y": `${c.y}px`, "--r": `${c.r}deg` }}>
+            {c.text}
+          </span>
+        ))}
+        <div className="ob-prep-core" />
+        <div className="ob-prep-results">
+          {p.results.map((r, i) => (
+            <span key={r} className="ob-prep-result" style={{ "--i": i }}>
+              <Check size={16} />
+              {r}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="ob-prep-lines">
+        {p.lines.map((line, i) => (
+          <p key={line} className="ob-prep-line" style={{ "--i": i }}>{line}</p>
+        ))}
+      </div>
+    </main>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Le flow                                                            */
 /* ------------------------------------------------------------------ */
@@ -157,6 +311,8 @@ export default function Brief() {
   const [data, setData] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | done | confirm | error
   const [errorMsg, setErrorMsg] = useState("");
+  const [placesDown, setPlacesDown] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
   // Brouillon par navigateur : le couple qui ferme l'onglet ne repart pas de zéro.
   // Le mot de passe n'est jamais mis dans le brouillon.
@@ -218,7 +374,7 @@ export default function Brief() {
         return !!data.team && !!data.stage;
       case 2:
         return (
-          (data.region_unknown || data.region.trim().length > 0) &&
+          (data.region_unknown || !!data.region_pick || (placesDown && data.region.trim().length > 0)) &&
           (data.date_mode === "precise" ? !!data.wedding_date : data.flex_months.length > 0) &&
           data.vibes.length > 0
         );
@@ -234,7 +390,15 @@ export default function Brief() {
     }
   }, [step, data]);
 
-  const next = () => setStep((st) => Math.min(st + 1, TOTAL - 1));
+  // Après l'essentiel, l'écran de préparation s'intercale avant le compte.
+  const next = () => {
+    if (step === 2) {
+      setPreparing(true);
+      trackEvent("onboarding_step_viewed", { step: 2.5, step_key: "preparation" });
+      return;
+    }
+    setStep((st) => Math.min(st + 1, TOTAL - 1));
+  };
   const back = () => setStep((st) => Math.max(st - 1, 0));
 
   async function submit() {
@@ -244,7 +408,9 @@ export default function Brief() {
     const brief = {
       stage: data.stage,
       team: data.team,
-      region: data.region_unknown ? null : data.region.trim() || null,
+      region: data.region_unknown ? null : data.region_pick?.label || data.region.trim() || null,
+      region_lat: data.region_unknown ? null : data.region_pick?.lat ?? null,
+      region_lon: data.region_unknown ? null : data.region_pick?.lon ?? null,
       region_unknown: data.region_unknown,
       date_mode: data.date_mode,
       wedding_date: flexible ? null : data.wedding_date || null,
@@ -343,9 +509,17 @@ export default function Brief() {
             <div className="ob-row">
               <h2 className="ob-title">{t.where}</h2>
               <div className="ob-inline">
-                <input
-                  className="ob-input" value={data.region} placeholder={t.wherePlaceholder} aria-label={t.where}
-                  disabled={data.region_unknown} onChange={(e) => set("region", e.target.value)}
+                <PlaceField
+                  value={data.region}
+                  picked={!!data.region_pick}
+                  disabled={data.region_unknown}
+                  lang={lang}
+                  placeholder={t.wherePlaceholder}
+                  ariaLabel={t.where}
+                  noResult={t.whereNoResult}
+                  onType={(v) => setData((d) => ({ ...d, region: v, region_pick: null }))}
+                  onPick={(item) => setData((d) => ({ ...d, region: item.label, region_pick: item }))}
+                  onUnavailable={() => setPlacesDown(true)}
                 />
                 <button type="button" className="ob-link" aria-pressed={data.region_unknown} onClick={() => set("region_unknown", !data.region_unknown)}>
                   {s.unsure}
@@ -473,17 +647,48 @@ export default function Brief() {
   const finished = status === "done" || status === "confirm";
   const n = step + 1;
 
+  // Les réponses du couple, en étiquettes qui arrivent de partout sur l'écran de préparation.
+  const t2 = s.steps[2];
+  const monthsPicked = data.flex_months
+    .slice()
+    .sort()
+    .map((k) => `${s.monthShort[Number(k.slice(5)) - 1]} ${k.slice(0, 4)}`);
+  const prepTexts = [
+    data.region_unknown ? null : (data.region_pick?.label || data.region).split(",")[0],
+    data.date_mode === "precise" && data.wedding_date
+      ? new Date(data.wedding_date).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", year: "numeric" })
+      : monthsPicked.join(", ") || null,
+    `${t2.guestsRange(data.guests_min, data.guests_max >= GUESTS.max ? `${GUESTS.max}+` : data.guests_max)} ${t2.guests.toLowerCase()}`,
+    data.budget_unknown ? null : t2.guestsRange(s.euros(data.budget_min), s.euros(data.budget_max)),
+    ...data.vibes.map((v) => s.vibes.find((o) => o.value === v)?.label || v),
+    s.teams.find((o) => o.value === data.team)?.label,
+  ].filter(Boolean);
+  const SPOTS = [
+    [-230, -110, -6], [210, -120, 5], [-250, 40, 4], [240, 30, -5], [-150, 130, -3], [170, 135, 6], [0, -150, 3], [10, 160, -4],
+  ];
+  const k = typeof window !== "undefined" && window.innerWidth < 700 ? 0.42 : 1;
+  const prepChips = prepTexts.slice(0, SPOTS.length).map((text, i) => ({ text, x: SPOTS[i][0] * k, y: SPOTS[i][1] * (k < 1 ? 0.85 : 1), r: SPOTS[i][2] }));
+
   return (
     <div className="ob">
       <header className="ob-header">
         <a className="ob-logo" href={SITE_URL} aria-label={s.logoAria}>Merry</a>
         <div className="ob-header-right">
           <LangSwitch />
-          {finished ? null : <a className="ob-quit" href={SITE_URL} title={s.quitTitle}>{s.quit}</a>}
+          {finished || preparing ? null : <a className="ob-quit" href={SITE_URL} title={s.quitTitle}>{s.quit}</a>}
         </div>
       </header>
 
-      {finished ? (
+      {preparing ? (
+        <Preparing
+          s={s}
+          chips={prepChips}
+          onDone={() => {
+            setPreparing(false);
+            setStep(3);
+          }}
+        />
+      ) : finished ? (
         <main className="ob-main ob-done" aria-live="polite">
           <div className="ob-done-glow" aria-hidden="true" />
           <div className="ob-done-check"><Check size={30} /></div>
