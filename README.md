@@ -8,7 +8,7 @@ Le parcours d'inscription des couples (choix de la fête + 7 écrans + bienvenue
 2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run, puis de `supabase/onboarding-simplifie.sql`, Run.
 3. Authentication > Providers > Email : laisse Email activé.
    Pour le lancement, désactive « Confirm email » (Authentication > Providers > Email > Confirm email) : le couple arrive sur son tableau de bord sans passer par sa boîte mail. Si tu le laisses activé, le code gère le cas (écran « vérifie ta boîte mail », brief envoyé à la première connexion).
-4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.merry.fr).
+4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.withmerry.com).
 5. Bouton Connect > Framework > Next.js > onglet `.env.local` : copie les deux lignes (URL et clé publishable).
 
 ## 2. Lancer en local
@@ -27,11 +27,11 @@ Sans `.env.local`, le parcours tourne quand même et la création de compte est 
 2. vercel.com > Add New > Project > importe le repo. Framework détecté : Next.js, rien à changer.
 3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs ; `NEXT_PUBLIC_POSTHOG_KEY` et `NEXT_PUBLIC_POSTHOG_HOST` pour le suivi produit, voir la section 13).
 4. Deploy. Tu obtiens une URL du type `merry-brief.vercel.app`.
-5. Settings > Domains : ajoute `app.merry.fr`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
+5. Settings > Domains : ajoute `app.withmerry.com`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
 
 ## 4. Relier Squarespace
 
-Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Aucun bloc de code, aucun forfait particulier : un lien suffit. Pour savoir d'où viennent les couples, ajoute un paramètre, par exemple `https://app.merry.fr/?src=hero` ; il est enregistré dans la colonne `source`.
+Chaque bouton « C'est parti ! » du site pointe vers `https://app.withmerry.com`. Aucun bloc de code, aucun forfait particulier : un lien suffit. Pour savoir d'où viennent les couples, ajoute un paramètre, par exemple `https://app.withmerry.com/?src=hero` ; il est enregistré dans la colonne `source`.
 
 ## 5. Pages
 
@@ -98,8 +98,8 @@ Tout le contenu est en haut de `components/Brief.js` (listes `EVENTS`, `STAGES`,
 
 ## À vérifier avant de publier
 
-- Les pages `https://www.merry.fr/cgu` et `https://www.merry.fr/confidentialite` existent (liens sur l'écran compte).
-- L'adresse `bonjour@merry.fr` existe (message d'erreur).
+- Les pages `https://www.withmerry.com/cgu` et `https://www.withmerry.com/confidentialite` existent (liens sur l'écran compte).
+- L'adresse `bonjour@withmerry.com` existe (message d'erreur).
 - L'envoi de l'invitation à la moitié se fait par lien, depuis le tableau de bord (voir point 7).
 - `supabase/dashboard.sql` a été collé dans Supabase avant de déployer le tableau de bord.
 
