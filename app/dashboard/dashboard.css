@@ -11338,3 +11338,80 @@ body.d-noscroll {
     padding: 0 16px;
   }
 }
+
+/* Fiche prestataire : détails repliés au lieu des tuiles, textes plus petits */
+.d-pr-fdetails {
+  border-top: 1px solid var(--d-line);
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-pr-fdetails summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.d-pr-fdetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.d-pr-fdetails[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.d-pr-fdetails dl {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.d-pr-fdetails dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.d-pr-fdetails dt {
+  color: var(--d-muted);
+}
+
+.d-pr-fdetails dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+
+.d-pr-facttags.is-fiche {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .d-pr-fiche-title h1 {
+    font-size: 22px;
+  }
+
+  .d-pr-fiche-place {
+    font-size: 13px;
+  }
+
+  .d-pr-fsec h2,
+  .d-pr-reviews h2 {
+    font-size: 15px;
+  }
+
+  .d-pr-fsec p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .d-pr-estimate-note,
+  .d-pr-included li {
+    font-size: 13px;
+  }
+}

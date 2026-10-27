@@ -1230,17 +1230,21 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
         {facts.length ? (
-          <div className="d-pr-facts">
-            {facts.map(([icon, k, val, match]) => (
-              <div key={k} className={`d-pr-fact${match ? " is-match" : ""}`}>
-                <span className="d-pr-fact-ic">{vf.length ? <CritIcon k={icon} size={18} tint={match} /> : <Icon name={icon} size={18} sw={1.7} stroke="#1c1c1a" />}</span>
-                <span>
-                  <small>{k}</small>
-                  <strong>{val}</strong>
-                </span>
-              </div>
-            ))}
-          </div>
+          // Le détail des faits, replié : la liste « Pourquoi ce lieu » dit déjà l'essentiel
+          <details className="d-pr-fdetails">
+            <summary>
+              Tous les détails
+              <Icon name="chevDown" size={14} sw={2.2} />
+            </summary>
+            <dl>
+              {facts.map(([icon, k, val]) => (
+                <div key={k}>
+                  <dt>{k}</dt>
+                  <dd>{val}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
         ) : null}
         {v.price ? (
           <section className="d-pr-offer">
@@ -1278,19 +1282,10 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
             ) : null}
           </section>
         ) : null}
-        {v.story || v.why || matched.length ? (
+        {v.story || v.why || matched.length || vf.length ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
-            {matched.length ? (
-              <ul className="d-pr-why-list" aria-label="Ce qui répond à vos critères">
-                {matched.map((f) => (
-                  <li key={f.key}>
-                    <CritIcon k={f.key} size={16} tint />
-                    <span>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            {matched.length ? <FactChips facts={matched} className="is-fiche" /> : vf.length ? <FactChips facts={vf.slice(0, 4)} className="is-fiche" /> : null}
             {v.story || v.why ? <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p> : null}
             {v.checks?.length ? (
               <div className="d-pr-included">
