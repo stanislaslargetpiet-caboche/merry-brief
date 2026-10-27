@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { CATEGORIES, catOf, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
-import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
+import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
 import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate } from "@/lib/dash/format";
@@ -1343,7 +1343,15 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const [draft, setDraft] = useState(() => ({ ...fresh, ...(readDraft(weddingId) || {}) }));
+  // Brouillon gardé : un ancien message finissait par la signature, désormais ajoutée en dernier à l'envoi
+  const [draft, setDraft] = useState(() => {
+    const saved = readDraft(weddingId) || {};
+    if (saved.message) {
+      const { body, closing } = splitSignature(saved.message);
+      if (!closing || /^merci beaucoup/i.test(closing)) saved.message = body;
+    }
+    return { ...fresh, ...saved };
+  });
   const { message, questions, dates, flexible, months, years, share } = draft;
   const set = (patch) => setDraft((d) => ({ ...d, ...(typeof patch === "function" ? patch(d) : patch) }));
   const [list, setList] = useState(initial);
@@ -1394,7 +1402,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       <div className="d-pr-panel-body d-pr-devis">
         <section className="d-pr-dsec">
           <h3>À qui</h3>
-          <span className="d-pr-dsub">{summary(list) || "Personne pour l’instant"}</span>
+          {list.length ? null : <span className="d-pr-dsub">Personne pour l’instant</span>}
           <ul className="d-pr-to">
             {list.map((p) => {
               const c = catOf(p.category);
@@ -1429,12 +1437,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
             </div>
             {cats.map((c) => (
               <fieldset key={c.key} className="d-pr-qset">
-                <legend>
-                  {legendFor(c.key, by[c.key].length)}{" "}
-                  <span>
-                    · envoyé à {by[c.key].length} prestataire{by[c.key].length > 1 ? "s" : ""}
-                  </span>
-                </legend>
+                <legend>{legendFor(c.key, by[c.key].length)}</legend>
                 {questions[c.key].map((x, k) => (
                   <label key={k} className="d-pr-q">
                     <input type="checkbox" checked={x.on} onChange={() => set((d) => ({ questions: { ...d.questions, [c.key]: d.questions[c.key].map((y, j) => (j === k ? { ...y, on: !y.on } : y)) } }))} />
@@ -1530,9 +1533,8 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
           <section className="d-pr-dsec is-ruled is-switch">
             <div className="d-pr-dsec-t">
               <span id="devis-budget" className="d-pr-dtitle">
-                Partager notre budget
+                Partager notre budget ({budget})
               </span>
-              <span className="d-pr-dnote">Facultatif. Certains prestataires adaptent leur proposition au budget annoncé.</span>
             </div>
             <button type="button" role="switch" aria-checked={share} aria-labelledby="devis-budget" className={`d-pr-switch${share ? " is-on" : ""}`} onClick={() => set((d) => ({ share: !d.share }))}>
               <span />
@@ -1556,7 +1558,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                   </div>
                 ) : null}
                 <div className="d-pr-preview-to">À {shown.data?.name}</div>
-                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null })}</p>
+                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null, sign: signature(data.wedding) })}</p>
               </div>
             ) : null}
           </section>
