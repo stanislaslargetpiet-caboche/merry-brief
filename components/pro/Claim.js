@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "./icons";
 
-const CONTACT = "bonjour@merry.fr";
+const CONTACT = "bonjour@withmerry.com";
 
 async function call(body) {
   try {

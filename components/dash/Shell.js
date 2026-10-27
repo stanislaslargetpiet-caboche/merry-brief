@@ -303,7 +303,7 @@ function ErrorState({ kind, reload }) {
           Supabase (SQL Editor), puis recharger la page.
         </p>
       ) : (
-        <p>Le tableau de bord n'a pas pu se charger. Vérifiez votre connexion, puis réessayez. Si cela continue, écrivez-nous à bonjour@merry.fr.</p>
+        <p>Le tableau de bord n'a pas pu se charger. Vérifiez votre connexion, puis réessayez. Si cela continue, écrivez-nous à bonjour@withmerry.com.</p>
       )}
       <div>
         <button type="button" className="d-btn d-btn-primary" onClick={reload}>

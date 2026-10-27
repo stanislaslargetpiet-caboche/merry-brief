@@ -8,7 +8,7 @@ Le parcours d'inscription des couples (choix de la fête + 7 écrans + bienvenue
 2. SQL Editor > New query : colle le contenu de `supabase/schema.sql`, Run, puis de `supabase/onboarding-simplifie.sql`, Run.
 3. Authentication > Providers > Email : laisse Email activé.
    Pour le lancement, désactive « Confirm email » (Authentication > Providers > Email > Confirm email) : le couple arrive sur son tableau de bord sans passer par sa boîte mail. Si tu le laisses activé, le code gère le cas (écran « vérifie ta boîte mail », brief envoyé à la première connexion).
-4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.merry.fr).
+4. Authentication > URL Configuration : Site URL = l'URL de l'appli (ex. https://app.withmerry.com).
 5. Bouton Connect > Framework > Next.js > onglet `.env.local` : copie les deux lignes (URL et clé publishable).
 
 ## 2. Lancer en local
@@ -27,11 +27,11 @@ Sans `.env.local`, le parcours tourne quand même et la création de compte est 
 2. vercel.com > Add New > Project > importe le repo. Framework détecté : Next.js, rien à changer.
 3. Environment Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (et `NEXT_PUBLIC_DASHBOARD_URL` plus tard, si le tableau de bord vit ailleurs ; `NEXT_PUBLIC_POSTHOG_KEY` et `NEXT_PUBLIC_POSTHOG_HOST` pour le suivi produit, voir la section 13).
 4. Deploy. Tu obtiens une URL du type `merry-brief.vercel.app`.
-5. Settings > Domains : ajoute `app.merry.fr`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
+5. Settings > Domains : ajoute `app.withmerry.com`, puis crée l'enregistrement CNAME indiqué chez ton registrar. Reporte cette URL dans Supabase > Authentication > URL Configuration.
 
 ## 4. Relier Squarespace
 
-Chaque bouton « C'est parti ! » du site pointe vers `https://app.merry.fr`. Aucun bloc de code, aucun forfait particulier : un lien suffit. Pour savoir d'où viennent les couples, ajoute un paramètre, par exemple `https://app.merry.fr/?src=hero` ; il est enregistré dans la colonne `source`.
+Chaque bouton « C'est parti ! » du site pointe vers `https://app.withmerry.com`. Aucun bloc de code, aucun forfait particulier : un lien suffit. Pour savoir d'où viennent les couples, ajoute un paramètre, par exemple `https://app.withmerry.com/?src=hero` ; il est enregistré dans la colonne `source`.
 
 ## 5. Pages
 
@@ -98,8 +98,8 @@ Tout le contenu est en haut de `components/Brief.js` (listes `EVENTS`, `STAGES`,
 
 ## À vérifier avant de publier
 
-- Les pages `https://www.merry.fr/cgu` et `https://www.merry.fr/confidentialite` existent (liens sur l'écran compte).
-- L'adresse `bonjour@merry.fr` existe (message d'erreur).
+- Les pages `https://www.withmerry.com/cgu` et `https://www.withmerry.com/confidentialite` existent (liens sur l'écran compte).
+- L'adresse `bonjour@withmerry.com` existe (message d'erreur).
 - L'envoi de l'invitation à la moitié se fait par lien, depuis le tableau de bord (voir point 7).
 - `supabase/dashboard.sql` a été collé dans Supabase avant de déployer le tableau de bord.
 
@@ -235,7 +235,7 @@ Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navi
 
 **Comment c'est relié aux couples** : quand un couple envoie « Demander les devis » à un lieu du catalogue, la demande apparaît dans les Demandes de ce lieu dès qu'il a revendiqué sa fiche (`pro_sync`), et devient un client « Nouvelle demande ». La réponse du prestataire (`pro_send`) arrive dans le tableau de bord du couple, sur la fiche du prestataire dans Budget, et compte comme « Réponse reçue ». Ce que le prestataire change dans Ma fiche et Tarifs est écrit dans `catalog.vendors` et se voit tout de suite dans la page Prestataires des couples. Les vues de la fiche viennent de `merry_log_view`, appelée quand un couple ouvre la fiche. Si le catalogue est réimporté par les scripts, ne pas écraser les fiches présentes dans `pro_vendors`.
 
-**Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours), et la création d'une fiche pour un établissement absent du catalogue (« Mon établissement n'apparaît pas » renvoie vers bonjour@merry.fr).
+**Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours), et la création d'une fiche pour un établissement absent du catalogue (« Mon établissement n'apparaît pas » renvoie vers bonjour@withmerry.com).
 
 ## 15. Site de mariage (`/s/…`)
 

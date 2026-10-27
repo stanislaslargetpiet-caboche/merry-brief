@@ -199,7 +199,7 @@ export function QR({ url, size = 72, className = "" }) {
   const [svg, setSvg] = useState("");
   useEffect(() => {
     let live = true;
-    QRCode.toString(url || "https://merry.fr", { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#0000" } })
+    QRCode.toString(url || "https://withmerry.com", { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#0000" } })
       .then((s) => live && setSvg(s.replace(/fill="#000000"/g, 'fill="currentColor"').replace(/stroke="#000000"/g, 'stroke="currentColor"')))
       .catch(() => {});
     return () => {

@@ -421,9 +421,9 @@ export default function Brief() {
             {status === "error" ? <p className="error">{errorMsg}</p> : null}
             <p className="footnote">
               {t.footnoteLead}{" "}
-              <a href="https://www.merry.fr/cgu" target="_blank" rel="noreferrer">{t.footnoteTos}</a>{" "}
+              <a href="https://www.withmerry.com/cgu" target="_blank" rel="noreferrer">{t.footnoteTos}</a>{" "}
               {t.footnoteAnd}{" "}
-              <a href="https://www.merry.fr/confidentialite" target="_blank" rel="noreferrer">{t.footnotePrivacy}</a>
+              <a href="https://www.withmerry.com/confidentialite" target="_blank" rel="noreferrer">{t.footnotePrivacy}</a>
               {t.footnoteTail}
             </p>
           </>

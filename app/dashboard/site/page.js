@@ -308,9 +308,9 @@ export default function SiteMariage() {
           {pairs.map((p) => (
             <button key={p.id} type="button" className={`d-site-font${p.id === fonts.id ? " is-on" : ""}`} aria-pressed={p.id === fonts.id} onClick={() => change({ fonts: p.id === t.fonts ? null : p.id })}>
               <span className="d-site-font-sample">
-                <span style={{ fontFamily: `'${p.display}', serif` }}>{data.wedding.partner1?.split(" ")[0] || "Stan"}</span>
+                <span style={{ fontFamily: `'${p.display}', serif` }}>{data.wedding.partner1?.split(" ")[0] || "Léo"}</span>
                 <span style={{ fontFamily: `'${p.script}', cursive` }}>et</span>
-                <span style={{ fontFamily: `'${p.display}', serif` }}>{data.wedding.partner2?.split(" ")[0] || "Margue"}</span>
+                <span style={{ fontFamily: `'${p.display}', serif` }}>{data.wedding.partner2?.split(" ")[0] || "Léa"}</span>
               </span>
               <span className="d-site-font-name">
                 {p.display}
