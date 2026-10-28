@@ -460,9 +460,9 @@ export default function SiteMariage() {
       />
       <aside className="d-se-panel" aria-label="Apparence du site">
         <div className="d-se-panel-head">
-          <Link href="/dashboard" className="d-se-back">
+          <Link href="/dashboard/invites/site" className="d-se-back">
             <Icon name="prev" size={16} />
-            Tableau de bord
+            Invités
           </Link>
           <h1 className="d-se-title">Site de mariage.</h1>
         </div>
@@ -481,7 +481,7 @@ export default function SiteMariage() {
 
       <div className="d-se-stage">
         <div className="d-se-bar">
-          <Link href="/dashboard" className="d-se-iconbtn d-se-phone-only" aria-label="Tableau de bord">
+          <Link href="/dashboard/invites/site" className="d-se-iconbtn d-se-phone-only" aria-label="Retour aux invités">
             <Icon name="prev" size={20} />
           </Link>
           <div className="d-fseg d-se-desk-only" role="group" aria-label="Aperçu">

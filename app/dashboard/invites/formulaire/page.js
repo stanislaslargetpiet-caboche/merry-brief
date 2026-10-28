@@ -19,7 +19,8 @@ import {
   withPresets,
 } from "@/lib/dash/form";
 import { Icon } from "@/components/dash/icons";
-import { Btn, PageHeader } from "@/components/dash/ui";
+import { Btn } from "@/components/dash/ui";
+import InvitesHeader from "@/components/dash/InvitesTabs";
 
 const MODES = [
   { id: "off", label: "Non demandé" },
@@ -145,7 +146,7 @@ export default function FormulaireInvites() {
   if (dash.mode === "live" && data.formSetup === false) {
     return (
       <>
-        <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Formulaire invités." />
+        <InvitesHeader tab="formulaire" />
         <section className="d-card" style={{ maxWidth: 640 }}>
           <h2>Encore une étape côté Supabase</h2>
           <p className="d-muted" style={{ margin: 0, lineHeight: 1.5 }}>
@@ -257,12 +258,11 @@ export default function FormulaireInvites() {
 
   return (
     <>
-      <PageHeader
-        back={{ href: "/dashboard/invites", label: "Invités" }}
-        title="Formulaire invités."
+      <InvitesHeader
+        tab="formulaire"
         actions={<span className="d-small" role="status" style={{ color: status === "error" ? "var(--d-red-ink)" : "var(--d-muted)" }}>{statusLabel}</span>}
       />
-      <p className="d-muted" style={{ margin: "-12px 0 0", maxWidth: 640, lineHeight: 1.5 }}>
+      <p className="d-muted" style={{ margin: "-8px 0 0", maxWidth: 640, lineHeight: 1.5 }}>
         Un seul lien pour tous vos invités. Chaque réponse arrive directement dans votre liste, colonne par colonne.
       </p>
 

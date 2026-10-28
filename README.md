@@ -133,7 +133,9 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (5 et 5
 
 ## 11. Pense-bête
 
-L'écran suit le canvas « Merry · Carte brief », page Dashboard (6 et 6m), validé le 23 octobre 2026.
+**Retiré du menu** le 28 octobre 2026 (artboards *10 · Invités, un seul espace*) pour alléger le tableau de bord : `/dashboard/pense-bete` ramène à l'accueil. La table `pense_bete_items` et les notes déjà saisies restent en base, rien n'est supprimé.
+
+L'écran suivait le canvas « Merry · Carte brief », page Dashboard (6 et 6m), validé le 23 octobre 2026.
 
 **Installer** : Supabase > SQL Editor > New query, colle `supabase/pense-bete.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `pense_bete_items`. Tant qu'il n'est pas lancé, la page Pense-bête explique quoi faire et le reste du tableau de bord fonctionne.
 
@@ -246,7 +248,9 @@ Le lien que les couples donnent à leurs invités : le programme, le lieu et tou
 
 **Installer** : Supabase > SQL Editor > New query, colle `supabase/site-mariage.sql`, Run (après `dashboard.sql`, relançable sans risque). Il crée la table `wedding_sites`, la fonction ouverte sans compte `merry_site_public` et, s'il n'existe pas encore, le stockage public `merry-covers` des photos (le même que le formulaire invités). Tant que le fichier n'est pas lancé, la page « Site de mariage » du tableau de bord explique quoi faire et le reste fonctionne.
 
-**Éditeur** (`/dashboard/site`, artboards *9b · Éditeur du site*) : le site occupe l'écran, tel que les invités le verront, et s'écrit sur place.
+**Dans le tableau de bord**, le site vit dans l'espace Invités (artboards *10 · Invités, un seul espace*, page Dashboard) : une seule entrée « Invités » dans le menu, puis quatre onglets dans l'ordre du parcours du couple, Liste des invités (`/dashboard/invites`), Site de mariage (`/dashboard/invites/site` : aperçu, état, lien, « Personnaliser le site »), Formulaire (`/dashboard/invites/formulaire`) et Liste de mariage (`/dashboard/invites/liste-de-mariage`, « Bientôt »). Pas de SQL nouveau.
+
+**Éditeur** (`/dashboard/site`, artboards *9b · Éditeur du site*, ouvert par « Personnaliser le site » ; son retour ramène à l'onglet Site) : le site occupe l'écran, tel que les invités le verront, et s'écrit sur place.
 
 | Zone | Contenu |
 | --- | --- |
