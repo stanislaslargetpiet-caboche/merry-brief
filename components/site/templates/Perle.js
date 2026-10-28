@@ -5,12 +5,13 @@
 
 import { contactHref, hourClock, mapsUrl } from "@/lib/site/model";
 import { AgendaLink, Faq, Orn, Pearls, PearlPath, Photo, QR, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { travelLabel, writeTo } from "../kit";
 
 const Head = ({ title, script, light }) => (
   <div className="pe-head">
-    <h2 className={`pe-bd${light ? " is-light" : ""}`}>{title}</h2>
-    {script ? <div className={`pe-sc${light ? " is-light" : ""}`}>{script}</div> : null}
+    <h2 className={`pe-bd${light ? " is-light" : ""}`}><L>{title}</L></h2>
+    {script ? <div className={`pe-sc${light ? " is-light" : ""}`}><L>{script}</L></div> : null}
   </div>
 );
 const lower = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : "");
@@ -38,22 +39,22 @@ function Top({ ctx }) {
         <div>
           <div className="pe-hero-names">
             <h1 className="pe-bd">
-              {v.p1}
+              <F k="names.p1" placeholder="Prénom" value={v.p1} />
               {v.p2 ? (
                 <>
                   <br />
-                  {v.p2}
+                  <F k="names.p2" placeholder="Prénom" value={v.p2} />
                 </>
               ) : null}
             </h1>
-            <div className="pe-sc pe-hero-sc">Notre mariage !</div>
+            <div className="pe-sc pe-hero-sc"><L>Notre mariage !</L></div>
           </div>
           <div className="pe-hero-pearls">
             <Pearls width={420} sag={30} r={5} />
           </div>
           {v.date ? <p className="pe-lab is-ink pe-hero-when">{[v.date.long, v.venueName].filter(Boolean).join(" · ")}</p> : null}
         </div>
-        <Photo src={v.photos.cover} tone={1} label="Votre photo, noir et blanc" preview={ctx.preview} gray className="pe-hero-photo" />
+        <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, noir et blanc" preview={ctx.preview} gray className="pe-hero-photo" />
       </section>
     </>
   );
@@ -85,8 +86,8 @@ function Mot({ ctx }) {
   const { v } = ctx;
   return (
     <section id="mot" className="pe-mot">
-      <h2 className="pe-bd pe-mot-title">Chers amis !</h2>
-      <div className="pe-sc pe-mot-sc">merci d’avoir répondu</div>
+      <h2 className="pe-bd pe-mot-title"><L>Chers amis !</L></h2>
+      <div className="pe-sc pe-mot-sc"><L>merci d’avoir répondu</L></div>
       <div className="pe-mot-pearls">
         <Pearls width={380} sag={28} r={5} />
       </div>
@@ -94,7 +95,7 @@ function Mot({ ctx }) {
         <div className="pe-env-back" />
         <Orn name="envelope" stretch width="100%" height={216} style={{ position: "absolute", left: 0, bottom: 0 }} />
         <div className="pe-env-card">
-          <p>{v.content.mot}</p>
+          <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" value={v.content.mot} />
           <div className="pe-sc">{initials(v)}</div>
         </div>
         <Orn name="clip" width={18} height={42} className="pe-clip" />
@@ -130,7 +131,7 @@ function Jour({ ctx }) {
         </div>
       ) : null}
       <AgendaLink v={v} className="pe-lnk">
-        Ajouter à mon agenda
+        <L>Ajouter à mon agenda</L>
       </AgendaLink>
     </section>
   );
@@ -148,14 +149,14 @@ function Programme({ ctx }) {
         {list.map((m, i) => (
           <div key={m.id} className={`pe-prog-item ${i % 2 ? "is-r" : "is-l"}`} style={{ "--i": i }}>
             <span className="pe-bd pe-prog-time">{hourClock(m.time) || "·"}</span>
-            <span className="pe-prog-name">{m.name}</span>
+            <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="pe-prog-name" value={m.name} />
             {m.date ? <span className="pe-lab">{`${m.date.weekdayShort} ${m.date.day} ${m.date.monthShort}`}</span> : null}
           </div>
         ))}
         <Orn name="pearlKnot" className="pe-knot" />
       </div>
       <AgendaLink v={v} className="pe-lnk is-light">
-        Ajouter à mon agenda
+        <L>Ajouter à mon agenda</L>
       </AgendaLink>
     </section>
   );
@@ -194,7 +195,7 @@ function Lieu({ ctx }) {
               {p.address ? <span className="pe-oval-addr">{p.address}</span> : null}
               {mapsUrl(p.address || p.name) ? (
                 <a className="pe-lnk" href={mapsUrl([p.name, p.address].filter(Boolean).join(", "))} target="_blank" rel="noopener noreferrer">
-                  Voir sur la carte
+                  <L>Voir sur la carte</L>
                 </a>
               ) : null}
             </div>
@@ -210,7 +211,7 @@ function Tenue({ ctx }) {
   return (
     <section id="tenue" className="pe-block pe-dress">
       <Head title="Dress code" script={lower(dress.title)} />
-      {dress.text ? <p className="pe-p pe-dress-text">{dress.text}</p> : null}
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="pe-p pe-dress-text" value={dress.text} />
       {dress.colors.length ? (
         <div className="pe-swatches">
           {dress.colors.map((c, i) => (
@@ -232,7 +233,7 @@ function Pratique({ ctx }) {
   if (c.travel.length)
     cols.push(
       <div key="venir">
-        <h3 className="pe-bd pe-h3">Venir</h3>
+        <h3 className="pe-bd pe-h3"><L>Venir</L></h3>
         <div className="pe-col-list">
           {c.travel.map((t, i) => (
             <p key={i} className="pe-p">
@@ -245,7 +246,7 @@ function Pratique({ ctx }) {
   if (c.stays.length)
     cols.push(
       <div key="loger">
-        <h3 className="pe-bd pe-h3">Se loger</h3>
+        <h3 className="pe-bd pe-h3"><L>Se loger</L></h3>
         <div className="pe-col-list">
           {c.stays.map((s, i) => (
             <p key={i} className="pe-p">
@@ -264,20 +265,20 @@ function Pratique({ ctx }) {
   if (!keys.includes("tenue") && (c.dress.title || c.dress.text))
     cols.push(
       <div key="dress">
-        <h3 className="pe-bd pe-h3">Dress code</h3>
+        <h3 className="pe-bd pe-h3"><L>Dress code</L></h3>
         <p className="pe-p pe-col-narrow">
-          {c.dress.title ? <span className="pe-ink">{c.dress.title}. </span> : null}
-          {c.dress.text}
+          <F k="dress.title" placeholder="Le dress code" as="span" className="pe-ink" value={c.dress.title} />{c.dress.title ? ". " : " "}
+          <F k="dress.text" multiline placeholder="La tenue en quelques mots" value={c.dress.text} />
         </p>
       </div>,
     );
   if (c.kids.title || c.kids.text)
     cols.push(
       <div key="kids">
-        <h3 className="pe-bd pe-h3">Enfants</h3>
+        <h3 className="pe-bd pe-h3"><L>Enfants</L></h3>
         <p className="pe-p pe-col-narrow">
-          {c.kids.title ? <span className="pe-ink">{c.kids.title}. </span> : null}
-          {c.kids.text}
+          <F k="kids.title" placeholder="Les enfants" as="span" className="pe-ink" value={c.kids.title} />{c.kids.title ? ". " : " "}
+          <F k="kids.text" multiline placeholder="Les enfants : bienvenus, garde prévue…" value={c.kids.text} />
         </p>
       </div>,
     );
@@ -305,17 +306,17 @@ function Partage({ ctx }) {
         <div className="pe-group-body">
           {group ? (
             <>
-              <p className="pe-p">Horaires, navettes, photos du week-end : toutes les nouvelles arrivent ici.</p>
+              <p className="pe-p"><L>Horaires, navettes, photos du week-end : toutes les nouvelles arrivent ici.</L></p>
               <a className="pe-lnk" href={group} target="_blank" rel="noopener noreferrer">
-                Rejoindre le groupe
+                <L>Rejoindre le groupe</L>
               </a>
             </>
           ) : (
             <>
               <QR url={ctx.shareUrl || share.url} size={84} />
-              <p className="pe-p">Scannez pour l’ouvrir sur un autre téléphone.</p>
+              <p className="pe-p"><L>Scannez pour l’ouvrir sur un autre téléphone.</L></p>
               <a className="pe-lnk" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-                Partager sur WhatsApp
+                <L>Partager sur WhatsApp</L>
               </a>
               <button type="button" className="pe-lnk" onClick={share.copy}>
                 {share.copied ? "Lien copié" : "Copier le lien"}
@@ -334,12 +335,12 @@ function Histoire({ ctx }) {
   const [a, b] = v.photos.story || [];
   return (
     <section id="histoire" className="pe-block">
-      <Head title={v.content.story.title || "Notre histoire"} script="comment tout a commencé" />
+      <Head title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />} script="comment tout a commencé" />
       <div className="pe-pair">
         <Photo src={a} tone={1} preview={ctx.preview} gray />
         <Photo src={b} tone={3} preview={ctx.preview} gray />
       </div>
-      {v.content.story.text ? <p className="pe-p pe-dress-text">{v.content.story.text}</p> : null}
+      <F k="story.text" multiline placeholder="Votre histoire" as="p" className="pe-p pe-dress-text" value={v.content.story.text} />
     </section>
   );
 }
@@ -354,7 +355,7 @@ function Gallery({ ctx, id, title, script, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} gray />
         ))}
       </div>
-      {!photos?.length && note ? <p className="pe-lab pe-note">{note}</p> : null}
+      {!photos?.length && note ? <p className="pe-lab pe-note"><L>{note}</L></p> : null}
     </section>
   );
 }
@@ -363,8 +364,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="pe-citation">
-      <Photo src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} gray />
-      {v.content.citation ? <p className="pe-sc">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} gray />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="pe-sc" value={v.content.citation} />
     </section>
   );
 }
@@ -390,13 +391,13 @@ function Reponse({ ctx }) {
               </p>
               {v.formSlug ? (
                 <a className="pe-lnk" href={`/f/${v.formSlug}`}>
-                  Un changement ? Répondre à nouveau
+                  <L>Un changement ? Répondre à nouveau</L>
                 </a>
               ) : null}
             </>
           ) : v.formSlug ? (
             <a className="pe-lnk" href={`/f/${v.formSlug}`}>
-              Répondre
+              <L>Répondre</L>
             </a>
           ) : null}
         </div>
@@ -433,7 +434,7 @@ function Footer({ ctx }) {
   return (
     <footer className="pe-footer">
       <span className="pe-sc">{initials(ctx.v)}</span>
-      <span className="pe-lab">Fait avec Merry</span>
+      <span className="pe-lab"><L>Fait avec Merry</L></span>
     </footer>
   );
 }

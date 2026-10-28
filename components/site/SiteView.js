@@ -1,12 +1,14 @@
 "use client";
 
 // Le site vu par les invités, dans le modèle, les couleurs et la police choisis.
-// Utilisé tel quel par la page publique (/s/[slug]) et par l'aperçu des réglages (/dashboard/site).
+// Utilisé tel quel par la page publique (/s/[slug]) et par l'éditeur du tableau de bord (/dashboard/site),
+// qui passe « edit » : les textes s'écrivent alors sur place (components/site/edit.js).
 // Les rubriques suivent l'ordre du couple ; sur ordinateur, certaines se rangent côte à côte
 // comme dans la maquette (span du modèle), sur téléphone une rubrique par ligne.
 
 import { hasContent, paletteOf, paletteStyle, fontsOf, fontStyle, sectionsOf, SECTIONS, siteView, templateOf } from "@/lib/site/model";
 import { EmptySection } from "./parts";
+import { SiteEditProvider, SiteTextProvider } from "./edit";
 import Horizon from "./templates/Horizon";
 import Terracotta from "./templates/Terracotta";
 import Perle from "./templates/Perle";
@@ -33,7 +35,10 @@ function rows(keys, span = {}) {
   return out;
 }
 
-export default function SiteView({ site, wedding, events, formSlug = null, preview = false, shareUrl = "" }) {
+// Rubriques qui ne s'écrivent pas sur la page : la date, les moments (liste d'invités), le formulaire
+const NOT_INLINE = new Set(["jour", "programme", "reponse"]);
+
+export default function SiteView({ site, wedding, events, formSlug = null, preview = false, shareUrl = "", edit = null }) {
   const t = templateOf(site?.template);
   const T = IMPL[t.id];
   const v = siteView({ site, wedding, events, formSlug, preview });
@@ -43,15 +48,15 @@ export default function SiteView({ site, wedding, events, formSlug = null, previ
   // Pour les invités, une rubrique vide ou sans objet n'apparaît pas
   const keys = shown.map((s) => s.key).filter((k) => preview || (hasContent(k, v) && (!T.visible || T.visible(k, v))));
   const nav = keys.filter((k) => t.nav?.[k]).map((k) => ({ key: k, label: t.nav[k] }));
-  const ctx = { v, preview, nav, keys, shareUrl, site };
+  const ctx = { v, preview, nav, keys, shareUrl, site, edit: !!edit };
 
   const render = (key) => {
-    if (preview && !hasContent(key, v)) return <EmptySection key={key} label={SECTIONS[key].label} />;
+    if (preview && !hasContent(key, v) && (!edit || NOT_INLINE.has(key))) return <EmptySection key={key} id={key} label={SECTIONS[key].label} edit={!!edit} />;
     const Section = T.sections[key];
     return <Section key={key} ctx={ctx} />;
   };
 
-  return (
+  const page = (
     // --nl : longueur du plus long prénom, pour réduire les très grands titres quand les prénoms sont longs
     <div className={`s-root st-${t.id}`} style={{ ...paletteStyle(palette.vars), ...fontStyle(fonts), "--nl": Math.max(4, v.p1.length, v.p2.length) }}>
       <div className="s-page">
@@ -72,5 +77,11 @@ export default function SiteView({ site, wedding, events, formSlug = null, previ
         <T.Footer ctx={ctx} />
       </div>
     </div>
+  );
+  const texts = { tpl: t.id, labels: v.content.labels };
+  return (
+    <SiteTextProvider value={texts}>
+      {edit ? <SiteEditProvider value={{ ...edit, content: v.content }}>{page}</SiteEditProvider> : page}
+    </SiteTextProvider>
   );
 }

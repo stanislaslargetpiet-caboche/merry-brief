@@ -5,12 +5,13 @@
 
 import { contactHref, hourClock } from "@/lib/site/model";
 import { AgendaLink, Faq, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { placeDot, travelLabel, writeTo } from "../kit";
 
 const Head = ({ kicker, title, small }) => (
   <div className="rv-head">
-    {kicker ? <span className="rv-tiny">{kicker}</span> : null}
-    <h2 className={`rv-gd${small ? " is-small" : ""}`}>{title}</h2>
+    {kicker ? <span className="rv-tiny"><L>{kicker}</L></span> : null}
+    <h2 className={`rv-gd${small ? " is-small" : ""}`}><L>{title}</L></h2>
   </div>
 );
 
@@ -18,7 +19,7 @@ function Top({ ctx }) {
   const { v } = ctx;
   return (
     <section className="rv-hero">
-      <Photo src={v.photos.cover} tone={1} label="Votre photo, vos mains" preview={ctx.preview} className="rv-hero-photo" />
+      <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, vos mains" preview={ctx.preview} className="rv-hero-photo" />
       <div className="rv-nav">
         <span className="rv-tiny is-dark">{v.initials.join(" & ")}</span>
         {ctx.nav.map((n) => (
@@ -28,12 +29,12 @@ function Top({ ctx }) {
         ))}
       </div>
       <div className="rv-names">
-        <span className="rv-tiny">Nous nous marions</span>
-        <h1 className="rv-gd">{v.p1}</h1>
+        <span className="rv-tiny"><L>Nous nous marions</L></span>
+        <F k="names.p1" placeholder="Prénom" as="h1" className="rv-gd" value={v.p1} />
         {v.p2 ? (
           <>
-            <span className="rv-it">et</span>
-            <span className="rv-gd">{v.p2}</span>
+            <span className="rv-it"><L>et</L></span>
+            <F k="names.p2" placeholder="Prénom" as="span" className="rv-gd" value={v.p2} />
           </>
         ) : null}
       </div>
@@ -59,8 +60,8 @@ function Jour({ ctx }) {
           {v.timeText ? <span className="rv-tiny">À {v.timeText}</span> : null}
         </div>
       </div>
-      {v.venueName ? <span className="rv-gd rv-venue">{v.venueName}</span> : null}
-      {v.venueAddress ? <span className="rv-it rv-addr">{v.venueAddress}</span> : null}
+      <F k="venue.name" placeholder="Le nom du lieu" as="span" className="rv-gd rv-venue" value={v.venueName} />
+      <F k="venue.address" placeholder="L’adresse du lieu" as="span" className="rv-it rv-addr" value={v.venueAddress} />
       {cd ? (
         <div className="rv-count">
           {[
@@ -78,10 +79,10 @@ function Jour({ ctx }) {
       ) : null}
       <div className="rv-actions">
         <AgendaLink v={v} className="rv-pill">
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
         </AgendaLink>
         <RouteLink v={v} className="rv-pill">
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </div>
     </section>
@@ -102,8 +103,8 @@ function Programme({ ctx }) {
                 <span className="rv-prog-time">{hourClock(m.time)}</span>
                 <span className="rv-rule" />
                 <div className="rv-prog-text">
-                  <span className="rv-gd">{m.name}</span>
-                  {m.text ? <span className="rv-it">{m.text}</span> : null}
+                  <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="rv-gd" value={m.name} />
+                  <F k={`moments.${m.id}.text`} multiline placeholder="Un petit mot" as="span" className="rv-it" value={m.text} />
                   {placeDot(m) ? <span className="rv-prog-place">{placeDot(m)}</span> : null}
                 </div>
               </div>
@@ -120,7 +121,7 @@ function Citation({ ctx }) {
   return (
     <section id="citation" className="rv-citation">
       <Photo src={v.photos.citation || v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
-      {v.content.citation ? <p className="rv-it">{v.content.citation}</p> : null}
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="rv-it" value={v.content.citation} />
     </section>
   );
 }
@@ -132,7 +133,7 @@ function Pratique({ ctx }) {
   if (c.travel.length)
     cols.push(
       <div key="venir">
-        <span className="rv-gd rv-h3">Venir</span>
+        <span className="rv-gd rv-h3"><L>Venir</L></span>
         {c.travel.map((t, i) => (
           <p key={i} className="rv-p is-small">
             <span className="rv-ink">{travelLabel(t)}.</span> {t.text}
@@ -143,7 +144,7 @@ function Pratique({ ctx }) {
   if (c.stays.length)
     cols.push(
       <div key="loger">
-        <span className="rv-gd rv-h3">Se loger</span>
+        <span className="rv-gd rv-h3"><L>Se loger</L></span>
         {c.stays.map((s, i) => (
           <p key={i} className="rv-p is-small">
             <span className="rv-ink">{s.name}</span>
@@ -161,20 +162,20 @@ function Pratique({ ctx }) {
   if (!keys.includes("tenue") && (c.dress.title || c.dress.text))
     cols.push(
       <div key="dress">
-        <span className="rv-gd rv-h3">Dress code</span>
+        <span className="rv-gd rv-h3"><L>Dress code</L></span>
         <p className="rv-p is-small">
-          {c.dress.title ? <span className="rv-ink">{c.dress.title}. </span> : null}
-          {c.dress.text}
+          <F k="dress.title" placeholder="Le dress code" as="span" className="rv-ink" value={c.dress.title} />{c.dress.title ? ". " : " "}
+          <F k="dress.text" multiline placeholder="La tenue en quelques mots" value={c.dress.text} />
         </p>
       </div>,
     );
   if (c.kids.title || c.kids.text)
     cols.push(
       <div key="kids">
-        <span className="rv-gd rv-h3">Enfants</span>
+        <span className="rv-gd rv-h3"><L>Enfants</L></span>
         <p className="rv-p is-small">
-          {c.kids.title ? <span className="rv-ink">{c.kids.title}. </span> : null}
-          {c.kids.text}
+          <F k="kids.title" placeholder="Les enfants" as="span" className="rv-ink" value={c.kids.title} />{c.kids.title ? ". " : " "}
+          <F k="kids.text" multiline placeholder="Les enfants : bienvenus, garde prévue…" value={c.kids.text} />
         </p>
       </div>,
     );
@@ -201,14 +202,14 @@ function Moments({ ctx }) {
         </div>
       ))}
       <div className="rv-moments-title">
-        <span className="rv-tiny">Quelques-uns de nos jours préférés</span>
+        <span className="rv-tiny"><L>Quelques-uns de nos jours préférés</L></span>
         <h2 className="rv-gd">
-          Nos
+          <L>Nos</L>
           <br />
-          moments
+          <L>moments</L>
         </h2>
       </div>
-      {v.content.tagline ? <span className="rv-al rv-moments-al">{v.content.tagline}</span> : null}
+      <F k="tagline" placeholder="Une phrase sous vos prénoms" as="span" className="rv-al rv-moments-al" value={v.content.tagline} />
     </section>
   );
 }
@@ -227,8 +228,8 @@ function Histoire({ ctx }) {
         </div>
       </div>
       <div className="rv-story-text">
-        <Head kicker="Comment tout a commencé" title={v.content.story.title || "Notre histoire"} />
-        {v.content.story.text ? <p className="rv-p">{v.content.story.text}</p> : null}
+        <Head kicker="Comment tout a commencé" title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />} />
+        <F k="story.text" multiline placeholder="Votre histoire" as="p" className="rv-p" value={v.content.story.text} />
       </div>
     </section>
   );
@@ -248,7 +249,7 @@ function Album({ ctx }) {
           </div>
         ))}
       </div>
-      {!list.length ? <p className="rv-tiny rv-center rv-note">Ajoutez les vôtres après le mariage</p> : null}
+      {!list.length ? <p className="rv-tiny rv-center rv-note"><L>Ajoutez les vôtres après le mariage</L></p> : null}
     </section>
   );
 }
@@ -284,9 +285,9 @@ function Partage({ ctx }) {
       <div className="rv-share">
         <QR url={ctx.shareUrl || share.url} size={92} />
         <div>
-          <span className="rv-tiny is-small">Scannez pour l’ouvrir sur un autre téléphone</span>
+          <span className="rv-tiny is-small"><L>Scannez pour l’ouvrir sur un autre téléphone</L></span>
           <a className="rv-pill" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-            WhatsApp
+            <L>WhatsApp</L>
           </a>
           <button type="button" className="rv-pill" onClick={share.copy}>
             {share.copied ? "Lien copié" : "Copier le lien"}
@@ -296,7 +297,7 @@ function Partage({ ctx }) {
       {v.content.whatsapp ? (
         <div className="rv-center" style={{ marginTop: 24 }}>
           <a className="rv-pill is-fill" href={v.content.whatsapp} target="_blank" rel="noopener noreferrer">
-            Rejoindre notre groupe
+            <L>Rejoindre notre groupe</L>
           </a>
         </div>
       ) : null}
@@ -317,7 +318,7 @@ function Simple({ id, kicker, title, children }) {
 function Mot({ ctx }) {
   return (
     <Simple id="mot" kicker="Chers amis" title="Bienvenue">
-      <p className="rv-p rv-narrow">{ctx.v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="rv-p rv-narrow" value={ctx.v.content.mot} />
     </Simple>
   );
 }
@@ -326,13 +327,13 @@ function Lieu({ ctx }) {
   const { v } = ctx;
   return (
     <Simple id="lieu" kicker="Le lieu" title={v.venueName}>
-      {v.venueAddress ? <p className="rv-it rv-addr">{v.venueAddress}</p> : null}
-      {v.content.venue.text ? <p className="rv-p rv-narrow">{v.content.venue.text}</p> : null}
+      <F k="venue.address" placeholder="L’adresse du lieu" as="p" className="rv-it rv-addr" value={v.venueAddress} />
+      <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="rv-p rv-narrow" value={v.content.venue.text} />
       <div className="rv-lieu-photo">
-        <Photo src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
+        <Photo path="photos.venue" src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
       </div>
       <RouteLink v={v} className="rv-pill">
-        Voir l’itinéraire
+        <L>Voir l’itinéraire</L>
       </RouteLink>
     </Simple>
   );
@@ -341,8 +342,8 @@ function Lieu({ ctx }) {
 function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
-    <Simple id="tenue" kicker="Dress code" title={dress.title || "La tenue"}>
-      {dress.text ? <p className="rv-p rv-narrow">{dress.text}</p> : null}
+    <Simple id="tenue" kicker="Dress code" title={<F k="dress.title" placeholder="Le dress code" value={dress.title || "La tenue"} />}>
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="rv-p rv-narrow" value={dress.text} />
       {dress.colors.length ? (
         <div className="rv-swatches">
           {dress.colors.map((x, i) => (
@@ -381,7 +382,7 @@ function Footer({ ctx }) {
   return (
     <footer className="rv-footer">
       <span className="rv-gd">{ctx.v.names}</span>
-      <span className="rv-tiny">Fait avec Merry</span>
+      <span className="rv-tiny"><L>Fait avec Merry</L></span>
     </footer>
   );
 }

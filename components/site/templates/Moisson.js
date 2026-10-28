@@ -5,13 +5,14 @@
 
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { momentWhen, placeLine, travelLabel, witnesses } from "../kit";
 
 function Top({ ctx }) {
   const { v } = ctx;
   return (
     <section className="mo-hero">
-      <Photo src={v.photos.cover} tone={1} label="Votre photo, en plein champ" preview={ctx.preview} className="mo-hero-photo" />
+      <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, en plein champ" preview={ctx.preview} className="mo-hero-photo" />
       <nav className="mo-nav">
         {ctx.nav.map((n) => (
           <a key={n.key} href={`#${n.key}`}>
@@ -20,7 +21,7 @@ function Top({ ctx }) {
         ))}
       </nav>
       <div className="mo-hero-text">
-        <h1 className="mo-gl">{v.names}</h1>
+        <h1 className="mo-gl"><F k="names.p1" placeholder="Prénom" value={v.p1 || v.names} />{v.p2 ? <> &amp; <F k="names.p2" placeholder="Prénom" value={v.p2} /></> : null}</h1>
         {v.date ? <span className="mo-lab is-white">Mariage · {v.date.dots}</span> : null}
       </div>
     </section>
@@ -32,8 +33,8 @@ function Jour({ ctx }) {
   const cd = useCountdown(v.dateIso, v.time);
   return (
     <section id="jour" className="mo-jour">
-      <h2 className="mo-gl mo-big">Notre mariage</h2>
-      <span className="mo-lab is-acc">Le grand jour approche</span>
+      <h2 className="mo-gl mo-big"><L>Notre mariage</L></h2>
+      <span className="mo-lab is-acc"><L>Le grand jour approche</L></span>
       <span className="mo-when">{[v.date.long, v.venueName].filter(Boolean).join(" · ")}</span>
       {cd ? (
         <div className="mo-count">
@@ -66,22 +67,22 @@ function Programme({ ctx }) {
       <div className="mo-prog-inner">
         <div className="mo-card">
           <h2 className="mo-gl mo-acc mo-h2">{v.weekend ? "Le week-end" : "Le jour J"}</h2>
-          <span className="mo-lab mo-sub">Le programme</span>
-          {v.content.welcome ? <p className="mo-p mo-intro">{v.content.welcome}</p> : null}
+          <span className="mo-lab mo-sub"><L>Le programme</L></span>
+          <F k="welcome" multiline placeholder="Votre mot de bienvenue" as="p" className="mo-p mo-intro" value={v.content.welcome} />
           <div className="mo-prog-list">
             {v.moments.map((m) => (
               <div key={m.id}>
                 <span className="mo-lab is-acc is-small">{momentWhen(m, hourText)}</span>
-                <span className="mo-gl mo-prog-name">{m.name}</span>
+                <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="mo-gl mo-prog-name" value={m.name} />
                 {placeLine(m) || m.text ? <span className="mo-p is-small">{placeLine(m) || m.text}</span> : null}
               </div>
             ))}
           </div>
           <AgendaLink v={v} className="mo-btn" style={{ marginTop: 22 }}>
-            Ajouter à mon agenda
+            <L>Ajouter à mon agenda</L>
           </AgendaLink>
         </div>
-        <Photo src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="mo-prog-side" />
+        <Photo path="photos.venue" src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="mo-prog-side" />
       </div>
     </section>
   );
@@ -94,12 +95,12 @@ function Lieu({ ctx }) {
   return (
     <>
       <section id="lieu" className="mo-lieu">
-        <h2 className="mo-lab mo-lieu-title">Le lieu</h2>
-        {c.venue.text ? <p className="mo-p mo-col">{c.venue.text}</p> : null}
+        <h2 className="mo-lab mo-lieu-title"><L>Le lieu</L></h2>
+        <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="mo-p mo-col" value={c.venue.text} />
         {v.venueAddress ? (
           <>
-            <span className="mo-lab is-small">Adresse</span>
-            <span className="mo-acc mo-addr">{v.venueAddress}</span>
+            <span className="mo-lab is-small"><L>Adresse</L></span>
+            <F k="venue.address" placeholder="L’adresse du lieu" as="span" className="mo-acc mo-addr" value={v.venueAddress} />
           </>
         ) : null}
         {c.travel.map((t, i) => (
@@ -108,12 +109,12 @@ function Lieu({ ctx }) {
           </p>
         ))}
         <RouteLink v={v} className="mo-btn" style={{ marginTop: 10 }}>
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </section>
       <div className="mo-strip">
         <Photo src={a2} tone={1} label="Votre photo, la table" preview={ctx.preview} />
-        <Photo src={v.photos.venue} tone={3} label="Le lieu" preview={ctx.preview} frame={false} />
+        <Photo path="photos.venue" src={v.photos.venue} tone={3} label="Le lieu" preview={ctx.preview} frame={false} />
         <Photo src={a3} tone={2} label="Votre photo, le jardin" preview={ctx.preview} />
       </div>
     </>
@@ -128,7 +129,7 @@ function Pratique({ ctx }) {
   if (!keys.includes("lieu") && c.travel.length)
     cols.push(
       <div key="venir">
-        <h3 className="mo-lab mo-h3">Venir</h3>
+        <h3 className="mo-lab mo-h3"><L>Venir</L></h3>
         <div className="mo-col-list">
           {c.travel.map((t, i) => (
             <p key={i} className="mo-p">
@@ -141,7 +142,7 @@ function Pratique({ ctx }) {
   if (c.stays.length)
     cols.push(
       <div key="loger">
-        <h3 className="mo-lab mo-h3">Se loger</h3>
+        <h3 className="mo-lab mo-h3"><L>Se loger</L></h3>
         <div className="mo-col-list">
           {c.stays.map((s, i) => (
             <p key={i} className="mo-p">
@@ -160,7 +161,7 @@ function Pratique({ ctx }) {
   if (!keys.includes("tenue") && (c.dress.title || c.dress.text))
     cols.push(
       <div key="dress">
-        <h3 className="mo-lab mo-h3">Dress code</h3>
+        <h3 className="mo-lab mo-h3"><L>Dress code</L></h3>
         <p className="mo-p">
           {c.dress.title ? (
             <>
@@ -175,7 +176,7 @@ function Pratique({ ctx }) {
   if (c.kids.title || c.kids.text)
     cols.push(
       <div key="kids">
-        <h3 className="mo-lab mo-h3">Enfants</h3>
+        <h3 className="mo-lab mo-h3"><L>Enfants</L></h3>
         <p className="mo-p">
           {c.kids.title ? (
             <>
@@ -189,7 +190,7 @@ function Pratique({ ctx }) {
     );
   return (
     <section id="pratique" className="mo-tint mo-prat">
-      <h2 className="mo-gl mo-acc mo-h2 mo-center">Bon à savoir</h2>
+      <h2 className="mo-gl mo-acc mo-h2 mo-center"><L>Bon à savoir</L></h2>
       <div className="mo-prat-grid" style={{ "--n": cols.length }}>
         {cols}
       </div>
@@ -201,7 +202,7 @@ function Questions({ ctx }) {
   const c = ctx.v.content;
   return (
     <section id="questions" className="mo-q">
-      <h3 className="mo-gl mo-acc mo-h3b">Une question ?</h3>
+      <h3 className="mo-gl mo-acc mo-h3b"><L>Une question ?</L></h3>
       {c.contacts.length ? <p className="mo-p mo-narrow">{witnesses(c.contacts)}, sont là pour vous.</p> : null}
       {c.contacts.length ? (
         <div className="mo-btns">
@@ -227,8 +228,8 @@ function Questions({ ctx }) {
 function Simple({ id, title, kicker, tint, children }) {
   return (
     <section id={id} className={`mo-simple${tint ? " mo-tint" : ""}`}>
-      {kicker ? <span className="mo-lab">{kicker}</span> : null}
-      <h2 className="mo-gl mo-acc mo-h2">{title}</h2>
+      {kicker ? <span className="mo-lab"><L>{kicker}</L></span> : null}
+      <h2 className="mo-gl mo-acc mo-h2"><L>{title}</L></h2>
       {children}
     </section>
   );
@@ -237,7 +238,7 @@ function Simple({ id, title, kicker, tint, children }) {
 function Mot({ ctx }) {
   return (
     <Simple id="mot" title="Chers amis">
-      <p className="mo-p mo-col">{ctx.v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="mo-p mo-col" value={ctx.v.content.mot} />
     </Simple>
   );
 }
@@ -245,8 +246,8 @@ function Mot({ ctx }) {
 function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
-    <Simple id="tenue" kicker="Dress code" title={dress.title || "La tenue"}>
-      {dress.text ? <p className="mo-p mo-col">{dress.text}</p> : null}
+    <Simple id="tenue" kicker="Dress code" title={<F k="dress.title" placeholder="Le dress code" value={dress.title || "La tenue"} />}>
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="mo-p mo-col" value={dress.text} />
       {dress.colors.length ? (
         <div className="mo-swatches">
           {dress.colors.map((x, i) => (
@@ -265,8 +266,8 @@ function Histoire({ ctx }) {
   const { v } = ctx;
   const [a, b] = v.photos.story || [];
   return (
-    <Simple id="histoire" kicker="Comment tout a commencé" title={v.content.story.title || "Notre histoire"}>
-      {v.content.story.text ? <p className="mo-p mo-col">{v.content.story.text}</p> : null}
+    <Simple id="histoire" kicker="Comment tout a commencé" title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />}>
+      <F k="story.text" multiline placeholder="Votre histoire" as="p" className="mo-p mo-col" value={v.content.story.text} />
       <div className="mo-pair">
         <Photo src={a} tone={1} preview={ctx.preview} />
         <Photo src={b} tone={2} preview={ctx.preview} />
@@ -284,7 +285,7 @@ function Gallery({ ctx, id, title, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} />
         ))}
       </div>
-      {!photos?.length && note ? <span className="mo-lab is-small">{note}</span> : null}
+      {!photos?.length && note ? <span className="mo-lab is-small"><L>{note}</L></span> : null}
     </Simple>
   );
 }
@@ -293,8 +294,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="mo-citation">
-      <Photo src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
-      {v.content.citation ? <p className="mo-gl">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="mo-gl" value={v.content.citation} />
     </section>
   );
 }
@@ -328,7 +329,7 @@ function Partage({ ctx }) {
         <QR url={ctx.shareUrl || share.url} size={84} />
         <div className="mo-btns is-col">
           <a className="mo-btn" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-            WhatsApp
+            <L>WhatsApp</L>
           </a>
           <button type="button" className="mo-btn" onClick={share.copy}>
             {share.copied ? "Lien copié" : "Copier le lien"}
@@ -337,7 +338,7 @@ function Partage({ ctx }) {
       </div>
       {v.content.whatsapp ? (
         <a className="mo-acc mo-addr" href={v.content.whatsapp} target="_blank" rel="noopener noreferrer">
-          Rejoindre notre groupe
+          <L>Rejoindre notre groupe</L>
         </a>
       ) : null}
     </Simple>
@@ -348,7 +349,7 @@ function Footer({ ctx }) {
   return (
     <footer className="mo-footer">
       <span className="mo-gl">{ctx.v.names}</span>
-      <span className="mo-lab is-small is-soft">Fait avec Merry</span>
+      <span className="mo-lab is-small is-soft"><L>Fait avec Merry</L></span>
     </footer>
   );
 }
