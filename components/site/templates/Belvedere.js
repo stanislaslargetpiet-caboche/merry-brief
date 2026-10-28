@@ -59,7 +59,7 @@ function Top({ ctx }) {
         <L>ensemble</L>
         <br />
         <L>toujours</L>
-        <span />
+        <span className="bv-hero-rule" />
       </div>
     </section>
   );
