@@ -12389,3 +12389,383 @@ body.d-noscroll {
     z-index: 8;
   }
 }
+
+/* ---------- Espace Invités : onglets Liste, Site, Formulaire, Liste de mariage (artboards « 10 ») ---------- */
+
+.d-itabs-head {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.d-itabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-root .d-itab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--d-muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.d-root .d-itab:hover {
+  color: var(--d-ink);
+}
+
+.d-root .d-itab.is-on {
+  border-bottom-color: var(--d-ink);
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
+.d-itab-short {
+  display: none;
+}
+
+.d-itab-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-muted);
+}
+
+.d-itab-online {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #d9ddcf;
+  color: #2f3326;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-itab-online::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #5a6b45;
+}
+
+.d-itab-online.is-off {
+  background: var(--d-panel);
+  color: var(--d-muted);
+}
+
+.d-itab-online.is-off::before {
+  background: var(--d-border);
+}
+
+.d-itab-soon {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--d-limetint);
+  color: var(--d-ok-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-itab .d-itab-soon,
+.d-itab .d-itab-online {
+  align-self: center;
+}
+
+/* Onglet Site */
+.d-isite {
+  display: flex;
+  gap: 32px;
+  padding: 24px;
+  border: 1px solid var(--d-line);
+  border-radius: 20px;
+}
+
+.d-isite-cover {
+  position: relative;
+  flex: 0 0 420px;
+  height: 300px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #e9c79a 0%, #b9805a 55%, #5c4a3c 100%) center / cover;
+}
+
+.d-isite-names {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.d-isite-names span {
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.d-isite-names small {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.d-isite-tpl {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-isite-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+.d-isite-body .d-itab-online {
+  align-self: flex-start;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.d-isite-body h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.d-isite-body p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.d-isite-url {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 4px 4px 16px;
+  border-radius: 12px;
+  background: var(--d-panel);
+  box-sizing: border-box;
+}
+
+.d-isite-url span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.d-isite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.d-isite-cards {
+  display: flex;
+  gap: 12px;
+}
+
+.d-root .d-isite-card {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--d-panel);
+  text-decoration: none;
+}
+
+.d-isite-card strong {
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.d-isite-card span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.d-isite-card small {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+/* Onglet Liste de mariage : bientôt */
+.d-isoon {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 32px;
+  border-radius: 20px;
+  background: var(--d-panel);
+}
+
+.d-isoon .d-itab-soon {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.d-isoon-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 620px;
+}
+
+.d-isoon-text h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.d-isoon-text p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.d-isoon-gifts {
+  display: flex;
+  gap: 12px;
+  opacity: 0.6;
+}
+
+.d-isoon-gift {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--d-line);
+  font-size: 14px;
+}
+
+.d-isoon-gift strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.d-isoon-gift small {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-isoon-gift b {
+  font-weight: 600;
+}
+
+.d-isoon-photo {
+  height: 120px;
+  border-radius: 12px;
+  background: var(--d-line);
+}
+
+@media (max-width: 700px) {
+  .d-itabs {
+    gap: 18px;
+    margin: 0 -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .d-root .d-itab {
+    padding: 0 4px;
+    font-size: 14px;
+  }
+
+  .d-itab-long,
+  .d-itab .d-itab-count,
+  .d-itab .d-itab-online,
+  .d-itab .d-itab-soon {
+    display: none;
+  }
+
+  .d-itab-short {
+    display: inline;
+  }
+
+  .d-isite {
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .d-isite-cover {
+    flex: none;
+    height: 220px;
+  }
+
+  .d-isite-names span {
+    font-size: 32px;
+  }
+
+  .d-isite-body {
+    gap: 14px;
+  }
+
+  .d-isite-body h2,
+  .d-isite-body > p {
+    display: none;
+  }
+
+  .d-isite-actions .d-btn {
+    width: 100%;
+  }
+
+  .d-isite-cards,
+  .d-isoon-gifts {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .d-isoon {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .d-isoon-text h2 {
+    font-size: 19px;
+  }
+
+  .d-isoon-photo {
+    height: 90px;
+  }
+}
