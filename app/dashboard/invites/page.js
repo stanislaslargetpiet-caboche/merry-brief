@@ -8,7 +8,8 @@ import { fullName, normalize, pctLabel, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
 import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
-import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, PageHeader, Popover, RsvpMenu } from "@/components/dash/ui";
+import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
+import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
@@ -840,13 +841,10 @@ export default function Invites() {
 
   return (
     <>
-      <PageHeader
-        title="Invités."
+      <InvitesHeader
+        tab="liste"
         actions={
           <>
-            <Btn kind="lime" icon="link" href="/dashboard/invites/formulaire">
-              Formulaire invités
-            </Btn>
             <Btn kind="strong" icon="download" href="/dashboard/invites/exporter">
               Exporter
             </Btn>

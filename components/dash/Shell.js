@@ -15,9 +15,10 @@ const NAV = [
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", exact: true },
   { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
-  { href: "/dashboard/site", label: "Site de mariage", short: "Site", icon: "globe" },
 ];
-const SOON = ["Liste & cagnotte"];
+
+// L'éditeur du site (/dashboard/site) fait partie de l'espace Invités
+const isOn = (n, pathname) => (n.exact ? pathname === n.href : pathname.startsWith(n.href) || (n.href === "/dashboard/invites" && pathname.startsWith("/dashboard/site")));
 
 export default function Shell({ children }) {
   return (
@@ -171,7 +172,7 @@ function Frame({ children }) {
 
       <nav className="d-tabbar" aria-label="Navigation du tableau de bord">
         {NAV.map((n) => {
-          const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+          const on = isOn(n, pathname);
           return (
             <Link key={n.href} href={n.href} className={`d-tab-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
               {on ? <span className="d-tab-pill">{n.short}</span> : n.short}
@@ -195,7 +196,7 @@ function Frame({ children }) {
         ) : null}
         <div className="d-nav-main">
           {NAV.map((n) => {
-            const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+            const on = isOn(n, pathname);
             return (
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
                 <Icon name={n.icon} size={18} />
@@ -203,14 +204,6 @@ function Frame({ children }) {
               </Link>
             );
           })}
-        </div>
-        <div className="d-nav-soon">
-          <div className="d-nav-caption">Bientôt</div>
-          {SOON.map((s) => (
-            <span key={s} className="d-nav-soon-item">
-              {s}
-            </span>
-          ))}
         </div>
         <div className="d-nav-bottom">
           <div className="d-help">
