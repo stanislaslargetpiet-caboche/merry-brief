@@ -1652,3 +1652,110 @@
   .st-horizon .hz-col { display: contents; }
   .st-horizon .hz-cols { display: flex; flex-direction: column; align-items: stretch; }
 }
+
+/* ---------- Écrire sur le site (éditeur du tableau de bord) ---------- */
+
+.s-ed {
+  cursor: text;
+  outline: none;
+  border-radius: 2px;
+  white-space: pre-line;
+  transition: box-shadow 0.12s;
+}
+
+.s-ed:hover {
+  box-shadow: 0 0 0 1.5px rgba(28, 28, 26, 0.35);
+}
+
+.s-ed:focus {
+  box-shadow: 0 0 0 2px #cbff75, 0 0 0 6px rgba(203, 255, 117, 0.35);
+}
+
+.s-ed.is-empty::before {
+  content: attr(data-ph);
+  opacity: 0.45;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.s-ed.is-empty {
+  display: inline-block;
+  min-width: 4em;
+}
+
+.s-photo-pick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(28, 28, 26, 0.82);
+  color: #ffffff;
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.s-photo:hover .s-photo-pick,
+.s-photo-pick:focus-visible,
+.s-photo.is-empty .s-photo-pick {
+  opacity: 1;
+}
+
+.s-faq-item.is-edit .s-faq-q {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: default;
+}
+
+.s-faq-item.is-edit .s-faq-a {
+  display: block;
+}
+
+.s-ed-x,
+.s-ed-add {
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.s-ed-x {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.s-ed-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px dashed currentColor;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}

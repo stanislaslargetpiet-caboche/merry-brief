@@ -7,6 +7,7 @@ import { useEffect, useId, useState } from "react";
 import QRCode from "qrcode";
 import { ICONS, ORN } from "@/lib/site/ornaments";
 import { downloadIcs, mapsUrl, RESPONSE_KEY } from "@/lib/site/model";
+import { Editable, useSiteEdit } from "./edit";
 
 export function Orn({ name, className = "", style, width, height, flip, rotate, label, stretch }) {
   const o = ORN[name];
@@ -53,25 +54,35 @@ export function Ico({ name, size = 24, sw = 1, className = "", style }) {
 // Photos : la photo du couple, sinon l'emplacement teinté de la maquette (libellé dans l'aperçu seulement)
 // ---------------------------------------------------------------------------
 
-export function Photo({ src, tone = 1, label, preview, className = "", style, frame = true, round, position, gray, children }) {
+// « path » : où la photo s'enregistre (« photos.cover », « photos.story.1 ») ; dans l'éditeur, un clic la change
+export function Photo({ src, tone = 1, label, preview, className = "", style, frame = true, round, position, gray, children, path }) {
+  const edit = useSiteEdit();
+  const pick = edit && path ? (
+    <button type="button" className="s-photo-pick" onClick={(e) => (e.stopPropagation(), edit.pickPhoto(path))}>
+      <Ico name="photo" size={16} sw={1.4} />
+      {src ? "Changer la photo" : "Ajouter une photo"}
+    </button>
+  ) : null;
   if (src) {
     return (
       <div className={`s-photo ${className}`} style={{ ...style, borderRadius: round }} role="img" aria-label={label || "Photo"}>
         <img src={src} alt="" style={{ objectPosition: position ? `center ${position}%` : undefined, filter: gray ? "grayscale(1) contrast(1.05)" : undefined }} />
         {children}
+        {pick}
       </div>
     );
   }
   return (
-    <div className={`s-photo is-empty is-t${tone} ${className}`} style={{ ...style, borderRadius: round }} aria-hidden="true">
+    <div className={`s-photo is-empty is-t${tone} ${className}`} style={{ ...style, borderRadius: round }} aria-hidden={pick ? undefined : "true"}>
       {frame ? <span className="s-photo-frame" style={{ borderRadius: round }} /> : null}
-      {preview && label ? (
+      {preview && label && !pick ? (
         <span className="s-photo-label">
           <Ico name="photo" size={16} sw={1.1} />
           {label}
         </span>
       ) : null}
       {children}
+      {pick}
     </div>
   );
 }
@@ -215,6 +226,8 @@ export function QR({ url, size = 72, className = "" }) {
 
 export function Faq({ items, titleClass = "", textClass = "", iconSize = 14, groups = true }) {
   const [open, setOpen] = useState(0);
+  const edit = useSiteEdit();
+  if (edit) return <FaqEdit items={items} titleClass={titleClass} textClass={textClass} />;
   let lastGroup = null;
   return (
     <div className="s-faq">
@@ -240,11 +253,43 @@ export function Faq({ items, titleClass = "", textClass = "", iconSize = 14, gro
   );
 }
 
+// Dans l'éditeur : toutes les réponses ouvertes, chaque question s'écrit sur place
+function FaqEdit({ items, titleClass, textClass }) {
+  const edit = useSiteEdit();
+  return (
+    <div className="s-faq">
+      {items.map((q, i) => (
+        <div key={i} className="s-faq-item is-edit">
+          <div className="s-faq-q">
+            <Editable className={titleClass} value={q.q} placeholder="La question" onChange={(t) => edit.set(`faq.${i}.q`, t)} />
+            <button type="button" className="s-ed-x" aria-label="Retirer cette question" onClick={() => edit.set("faq", items.filter((_, j) => j !== i))}>
+              <Ico name="moins" size={14} />
+            </button>
+          </div>
+          <Editable as="p" className={`s-faq-a ${textClass}`} value={q.a} placeholder="La réponse" multiline onChange={(t) => edit.set(`faq.${i}.a`, t)} />
+        </div>
+      ))}
+      <button type="button" className="s-ed-add" onClick={() => edit.set("faq", [...items, { q: "", a: "" }])}>
+        <Ico name="plus" size={14} />
+        Ajouter une question
+      </button>
+      <div className="s-faq-end" />
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Actions : agenda, itinéraire, partage
 // ---------------------------------------------------------------------------
 
 export function AgendaLink({ v, className, children, style }) {
+  if (useSiteEdit()) {
+    return (
+      <span className={className} style={style}>
+        {children}
+      </span>
+    );
+  }
   return (
     <button type="button" className={className} style={style} onClick={() => downloadIcs(v)}>
       {children}
@@ -311,11 +356,11 @@ export function joinList(xs) {
 }
 
 // Rubrique sans contenu : visible dans l'aperçu du tableau de bord seulement
-export function EmptySection({ label }) {
+export function EmptySection({ id, label, edit }) {
   return (
-    <div className="s-empty">
+    <div className="s-empty" id={id}>
       <strong>{label}</strong>
-      <span>Rubrique vide : remplissez-la dans le tableau de bord. Vos invités ne la voient pas.</span>
+      <span>{edit ? "Rubrique vide : ouvrez ses réglages pour la remplir. Vos invités ne la voient pas." : "Rubrique vide : remplissez-la dans le tableau de bord. Vos invités ne la voient pas."}</span>
     </div>
   );
 }

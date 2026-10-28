@@ -5,13 +5,14 @@
 
 import { hourClock } from "@/lib/site/model";
 import { AgendaLink, Faq, Orn, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { placeLine, travelLabel, writeTo } from "../kit";
 
 const Head = ({ kicker, title, wave }) => (
   <div className="hz-head">
     {wave ? <Orn name="wave" /> : null}
-    {kicker ? <span className="hz-tiny">{kicker}</span> : null}
-    <h2 className="hz-it">{title}</h2>
+    {kicker ? <span className="hz-tiny"><L>{kicker}</L></span> : null}
+    <h2 className="hz-it"><L>{title}</L></h2>
   </div>
 );
 
@@ -31,14 +32,14 @@ function Hero({ ctx }) {
   const { v } = ctx;
   return (
     <section className="hz-panel hz-hero">
-      <Photo src={v.photos.cover} tone={1} label="Votre photo, vos mains" preview={ctx.preview} className="hz-hero-photo" />
+      <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, vos mains" preview={ctx.preview} className="hz-hero-photo" />
       <div className="hz-hero-names">
-        <span className="hz-tiny">Nous nous marions</span>
-        <h1 className="hz-it">{v.p1 || v.names}</h1>
+        <span className="hz-tiny"><L>Nous nous marions</L></span>
+        <F k="names.p1" placeholder="Prénom" as="h1" className="hz-it" value={v.p1 || v.names} />
         {v.p2 ? (
           <>
-            <span className="hz-cg">et</span>
-            <span className="hz-it">{v.p2}</span>
+            <span className="hz-cg"><L>et</L></span>
+            <F k="names.p2" placeholder="Prénom" as="span" className="hz-it" value={v.p2} />
           </>
         ) : null}
       </div>
@@ -64,7 +65,7 @@ function Jour({ ctx }) {
           {v.timeText ? <span className="hz-tiny">À {v.timeText}</span> : null}
         </div>
       </div>
-      {v.venueName ? <span className="hz-it hz-venue">{v.venueName}</span> : null}
+      <F k="venue.name" placeholder="Le nom du lieu" as="span" className="hz-it hz-venue" value={v.venueName} />
       {v.venueAddress || v.content.dress.title ? <span className="hz-cg hz-venue-sub">{[v.venueAddress, v.content.dress.title ? `tenue ${v.content.dress.title.charAt(0).toLowerCase()}${v.content.dress.title.slice(1)}` : ""].filter(Boolean).join(" · ")}</span> : null}
       {cd ? (
         <div className="hz-count">
@@ -83,10 +84,10 @@ function Jour({ ctx }) {
       ) : null}
       <div className="hz-actions">
         <AgendaLink v={v} className="hz-pill">
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
         </AgendaLink>
         <RouteLink v={v} className="hz-pill">
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </div>
     </section>
@@ -97,7 +98,7 @@ function Programme({ ctx }) {
   const { v } = ctx;
   return (
     <section id="programme" className="hz-panel hz-pad">
-      <Head kicker="Le déroulé" title={<>Au fil du<br />week-end</>} />
+      <Head kicker="Le déroulé" title={<><L>Au fil du</L><br /><L>week-end</L></>} />
       <div className="hz-prog">
         {v.days.map((day, i) => (
           <div key={day.key || i}>
@@ -107,7 +108,7 @@ function Programme({ ctx }) {
                 <span className="hz-tiny hz-prog-time">{hourClock(m.time)}</span>
                 <span className="hz-rule" />
                 <div className="hz-prog-text">
-                  <span className="hz-it">{m.name}</span>
+                  <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="hz-it" value={m.name} />
                   {m.text || placeLine(m) ? (
                     <span className="hz-cg">
                       {m.text}
@@ -129,8 +130,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="hz-panel hz-citation">
-      <Photo src={v.photos.citation} tone={2} label="Votre photo, au coucher du soleil" preview={ctx.preview} className="hz-citation-photo" />
-      {v.content.citation ? <p className="hz-cg">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={2} label="Votre photo, au coucher du soleil" preview={ctx.preview} className="hz-citation-photo" />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="hz-cg" value={v.content.citation} />
     </section>
   );
 }
@@ -140,7 +141,7 @@ function Histoire({ ctx }) {
   const [a, b] = v.photos.story || [];
   return (
     <section id="histoire" className="hz-panel hz-pad hz-center">
-      <Head kicker="Comment tout a commencé" title={v.content.story.title || "Notre histoire"} />
+      <Head kicker="Comment tout a commencé" title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />} />
       <div className="hz-collage">
         <div className="hz-shot is-a">
           <Photo src={a} tone={1} preview={ctx.preview} />
@@ -149,7 +150,7 @@ function Histoire({ ctx }) {
           <Photo src={b} tone={2} preview={ctx.preview} />
         </div>
       </div>
-      {v.content.story.text ? <p className="hz-p hz-story">{v.content.story.text}</p> : null}
+      <F k="story.text" multiline placeholder="Votre histoire" as="p" className="hz-p hz-story" value={v.content.story.text} />
     </section>
   );
 }
@@ -168,7 +169,7 @@ function Album({ ctx, title = "De l’album", photos }) {
           </div>
         ))}
       </div>
-      {!list.length ? <p className="hz-tiny hz-strip-note">Vos photos du week-end, ici après le mariage</p> : null}
+      {!list.length ? <p className="hz-tiny hz-strip-note"><L>Vos photos du week-end, ici après le mariage</L></p> : null}
     </section>
   );
 }
@@ -188,7 +189,7 @@ function Reponse({ ctx }) {
         <div className="hz-answer">
           {v.formSlug ? (
             <a className="hz-pill is-on" href={`/f/${v.formSlug}`}>
-              Répondre
+              <L>Répondre</L>
             </a>
           ) : null}
           {contacts.length ? <span className="hz-cg hz-change">{writeTo(contacts)}</span> : null}
@@ -201,23 +202,23 @@ function Reponse({ ctx }) {
       <Head kicker="Merci, votre réponse est enregistrée" title={res.present === false ? "Vous nous manquerez" : "Vous serez des nôtres"} />
       <div className="hz-answer">
         <div className="hz-answer-line">
-          <span className="hz-tiny">Vos noms</span>
+          <span className="hz-tiny"><L>Vos noms</L></span>
           <span className="hz-p">{res.names}</span>
         </div>
         {res.moments?.length ? (
           <div className="hz-answer-line">
-            <span className="hz-tiny">Vos moments</span>
+            <span className="hz-tiny"><L>Vos moments</L></span>
             <span className="hz-p">{joinList(res.moments).replace(/^./, (c) => c.toUpperCase())}</span>
           </div>
         ) : null}
         <div className="hz-answer-yes">
-          <span className="hz-tiny">Vous serez là ?</span>
+          <span className="hz-tiny"><L>Vous serez là ?</L></span>
           <div>
             <span className={`hz-pill${res.present !== false ? " is-on" : " is-off"}`} aria-current={res.present !== false ? "true" : undefined}>
-              Oui, avec joie
+              <L>Oui, avec joie</L>
             </span>
             <span className={`hz-pill${res.present === false ? " is-on" : " is-off"}`} aria-current={res.present === false ? "true" : undefined}>
-              Hélas, non
+              <L>Hélas, non</L>
             </span>
           </div>
         </div>
@@ -239,8 +240,8 @@ function Questions({ ctx }) {
     <section id="questions" className="hz-panel hz-pad-wide">
       <div className="hz-head">
         <Orn name="wave" />
-        <span className="hz-tiny">Bon à savoir</span>
-        <h2 className="hz-it">Questions &amp; réponses</h2>
+        <span className="hz-tiny"><L>Bon à savoir</L></span>
+        <h2 className="hz-it"><L>Questions &amp; réponses</L></h2>
         <p className="hz-cg hz-q-intro">
           Vous ne trouvez pas ?<br />
           {v.content.contacts.length ? `${writeTo(v.content.contacts)}, nous répondons vite.` : "Écrivez-nous, nous répondons vite."}
@@ -262,9 +263,9 @@ function Partage({ ctx }) {
       <div className="hz-share">
         <QR url={ctx.shareUrl || share.url} size={72} />
         <div>
-          <span className="hz-tiny">Scannez pour l’ouvrir sur un autre téléphone</span>
+          <span className="hz-tiny"><L>Scannez pour l’ouvrir sur un autre téléphone</L></span>
           <a className="hz-pill" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-            Partager sur WhatsApp
+            <L>Partager sur WhatsApp</L>
           </a>
           <button type="button" className="hz-pill" onClick={share.copy}>
             {share.copied ? "Lien copié" : "Copier le lien"}
@@ -280,7 +281,7 @@ function Mot({ ctx }) {
   return (
     <section id="mot" className="hz-panel hz-pad hz-center">
       <Head kicker="Chers amis" title="Bienvenue" />
-      <p className="hz-p hz-story">{ctx.v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="hz-p hz-story" value={ctx.v.content.mot} />
     </section>
   );
 }
@@ -289,14 +290,14 @@ function Lieu({ ctx }) {
   const { v } = ctx;
   return (
     <section id="lieu" className="hz-panel hz-lieu">
-      <Photo src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} className="hz-lieu-photo" />
+      <Photo path="photos.venue" src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} className="hz-lieu-photo" />
       <div className="hz-pad hz-center">
-        <Head kicker="Le lieu" title={v.venueName || "Le lieu"} />
-        {v.venueAddress ? <span className="hz-cg hz-venue-sub">{v.venueAddress}</span> : null}
-        {v.content.venue.text ? <p className="hz-p hz-story">{v.content.venue.text}</p> : null}
+        <Head kicker="Le lieu" title={<F k="venue.name" placeholder="Le nom du lieu" value={v.venueName || "Le lieu"} />} />
+        <F k="venue.address" placeholder="L’adresse du lieu" as="span" className="hz-cg hz-venue-sub" value={v.venueAddress} />
+        <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="hz-p hz-story" value={v.content.venue.text} />
         <div className="hz-actions">
           <RouteLink v={v} className="hz-pill">
-            Voir l’itinéraire
+            <L>Voir l’itinéraire</L>
           </RouteLink>
         </div>
       </div>
@@ -308,8 +309,8 @@ function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
     <section id="tenue" className="hz-panel hz-pad hz-center">
-      <Head kicker="La tenue" title={dress.title || "Dress code"} />
-      {dress.text ? <p className="hz-p hz-story">{dress.text}</p> : null}
+      <Head kicker="La tenue" title={<F k="dress.title" placeholder="Le dress code" value={dress.title || "Dress code"} />} />
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="hz-p hz-story" value={dress.text} />
       {dress.colors.length ? (
         <div className="hz-swatches">
           {dress.colors.map((c, i) => (
@@ -334,7 +335,7 @@ function Pratique({ ctx }) {
       <div className="hz-prat">
         {c.travel.length ? (
           <div>
-            <div className="hz-tiny hz-prat-k">Venir</div>
+            <div className="hz-tiny hz-prat-k"><L>Venir</L></div>
             {c.travel.map((t, i) => (
               <p key={i} className="hz-p">
                 <span className="hz-ink">{travelLabel(t)}.</span> {t.text}
@@ -344,7 +345,7 @@ function Pratique({ ctx }) {
         ) : null}
         {c.stays.length ? (
           <div>
-            <div className="hz-tiny hz-prat-k">Se loger</div>
+            <div className="hz-tiny hz-prat-k"><L>Se loger</L></div>
             {c.stays.map((s, i) => (
               <p key={i} className="hz-p">
                 <span className="hz-ink">{s.name}</span>
@@ -355,19 +356,19 @@ function Pratique({ ctx }) {
         ) : null}
         {dressHere ? (
           <div>
-            <div className="hz-tiny hz-prat-k">Dress code</div>
+            <div className="hz-tiny hz-prat-k"><L>Dress code</L></div>
             <p className="hz-p">
-              {c.dress.title ? <span className="hz-ink">{c.dress.title}. </span> : null}
-              {c.dress.text}
+              <F k="dress.title" placeholder="Le dress code" as="span" className="hz-ink" value={c.dress.title} />{c.dress.title ? ". " : " "}
+              <F k="dress.text" multiline placeholder="La tenue en quelques mots" value={c.dress.text} />
             </p>
           </div>
         ) : null}
         {c.kids.title || c.kids.text ? (
           <div>
-            <div className="hz-tiny hz-prat-k">Enfants</div>
+            <div className="hz-tiny hz-prat-k"><L>Enfants</L></div>
             <p className="hz-p">
-              {c.kids.title ? <span className="hz-ink">{c.kids.title}. </span> : null}
-              {c.kids.text}
+              <F k="kids.title" placeholder="Les enfants" as="span" className="hz-ink" value={c.kids.title} />{c.kids.title ? ". " : " "}
+              <F k="kids.text" multiline placeholder="Les enfants : bienvenus, garde prévue…" value={c.kids.text} />
             </p>
           </div>
         ) : null}
@@ -410,7 +411,7 @@ function Footer({ ctx }) {
   return (
     <footer className="hz-footer">
       <span className="hz-it">{ctx.v.names}</span>
-      <span className="hz-tiny">Fait avec Merry</span>
+      <span className="hz-tiny"><L>Fait avec Merry</L></span>
     </footer>
   );
 }

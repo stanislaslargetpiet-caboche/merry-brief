@@ -5,6 +5,7 @@
 
 import { hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, RouteLink, useCountdown } from "../parts";
+import { F, L } from "../edit";
 import { travelLabel } from "../kit";
 import { contactHref } from "@/lib/site/model";
 
@@ -51,10 +52,10 @@ function Top({ ctx }) {
               </>
             ) : null}
           </div>
-          <div className="tc-caps">Nous nous marions</div>
+          <div className="tc-caps"><L>Nous nous marions</L></div>
         </div>
         <div className="tc-hero-photo">
-          <Photo src={v.photos.cover} tone={1} label="Votre photo" preview={ctx.preview} />
+          <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo" preview={ctx.preview} />
           <Orn name="tornBottom" stretch width="100%" height={28} style={{ position: "absolute", left: 0, right: 0, bottom: -1 }} />
         </div>
         <div className="tc-hero-r">
@@ -65,17 +66,17 @@ function Top({ ctx }) {
             <Orn name="sprigSmall" width={130} height={130} flip />
           </div>
           <h1 className="tc-script tc-names">
-            {v.p1}
+            <F k="names.p1" placeholder="Prénom" value={v.p1} />
             {v.p2 ? (
               <>
                 <br />
-                <span>&amp;</span>
+                <span><L>&amp;</L></span>
                 <br />
-                {v.p2}
+                <F k="names.p2" placeholder="Prénom" value={v.p2} />
               </>
             ) : null}
           </h1>
-          {v.content.welcome ? <p className="tc-p tc-welcome">{v.content.welcome}</p> : null}
+          <F k="welcome" multiline placeholder="Votre mot de bienvenue" as="p" className="tc-p tc-welcome" value={v.content.welcome} />
           {d ? (
             <div className="tc-date">
               <div className="tc-caps">{d.month}</div>
@@ -89,7 +90,7 @@ function Top({ ctx }) {
           ) : null}
           {cd ? (
             <div className="tc-count">
-              <div className="tc-caps">Avant le grand jour</div>
+              <div className="tc-caps"><L>Avant le grand jour</L></div>
               <div className="tc-count-row">
                 {[
                   [cd.days, "Jours"],
@@ -120,7 +121,7 @@ function Programme({ ctx }) {
   return (
     <section id="programme" className="tc-prog">
       <div className="tc-head">
-        <h2 className="tc-caps tc-h2">Le programme</h2>
+        <h2 className="tc-caps tc-h2"><L>Le programme</L></h2>
         <Rule />
       </div>
       <div className="tc-prog-list">
@@ -137,7 +138,7 @@ function Programme({ ctx }) {
                   <span className="tc-prog-dot" />
                 </div>
                 <div className="tc-prog-text">
-                  <div className="tc-prog-name">{m.name}</div>
+                  <F k={`moments.${m.id}.name`} placeholder="Le moment" as="div" className="tc-prog-name" value={m.name} />
                   {m.place || m.address ? (
                     <div className="tc-prog-place">
                       {m.place}
@@ -145,10 +146,10 @@ function Programme({ ctx }) {
                       {m.address}
                     </div>
                   ) : null}
-                  {m.text ? <div className="tc-prog-place">{m.text}</div> : null}
+                  <F k={`moments.${m.id}.text`} multiline placeholder="Un petit mot" as="div" className="tc-prog-place" value={m.text} />
                   {m.address || m.place ? (
                     <RouteLink v={v} address={[m.place, m.address].filter(Boolean).join(", ")} className="tc-maplink">
-                      Voir sur la carte
+                      <L>Voir sur la carte</L>
                     </RouteLink>
                   ) : null}
                 </div>
@@ -161,7 +162,7 @@ function Programme({ ctx }) {
       <div className="tc-center" style={{ marginTop: 26 }}>
         <AgendaLink v={v} className="tc-pill">
           <Ico name="agenda" size={18} sw={1.3} />
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
         </AgendaLink>
       </div>
     </section>
@@ -175,7 +176,7 @@ function Lieu({ ctx }) {
     <section id="lieu" className="tc-lieu">
       <div className="tc-center tc-lieu-text">
         {v.date ? <div className="tc-caps-s">{[`${v.date.weekday} ${v.date.day}`, v.timeText || (main ? hourText(main.time) : "")].filter(Boolean).join(" · ")}</div> : null}
-        <h2 className="tc-caps tc-lieu-name">{v.venueName}</h2>
+        <F k="venue.name" placeholder="Le nom du lieu" as="h2" className="tc-caps tc-lieu-name" value={v.venueName} />
         {v.venueAddress || v.content.venue.text ? (
           <p className="tc-p">
             {v.venueAddress}
@@ -185,11 +186,11 @@ function Lieu({ ctx }) {
         ) : null}
         <RouteLink v={v} className="tc-pill" style={{ marginTop: 6 }}>
           <Ico name="pin" size={18} sw={1.3} />
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </div>
       <div className="tc-lieu-photo">
-        <Photo src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
+        <Photo path="photos.venue" src={v.photos.venue} tone={3} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
         <Orn name="tornTop" stretch width="100%" height={22} style={{ position: "absolute", left: 0, right: 0, top: -1 }} />
       </div>
     </section>
@@ -207,9 +208,9 @@ function Pratique({ ctx }) {
           <Ico name="robe" size={40} sw={0.9} />
           <Ico name="flacon" size={40} sw={0.9} />
         </div>
-        <h3 className="tc-caps">Dress code</h3>
-        {c.dress.title ? <div className="tc-italic">{c.dress.title}</div> : null}
-        {c.dress.text ? <p className="tc-p tc-narrow">{c.dress.text}</p> : null}
+        <h3 className="tc-caps"><L>Dress code</L></h3>
+        <F k="dress.title" placeholder="Le dress code" as="div" className="tc-italic" value={c.dress.title} />
+        <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="tc-p tc-narrow" value={c.dress.text} />
       </div>,
     );
   if (c.travel.length)
@@ -218,7 +219,7 @@ function Pratique({ ctx }) {
         <div className="tc-ico-row">
           <Ico name="train" size={34} />
         </div>
-        <h3 className="tc-caps">Venir</h3>
+        <h3 className="tc-caps"><L>Venir</L></h3>
         <div className="tc-list">
           {c.travel.map((t, i) => (
             <div key={i}>
@@ -235,7 +236,7 @@ function Pratique({ ctx }) {
         <div className="tc-ico-row">
           <Ico name="lit" size={34} />
         </div>
-        <h3 className="tc-caps">Se loger</h3>
+        <h3 className="tc-caps"><L>Se loger</L></h3>
         <div className="tc-list is-tight">
           {c.stays.map((s, i) => (
             <div key={i}>
@@ -252,15 +253,15 @@ function Pratique({ ctx }) {
         <div className="tc-ico-row">
           <Ico name="enfant" size={34} />
         </div>
-        <h3 className="tc-caps">Enfants</h3>
-        {c.kids.title ? <div className="tc-italic is-small">{c.kids.title}</div> : null}
-        {c.kids.text ? <p className="tc-p tc-narrow">{c.kids.text}</p> : null}
+        <h3 className="tc-caps"><L>Enfants</L></h3>
+        <F k="kids.title" placeholder="Les enfants" as="div" className="tc-italic is-small" value={c.kids.title} />
+        <F k="kids.text" multiline placeholder="Les enfants" as="p" className="tc-p tc-narrow" value={c.kids.text} />
       </div>,
     );
   return (
     <section id="pratique" className="tc-prat-wrap">
       <div className="tc-head">
-        <h2 className="tc-caps tc-h2">Bon à savoir</h2>
+        <h2 className="tc-caps tc-h2"><L>Bon à savoir</L></h2>
         <Rule />
       </div>
       <div className="tc-prat" style={{ "--n": cols.length }}>
@@ -280,7 +281,7 @@ function Questions({ ctx }) {
         <div className="tc-ico-row">
           <Ico name="mail" size={34} />
         </div>
-        <h3 className="tc-caps">Une question ?</h3>
+        <h3 className="tc-caps"><L>Une question ?</L></h3>
         {c.contacts.length ? <p className="tc-p tc-narrow">{c.contacts.some((x) => /t[ée]moin/i.test(x.role || "")) ? "Nos témoins connaissent tous les détails du week-end." : "Ils connaissent tous les détails du week-end."}</p> : null}
         {c.contacts.length ? (
           <div className="tc-q-btns">
@@ -309,7 +310,7 @@ function Simple({ id, title, children }) {
   return (
     <section id={id} className="tc-simple">
       <div className="tc-head">
-        <h2 className="tc-caps tc-h2">{title}</h2>
+        <h2 className="tc-caps tc-h2"><L>{title}</L></h2>
         <Rule />
       </div>
       <div className="tc-center tc-simple-body">{children}</div>
@@ -320,7 +321,7 @@ function Simple({ id, title, children }) {
 function Mot({ ctx }) {
   return (
     <Simple id="mot" title="Chers amis">
-      <p className="tc-p tc-wide">{ctx.v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="tc-p tc-wide" value={ctx.v.content.mot} />
     </Simple>
   );
 }
@@ -333,7 +334,7 @@ function Jour({ ctx }) {
       <p className="tc-p">{[v.timeText ? `À ${v.timeText}` : "", v.venueName].filter(Boolean).join(" · ")}</p>
       <AgendaLink v={v} className="tc-pill">
         <Ico name="agenda" size={18} sw={1.3} />
-        Ajouter à mon agenda
+        <L>Ajouter à mon agenda</L>
       </AgendaLink>
     </Simple>
   );
@@ -343,8 +344,8 @@ function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
     <Simple id="tenue" title="Dress code">
-      {dress.title ? <div className="tc-italic">{dress.title}</div> : null}
-      {dress.text ? <p className="tc-p tc-wide">{dress.text}</p> : null}
+      <F k="dress.title" placeholder="Le dress code" as="div" className="tc-italic" value={dress.title} />
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="tc-p tc-wide" value={dress.text} />
       {dress.colors.length ? (
         <div className="tc-swatches">
           {dress.colors.map((x, i) => (
@@ -363,12 +364,12 @@ function Histoire({ ctx }) {
   const { v } = ctx;
   const [a, b] = v.photos.story || [];
   return (
-    <Simple id="histoire" title={v.content.story.title || "Notre histoire"}>
+    <Simple id="histoire" title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />}>
       <div className="tc-pair">
         <Photo src={a} tone={1} preview={ctx.preview} />
         <Photo src={b} tone={3} preview={ctx.preview} />
       </div>
-      {v.content.story.text ? <p className="tc-p tc-wide">{v.content.story.text}</p> : null}
+      <F k="story.text" multiline placeholder="Votre histoire" as="p" className="tc-p tc-wide" value={v.content.story.text} />
     </Simple>
   );
 }
@@ -382,7 +383,7 @@ function Gallery({ ctx, id, title, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} />
         ))}
       </div>
-      {!photos?.length && note ? <p className="tc-k">{note}</p> : null}
+      {!photos?.length && note ? <p className="tc-k"><L>{note}</L></p> : null}
     </Simple>
   );
 }
@@ -391,8 +392,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="tc-citation">
-      <Photo src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
-      {v.content.citation ? <p className="tc-italic">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="tc-italic" value={v.content.citation} />
     </section>
   );
 }
@@ -401,10 +402,10 @@ function Reponse({ ctx }) {
   const { v } = ctx;
   return (
     <Simple id="reponse" title="Votre réponse">
-      <p className="tc-p tc-wide">Vous avez déjà répondu ? Rien à faire. Sinon, deux minutes suffisent.</p>
+      <p className="tc-p tc-wide"><L>Vous avez déjà répondu ? Rien à faire. Sinon, deux minutes suffisent.</L></p>
       {v.formSlug ? (
         <a className="tc-pill" href={`/f/${v.formSlug}`}>
-          Répondre
+          <L>Répondre</L>
         </a>
       ) : null}
     </Simple>
@@ -416,10 +417,10 @@ function Partage({ ctx }) {
   const url = ctx.shareUrl || (typeof window === "undefined" ? "" : window.location.href.split("#")[0]);
   return (
     <Simple id="partage" title="Faites suivre">
-      <p className="tc-p tc-wide">Envoyez ce site à ceux qui en ont besoin.</p>
+      <p className="tc-p tc-wide"><L>Envoyez ce site à ceux qui en ont besoin.</L></p>
       <div className="tc-q-btns">
         <a className="tc-pill" href={`https://wa.me/?text=${encodeURIComponent(`${v.names} : toutes les infos du mariage ${url}`)}`} target="_blank" rel="noopener noreferrer">
-          Partager sur WhatsApp
+          <L>Partager sur WhatsApp</L>
         </a>
       </div>
     </Simple>
@@ -433,9 +434,9 @@ function Footer() {
         <Orn name="sprigSmall" />
       </div>
       <div className="tc-center tc-footer-text">
-        <div className="tc-caps">Nous avons hâte de fêter ce jour avec vous</div>
-        <div className="tc-script tc-merci">Merci !</div>
-        <div className="tc-made">Fait avec Merry</div>
+        <div className="tc-caps"><L>Nous avons hâte de fêter ce jour avec vous</L></div>
+        <div className="tc-script tc-merci"><L>Merci !</L></div>
+        <div className="tc-made"><L>Fait avec Merry</L></div>
       </div>
       <div className="tc-footer-sprig is-r">
         <Orn name="sprigSmall" flip />

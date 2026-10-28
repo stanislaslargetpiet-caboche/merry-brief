@@ -5,6 +5,7 @@
 
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, QR, RouteLink, joinList, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { momentWhen, placeLine, travelLabel, witnesses } from "../kit";
 
 // Titres en capitales Cormorant avec un mot en italique (« Le programme » : le premier, « Les essentiels » : le dernier)
@@ -35,7 +36,7 @@ function Top({ ctx }) {
         <span className="co-lab">{[v.date?.long, v.venueName].filter(Boolean).join(" · ")}</span>
         {ctx.keys.includes("programme") ? (
           <a href="#programme" className="co-lab is-soft">
-            Voir le programme
+            <L>Voir le programme</L>
           </a>
         ) : null}
       </div>
@@ -50,7 +51,7 @@ function Top({ ctx }) {
         <div className="co-medal-slot">
           <div className="co-medal">
             <Orn name="medallion" width={61} height={42} />
-            <span className="co-cg">{v.names}</span>
+            <span className="co-cg"><F k="names.p1" placeholder="Prénom" value={v.p1 || v.names} />{v.p2 ? <> &amp; <F k="names.p2" placeholder="Prénom" value={v.p2} /></> : null}</span>
           </div>
         </div>
         <nav className="is-r">
@@ -62,12 +63,12 @@ function Top({ ctx }) {
         </nav>
       </div>
       <div className="co-hero">
-        <Photo src={v.photos.cover} tone={1} label="Votre photo, paysage" preview={ctx.preview} className="co-hero-photo" />
+        <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, paysage" preview={ctx.preview} className="co-hero-photo" />
         <div className="co-hero-text">
           {v.date ? <span className="co-lab is-white">{["Le", v.date.noWeekday, v.place ? `à ${v.place}` : ""].filter(Boolean).join(" ").replace(/ à /, ", à ")}</span> : null}
           {ctx.keys.includes("programme") ? (
             <a className="co-btn-o" href="#programme">
-              Le programme
+              <L>Le programme</L>
             </a>
           ) : null}
         </div>
@@ -87,7 +88,7 @@ function Jour({ ctx }) {
   return (
     <section id="jour" className="co-tint co-jour">
       <span className="co-lab">{v.namesEt ? `${v.namesEt.replace(" et ", " & ")} se marient` : "Nous nous marions"}</span>
-      {c.welcome ? <p className="co-p co-jour-p">{c.welcome}</p> : null}
+      <F k="welcome" multiline placeholder="Votre mot de bienvenue" as="p" className="co-p co-jour-p" value={c.welcome} />
       <div className="co-jour-cells">
         {cells.map(([k, a, b]) => (
           <div key={k}>
@@ -118,7 +119,7 @@ function Programme({ ctx }) {
             {v.moments.map((m) => (
               <div key={m.id}>
                 <span className="co-lab is-acc is-small">{momentWhen(m, hourText)}</span>
-                <span className="co-cg is-plain co-prog-name">{m.name}</span>
+                <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="co-cg is-plain co-prog-name" value={m.name} />
                 {m.text || placeLine(m) ? (
                   <span className="co-p is-small">
                     {m.text}
@@ -131,11 +132,11 @@ function Programme({ ctx }) {
           </div>
           <AgendaLink v={v} className="co-btn" style={{ marginTop: 22 }}>
             <Ico name="agenda" size={15} sw={1.3} />
-            Ajouter à mon agenda
+            <L>Ajouter à mon agenda</L>
           </AgendaLink>
         </div>
         <div className="co-vline">
-          <span className="co-lab is-soft is-small">Notre week-end</span>
+          <span className="co-lab is-soft is-small"><L>Notre week-end</L></span>
         </div>
       </div>
       <div className="co-prog-photos">
@@ -144,7 +145,7 @@ function Programme({ ctx }) {
           {v.place || v.date ? <span className="co-al">{[v.place, v.date?.monthLower].filter(Boolean).join(", ")}</span> : null}
         </div>
         <div className="co-prog-small">
-          <Photo src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
+          <Photo path="photos.venue" src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} frame={false} />
         </div>
       </div>
     </section>
@@ -157,7 +158,7 @@ function Card({ photo, tone, label, dark, preview, children, className = "" }) {
       <div className="co-card-photo">
         <Photo src={photo} tone={tone} preview={preview} frame={false} />
         {dark ? <span className="co-card-dark" /> : null}
-        <span className="co-lab is-white co-card-label">{label}</span>
+        <span className="co-lab is-white co-card-label"><L>{label}</L></span>
       </div>
       <div className="co-card-text">{children}</div>
     </div>
@@ -183,7 +184,7 @@ function Pratique({ ctx }) {
         <Card photo={v.photos.venue} tone={2} label="Le lieu" dark preview={ctx.preview} className="is-c1">
           {v.venueName ? (
             <p className="co-p">
-              <span className="co-ink">{v.venueName}</span>
+              <F k="venue.name" placeholder="Le nom du lieu" as="span" className="co-ink" value={v.venueName} />
               {v.venueAddress ? `, ${v.venueAddress}.` : "."}
               {others.length ? ` ${others.map((o) => `${o.name} : ${o.address}`).join(". ")}.` : ""}
             </p>
@@ -195,7 +196,7 @@ function Pratique({ ctx }) {
           ) : null}
           {c.kids.title || c.kids.text ? (
             <p className="co-p">
-              <span className="co-ink">Enfants.</span> {[c.kids.title, c.kids.text].filter(Boolean).join(". ")}
+              <span className="co-ink"><L>Enfants.</L></span> {[c.kids.title, c.kids.text].filter(Boolean).join(". ")}
             </p>
           ) : null}
         </Card>
@@ -231,7 +232,7 @@ function Histoire({ ctx }) {
       <div className="co-story-top">
         <Photo src={a} tone={2} label="Votre photo, détail" preview={ctx.preview} className="co-story-photo" />
         <div className="co-story-over">
-          <span className="co-lab is-small">C’est ici que tout a commencé</span>
+          <span className="co-lab is-small"><L>C’est ici que tout a commencé</L></span>
           <h2 className="co-cg co-h2">
             <Ital text={v.content.story.title || "Notre histoire"} />
           </h2>
@@ -241,7 +242,7 @@ function Histoire({ ctx }) {
         </div>
       </div>
       <div className="co-tint co-story-text">
-        {v.content.story.text ? <p className="co-p co-story-p">{v.content.story.text}</p> : null}
+        <F k="story.text" multiline placeholder="Votre histoire" as="p" className="co-p co-story-p" value={v.content.story.text} />
         <span className="co-lab is-small">{v.names}</span>
       </div>
     </section>
@@ -261,7 +262,7 @@ function Questions({ ctx }) {
         </div>
         <div className="co-q-text">
           <h2 className="co-cg co-h2">
-            Une <i>question</i> ?
+            Une <i><L>question</L></i> ?
           </h2>
           {c.contacts.length ? <p className="co-p">{witnesses(c.contacts)} connaissent tous les détails du week-end.</p> : null}
           {c.contacts.length ? (
@@ -290,7 +291,7 @@ function Questions({ ctx }) {
 function Simple({ id, title, kicker, tint, children }) {
   return (
     <section id={id} className={`co-simple${tint ? " co-tint" : ""}`}>
-      {kicker ? <span className="co-lab is-small">{kicker}</span> : null}
+      {kicker ? <span className="co-lab is-small"><L>{kicker}</L></span> : null}
       <h2 className="co-cg co-h2">
         <Ital text={title} />
       </h2>
@@ -302,7 +303,7 @@ function Simple({ id, title, kicker, tint, children }) {
 function Mot({ ctx }) {
   return (
     <Simple id="mot" title="Chers amis" kicker="Un mot pour vous" tint>
-      <p className="co-p co-jour-p">{ctx.v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="co-p co-jour-p" value={ctx.v.content.mot} />
     </Simple>
   );
 }
@@ -311,14 +312,14 @@ function Lieu({ ctx }) {
   const { v } = ctx;
   return (
     <section id="lieu" className="co-lieu">
-      <Photo src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} className="co-lieu-photo" />
+      <Photo path="photos.venue" src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} className="co-lieu-photo" />
       <div className="co-q-text">
-        <span className="co-lab is-small">Le lieu</span>
-        <h2 className="co-cg co-h2 is-plain">{v.venueName}</h2>
-        {v.venueAddress ? <p className="co-p">{v.venueAddress}</p> : null}
-        {v.content.venue.text ? <p className="co-p">{v.content.venue.text}</p> : null}
+        <span className="co-lab is-small"><L>Le lieu</L></span>
+        <F k="venue.name" placeholder="Le nom du lieu" as="h2" className="co-cg co-h2 is-plain" value={v.venueName} />
+        <F k="venue.address" placeholder="L’adresse du lieu" as="p" className="co-p" value={v.venueAddress} />
+        <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="co-p" value={v.content.venue.text} />
         <RouteLink v={v} className="co-btn">
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </div>
     </section>
@@ -328,8 +329,8 @@ function Lieu({ ctx }) {
 function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
-    <Simple id="tenue" title={dress.title || "La tenue"} kicker="Dress code">
-      {dress.text ? <p className="co-p co-jour-p">{dress.text}</p> : null}
+    <Simple id="tenue" title={<F k="dress.title" placeholder="Le dress code" value={dress.title || "La tenue"} />} kicker="Dress code">
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="co-p co-jour-p" value={dress.text} />
       {dress.colors.length ? (
         <div className="co-swatches">
           {dress.colors.map((x, i) => (
@@ -353,7 +354,7 @@ function Gallery({ ctx, id, title, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} frame={false} />
         ))}
       </div>
-      {!photos?.length && note ? <span className="co-lab is-small is-soft">{note}</span> : null}
+      {!photos?.length && note ? <span className="co-lab is-small is-soft"><L>{note}</L></span> : null}
     </Simple>
   );
 }
@@ -362,8 +363,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="co-citation">
-      <Photo src={v.photos.citation} tone={1} label="Votre photo" preview={ctx.preview} />
-      {v.content.citation ? <p className="co-al">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={1} label="Votre photo" preview={ctx.preview} />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="co-al" value={v.content.citation} />
     </section>
   );
 }
@@ -397,14 +398,14 @@ function Partage({ ctx }) {
         <QR url={ctx.shareUrl || share.url} size={84} />
         <div>
           <a className="co-btn" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-            Partager sur WhatsApp
+            <L>Partager sur WhatsApp</L>
           </a>
           <button type="button" className="co-btn-o is-ink" onClick={share.copy}>
             {share.copied ? "Lien copié" : "Copier le lien"}
           </button>
           {v.content.whatsapp ? (
             <a className="co-lab is-acc" href={v.content.whatsapp} target="_blank" rel="noopener noreferrer">
-              Rejoindre notre groupe
+              <L>Rejoindre notre groupe</L>
             </a>
           ) : null}
         </div>

@@ -5,6 +5,7 @@
 
 import { contactHref, hourClock } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, QR, RouteLink, Stamp, Ticket, joinList, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { placeDot, travelShort } from "../kit";
 
 const upper = (s) => String(s || "").toUpperCase();
@@ -21,7 +22,7 @@ function PlaneRule({ width = 150, ink }) {
 
 const Head = ({ title, ink, width = 150 }) => (
   <div className="em-head">
-    <h2 className={`em-cz${ink ? "" : " is-on"}`}>{title}</h2>
+    <h2 className={`em-cz${ink ? "" : " is-on"}`}><L>{title}</L></h2>
     <PlaneRule width={width} ink={ink} />
   </div>
 );
@@ -45,50 +46,50 @@ function Top({ ctx }) {
       </header>
       <section className="em-hero">
         <Ticket notch="62%" className="em-pass">
-          <div className="em-lab em-depart">&#9654;&nbsp; Départ</div>
+          <div className="em-lab em-depart"><L>&#9654;&nbsp; Départ</L></div>
           <div className="em-center em-pass-body">
-            <div className="em-lab is-ink em-wide">Billet de mariage</div>
+            <div className="em-lab is-ink em-wide"><L>Billet de mariage</L></div>
             <div className="em-dash" />
             <span className="em-plane">
               <Ico name="avion" size={22} sw={1.3} />
             </span>
             <Orn name="globe" />
-            <h1 className="em-cz em-name">{v.p1}</h1>
+            <F k="names.p1" placeholder="Prénom" as="h1" className="em-cz em-name" value={v.p1} />
             {v.p2 ? (
               <>
-                <div className="em-sc em-et">et</div>
-                <div className="em-cz em-name">{v.p2}</div>
+                <div className="em-sc em-et"><L>et</L></div>
+                <F k="names.p2" placeholder="Prénom" as="div" className="em-cz em-name" value={v.p2} />
               </>
             ) : null}
             <div className="em-grid">
               <div>
-                <span className="em-lab">Vol &amp; date</span>
+                <span className="em-lab"><L>Vol &amp; date</L></span>
                 <span>{d ? d.dots : "À venir"}</span>
               </div>
               <div>
-                <span className="em-lab">Classe</span>
-                <span>Invité d’honneur</span>
+                <span className="em-lab"><L>Classe</L></span>
+                <span><L>Invité d’honneur</L></span>
               </div>
               <div>
-                <span className="em-lab">Destination</span>
+                <span className="em-lab"><L>Destination</L></span>
                 <span>{[city, v.area && v.area !== city ? v.area : ""].filter(Boolean).join(", ") || "Surprise"}</span>
               </div>
               <div>
-                <span className="em-lab">Lieu du mariage</span>
+                <span className="em-lab"><L>Lieu du mariage</L></span>
                 <span>{v.venueName || "À venir"}</span>
               </div>
             </div>
             <div className="em-stamps">
               <Stamp top={upper(v.names)} bottom={d ? upper(`${d.day} ${d.monthShort.replace(".", "")} ${d.year}`) : ""} size={104} />
               <Orn name="waves" />
-              <span className="em-sc em-bon">Bon voyage</span>
+              <span className="em-sc em-bon"><L>Bon voyage</L></span>
             </div>
             <div className="em-dash" />
             {d ? <div className="em-lab is-ink em-wide">Embarquement le {d.day === 1 ? "1er" : d.day} {d.monthLower}</div> : null}
           </div>
         </Ticket>
         <div className="em-hero-text">
-          <div className="em-sc em-hero-sc">Notre mariage</div>
+          <div className="em-sc em-hero-sc"><L>Notre mariage</L></div>
           {city ? <div className="em-cz em-hero-cz">à {city}</div> : null}
           <PlaneRule width={380} />
           {v.weekend || d ? (
@@ -96,7 +97,7 @@ function Top({ ctx }) {
               {[v.area ? `Un week-end en ${v.area}` : "", v.weekend ? `${v.weekend.first.day} → ${v.weekend.last.day} ${v.weekend.last.monthLower} ${v.weekend.last.year}` : d?.noWeekday].filter(Boolean).join(" · ")}
             </div>
           ) : null}
-          {v.content.welcome ? <p className="em-p em-hero-p">{v.content.welcome}</p> : null}
+          <F k="welcome" multiline placeholder="Votre mot de bienvenue" as="p" className="em-p em-hero-p" value={v.content.welcome} />
         </div>
       </section>
     </>
@@ -118,7 +119,7 @@ function Programme({ ctx }) {
                 <span />
               </div>
               <div className="em-prog-text">
-                <span className="em-prog-name">{m.name}</span>
+                <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="em-prog-name" value={m.name} />
                 {placeDot(m) ? <span className="em-prog-place">{placeDot(m)}</span> : null}
               </div>
               <span className="em-mono em-prog-time">{hourClock(m.time)}</span>
@@ -132,7 +133,7 @@ function Programme({ ctx }) {
       <div className="em-center" style={{ marginTop: 8 }}>
         <AgendaLink v={v} className="em-btn is-light">
           <Ico name="agenda" size={16} sw={1.3} />
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
         </AgendaLink>
       </div>
     </section>
@@ -155,12 +156,12 @@ function Lieu({ ctx }) {
         </div>
         <div className="em-center em-lieu-body">
           <Head title="Le lieu" ink />
-          <div className="em-lieu-name">{v.venueName}</div>
-          {v.venueAddress ? <p className="em-p em-upper">{v.venueAddress}</p> : null}
+          <F k="venue.name" placeholder="Le nom du lieu" as="div" className="em-lieu-name" value={v.venueName} />
+          <F k="venue.address" placeholder="L’adresse du lieu" as="p" className="em-p em-upper" value={v.venueAddress} />
           <RouteLink v={v} className="em-btn" style={{ margin: "8px 0 14px" }}>
-            Comment venir
+            <L>Comment venir</L>
           </RouteLink>
-          <Photo src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} gray className="em-lieu-photo" round={10} />
+          <Photo path="photos.venue" src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} gray className="em-lieu-photo" round={10} />
           {others.length ? <div className="em-dash" style={{ marginTop: 14 }} /> : null}
           {others.map((o, i) => (
             <p key={i} className="em-p">
@@ -208,7 +209,7 @@ function Jour({ ctx }) {
           )}
         </div>
         <div className="em-dash" />
-        <div className="em-lab">Le grand jour</div>
+        <div className="em-lab"><L>Le grand jour</L></div>
         <div className="em-cz em-cal-date">{v.date.dots}</div>
         <Ico name="coeurTrait" size={16} sw={1.2} className="em-accent" />
       </section>
@@ -219,7 +220,7 @@ function Jour({ ctx }) {
 function DressCol({ dress }) {
   return (
     <div className="em-center em-dress">
-      <h2 className="em-cz em-h-band">Dress code</h2>
+      <h2 className="em-cz em-h-band"><L>Dress code</L></h2>
       {dress.title || dress.text ? <p className="em-p em-dress-p">{[dress.title, dress.text].filter(Boolean).join(". ")}</p> : null}
       {dress.colors.length ? (
         <div className="em-swatches">
@@ -249,15 +250,15 @@ function Pratique({ ctx }) {
         <div className="em-frame">
           <Ticket notch="50%" className="em-card em-escales">
             <div className="em-center em-esc-head">
-              <h2 className="em-cz">Escales pratiques</h2>
+              <h2 className="em-cz"><L>Escales pratiques</L></h2>
               <div className="em-lab">{["Venir", c.stays.length ? "dormir" : "", c.kids.text || c.kids.title ? "enfants" : ""].filter(Boolean).join(" · ")}</div>
             </div>
             {c.travel.length ? (
               <>
                 <div className="em-esc-row is-head">
-                  <span className="em-mono">Mode</span>
-                  <span className="em-mono">Départ</span>
-                  <span className="em-mono">Durée</span>
+                  <span className="em-mono"><L>Mode</L></span>
+                  <span className="em-mono"><L>Départ</L></span>
+                  <span className="em-mono"><L>Durée</L></span>
                 </div>
                 {c.travel.map((t, i) => (
                   <div key={i} className="em-esc-row">
@@ -272,13 +273,13 @@ function Pratique({ ctx }) {
               <>
                 <div style={{ height: 18 }} />
                 <div className="em-esc-row is-head">
-                  <span className="em-mono">Hôtel</span>
-                  <span className="em-mono">Nom</span>
-                  <span className="em-mono">Distance</span>
+                  <span className="em-mono"><L>Hôtel</L></span>
+                  <span className="em-mono"><L>Nom</L></span>
+                  <span className="em-mono"><L>Distance</L></span>
                 </div>
                 {c.stays.map((s, i) => (
                   <div key={i} className="em-esc-row">
-                    <span className="em-mono is-acc">Dormir</span>
+                    <span className="em-mono is-acc"><L>Dormir</L></span>
                     <span className="em-mono is-ink">{s.name}</span>
                     <span className="em-mono is-ink">{s.distance}</span>
                   </div>
@@ -287,7 +288,7 @@ function Pratique({ ctx }) {
             ) : null}
             {c.kids.title || c.kids.text ? (
               <p className="em-p em-kids">
-                <span className="em-ink">Enfants :</span> {[c.kids.title, c.kids.text].filter(Boolean).join(". ").replace(/^./, (x) => x.toLowerCase())}
+                <span className="em-ink"><L>Enfants :</L></span> {[c.kids.title, c.kids.text].filter(Boolean).join(". ").replace(/^./, (x) => x.toLowerCase())}
               </p>
             ) : null}
           </Ticket>
@@ -312,11 +313,11 @@ function Mot({ ctx }) {
   return (
     <section id="mot" className="em-onbg em-center em-mot">
       <h2 className="em-cz is-on em-mot-title">
-        Chers amis
+        <L>Chers amis</L>
         <br />
-        et famille
+        <L>et famille</L>
       </h2>
-      <p className="em-p em-mot-p">{v.content.mot}</p>
+      <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="em-p em-mot-p" value={v.content.mot} />
       <Photo src={v.photos.ambiance?.[0] || v.photos.cover} tone={1} label="Votre photo" preview={ctx.preview} className="em-mot-photo" />
       <div className="em-flight-end">
         <Orn name="flight220" />
@@ -331,7 +332,7 @@ function Questions({ ctx }) {
     <Ticket notch="50%" className="em-card em-q">
       <section id="questions">
         <div className="em-center em-q-head">
-          <h2 className="em-cz">Une question ?</h2>
+          <h2 className="em-cz"><L>Une question ?</L></h2>
           {c.contacts.length ? <p className="em-p">{c.contacts.some((x) => /t[ée]moin/i.test(x.role || "")) ? "Nos témoins ont toutes les réponses." : "Ils ont toutes les réponses."}</p> : null}
         </div>
         {c.contacts.map((x, i) => (
@@ -343,7 +344,7 @@ function Questions({ ctx }) {
             {contactHref(x) ? (
               <a className="em-btn" href={contactHref(x)}>
                 <Ico name="mail" size={15} sw={1.3} />
-                Écrire
+                <L>Écrire</L>
               </a>
             ) : null}
           </div>
@@ -364,18 +365,18 @@ function Partage({ ctx }) {
   return (
     <Ticket notch="50%" className="em-card em-q">
       <section id="partage" className="em-center em-share">
-        <h2 className="em-cz">Faites suivre</h2>
+        <h2 className="em-cz"><L>Faites suivre</L></h2>
         <QR url={ctx.shareUrl || share.url} size={92} />
-        <p className="em-p">Scannez pour l’ouvrir sur un autre téléphone.</p>
+        <p className="em-p"><L>Scannez pour l’ouvrir sur un autre téléphone.</L></p>
         <a className="em-btn" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-          WhatsApp
+          <L>WhatsApp</L>
         </a>
         <button type="button" className="em-btn" onClick={share.copy}>
           {share.copied ? "Lien copié" : "Copier le lien"}
         </button>
         {v.content.whatsapp ? (
           <a className="em-link" href={v.content.whatsapp} target="_blank" rel="noopener noreferrer">
-            Rejoindre notre groupe
+            <L>Rejoindre notre groupe</L>
           </a>
         ) : null}
       </section>
@@ -389,7 +390,7 @@ function Reponse({ ctx }) {
   return (
     <Ticket notch="50%" className="em-card em-q">
       <section id="reponse" className="em-center em-share">
-        <h2 className="em-cz">Votre billet</h2>
+        <h2 className="em-cz"><L>Votre billet</L></h2>
         {res ? (
           <>
             <div className="em-lab">{res.present === false ? "Vous ne serez pas du voyage" : "Réservation confirmée"}</div>
@@ -404,16 +405,16 @@ function Reponse({ ctx }) {
             </p>
             {v.formSlug ? (
               <a className="em-link" href={`/f/${v.formSlug}`}>
-                Un changement ? Répondre à nouveau
+                <L>Un changement ? Répondre à nouveau</L>
               </a>
             ) : null}
           </>
         ) : (
           <>
-            <p className="em-p">Pas encore répondu ? Deux minutes suffisent.</p>
+            <p className="em-p"><L>Pas encore répondu ? Deux minutes suffisent.</L></p>
             {v.formSlug ? (
               <a className="em-btn" href={`/f/${v.formSlug}`}>
-                Répondre
+                <L>Répondre</L>
               </a>
             ) : null}
           </>
@@ -428,12 +429,12 @@ function Histoire({ ctx }) {
   const [a, b] = v.photos.story || [];
   return (
     <section id="histoire" className="em-onbg em-wide-block">
-      <Head title={v.content.story.title || "Notre histoire"} width={200} />
+      <Head title={<F k="story.title" placeholder="Le titre" value={v.content.story.title || "Notre histoire"} />} width={200} />
       <div className="em-pair">
         <Photo src={a} tone={1} preview={ctx.preview} round={6} />
         <Photo src={b} tone={3} preview={ctx.preview} round={6} />
       </div>
-      {v.content.story.text ? <p className="em-p em-story">{v.content.story.text}</p> : null}
+      <F k="story.text" multiline placeholder="Votre histoire" as="p" className="em-p em-story" value={v.content.story.text} />
     </section>
   );
 }
@@ -448,7 +449,7 @@ function Gallery({ ctx, id, title, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} round={6} />
         ))}
       </div>
-      {!photos?.length && note ? <p className="em-lab is-soft em-note">{note}</p> : null}
+      {!photos?.length && note ? <p className="em-lab is-soft em-note"><L>{note}</L></p> : null}
     </section>
   );
 }
@@ -457,8 +458,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="em-citation">
-      <Photo src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
-      {v.content.citation ? <p className="em-sc">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={2} label="Votre photo" preview={ctx.preview} />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="em-sc" value={v.content.citation} />
     </section>
   );
 }
@@ -466,8 +467,8 @@ function Citation({ ctx }) {
 function Footer() {
   return (
     <footer className="em-footer">
-      <span className="em-sc">Bon voyage</span>
-      <span className="em-lab is-soft">Fait avec Merry</span>
+      <span className="em-sc"><L>Bon voyage</L></span>
+      <span className="em-lab is-soft"><L>Fait avec Merry</L></span>
     </footer>
   );
 }

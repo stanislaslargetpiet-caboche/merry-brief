@@ -5,6 +5,7 @@
 
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, QR, RouteLink, joinList, useSavedResponse, useShare } from "../parts";
+import { F, L } from "../edit";
 import { travelLabel, witnesses } from "../kit";
 
 const lower = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : "");
@@ -24,16 +25,16 @@ function Top({ ctx }) {
         </nav>
         <span />
       </div>
-      <Photo src={v.photos.cover} tone={1} label="Votre photo" preview={ctx.preview} className="bv-hero-photo" />
+      <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo" preview={ctx.preview} className="bv-hero-photo" />
       <div className="bv-hero-text">
-        {v.content.tagline ? <span className="bv-lab is-white bv-lh">{v.content.tagline}</span> : null}
+        <F k="tagline" placeholder="Une phrase sous vos prénoms" as="span" className="bv-lab is-white bv-lh" value={v.content.tagline} />
         <h1 className="bv-caps">
-          {v.p1}{" "}
+          <F k="names.p1" placeholder="Prénom" value={v.p1} />{" "}
           {v.p2 ? (
             <>
-              <span className="bv-ms">et</span>
+              <span className="bv-ms"><L>et</L></span>
               <br />
-              {v.p2}
+              <F k="names.p2" placeholder="Prénom" value={v.p2} />
             </>
           ) : null}
         </h1>
@@ -48,16 +49,16 @@ function Top({ ctx }) {
         {ctx.keys.includes("programme") ? (
           <a href="#programme" className="bv-more is-white">
             <Ico name="chevron" size={16} sw={1.2} />
-            Le programme
+            <L>Le programme</L>
           </a>
         ) : null}
       </div>
       <div className="bv-ms bv-hero-ms">
-        Mieux
+        <L>Mieux</L>
         <br />
-        ensemble
+        <L>ensemble</L>
         <br />
-        toujours
+        <L>toujours</L>
         <span />
       </div>
     </section>
@@ -68,23 +69,23 @@ function Mot({ ctx }) {
   const { v } = ctx;
   return (
     <section id="mot" className="bv-welcome">
-      <Photo src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="bv-welcome-photo" />
+      <Photo path="photos.venue" src={v.photos.venue} tone={2} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="bv-welcome-photo" />
       <div className="bv-welcome-text">
-        <span className="bv-lab is-small">Bienvenue</span>
+        <span className="bv-lab is-small"><L>Bienvenue</L></span>
         <h2 className="bv-cg bv-h2">
-          Merci d’être
+          <L>Merci d’être</L>
           <br />
-          des nôtres.
+          <L>des nôtres.</L>
         </h2>
-        <p className="bv-p">{v.content.mot}</p>
+        <F k="mot" multiline placeholder="Votre mot d’accueil" as="p" className="bv-p" value={v.content.mot} />
         <span className="bv-ms bv-sign">{v.names}</span>
       </div>
       <div className="bv-rose">
         <Orn name="rose" />
         <span className="bv-lab is-small is-soft bv-lh">
-          « Même été,
+          <L>« Même été,</L>
           <br />
-          nouvel horizon »
+          <L>nouvel horizon »</L>
         </span>
       </div>
     </section>
@@ -99,19 +100,19 @@ function Programme({ ctx }) {
       <div className="bv-prog-side">
         <Photo src={a1} tone={2} label="Votre photo" preview={ctx.preview} frame={false} />
         <span className="bv-ms bv-prog-ms">
-          Bons amis,
+          <L>Bons amis,</L>
           <br />
-          beaux jours
+          <L>beaux jours</L>
         </span>
       </div>
       <div className="bv-prog-mid">
-        <span className="bv-lab is-small">La célébration</span>
+        <span className="bv-lab is-small"><L>La célébration</L></span>
         <h2 className="bv-cg bv-h2 bv-prog-title">{v.weekend ? "Le programme du week-end" : "Le programme"}</h2>
         <div className="bv-prog-grid" style={{ "--n": Math.min(4, v.moments.length) }}>
           {v.moments.map((m, i) => (
             <div key={m.id}>
               <span className="bv-cg bv-num">{String(i + 1).padStart(2, "0")}</span>
-              <span className="bv-lab bv-prog-name">{m.name}</span>
+              <F k={`moments.${m.id}.name`} placeholder="Le moment" as="span" className="bv-lab bv-prog-name" value={m.name} />
               {m.date ? (
                 <span className="bv-p is-small">
                   {m.date.dayMonth}
@@ -135,7 +136,7 @@ function Programme({ ctx }) {
         </div>
         <AgendaLink v={v} className="bv-more" style={{ marginTop: 18 }}>
           <Ico name="agenda" size={15} sw={1.2} />
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
           <Ico name="fleche" size={14} sw={1.2} />
         </AgendaLink>
       </div>
@@ -164,9 +165,9 @@ function Pratique({ ctx }) {
         <section id="pratique" className="bv-venir">
           <Photo src={a2} tone={1} label="Votre photo, vous deux" preview={ctx.preview} frame={false} className="bv-venir-photo" />
           <div className="bv-venir-text">
-            <span className="bv-lab is-small">Les détails</span>
+            <span className="bv-lab is-small"><L>Les détails</L></span>
             <h2 className="bv-cg bv-h2">{v.place ? `Venir à ${v.place}` : "Venir"}</h2>
-            {c.venue.text ? <p className="bv-p">{c.venue.text}</p> : null}
+            <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="bv-p" value={c.venue.text} />
             {icons.length ? (
               <div className="bv-icons" style={{ "--n": icons.length }}>
                 {icons.map(([ic, label]) => (
@@ -185,7 +186,7 @@ function Pratique({ ctx }) {
               ))}
               {c.stays.length ? (
                 <p className="bv-p is-small">
-                  <span className="bv-ink">Se loger.</span> {c.stays.map((s) => `${s.name}${s.distance ? ` (${lower(s.distance)})` : ""}`).join(" · ")}.
+                  <span className="bv-ink"><L>Se loger.</L></span> {c.stays.map((s) => `${s.name}${s.distance ? ` (${lower(s.distance)})` : ""}`).join(" · ")}.
                 </p>
               ) : null}
             </div>
@@ -193,9 +194,9 @@ function Pratique({ ctx }) {
           <div className="bv-venir-side">
             <Photo src={a3} tone={2} label="Votre photo" preview={ctx.preview} frame={false} />
             <span className="bv-ms bv-venir-ms">
-              En toute
+              <L>En toute</L>
               <br />
-              saison
+              <L>saison</L>
             </span>
           </div>
         </section>
@@ -204,33 +205,33 @@ function Pratique({ ctx }) {
         <section id={c.travel.length || c.stays.length ? "savoir" : "pratique"} className="bv-savoir">
           <Photo src={a4} tone={2} label="Votre photo, détail" preview={ctx.preview} frame={false} className="bv-savoir-photo" />
           <div className="bv-savoir-text">
-            <span className="bv-lab is-small">Bon à savoir</span>
-            <h2 className="bv-cg bv-h2">Le jour J</h2>
+            <span className="bv-lab is-small"><L>Bon à savoir</L></span>
+            <h2 className="bv-cg bv-h2"><L>Le jour J</L></h2>
             {dress ? (
               <div className="bv-item">
-                <span className="bv-lab is-small">Dress code</span>
+                <span className="bv-lab is-small"><L>Dress code</L></span>
                 <p className="bv-p is-small">{[c.dress.title, c.dress.text].filter(Boolean).join(". ")}</p>
               </div>
             ) : null}
             {c.kids.title || c.kids.text ? (
               <div className="bv-item">
-                <span className="bv-lab is-small">Enfants</span>
+                <span className="bv-lab is-small"><L>Enfants</L></span>
                 <p className="bv-p is-small">{[c.kids.title, c.kids.text].filter(Boolean).join(". ")}</p>
               </div>
             ) : null}
             {!keys.includes("questions") && c.contacts.length ? (
               <div className="bv-item">
-                <span className="bv-lab is-small">Une question ?</span>
+                <span className="bv-lab is-small"><L>Une question ?</L></span>
                 <p className="bv-p is-small">Écrivez à {witnesses(c.contacts)}.</p>
               </div>
             ) : null}
           </div>
           <span className="bv-lab is-small is-soft bv-lh bv-quote">
-            « Une vie
+            <L>« Une vie</L>
             <br />
-            plus belle
+            <L>plus belle</L>
             <br />
-            avec vous »
+            <L>avec vous »</L>
           </span>
         </section>
       ) : null}
@@ -242,8 +243,8 @@ function Pratique({ ctx }) {
 function Simple({ id, kicker, title, children, center = true }) {
   return (
     <section id={id} className={`bv-simple${center ? " is-center" : ""}`}>
-      {kicker ? <span className="bv-lab is-small">{kicker}</span> : null}
-      <h2 className="bv-cg bv-h2">{title}</h2>
+      {kicker ? <span className="bv-lab is-small"><L>{kicker}</L></span> : null}
+      <h2 className="bv-cg bv-h2"><L>{title}</L></h2>
       {children}
     </section>
   );
@@ -256,10 +257,10 @@ function Jour({ ctx }) {
       <p className="bv-p">{[v.timeText ? `À ${v.timeText}` : "", v.venueName].filter(Boolean).join(" · ")}</p>
       <div className="bv-row-btns">
         <AgendaLink v={v} className="bv-btn">
-          Ajouter à mon agenda
+          <L>Ajouter à mon agenda</L>
         </AgendaLink>
         <RouteLink v={v} className="bv-more">
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
           <Ico name="fleche" size={14} sw={1.2} />
         </RouteLink>
       </div>
@@ -271,14 +272,14 @@ function Lieu({ ctx }) {
   const { v } = ctx;
   return (
     <section id="lieu" className="bv-venir">
-      <Photo src={v.photos.venue} tone={1} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="bv-venir-photo" />
+      <Photo path="photos.venue" src={v.photos.venue} tone={1} label="Votre photo, le lieu" preview={ctx.preview} frame={false} className="bv-venir-photo" />
       <div className="bv-venir-text">
-        <span className="bv-lab is-small">Le lieu</span>
-        <h2 className="bv-cg bv-h2">{v.venueName}</h2>
-        {v.venueAddress ? <p className="bv-p">{v.venueAddress}</p> : null}
-        {v.content.venue.text ? <p className="bv-p">{v.content.venue.text}</p> : null}
+        <span className="bv-lab is-small"><L>Le lieu</L></span>
+        <F k="venue.name" placeholder="Le nom du lieu" as="h2" className="bv-cg bv-h2" value={v.venueName} />
+        <F k="venue.address" placeholder="L’adresse du lieu" as="p" className="bv-p" value={v.venueAddress} />
+        <F k="venue.text" multiline placeholder="Quelques mots sur le lieu" as="p" className="bv-p" value={v.content.venue.text} />
         <RouteLink v={v} className="bv-btn">
-          Voir l’itinéraire
+          <L>Voir l’itinéraire</L>
         </RouteLink>
       </div>
     </section>
@@ -288,8 +289,8 @@ function Lieu({ ctx }) {
 function Tenue({ ctx }) {
   const { dress } = ctx.v.content;
   return (
-    <Simple id="tenue" kicker="Dress code" title={dress.title || "La tenue"}>
-      {dress.text ? <p className="bv-p bv-narrow">{dress.text}</p> : null}
+    <Simple id="tenue" kicker="Dress code" title={<F k="dress.title" placeholder="Le dress code" value={dress.title || "La tenue"} />}>
+      <F k="dress.text" multiline placeholder="La tenue en quelques mots" as="p" className="bv-p bv-narrow" value={dress.text} />
       {dress.colors.length ? (
         <div className="bv-swatches">
           {dress.colors.map((x, i) => (
@@ -311,9 +312,9 @@ function Histoire({ ctx }) {
     <section id="histoire" className="bv-story">
       <Photo src={a} tone={1} label="Votre photo" preview={ctx.preview} frame={false} />
       <div className="bv-venir-text">
-        <span className="bv-lab is-small">Comment tout a commencé</span>
-        <h2 className="bv-cg bv-h2">{v.content.story.title || "Notre histoire"}</h2>
-        {v.content.story.text ? <p className="bv-p">{v.content.story.text}</p> : null}
+        <span className="bv-lab is-small"><L>Comment tout a commencé</L></span>
+        <F k="story.title" placeholder="Le titre" as="h2" className="bv-cg bv-h2" value={v.content.story.title || "Notre histoire"} />
+        <F k="story.text" multiline placeholder="Votre histoire" as="p" className="bv-p" value={v.content.story.text} />
         <span className="bv-ms bv-sign">{v.names}</span>
       </div>
       <Photo src={b} tone={3} preview={ctx.preview} frame={false} />
@@ -330,7 +331,7 @@ function Gallery({ ctx, id, title, photos, note }) {
           <Photo key={i} src={src} tone={(i % 3) + 1} preview={ctx.preview} frame={false} />
         ))}
       </div>
-      {!photos?.length && note ? <span className="bv-lab is-small is-soft">{note}</span> : null}
+      {!photos?.length && note ? <span className="bv-lab is-small is-soft"><L>{note}</L></span> : null}
     </Simple>
   );
 }
@@ -339,8 +340,8 @@ function Citation({ ctx }) {
   const { v } = ctx;
   return (
     <section id="citation" className="bv-citation">
-      <Photo src={v.photos.citation} tone={1} label="Votre photo" preview={ctx.preview} frame={false} />
-      {v.content.citation ? <p className="bv-ms">{v.content.citation}</p> : null}
+      <Photo path="photos.citation" src={v.photos.citation} tone={1} label="Votre photo" preview={ctx.preview} frame={false} />
+      <F k="citation" multiline placeholder="Une phrase qui vous ressemble" as="p" className="bv-ms" value={v.content.citation} />
     </section>
   );
 }
@@ -399,14 +400,14 @@ function Partage({ ctx }) {
         <QR url={ctx.shareUrl || share.url} size={84} />
         <div>
           <a className="bv-btn" href={share.whatsapp} target="_blank" rel="noopener noreferrer">
-            WhatsApp
+            <L>WhatsApp</L>
           </a>
           <button type="button" className="bv-more" onClick={share.copy}>
             {share.copied ? "Lien copié" : "Copier le lien"}
           </button>
           {v.content.whatsapp ? (
             <a className="bv-more" href={v.content.whatsapp} target="_blank" rel="noopener noreferrer">
-              Rejoindre notre groupe
+              <L>Rejoindre notre groupe</L>
             </a>
           ) : null}
         </div>
@@ -421,7 +422,7 @@ function Footer({ ctx }) {
     <footer className="bv-footer">
       <span className="bv-lab bv-brand">{v.initials.join(" | ")}</span>
       <span className="bv-ms">{v.names}</span>
-      <span className="bv-lab is-small is-soft">Fait avec Merry</span>
+      <span className="bv-lab is-small is-soft"><L>Fait avec Merry</L></span>
     </footer>
   );
 }
