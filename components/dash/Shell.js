@@ -11,12 +11,10 @@ import { Avatar, Popover } from "./ui";
 import Organisers from "./Organisers";
 
 const NAV = [
-  { href: "/dashboard", label: "Accueil", short: "Accueil", icon: "home", exact: true },
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
-  { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet" },
+  { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", exact: true },
   { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
-  { href: "/dashboard/documents", label: "Documents", short: "Docs", icon: "folder" },
 ];
 
 // L'éditeur du site (/dashboard/site) fait partie de l'espace Invités
