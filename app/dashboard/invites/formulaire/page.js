@@ -102,6 +102,8 @@ export default function FormulaireInvites() {
   const [uploading, setUploading] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  // Téléphone : aperçu + 3 actions d'abord, le détail des champs n'apparaît qu'à la demande
+  const [mobileEditing, setMobileEditing] = useState(false);
   const timer = useRef(null);
   const latest = useRef(form);
   const fileInput = useRef(null);
@@ -266,7 +268,57 @@ export default function FormulaireInvites() {
         Un seul lien pour tous vos invités. Chaque réponse arrive directement dans votre liste, colonne par colonne.
       </p>
 
-      <div className="d-grid-side d-form-grid-side">
+      {!mobileEditing ? (
+        <div className="d-mob-only d-col" style={{ gap: 20 }}>
+          <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">
+            <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center ${coverPos}% / cover no-repeat url("${form.cover_url}")` : theme.deep }} />
+            <div className="d-fpreview-body">
+              <span style={{ color: theme.accent }}>Save the date</span>
+              <strong>{pageTitle}</strong>
+              <em>{[data.wedding.wedding_date ? longDate(data.wedding.wedding_date) : null, data.wedding.venue].filter(Boolean).join(" · ")}</em>
+              {form.message ? <p>{form.message}</p> : null}
+              {previewItems.map((f) => (
+                <div key={f.id} className="d-fpreview-line">
+                  <small>
+                    {f.label}
+                    {f.req ? " *" : ""}
+                  </small>
+                  {f.pills ? (
+                    <span className="d-fpreview-pills">
+                      {f.pills.map((x) => (
+                        <u key={x}>{x}</u>
+                      ))}
+                    </span>
+                  ) : (
+                    <i style={f.tall ? { height: 40 } : undefined} />
+                  )}
+                </div>
+              ))}
+              <b style={{ background: theme.accent }} />
+            </div>
+          </div>
+          <div className="d-col" style={{ gap: 10 }}>
+            <Btn kind="strong" icon="plus" className="d-btn-block" onClick={() => { setAdding(true); setMobileEditing(true); }}>
+              Ajouter une question
+            </Btn>
+            <Btn className="d-btn-block" icon="pencil" onClick={() => setMobileEditing(true)}>
+              Modifier les questions
+            </Btn>
+            <Btn kind="ghost" className="d-btn-block" icon={copied ? "check" : "copy"} onClick={copy}>
+              {copied ? "Lien copié" : "Copier le lien du formulaire"}
+            </Btn>
+          </div>
+        </div>
+      ) : null}
+
+      {mobileEditing ? (
+        <button type="button" className="d-back d-mob-only" style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer" }} onClick={() => setMobileEditing(false)}>
+          <Icon name="back" size={16} sw={2} />
+          Aperçu
+        </button>
+      ) : null}
+
+      <div className={mobileEditing ? "d-grid-side d-form-grid-side" : "d-grid-side d-form-grid-side d-desk-only"}>
         <section className="d-card">
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <h2>Les champs du formulaire</h2>
