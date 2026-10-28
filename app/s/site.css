@@ -1145,7 +1145,7 @@
 .st-belvedere .bv-hero-text .bv-ms { font-size: 0.62em; vertical-align: middle; }
 .st-belvedere .bv-tick { width: 40px; height: 1px; background: #fff; }
 .st-belvedere .bv-hero-ms { position: absolute; right: 110px; top: 150px; color: #fff; font-size: 46px; line-height: 1.1; text-align: center; }
-.st-belvedere .bv-hero-ms > span { display: block; width: 30px; height: 1px; background: #fff; margin: 14px auto 0; }
+.st-belvedere .bv-hero-ms > .bv-hero-rule { display: block; width: 30px; height: 1px; background: #fff; margin: 14px auto 0; }
 
 .st-belvedere .bv-welcome { display: grid; grid-template-columns: 500px minmax(0, 1fr) 260px; gap: 72px; align-items: center; padding: 70px 80px 70px 40px; }
 .st-belvedere .bv-welcome-photo { height: 380px; }
