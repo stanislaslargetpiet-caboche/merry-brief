@@ -125,6 +125,12 @@ export default function Claim() {
       setError(ERRORS.no_email);
       return;
     }
+    // Démo : aucun code ne part, n'importe quels 6 chiffres ouvrent l'espace de démonstration
+    if (demo) {
+      setSent(true);
+      setTimeout(() => boxes.current[0]?.focus(), 50);
+      return;
+    }
     setBusy(true);
     const res = await call({ action: "send", vendorId: target.id });
     setBusy(false);
@@ -135,7 +141,8 @@ export default function Claim() {
     } else setError(ERRORS[res.error] || ERRORS.send_failed);
   }
 
-  function choose(r) {
+  function choose(found) {
+    const r = demo && !found.email_hint ? { ...found, email_hint: "c•••@exemple.fr" } : found;
     setPicked(r);
     setStep(2);
     setSent(false);
@@ -194,8 +201,8 @@ export default function Claim() {
     }
     setBusy(true);
     setError("");
-    if (creating && demo) {
-      window.location.assign("/pro/fiche?demo=1");
+    if (demo) {
+      window.location.assign(creating ? "/pro/fiche?demo=1" : "/pro?demo=1");
       return;
     }
     const res = creating
