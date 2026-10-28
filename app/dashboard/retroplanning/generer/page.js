@@ -144,7 +144,7 @@ export default function GenererRetroplanning() {
   return (
     <>
       <PageHeader
-        back={{ href: "/dashboard", label: "Accueil" }}
+        back={{ href: "/dashboard/budget", label: "Budget" }}
         title="Votre rétroplanning."
         actions={
           syncLabel ? (

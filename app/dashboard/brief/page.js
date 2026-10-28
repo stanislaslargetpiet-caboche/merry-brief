@@ -38,7 +38,7 @@ export default function BriefPage() {
 
   return (
     <>
-      <PageHeader back={{ href: "/dashboard", label: "Accueil" }} title="Brief." />
+      <PageHeader back={{ href: "/dashboard/budget", label: "Budget" }} title="Brief." />
       {b ? (
         <div className="d-col" style={{ gap: 28, maxWidth: 800 }}>
           <div className="d-g2" style={{ gap: 12 }}>

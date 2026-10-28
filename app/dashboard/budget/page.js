@@ -454,6 +454,9 @@ export default function Budget() {
         title="Budget."
         actions={
           <>
+            <Btn icon="dossier" href="/dashboard/documents">
+              Mes documents
+            </Btn>
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
@@ -469,6 +472,12 @@ export default function Budget() {
 
       <div className="d-desk-only">
         <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
+      </div>
+      <div className="d-mob-only" style={{ marginTop: -8 }}>
+        <Link href="/dashboard/documents" className="d-pill">
+          <Icon name="dossier" size={14} />
+          Mes documents
+        </Link>
       </div>
       <div className="d-mob-only">
         <div className="d-mstats">
