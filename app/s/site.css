@@ -1759,3 +1759,21 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* Photo d'exemple (éditeur seulement) */
+.s-photo-example {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #1c1c1a;
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  pointer-events: none;
+}

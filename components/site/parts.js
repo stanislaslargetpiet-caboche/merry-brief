@@ -7,6 +7,7 @@ import { useEffect, useId, useState } from "react";
 import QRCode from "qrcode";
 import { ICONS, ORN } from "@/lib/site/ornaments";
 import { downloadIcs, mapsUrl, RESPONSE_KEY } from "@/lib/site/model";
+import { isExample } from "@/lib/site/examples";
 import { Editable, useSiteEdit } from "./edit";
 
 export function Orn({ name, className = "", style, width, height, flip, rotate, label, stretch }) {
@@ -60,13 +61,14 @@ export function Photo({ src, tone = 1, label, preview, className = "", style, fr
   const pick = edit && path ? (
     <button type="button" className="s-photo-pick" onClick={(e) => (e.stopPropagation(), edit.pickPhoto(path))}>
       <Ico name="photo" size={16} sw={1.4} />
-      {src ? "Changer la photo" : "Ajouter une photo"}
+      {src && !isExample(src) ? "Changer la photo" : "Ajouter votre photo"}
     </button>
   ) : null;
   if (src) {
     return (
       <div className={`s-photo ${className}`} style={{ ...style, borderRadius: round }} role="img" aria-label={label || "Photo"}>
-        <img src={src} alt="" style={{ objectPosition: position ? `center ${position}%` : undefined, filter: gray ? "grayscale(1) contrast(1.05)" : undefined }} />
+        <img src={src} alt="" loading="lazy" style={{ objectPosition: position ? `center ${position}%` : undefined, filter: gray ? "grayscale(1) contrast(1.05)" : undefined }} />
+        {preview && isExample(src) ? <span className="s-photo-example">Photo d’exemple</span> : null}
         {children}
         {pick}
       </div>
