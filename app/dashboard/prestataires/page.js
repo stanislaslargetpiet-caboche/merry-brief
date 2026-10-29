@@ -196,7 +196,7 @@ export default function Trouver() {
       ) : (
         <>
           <div className="d-pr-intro">
-            <h2>Nos recommandations pour vous</h2>
+            <h2>Recommandations</h2>
             <p>{subtitle}</p>
           </div>
           <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
