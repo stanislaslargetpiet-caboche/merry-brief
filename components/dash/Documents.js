@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
 import { BUDGET_FOLDER, FOLDER_SUGGESTIONS, docTitle, docType, fileSize, linkName, nextFolderColor, normalizeLink } from "@/lib/dash/documents";
-import { posteName } from "@/lib/dash/model";
 import { currentDevice } from "@/lib/dash/retro";
 import { shortDate } from "@/lib/dash/format";
 import { pastel, PASTEL_KEYS } from "@/lib/dash/theme";
@@ -218,7 +217,6 @@ export function DropZone({ folderId, folderName, onDone }) {
         <>
           <div className="d-source-head">
             <strong>D'où vient le document ?</strong>
-            <p>PDF, images, Word, Excel · {fileSize(DOCUMENT_MAX_BYTES)} par fichier</p>
           </div>
           <div className="d-source-grid">
             <div className="d-source-card">
@@ -252,7 +250,6 @@ export function DropZone({ folderId, folderName, onDone }) {
               </Btn>
             </div>
           </div>
-          {phone ? null : <p className="d-source-note">Sur téléphone, « Choisir des fichiers » ouvre aussi Fichiers, la photothèque, Google Drive et iCloud.</p>}
         </>
       )}
       {linking ? <LinkModal folderId={folderId} onClose={() => setLinking(false)} onDone={onDone} /> : null}
@@ -272,7 +269,7 @@ export function TypeBadge({ doc, size = 38 }) {
   );
 }
 
-// Une ligne de document : type, nom, rattachement, qui, date, taille, menu
+// Une ligne de document : type, nom, qui, date, menu
 // `compact` : version téléphone, empilée (maquette 5n) au lieu de la grille large desktop
 export function DocumentRow({ doc, showFolder, folderName, compact }) {
   const dash = useDash();
@@ -308,7 +305,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
     dash.setToast({ kind: "ok", text: "Document supprimé." });
   };
 
-  const sub = [vendor?.name || (item ? posteName(item) : null), showFolder ? folderName : null].filter(Boolean).join(" · ");
+  const sub = showFolder ? folderName : null;
 
   const nameEl = renaming ? (
     <form onSubmit={rename} style={{ display: "flex", gap: 8 }}>
@@ -319,13 +316,6 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
       {docTitle(doc)}
     </button>
   );
-
-  const budgetBadge = linked ? (
-    <Link href={vendor ? `/dashboard/budget/prestataires/${vendor.id}` : "/dashboard/budget"} className="d-doc-budget">
-      <Icon name="wallet" size={11} sw={2.2} />
-      Dans le budget
-    </Link>
-  ) : null;
 
   const menu = (
     <span className="d-anchor">
@@ -390,16 +380,13 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
   ) : null;
 
   if (compact) {
-    const metaBits = [by?.display_name, doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : null, doc.size_bytes ? fileSize(doc.size_bytes) : doc.url && !doc.storage_path ? "Lien" : null].filter(Boolean);
+    const metaBits = [by?.display_name, doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : null].filter(Boolean);
     return (
       <div className="d-docrow-m">
         <TypeBadge doc={doc} size={34} />
         <span className="d-docrow-m-text">
           {nameEl}
-          <span className="d-docrow-sub">
-            {sub ? <span>{sub}</span> : null}
-            {budgetBadge}
-          </span>
+          {sub ? <span className="d-docrow-sub">{sub}</span> : null}
           <span className="d-docrow-meta-m">
             {by ? <Avatar member={by} size={16} /> : null}
             {metaBits.length ? <span>{metaBits.join(" · ")}</span> : null}
@@ -417,10 +404,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
         <TypeBadge doc={doc} />
         <span className="d-docrow-text">
           {nameEl}
-          <span className="d-docrow-sub">
-            {sub ? <span>{sub}</span> : null}
-            {budgetBadge}
-          </span>
+          {sub ? <span className="d-docrow-sub">{sub}</span> : null}
         </span>
       </span>
       <span className="d-docrow-by">
@@ -434,19 +418,15 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
         )}
       </span>
       <span className="d-docrow-date">{doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : ""}</span>
-      <span className="d-docrow-size">{doc.size_bytes ? fileSize(doc.size_bytes) : doc.url && !doc.storage_path ? "Lien" : ""}</span>
       {menu}
       {movingModal}
     </div>
   );
 }
 
-// Carte d'un dossier dans la grille
-export function FolderCard({ folder, docs, members }) {
+// Carte d'un dossier dans la grille : son nom et son nombre de documents
+export function FolderCard({ folder, docs }) {
   const p = pastel(folder.color);
-  const who = members.filter((m) => docs.some((d) => d.added_by === m.id));
-  const last = docs.reduce((a, d) => (d.created_at > a ? d.created_at : a), "");
-  const linked = docs.filter((d) => d.vendor_id || d.budget_item_id).length;
   return (
     <Link href={`/dashboard/documents/${folder.id}`} className="d-folder">
       <span className="d-tile" style={{ width: 48, height: 48, borderRadius: 14, background: p.bg }}>
@@ -455,25 +435,8 @@ export function FolderCard({ folder, docs, members }) {
       <span className="d-folder-text">
         <strong>{folder.name}</strong>
         <span className="d-small d-muted">
-          {docs.length ? `${docs.length} document${docs.length > 1 ? "s" : ""} · ${last ? `mis à jour le ${shortDate(last.slice(0, 10))}` : ""}` : "Vide pour l'instant"}
+          {docs.length} document{docs.length > 1 ? "s" : ""}
         </span>
-      </span>
-      <span className="d-folder-foot">
-        <span className="d-faces">
-          {who.slice(0, 4).map((m, i) => (
-            <span key={m.id} style={{ marginLeft: i ? -8 : 0, display: "inline-flex" }}>
-              <Avatar member={m} size={26} ring="#ffffff" />
-            </span>
-          ))}
-        </span>
-        {linked ? (
-          <span className="d-desk-only">
-            <span className="d-doc-budget">
-              <Icon name="wallet" size={11} sw={2.2} />
-              {linked} dans le budget
-            </span>
-          </span>
-        ) : null}
       </span>
     </Link>
   );
