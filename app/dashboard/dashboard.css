@@ -13360,7 +13360,7 @@ body.d-noscroll {
   }
 }
 
-/* Budget, onglet Répartition (artboard 2b) : trois chiffres, les dépenses effectuées par personne, qui rembourse qui */
+/* Budget, onglet Répartition (artboard 2b) : le total dépensé, puis ce que chacun a payé */
 .d-split-stats {
   align-self: flex-start;
   display: flex;
@@ -13390,7 +13390,7 @@ body.d-noscroll {
 
 .d-split-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 720px);
   gap: 28px;
   align-items: start;
 }
@@ -13431,24 +13431,10 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
-.d-balance {
+.d-split-amount {
   flex: none;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--d-panel);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
-}
-
-.d-balance.is-plus {
-  background: #dff3e1;
-  color: #1f6b30;
-}
-
-.d-balance.is-minus {
-  background: #ffe6cc;
-  color: #8a4b0f;
 }
 
 @media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
