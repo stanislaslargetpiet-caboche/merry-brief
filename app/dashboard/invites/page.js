@@ -825,9 +825,10 @@ export default function Invites() {
                 </button>
               );
             })}
-            <button type="button" className="d-pill is-dashed" onClick={() => setGroupsModal(true)} aria-label="Modifier les groupes" title="Modifier les groupes">
+            {/* Gérer les groupes (renommer, couleur, supprimer) : réservé à l'ordinateur */}
+            <button type="button" className="d-pill is-dashed d-desk-only-flex" onClick={() => setGroupsModal(true)} aria-label="Modifier les groupes" title="Modifier les groupes">
               <Icon name="pencil" size={14} sw={2} />
-              <span className="d-desk-only">Modifier les groupes</span>
+              Modifier les groupes
             </button>
             <ColumnFilter fields={fields} guests={guests} value={activeFieldFilter} onChange={setFieldFilter} />
           </div>
@@ -1047,16 +1048,6 @@ export default function Invites() {
           <div className="d-gfilter">
             <div className="d-gfilter-head">
               <strong>Groupe</strong>
-              <button
-                type="button"
-                className="d-link"
-                onClick={() => {
-                  setFiltering(false);
-                  setGroupsModal(true);
-                }}
-              >
-                Modifier les groupes
-              </button>
             </div>
             <div className="d-filters">
               {groups.map((gr) => {
