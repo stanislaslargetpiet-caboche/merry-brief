@@ -11,7 +11,7 @@ import { useDash } from "@/lib/dash/store";
 import { REGIONS } from "@/lib/dash/filters";
 import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList } from "@/lib/dash/criteria";
 import { PRICE_BARS } from "@/lib/dash/provenceMap";
-import { euros, toDate } from "@/lib/dash/format";
+import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, VENUE, styleCriteria } from "./Prestataires";
 
@@ -106,40 +106,42 @@ export function PriceRange({ value, onChange }) {
   );
 }
 
-// « Près d'une ville » : les villes se chargent pendant la frappe, avec code postal et département,
-// pour choisir la bonne parmi les homonymes. Sans réponse du service, le texte tapé reste valable.
-function CityField({ value, onType, onPick }) {
-  const [items, setItems] = useState([]);
+// « Où » : une seule recherche, qui propose les régions puis les villes (code postal et département,
+// pour choisir la bonne parmi les homonymes). Le choix s'affiche en pastille au-dessus du champ.
+const fold = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function PlaceField({ onPickRegion, onPickTown }) {
+  const [q, setQ] = useState("");
+  const [towns, setTowns] = useState([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const typed = useRef(false);
+  const query = q.trim();
+  const regions = query.length >= 2 ? REGIONS.filter((r) => fold(r).includes(fold(query))).map((r) => ({ region: r })) : [];
 
   useEffect(() => {
-    if (!typed.current || value.trim().length < 2) {
-      setItems([]);
+    if (query.length < 2) {
+      setTowns([]);
       return undefined;
     }
     const ctrl = new AbortController();
     const timer = setTimeout(() => {
-      searchTowns(value, { signal: ctrl.signal })
-        .then((list) => {
-          setItems(list);
-          setActive(0);
-          setOpen(true);
-        })
+      searchTowns(query, { signal: ctrl.signal })
+        .then((list) => setTowns(list))
         .catch(() => {});
     }, 250);
     return () => {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [value]);
+  }, [query]);
 
-  const pick = (t) => {
-    typed.current = false;
-    onPick(t);
+  const items = [...regions, ...towns];
+  const pick = (it) => {
+    if (it.region) onPickRegion(it.region);
+    else onPickTown(it);
+    setQ("");
     setOpen(false);
-    setItems([]);
+    setTowns([]);
   };
   const onKeyDown = (e) => {
     if (!open || !items.length) return;
@@ -151,7 +153,7 @@ function CityField({ value, onType, onPick }) {
       setActive((i) => (i - 1 + items.length) % items.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      pick(items[active]);
+      pick(items[Math.min(active, items.length - 1)]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -160,41 +162,45 @@ function CityField({ value, onType, onPick }) {
 
   return (
     <div className="d-pr-townfield">
-      <input
-        className="d-input"
-        value={value}
-        placeholder="Aix-en-Provence"
-        aria-labelledby="filtres-ville"
-        role="combobox"
-        aria-expanded={showList}
-        aria-controls="filtres-villes"
-        aria-autocomplete="list"
-        autoComplete="off"
-        onChange={(e) => {
-          typed.current = true;
-          onType(e.target.value);
-        }}
-        onKeyDown={onKeyDown}
-        onFocus={() => items.length && setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-      />
+      <div className="d-pr-townsearch">
+        <Icon name="search" size={16} sw={2} />
+        <input
+          className="d-input"
+          value={q}
+          placeholder="Une région ou une ville"
+          aria-label="Où : une région ou une ville"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls="filtres-lieux"
+          aria-autocomplete="list"
+          autoComplete="off"
+          onChange={(e) => {
+            setQ(e.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onKeyDown={onKeyDown}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+      </div>
       {showList ? (
-        <ul className="d-pr-townlist" id="filtres-villes" role="listbox">
-          {items.map((t, i) => (
+        <ul className="d-pr-townlist" id="filtres-lieux" role="listbox">
+          {items.map((it, i) => (
             <li
-              key={`${t.name}|${t.sub}`}
+              key={it.region || `${it.name}|${it.sub}`}
               role="option"
               aria-selected={i === active}
               onMouseDown={(e) => {
                 e.preventDefault();
-                pick(t);
+                pick(it);
               }}
               onMouseEnter={() => setActive(i)}
             >
-              <Icon name="pin" size={16} sw={1.8} />
+              <Icon name={it.region ? "map" : "pin"} size={16} sw={1.8} />
               <span>
-                <strong>{t.name}</strong>
-                {t.sub ? <small>{t.sub}</small> : null}
+                <strong>{it.region || it.name}</strong>
+                <small>{it.region ? "Région" : it.sub}</small>
               </span>
             </li>
           ))}
@@ -309,26 +315,29 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       </div>
       <div className="d-pr-panel-body d-pr-filters">
         <Section title="Où" ruled={false}>
-          <div className="d-pr-optrow">
-            {d.place ? (
-              <Choice on={d.placeOn} onClick={() => set((x) => ({ placeOn: !x.placeOn, regions: [], city: "" }))}>
-                {d.place}
-              </Choice>
-            ) : null}
-            {REGIONS.map((r) => (
-              <Choice key={r} on={d.regions.includes(r)} onClick={() => set((x) => ({ regions: toggle(x.regions, r), city: "", placeOn: false }))}>
-                {r}
-              </Choice>
-            ))}
-          </div>
-          <div className="d-pr-fieldline">
-            <span id="filtres-ville">Ou près d’une ville</span>
-            <CityField
-              value={d.city}
-              onType={(city) => set({ city, cityAt: null, regions: city ? [] : d.regions, placeOn: false })}
-              onPick={(t) => set({ city: t.name, cityAt: { lat: t.lat, lng: t.lon }, regions: [], placeOn: false })}
-            />
-          </div>
+          {d.placeOn || d.regions.length || d.city.trim() ? (
+            <div className="d-pr-optrow">
+              {d.placeOn ? (
+                <Choice on onClick={() => set({ placeOn: false })}>
+                  {d.place}
+                </Choice>
+              ) : null}
+              {d.regions.map((r) => (
+                <Choice key={r} on onClick={() => set((x) => ({ regions: x.regions.filter((y) => y !== r) }))}>
+                  {r}
+                </Choice>
+              ))}
+              {d.city.trim() ? (
+                <Choice on onClick={() => set({ city: "", cityAt: null })}>
+                  Près {withArticle(d.city.trim(), "de")}
+                </Choice>
+              ) : null}
+            </div>
+          ) : null}
+          <PlaceField
+            onPickRegion={(r) => set((x) => ({ regions: x.regions.includes(r) ? x.regions : [...x.regions, r], city: "", cityAt: null, placeOn: false }))}
+            onPickTown={(t) => set({ city: t.name, cityAt: { lat: t.lat, lng: t.lon }, regions: [], placeOn: false })}
+          />
           {d.city.trim() ? <MaxRow value={d.cityMax} onChange={(cityMax) => set({ cityMax: cityMax || 60 })} label="Temps de route maximum" /> : null}
         </Section>
 

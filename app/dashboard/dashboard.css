@@ -11555,9 +11555,23 @@ body.d-noscroll {
   flex-direction: column;
 }
 
+.d-pr-townsearch {
+  position: relative;
+}
+
+.d-pr-townsearch svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--d-muted);
+  pointer-events: none;
+}
+
 .d-pr-townfield .d-input {
   width: 100%;
   box-sizing: border-box;
+  padding-left: 40px;
 }
 
 .d-pr-townlist {
