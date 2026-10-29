@@ -10,7 +10,7 @@ import { chosenVenue, guestsLabel, monthYear } from "@/lib/dash/picks";
 import { euros } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
 import { BusyDots } from "@/components/dash/ui";
-import { details, DevisDialog, FichePanel, Heart, Price, PrHead, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
+import { DevisDialog, FichePanel, Heart, Price, PrHead, SampleNote, Specs, usePicks, useRecommendations } from "@/components/dash/Prestataires";
 
 const ROWS = CATEGORIES.filter((c) => c.key !== "lieu" && c.key !== "autre");
 
@@ -146,15 +146,10 @@ function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
                           {v.name}
                         </button>
                       </h4>
-                      <div className="d-pr-area">{v.area}</div>
+                      {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
                     </div>
                   </div>
-                  <div className="d-pr-details is-sm">{details(v, venueName)}</div>
-                  {v.why ? (
-                    <div className="d-pr-why is-sm">
-                      <span>Pourquoi :</span> {v.why}
-                    </div>
-                  ) : null}
+                  <Specs v={v} venueName={venueName} />
                   {v.price ? (
                     <div className="d-pr-card-price is-sm">
                       <Price v={v} />
