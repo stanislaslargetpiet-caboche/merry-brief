@@ -757,9 +757,6 @@ export default function Invites() {
             <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
               Ajouter des invités
             </Btn>
-            <Link href="/dashboard/invites/importer" className="d-link">
-              Importer une liste
-            </Link>
           </div>
         </div>
       ) : null}

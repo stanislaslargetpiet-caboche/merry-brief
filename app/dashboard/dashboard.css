@@ -13673,3 +13673,29 @@ body.d-noscroll {
   text-decoration: none;
   pointer-events: none;
 }
+
+/* Budget, téléphone : « Ajouter un poste » en dernière ligne de la liste (artboard 2a) */
+.d-mrow.d-mrow-add {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--d-line);
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Budget, ordinateur : « Ajouter une ligne » n'apparaît qu'au survol du poste */
+@media (hover: hover) {
+  .d-table tr .d-add-line-link {
+    visibility: hidden;
+  }
+
+  .d-table tr:hover .d-add-line-link,
+  .d-table tr .d-add-line-link:focus-visible {
+    visibility: visible;
+  }
+}
