@@ -1,8 +1,7 @@
 "use client";
 
 // Onglet « Répartition » du budget (artboard 2b) : le total payé, qui a payé combien, puis comment équilibrer
-// les comptes entre ceux qui partagent les dépenses. Chacun choisit qui partage (pas de parts imposées) ;
-// le choix est commun aux organisateurs (weddings.layouts.partage).
+// les comptes entre ceux qui ont payé : chacun revient à la même part, sans rien redemander.
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
@@ -37,17 +36,9 @@ export default function Repartition() {
   const [adding, setAdding] = useState(false);
   const byPayer = paidByPayer(data);
   const total = byPayer.reduce((a, x) => a + x.amount, 0);
-  const saved = data.wedding.layouts?.partage?.members;
-  const sharing = new Set(saved?.length ? saved : byPayer.filter((x) => x.amount > 0).map((x) => x.member.id));
+  const sharing = new Set(byPayer.filter((x) => x.amount > 0).map((x) => x.member.id));
   const part = sharing.size ? total / sharing.size : 0;
   const transfers = settle(byPayer.filter((x) => sharing.has(x.member.id) || x.amount > 0).map((x) => ({ member: x.member, diff: x.amount - (sharing.has(x.member.id) ? part : 0) })));
-
-  const toggle = (id) => {
-    const next = new Set(sharing);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    dash.saveLayout("partage", { members: [...next] });
-  };
 
   return (
     <>
@@ -89,22 +80,11 @@ export default function Repartition() {
         <div className="d-col" style={{ gap: 12 }}>
           <Section title="Pour équilibrer les comptes" />
           <div className="d-card d-balance">
-            <div className="d-balance-who" role="group" aria-label="Qui partage les dépenses">
-              <span>Qui partage les dépenses ?</span>
-              <div className="d-filters">
-                {byPayer.map((x) => (
-                  <button key={x.member.id} type="button" className={`d-pill d-pill-person${sharing.has(x.member.id) ? " is-on" : ""}`} aria-pressed={sharing.has(x.member.id)} onClick={() => toggle(x.member.id)}>
-                    <Avatar member={x.member} size={22} />
-                    {x.member.display_name}
-                  </button>
-                ))}
-              </div>
-              {sharing.size ? (
-                <span className="d-balance-part">
-                  <strong>{euros(part)}</strong> chacun
-                </span>
-              ) : null}
-            </div>
+            {sharing.size ? (
+              <span className="d-balance-part">
+                <strong>{euros(part)}</strong> chacun, entre {[...byPayer].filter((x) => sharing.has(x.member.id)).map((x) => x.member.display_name).join(", ")}
+              </span>
+            ) : null}
             {transfers.length ? (
               <ul className="d-balance-list">
                 {transfers.map((t) => (
@@ -124,7 +104,7 @@ export default function Repartition() {
             ) : (
               <p className="d-balance-ok">
                 <Icon name="check" size={16} sw={2.4} />
-                {sharing.size ? "Les comptes sont équilibrés." : "Choisissez qui partage les dépenses."}
+                {sharing.size ? "Les comptes sont équilibrés." : "Aucune dépense pour l'instant."}
               </p>
             )}
           </div>
