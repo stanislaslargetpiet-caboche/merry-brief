@@ -7,7 +7,7 @@ import { DashProvider, useDash } from "@/lib/dash/store";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
 import { Icon } from "./icons";
-import { Avatar, Popover } from "./ui";
+import { Avatar, Popover, PageLoader } from "./ui";
 import Organisers from "./Organisers";
 
 // Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires
@@ -267,9 +267,7 @@ function Frame({ children }) {
           ) : dash.status === "error" ? (
             <ErrorState kind={dash.error} reload={dash.reload} />
           ) : (
-            <div className="d-loading" aria-live="polite">
-              Chargement…
-            </div>
+            <PageLoader />
           )}
         </div>
       </main>
@@ -277,6 +275,11 @@ function Frame({ children }) {
       <ImportBadge />
       {dash.toast ? (
         <div className={`d-toast is-${dash.toast.kind}`} role="status">
+          {dash.toast.kind === "ok" ? (
+            <span className="d-toast-check" aria-hidden="true">
+              <Icon name="check" size={13} sw={3} />
+            </span>
+          ) : null}
           {dash.toast.text}
         </div>
       ) : null}

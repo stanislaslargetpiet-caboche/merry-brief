@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
-import { Popover } from "@/components/dash/ui";
+import { Popover, PageLoader } from "@/components/dash/ui";
 import { ProIcon } from "./icons";
 import Claim from "./Claim";
 import FeatureDialog from "./FeatureDialog";
@@ -36,9 +36,7 @@ function Gate({ children }) {
   if (pro.status === "loading") {
     return (
       <div className="d-root p-root p-bare">
-        <div className="d-loading" aria-live="polite">
-          Chargement…
-        </div>
+        <PageLoader />
       </div>
     );
   }

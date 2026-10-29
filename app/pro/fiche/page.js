@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "@/components/pro/icons";
 import { Pills, Switch } from "@/components/pro/ui";
+import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 
 const STYLES = ["Champêtre", "Chic", "Bohème", "Bord de mer", "Intime", "Grande fête"];
@@ -243,7 +244,7 @@ function PhotosSection() {
           />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}>
             <ProIcon name="plus" size={20} sw={2} />
-            {busy ? "Envoi…" : "Ajouter des photos"}
+            {busy ? <BusyDots /> : "Ajouter des photos"}
           </button>
         </li>
       </ul>
@@ -303,7 +304,7 @@ function VideoSection() {
           }}
         />
         <button type="button" className="p-btn p-btn-ghost p-start p-phone-wide" onClick={() => fileRef.current?.click()} disabled={busy}>
-          {busy ? "Envoi de la vidéo…" : "Importer une vidéo"}
+          {busy ? <BusyDots /> : "Importer une vidéo"}
         </button>
       </div>
     </div>

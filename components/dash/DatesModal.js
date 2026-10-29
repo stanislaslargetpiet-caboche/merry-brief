@@ -12,7 +12,7 @@ import ShiftOption from "./ShiftOption";
 import { addDays, isoDate, longDate, uid } from "@/lib/dash/format";
 import { shortEventName } from "./MomentsModal";
 import { Icon, Tile } from "./icons";
-import { Btn, Modal } from "./ui";
+import { Btn, Modal, BusyDots } from "./ui";
 
 export const DATES_SEEN_KEY = "merry-dates-seen";
 
@@ -85,7 +85,7 @@ export default function DatesModal({ onClose, first }) {
             {first ? "Plus tard" : "Annuler"}
           </Btn>
           <Btn onClick={save} disabled={busy}>
-            {busy ? "Enregistrement…" : "Enregistrer"}
+            {busy ? <BusyDots /> : "Enregistrer"}
           </Btn>
         </>
       }
