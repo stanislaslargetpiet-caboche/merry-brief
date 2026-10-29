@@ -26,6 +26,7 @@ import {
   PricePin,
   SampleNote,
   SelectionBar,
+  Specs,
   Thumb,
   ToConfirm,
   MAP_MIN_SCALE,
@@ -163,7 +164,7 @@ export default function Trouver() {
         />
       ) : null}
       {fiche ? <FichePanel v={fiche} index={Math.max(0, list.indexOf(fiche))} total={list.length} onClose={closeFiche} onRequest={requestOne} onMap={showOnMap} /> : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
     </>
   );
 
@@ -451,8 +452,9 @@ function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
               {v.name}
             </button>
           </h3>
-          <div className="d-pr-area">{v.area}</div>
+          {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
         </div>
+        <Specs v={v} />
         <ToConfirm v={v} />
         {v.best ? (
           <div className="d-pr-mini-tags">

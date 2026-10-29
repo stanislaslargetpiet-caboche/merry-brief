@@ -43,12 +43,6 @@ export default function Mes() {
           </span>
         </div>
       ) : null}
-      <div className="d-pr-mes-intro">
-        <Link href="/dashboard/prestataires/demandes" className="d-btn d-btn-ghost d-pr-mes-requests">
-          <Icon name="requests" size={16} sw={1.8} />
-          Voir mes demandes de devis
-        </Link>
-      </div>
       <div className="d-pr-boxes">
         {sections.map((c) => {
           const quotes = by[c.key].filter((p) => pickStatus(p, data).key === "devis").length;
@@ -62,7 +56,7 @@ export default function Mes() {
                     <Icon name="arrowRight" size={14} sw={2} />
                   </button>
                 ) : (
-                  <Link href={c.key === "lieu" ? "/dashboard/prestataires" : `/dashboard/prestataires/autour`} className="d-pr-arrowlink is-13">
+                  <Link href={c.key === "lieu" ? "/dashboard/prestataires" : `/dashboard/prestataires?cat=${c.key}`} className="d-pr-arrowlink is-13">
                     {c.more}
                     <Icon name="arrowRight" size={14} sw={2} />
                   </Link>
@@ -110,7 +104,7 @@ export default function Mes() {
           }}
         />
       ) : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
     </>
   );
 }

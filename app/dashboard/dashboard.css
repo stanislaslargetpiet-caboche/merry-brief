@@ -6748,7 +6748,7 @@ button.d-group-none {
   max-width: calc(1000px + 2 * clamp(16px, 3.5vw, 56px));
 }
 
-.d-wrap:has(> .d-pr-mes-intro) {
+.d-wrap:has(> .d-pr-boxes) {
   max-width: calc(1040px + 2 * clamp(16px, 3.5vw, 56px));
 }
 
@@ -7215,7 +7215,7 @@ body.d-noscroll {
 .d-pr-specs svg {
   flex: none;
   margin-top: 1px;
-  color: var(--d-muted);
+  color: var(--d-ok-ink);
 }
 
 .d-pr-details {
@@ -11600,6 +11600,7 @@ body.d-noscroll {
 .d-pr-townlist li svg {
   flex: none;
   margin-top: 2px;
+  color: var(--d-ok-ink);
 }
 
 .d-pr-townlist li[aria-selected="true"] {

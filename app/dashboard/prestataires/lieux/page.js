@@ -45,10 +45,6 @@ export default function Lieux() {
           <Icon name="back" size={16} sw={2} />
           Prestataires
         </Link>
-        <Link href="/dashboard/prestataires/mes" className="d-pr-pillink is-desk-lg">
-          <Icon name="heart" size={15} sw={2} />
-          Mes prestataires
-        </Link>
       </div>
       <div className="d-pr-lieux-head">
         <h1 className="d-title">Lieux.</h1>
@@ -110,7 +106,7 @@ export default function Lieux() {
         />
       ) : null}
       {filters ? <FiltersPanel category="lieu" price={price} onClose={() => setFilters(false)} onApply={setPrice} /> : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
     </>
   );
 }

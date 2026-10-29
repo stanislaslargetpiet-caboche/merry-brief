@@ -17,7 +17,6 @@ import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { FactChips } from "./Criteria";
 import { BusyDots } from "./ui";
 import VendorComments from "./VendorComments";
 
@@ -1032,7 +1031,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
   // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
   const vf = venueFacts(v, dash.data, { all: true });
   const facts = vf.length ? vf.map((f) => [f.key, f.label, f.value, f.match]) : factsOf(v).map(([icon, k, val]) => [icon, k, val, false]);
-  const matched = vf.filter((f) => f.match);
   const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
@@ -1082,10 +1080,15 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
           <div>
             {v.best ? <BestMatch /> : null}
             <h1 id="fiche-titre">{v.name}</h1>
-            <div className="d-pr-fiche-place">{v.place || v.area}</div>
+            {v.place || v.area ? (
+              <div className="d-pr-fiche-place d-pr-area is-hl">
+                <span>{v.place || v.area}</span>
+              </div>
+            ) : null}
           </div>
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
+        <Specs v={v} />
         {facts.length ? (
           // Le détail des faits, replié : la liste « Pourquoi ce lieu » dit déjà l'essentiel
           <details className="d-pr-fdetails">
@@ -1138,10 +1141,9 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
             ) : null}
           </section>
         ) : null}
-        {v.story || v.why || matched.length || vf.length ? (
+        {v.story || v.why || v.checks?.length ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
-            {matched.length ? <FactChips facts={matched} className="is-fiche" /> : vf.length ? <FactChips facts={vf.slice(0, 4)} className="is-fiche" /> : null}
             {v.story || v.why ? <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p> : null}
             {v.checks?.length ? (
               <div className="d-pr-included">
