@@ -136,12 +136,6 @@ export default function Retroplanning() {
               </div>
             </div>
           ))}
-          <span className="d-mob-only">
-            <button type="button" className="d-pill is-dashed" style={{ width: "100%", justifyContent: "center", minHeight: 48 }} onClick={() => setAdding(true)}>
-              <Icon name="plus" size={14} sw={2} />
-              Ajouter une tâche
-            </button>
-          </span>
           {!groups.length ? (
             <div className="d-empty">
               <p>{who ? "Rien pour cette personne." : "Aucune tâche pour l'instant."}</p>
@@ -179,6 +173,12 @@ export default function Retroplanning() {
           </span>
         </div>
       </div>
+      {/* Téléphone : le petit bouton noir « + » (artboard 3a) */}
+      {!adding ? (
+        <button type="button" className="d-fab" aria-label="Ajouter une tâche" onClick={() => setAdding(true)}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
+      ) : null}
       {dates ? (
         <DatesModal
           first={dates === "first"}
