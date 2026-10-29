@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
+import { catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
@@ -141,7 +141,7 @@ export default function Trouver() {
   const subtitle = loading || searching
     ? "Recherche en cours…"
     : list.length
-      ? `${inWords(list.length, cat)} d'après vos critères.`
+      ? null
       : wishesOn && cat === "lieu"
         ? "Aucun lieu ne tient tous vos critères ici."
         : `Aucun ${c.one} à vous proposer pour l’instant.`;
@@ -197,7 +197,7 @@ export default function Trouver() {
         <>
           <div className="d-pr-intro">
             <h2>Recommandations</h2>
-            <p>{subtitle}</p>
+            {subtitle ? <p>{subtitle}</p> : null}
           </div>
           <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
             {list.map((v, i) => (
