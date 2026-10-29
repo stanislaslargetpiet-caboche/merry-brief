@@ -15,7 +15,6 @@ export default function Retroplanning() {
   const { tasks, members, wedding } = data;
   const [who, setWho] = useState(null);
   const [adding, setAdding] = useState(false);
-  const [showDone, setShowDone] = useState(true);
   const [dates, setDates] = useState(null); // null | "first" | "edit"
 
   // À la première visite, on demande les grandes dates (civil, veille, brunch…)
@@ -33,8 +32,9 @@ export default function Retroplanning() {
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
+  // Une tâche cochée disparaît ; un mois sans tâche à faire disparaît avec elle (artboard 3a)
   const filtered = tasks
-    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (showDone || !t.done));
+    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && !t.done);
   const groups = taskGroups(filtered);
 
   // Qui fait quoi : chaque personne, et « Vous deux » pour les tâches du couple
@@ -90,9 +90,6 @@ export default function Retroplanning() {
               {m.display_name}
             </button>
           ))}
-          <button type="button" className={`d-pill${!showDone ? " is-on" : ""}`} onClick={() => setShowDone((x) => !x)}>
-            {showDone ? "Masquer les tâches faites" : "Afficher les tâches faites"}
-          </button>
         </div>
         </div>
       </div>

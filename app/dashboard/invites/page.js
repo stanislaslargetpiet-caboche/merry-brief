@@ -120,7 +120,6 @@ const FILTER_STATUSES = [
   { id: "attente", label: "En attente" },
   { id: "non_invite", label: "Non invité" },
 ];
-const statusLabel = (id) => FILTER_STATUSES.find((st) => st.id === id)?.label || id;
 
 function StatusChips({ value, onChange }) {
   return (
@@ -477,25 +476,6 @@ export default function Invites() {
     setMomentFilter({});
     setFieldFilter(null);
   };
-  // Les filtres actifs, en pastilles retirables à côté du bouton (ordinateur)
-  const activeChips = [
-    groupFilter && groupById.get(groupFilter) ? { key: "g", label: groupById.get(groupFilter).name, color: groupById.get(groupFilter).color, off: () => setGroupFilter(null) } : null,
-    statusFilter ? { key: "s", label: statusLabel(statusFilter), off: () => setStatusFilter(null) } : null,
-    ...Object.entries(momentFilter)
-      .filter(([evId]) => events.some((e) => e.id === evId))
-      .map(([evId, st]) => ({
-        key: `m${evId}`,
-        label: `${events.find((e) => e.id === evId).name} : ${statusLabel(st).toLowerCase()}`,
-        off: () =>
-          setMomentFilter((m) => {
-            const next = { ...m };
-            delete next[evId];
-            return next;
-          }),
-      })),
-    activeFieldFilter ? { key: "f", label: `${activeFieldFilter.fieldName} : ${activeFieldFilter.label}`, off: () => setFieldFilter(null) } : null,
-  ].filter(Boolean);
-
   // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris),
   // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
   const [selected, setSelected] = useState({});
@@ -731,17 +711,6 @@ export default function Invites() {
               Filtres
               {filterCount ? <span className="d-filter-count">{filterCount}</span> : null}
             </button>
-            {activeChips.map((c) => {
-              const p = c.color ? pastel(c.color) : null;
-              return (
-                <span key={c.key} className="d-filter-chip d-desk-only-flex" style={p ? { background: p.bg, color: p.ink } : undefined}>
-                  {c.label}
-                  <button type="button" className="d-icon-btn" onClick={c.off} aria-label={`Retirer le filtre ${c.label}`}>
-                    <Icon name="x" size={11} sw={2.6} />
-                  </button>
-                </span>
-              );
-            })}
           </div>
           <span className="d-filters d-desk-only">
             {cols.customised ? (
@@ -788,9 +757,6 @@ export default function Invites() {
             <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
               Ajouter des invités
             </Btn>
-            <Link href="/dashboard/invites/importer" className="d-link">
-              Importer une liste
-            </Link>
           </div>
         </div>
       ) : null}
@@ -800,7 +766,7 @@ export default function Invites() {
           <>
             <div className="d-desk-only">
               <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
-                <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
+                <strong>{n(selIds.length, "sélection", "sélections")}</strong>
                 <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
                   {!allSelected ? (
                     <button type="button" onClick={selectAll}>

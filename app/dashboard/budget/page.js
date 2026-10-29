@@ -260,7 +260,7 @@ export default function Budget() {
   const renderMobileRow = (it) => {
     const f = itemFinance(it, payments);
     const v = vendorById.get(it.vendor_id);
-    const sub = v ? v.name : f.quote === null ? "Prestataire à choisir" : it.note || null;
+    const sub = v ? v.name : it.note || null;
     return (
       <div key={it.id} className="d-mrow">
         <Tile name={it.icon || guessIcon(it.label)} />
@@ -498,6 +498,10 @@ export default function Budget() {
 
         <div className="d-cards d-mob-only">
           {groups.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
+          <button type="button" className="d-mrow d-mrow-add" onClick={() => setEditing("new")}>
+            <Icon name="plus" size={14} sw={2.4} />
+            Ajouter un poste
+          </button>
           <span className="d-desk-only">
             <div className="d-pcard-total">
               <span>

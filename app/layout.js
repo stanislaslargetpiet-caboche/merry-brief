@@ -7,6 +7,8 @@ export const metadata = {
   title: "Merry · Raconte-nous ton mariage",
   description:
     "Dix minutes de questions, et Merry te prépare un tableau de bord à la taille de ton mariage.",
+  // Safari sur iPhone transforme sinon les mails et numéros affichés en liens (toute la ligne d'un organisateur devenait un lien mail)
+  formatDetection: { email: false, telephone: false, address: false },
 };
 
 export const viewport = {
