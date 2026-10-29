@@ -5,7 +5,8 @@
 // Tout ce qu'on touche dans le panneau est un brouillon : rien ne change avant « Rechercher ».
 // Remplace la boîte « Vos critères » (puces) et « Préciser mes envies ». Retours mobile de Stan, octobre 2026.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { searchTowns } from "@/lib/places";
 import { useDash } from "@/lib/dash/store";
 import { REGIONS } from "@/lib/dash/filters";
 import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList, guestsOf, periodText, placeText } from "@/lib/dash/criteria";
@@ -124,6 +125,104 @@ export function PriceRange({ value, onChange }) {
   );
 }
 
+// « Près d'une ville » : les villes se chargent pendant la frappe, avec code postal et département,
+// pour choisir la bonne parmi les homonymes. Sans réponse du service, le texte tapé reste valable.
+function CityField({ value, onType, onPick }) {
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const typed = useRef(false);
+
+  useEffect(() => {
+    if (!typed.current || value.trim().length < 2) {
+      setItems([]);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      searchTowns(value, { signal: ctrl.signal })
+        .then((list) => {
+          setItems(list);
+          setActive(0);
+          setOpen(true);
+        })
+        .catch(() => {});
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [value]);
+
+  const pick = (t) => {
+    typed.current = false;
+    onPick(t);
+    setOpen(false);
+    setItems([]);
+  };
+  const onKeyDown = (e) => {
+    if (!open || !items.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => (i + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => (i - 1 + items.length) % items.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+  const showList = open && items.length > 0;
+
+  return (
+    <div className="d-pr-townfield">
+      <input
+        className="d-input"
+        value={value}
+        placeholder="Aix-en-Provence"
+        aria-labelledby="filtres-ville"
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls="filtres-villes"
+        aria-autocomplete="list"
+        autoComplete="off"
+        onChange={(e) => {
+          typed.current = true;
+          onType(e.target.value);
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => items.length && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {showList ? (
+        <ul className="d-pr-townlist" id="filtres-villes" role="listbox">
+          {items.map((t, i) => (
+            <li
+              key={`${t.name}|${t.sub}`}
+              role="option"
+              aria-selected={i === active}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(t);
+              }}
+              onMouseEnter={() => setActive(i)}
+            >
+              <Icon name="pin" size={16} sw={1.8} />
+              <span>
+                <strong>{t.name}</strong>
+                {t.sub ? <small>{t.sub}</small> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function Section({ title, children, ruled = true }) {
   return (
     <section className={`d-pr-fsect${ruled ? " is-ruled" : ""}`}>
@@ -145,6 +244,7 @@ function startDraft(data, price) {
     placeOn: !!place && !off.has("lieu"),
     regions: off.has("lieu") ? [] : w.regions.length ? w.regions : REGIONS.includes(data.wedding.region) ? [data.wedding.region] : [],
     city: off.has("lieu") ? "" : w.city?.name || "",
+    cityAt: off.has("lieu") || w.city?.lat == null ? null : { lat: w.city.lat, lng: w.city.lng },
     cityMax: w.city?.max || 60,
     flexible: !!w.when,
     when: w.when || { months: [], years: [] },
@@ -177,6 +277,7 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       placeOn: false,
       regions: [],
       city: "",
+      cityAt: null,
       flexible: false,
       when: { months: [], years: [] },
       date: "",
@@ -198,7 +299,7 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       ...d.w,
       off,
       regions: d.regions,
-      city: d.city.trim() && !d.regions.length ? { name: d.city.trim(), max: d.cityMax } : { name: "", max: null },
+      city: d.city.trim() && !d.regions.length ? { name: d.city.trim(), max: d.cityMax, ...(d.cityAt ? d.cityAt : {}) } : { name: "", max: null },
       when: d.flexible && dateSet ? d.when : null,
       criteria,
     };
@@ -239,10 +340,14 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
               </Choice>
             ))}
           </div>
-          <label className="d-pr-fieldline">
-            <span>Ou près d’une ville</span>
-            <input className="d-input" value={d.city} placeholder="Aix-en-Provence" onChange={(e) => set({ city: e.target.value, regions: e.target.value ? [] : d.regions, placeOn: false })} />
-          </label>
+          <div className="d-pr-fieldline">
+            <span id="filtres-ville">Ou près d’une ville</span>
+            <CityField
+              value={d.city}
+              onType={(city) => set({ city, cityAt: null, regions: city ? [] : d.regions, placeOn: false })}
+              onPick={(t) => set({ city: t.name, cityAt: { lat: t.lat, lng: t.lon }, regions: [], placeOn: false })}
+            />
+          </div>
           {d.city.trim() ? <MaxRow value={d.cityMax} onChange={(cityMax) => set({ cityMax: cityMax || 60 })} label="Temps de route maximum" /> : null}
         </Section>
 
