@@ -13907,3 +13907,241 @@ body.d-noscroll {
     animation: none;
   }
 }
+
+/* ---------- Comparer les devis (4g) : deux cartes face à face, « VS » au milieu ---------- */
+.d-wrap:has(> .d-cmp-duel) {
+  gap: 24px;
+}
+
+.d-cmp-tabs button:disabled {
+  color: #a5a39b;
+  cursor: default;
+}
+
+.d-cmp-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-cmp-duel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: stretch;
+}
+
+.d-cmp-vs {
+  position: absolute;
+  left: 50%;
+  top: 150px;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--d-ink);
+  color: var(--d-lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-size: 18px;
+  box-shadow: 0 0 0 6px #ffffff;
+}
+
+.d-cmp-card {
+  background: #f5f4f0;
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.d-cmp-photo {
+  height: 260px;
+  border-radius: 10px;
+  background: #e9e7e0 center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-cmp-id {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.d-cmp-id h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.d-cmp-pitch {
+  margin: 0;
+  padding: 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.d-cmp-crits {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 4px 14px;
+}
+
+.d-cmp-crit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-cmp-crit:first-child {
+  border-top: 0;
+}
+
+.d-cmp-crit > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--d-ok-ink);
+}
+
+.d-cmp-crit > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.d-cmp-label {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-cmp-val {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.d-cmp-price {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.d-cmp-win {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--d-lime);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-cmp-actions {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 8px 8px;
+}
+
+.d-cmp-actions > .d-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.d-cmp-actions > a {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  white-space: nowrap;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-cmp-duel {
+    gap: 10px;
+  }
+
+  .d-cmp-vs {
+    top: 70px;
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+    box-shadow: 0 0 0 4px #ffffff;
+  }
+
+  .d-cmp-card {
+    padding: 8px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+
+  .d-cmp-photo {
+    height: 110px;
+    border-radius: 8px;
+  }
+
+  .d-cmp-id,
+  .d-cmp-pitch {
+    padding: 0 4px;
+  }
+
+  .d-cmp-id h2 {
+    font-size: 15px;
+  }
+
+  .d-cmp-pitch {
+    font-size: 12.5px;
+  }
+
+  .d-cmp-crits {
+    padding: 2px 8px;
+  }
+
+  .d-cmp-crit {
+    gap: 6px;
+    padding: 10px 0;
+  }
+
+  .d-cmp-val {
+    font-size: 12.5px;
+  }
+
+  .d-cmp-price {
+    font-size: 17px;
+  }
+
+  .d-cmp-win {
+    font-size: 11px;
+    padding: 0 8px;
+    min-height: 22px;
+  }
+
+  .d-cmp-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 4px 4px;
+    text-align: center;
+  }
+}

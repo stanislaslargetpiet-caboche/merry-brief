@@ -25,8 +25,6 @@ export default function Mes() {
   const sections = CATEGORIES.filter((c) => by[c.key].length);
   const next = picks.filter((p) => !p.requested_at && p.checked);
 
-  const compare = () => dash.setToast({ kind: "ok", text: "La comparaison des devis arrive bientôt dans Merry." });
-
   async function remove(p) {
     await toggle({ id: p.catalog_ref });
     dash.setToast({ kind: "ok", text: `${p.data?.name} est retiré de vos prestataires.` });
@@ -51,10 +49,10 @@ export default function Mes() {
               <div className="d-pr-box-head">
                 <h3>{c.group}</h3>
                 {quotes > 1 ? (
-                  <button type="button" className="d-pr-arrowlink is-13" onClick={compare}>
+                  <Link href={`/dashboard/prestataires/comparer?cat=${c.key}`} className="d-pr-arrowlink is-13">
                     Comparer les {quotes} devis
                     <Icon name="arrowRight" size={14} sw={2} />
-                  </button>
+                  </Link>
                 ) : (
                   <Link href={c.key === "lieu" ? "/dashboard/prestataires" : `/dashboard/prestataires?cat=${c.key}`} className="d-pr-arrowlink is-13">
                     {c.more}
