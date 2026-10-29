@@ -397,8 +397,6 @@ export function Photos({ v, height, children, onOpen }) {
 }
 
 export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
-  const data = useDash().data;
-  const facts = venueFacts(v, data);
   return (
     <article className="d-pr-card">
       <Photos v={v} onOpen={onOpen}>
@@ -417,7 +415,6 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
           </div>
           {v.negotiated ? <Negotiated /> : null}
         </div>
-        {facts.length ? <FactChips facts={facts} /> : details(v, venueName) ? <div className="d-pr-details">{details(v, venueName)}</div> : null}
         {v.why ? (
           <div className="d-pr-why">
             <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
