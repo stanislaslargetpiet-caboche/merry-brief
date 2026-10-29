@@ -1539,9 +1539,11 @@ export function RowActions({ p, status, onFiche, onCompare }) {
           Voir le devis
         </Link>
       ) : null}
-      <button type="button" className="d-pr-sage" onClick={onCompare}>
-        Comparer les devis
-      </button>
+      {onCompare ? (
+        <button type="button" className="d-pr-sage" onClick={onCompare}>
+          Comparer les devis
+        </button>
+      ) : null}
     </>
   );
 }
