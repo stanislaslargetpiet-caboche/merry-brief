@@ -13,13 +13,13 @@ import Organisers from "./Organisers";
 // Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires
 const NAV = [
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
-  { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", exact: true },
+  { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", also: ["/dashboard/documents", "/dashboard/indicateurs/budget"] },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
 ];
 
-// L'éditeur du site (/dashboard/site) fait partie de l'espace Invités
-const isOn = (n, pathname) => (n.exact ? pathname === n.href : pathname.startsWith(n.href) || (n.href === "/dashboard/invites" && pathname.startsWith("/dashboard/site")));
+// L'éditeur du site (/dashboard/site) fait partie de l'espace Invités ; les documents et les indicateurs, du Budget
+const isOn = (n, pathname) => pathname.startsWith(n.href) || (n.also || []).some((h) => pathname.startsWith(h)) || (n.href === "/dashboard/invites" && pathname.startsWith("/dashboard/site"));
 
 export default function Shell({ children }) {
   return (

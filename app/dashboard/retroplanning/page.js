@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/dash/store";
-import { budgetTotals, coupleIds, isBoth, paymentTitle, taskGroups, taskStats } from "@/lib/dash/model";
-import { dayMonth, daysUntil, euros } from "@/lib/dash/format";
+import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
 import { pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
@@ -19,7 +17,6 @@ export default function Retroplanning() {
   const [adding, setAdding] = useState(false);
   const [showDone, setShowDone] = useState(true);
   const [dates, setDates] = useState(null); // null | "first" | "edit"
-  const [statusFilter, setStatusFilter] = useState("tout"); // téléphone : tout | semaine | retard | fait
 
   // À la première visite, on demande les grandes dates (civil, veille, brunch…)
   useEffect(() => {
@@ -33,19 +30,11 @@ export default function Retroplanning() {
   }, [wedding?.id, data.events]);
 
   const st = taskStats(data);
-  // Les échéances de paiement restent dans le budget ; on les rappelle ici sans les dupliquer en tâches
-  const payments = budgetTotals(data).upcoming.slice(0, 4);
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
   const filtered = tasks
-    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (showDone || !t.done))
-    .filter((t) => {
-      if (statusFilter === "semaine") return !t.done && t.due_date && daysUntil(t.due_date) >= 0 && daysUntil(t.due_date) <= 7;
-      if (statusFilter === "retard") return !t.done && t.due_date && daysUntil(t.due_date) < 0;
-      if (statusFilter === "fait") return t.done;
-      return true;
-    });
+    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (showDone || !t.done));
   const groups = taskGroups(filtered);
 
   // Qui fait quoi : chaque personne, et « Vous deux » pour les tâches du couple
@@ -68,9 +57,11 @@ export default function Retroplanning() {
         title="Rétroplanning."
         actions={
           <>
-            <Btn kind="ghost" icon="pin" onClick={() => setDates("edit")}>
-              Grandes dates
-            </Btn>
+            <span className="d-desk-only-flex">
+              <Btn kind="ghost" icon="pin" onClick={() => setDates("edit")}>
+                Grandes dates
+              </Btn>
+            </span>
             <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
               Ajouter une tâche
             </Btn>
@@ -106,37 +97,17 @@ export default function Retroplanning() {
         </div>
       </div>
 
+      {/* Téléphone : les mêmes filtres par personne que sur ordinateur, en pastilles */}
       <div className="d-mob-only">
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-          {[
-            ["tout", "Tout"],
-            ["semaine", "Cette semaine"],
-            ["retard", "En retard"],
-            ["fait", "Fait"],
-          ].map(([key, label]) => {
-            const on = statusFilter === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setStatusFilter(key)}
-                style={{
-                  flex: "none",
-                  minHeight: 40,
-                  padding: "0 16px",
-                  borderRadius: 999,
-                  border: on ? "none" : "1px solid #d9d7cf",
-                  background: on ? "var(--d-ink)" : "#ffffff",
-                  color: on ? "#ffffff" : "inherit",
-                  fontSize: 13,
-                  fontWeight: on ? 600 : 400,
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
+        <div className="d-filters d-scroll-x">
+          <button type="button" className={`d-pill${!who ? " is-on" : ""}`} onClick={() => setWho(null)}>
+            Tout
+          </button>
+          {members.map((m) => (
+            <button key={m.id} type="button" className={`d-pill d-pill-face${who === m.id ? " is-on" : ""}`} onClick={() => setWho(who === m.id ? null : m.id)} aria-label={m.display_name} aria-pressed={who === m.id}>
+              <Avatar member={m} size={26} />
+            </button>
+          ))}
         </div>
       </div>
 
@@ -178,33 +149,6 @@ export default function Retroplanning() {
         </div>
 
         <div className="d-col d-desk-only">
-          {payments.length ? (
-            <section className="d-card">
-              <h2>Paiements à venir</h2>
-              <div>
-                {payments.map((p) => {
-                  const item = data.items.find((i) => i.id === p.budget_item_id);
-                  const late = p.due_date && daysUntil(p.due_date) < 0;
-                  return (
-                    <Link key={p.id} href={`/dashboard/budget/paiement/${p.budget_item_id}?echeance=${p.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: "1px solid var(--d-line)", textDecoration: "none", color: "inherit" }}>
-                      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: 14, fontWeight: 500 }}>{paymentTitle(item, p)}</span>
-                        <span className="d-small" style={{ color: late ? "var(--d-red-ink)" : "var(--d-muted)" }}>
-                          {p.due_date ? `${late ? "En retard, " : ""}${dayMonth(p.due_date)}` : "Sans date"}
-                        </span>
-                      </span>
-                      <span className="d-amount" style={{ fontSize: 15 }}>
-                        {euros(p.amount)}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-              <Link href="/dashboard/budget" className="d-link" style={{ alignSelf: "flex-start" }}>
-                Tout le budget
-              </Link>
-            </section>
-          ) : null}
           <section className="d-card">
             <h2>Qui fait quoi</h2>
             <div>
@@ -222,19 +166,11 @@ export default function Retroplanning() {
               ))}
             </div>
           </section>
-          <section className="d-card is-panel">
-            <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
-              Un prestataire de plus, un moment ajouté ? Merry complète le rétroplanning sans toucher à vos tâches.
-            </span>
+          <span>
             <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
               Compléter le rétroplanning
             </Btn>
-          </section>
-          <section className="d-card is-panel d-hide-mobile">
-            <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
-              Cliquez sur une tâche pour changer sa date ou la personne qui s'en occupe. Chaque organisateur voit les mêmes tâches que vous.
-            </span>
-          </section>
+          </span>
         </div>
       </div>
       {!adding ? (

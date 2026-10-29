@@ -4684,7 +4684,7 @@ button.d-rsvp:hover {
 
 .d-docrow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px 100px 70px 40px;
+  grid-template-columns: minmax(0, 1fr) 170px 110px 40px;
   align-items: center;
   gap: 14px;
   padding: 12px 20px;
@@ -4759,15 +4759,10 @@ button.d-rsvp:hover {
   text-overflow: ellipsis;
 }
 
-.d-docrow-date,
-.d-docrow-size {
+.d-docrow-date {
   font-size: 13px;
   color: var(--d-muted);
   white-space: nowrap;
-}
-
-.d-docrow-size {
-  text-align: right;
 }
 
 /* Téléphone : ligne de document empilée (badge, nom, pastille budget, puis qui/quand/taille) */
@@ -4857,7 +4852,6 @@ button.d-rsvp:hover {
   }
 
   .d-docrow-by,
-  .d-docrow-size,
   .d-docrow.is-head {
     display: none;
   }
@@ -13364,4 +13358,226 @@ body.d-noscroll {
     font-size: 9px;
     line-height: 13px;
   }
+}
+
+/* Budget, onglet Répartition (artboard 2b) : le total dépensé, ce que chacun a payé, puis le détail */
+.d-split-stats {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  background: var(--d-panel);
+  border-radius: 16px;
+  padding: 14px 22px;
+}
+
+.d-split-stats > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.d-split-stats strong {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.d-split-stats small {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-split-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 720px);
+  gap: 28px;
+  align-items: start;
+}
+
+.d-split-list {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.d-split-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.d-split-row + .d-split-row {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-split-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.d-split-text strong {
+  font-weight: 600;
+}
+
+.d-split-text small {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-split-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.d-split-amount {
+  flex: none;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-split-stats {
+    align-self: stretch;
+    padding: 14px 16px;
+    gap: 10px 20px;
+  }
+
+  .d-split-stats strong {
+    font-size: 17px;
+  }
+
+  .d-split-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .d-split-row {
+    padding: 12px 14px;
+  }
+}
+
+/* Indicateurs du budget créés par le couple (artboard 2c) */
+.d-kpi-tile.is-add {
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px dashed #b9b7ae;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.d-kpi-tile.is-editing {
+  border-color: var(--d-ink);
+}
+
+.d-kpi-form {
+  max-width: 640px;
+  gap: 18px;
+}
+
+.d-kpi-form h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.d-kpi-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--d-panel);
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-kpi-preview strong {
+  font-size: 20px;
+  color: var(--d-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-kpi-own {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Rétroplanning, téléphone : filtre par personne, une pastille ronde par visage */
+.d-pill.d-pill-face {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Groupes : un crayon à côté de chaque groupe du filtre (artboard 1f2) */
+.d-group-filter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.d-group-pen {
+  width: 30px;
+  height: 30px;
+}
+
+.d-group-edit {
+  width: 300px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-group-edit-head,
+.d-group-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.d-group-edit-head strong {
+  font-size: 15px;
+}
+
+.d-group-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.d-group-color {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(28, 28, 26, 0.12);
+  cursor: pointer;
+}
+
+.d-group-color.is-on {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px var(--d-ink);
+}
+
+.d-group-edit .d-link.is-danger {
+  color: var(--d-red-ink);
+  font-size: 13px;
+  font-weight: 600;
 }

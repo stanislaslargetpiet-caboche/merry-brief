@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, paymentTitle, posteName } from "@/lib/dash/model";
-import { euros, monthShort, parseAmount, shortDate, toDate } from "@/lib/dash/format";
+import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName } from "@/lib/dash/model";
+import { euros, parseAmount, shortDate } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Btn, Donut, InlineEdit, KpiBar, OkPill, PageHeader, PersonChip, Section } from "@/components/dash/ui";
+import { Btn, Donut, InlineEdit, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
+import BudgetHeader from "@/components/dash/BudgetTabs";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
 import LigneModal from "@/components/dash/LigneModal";
@@ -80,14 +81,11 @@ export default function Budget() {
   const kpis = kpiItems(data, "budget");
   const memberById = new Map(members.map((m) => [m.id, m]));
   const vendorById = new Map(vendors.map((v) => [v.id, v]));
-  const itemById = new Map(items.map((i) => [i.id, i]));
 
   // Répartition : qui a déjà payé quoi, et où va l'argent
   const byPayer = paidByPayer(data);
   const paying = byPayer.filter((x) => x.amount > 0);
   const signed = items.filter((i) => i.quote_amount !== null && i.quote_amount !== undefined).sort((a, z) => Number(z.quote_amount) - Number(a.quote_amount));
-
-  const upcoming = b.upcoming.slice(0, 4);
 
   function exportCsv() {
     const head = ["Poste", "Ligne", "Prestataire", "Budget", "Devis signé", "Écart", "Par invité", "Payé", "Payé par", "Prochaine échéance"];
@@ -115,25 +113,17 @@ export default function Budget() {
   }
 
 
-  // Statut et action d'une ligne dans un poste à plusieurs lignes (même logique que les cartes)
+  // Statut d'une ligne : on ne paie pas depuis Merry, on note les dépenses (« Ajouter une dépense »)
   const lineAction = (it, f) =>
     f.fullyPaid ? (
       <span className="d-status is-done">
         <Icon name="check" size={12} sw={2.4} />
         Tout payé
       </span>
-    ) : f.quote !== null && f.paid === 0 ? (
-      <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-link" style={{ fontSize: 12 }}>
-        Effectuer un paiement
-      </Link>
     ) : f.next ? (
-      <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo">
-        {dueLabel(f.next, wedding.wedding_date)}
-      </Link>
+      <span className="d-status is-todo">{dueLabel(f.next, wedding.wedding_date)}</span>
     ) : f.quote !== null ? (
-      <Link href={`/dashboard/budget/paiement/${it.id}`} className="d-status is-todo">
-        Reste {euros(f.remaining)}
-      </Link>
+      <span className="d-status is-todo">Reste {euros(f.remaining)}</span>
     ) : (
       <button
         type="button"
@@ -393,35 +383,7 @@ export default function Budget() {
           )}
         </td>
         <td className="is-num">
-          {f.fullyPaid ? (
-            <span className="d-status is-done">
-              <Icon name="check" size={12} sw={2.4} />
-              Tout payé
-            </span>
-          ) : f.quote !== null && f.paid === 0 ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}${f.next ? `?echeance=${f.next.id}` : ""}`} className="d-btn d-btn-primary d-btn-small">
-              Effectuer un paiement
-            </Link>
-          ) : f.next ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${f.next.id}`} className="d-status is-todo" style={{ textDecoration: "none" }}>
-              {dueLabel(f.next, wedding.wedding_date)}
-            </Link>
-          ) : f.quote !== null ? (
-            <Link href={`/dashboard/budget/paiement/${it.id}`} className="d-status is-todo" style={{ textDecoration: "none" }}>
-              Reste {euros(f.remaining)}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="d-link"
-              onClick={() => {
-                setQuoteFocus(true);
-                setEditing(it);
-              }}
-            >
-              Ajouter un devis
-            </button>
-          )}
+          {lineAction(it, f)}
         </td>
         <td className="is-num">
           <span className="d-row-tools">
@@ -450,40 +412,28 @@ export default function Budget() {
 
   return (
     <>
-      <PageHeader
-        title="Budget."
+      <BudgetHeader
+        tab="depenses"
         actions={
-          <>
-            <Btn icon="dossier" href="/dashboard/documents">
-              Mes documents
-            </Btn>
+          <span className="d-desk-only-flex" style={{ gap: 10 }}>
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
-            <Btn kind="strong" icon="plus" onClick={() => setAdding(true)}>
+            <Btn icon="plus" onClick={() => setAdding(true)}>
               Ajouter une dépense
             </Btn>
-            <Btn icon="upload" href="/dashboard/budget/importer">
-              Importer devis et factures
-            </Btn>
-          </>
+          </span>
         }
       />
 
       <div className="d-desk-only">
         <KpiBar items={kpis} plusHref="/dashboard/indicateurs/budget" />
       </div>
-      <div className="d-mob-only" style={{ marginTop: -8 }}>
-        <Link href="/dashboard/documents" className="d-pill">
-          <Icon name="dossier" size={14} />
-          Mes documents
-        </Link>
-      </div>
       <div className="d-mob-only">
         <div className="d-mstats">
-          <div><strong>{euros(b.initial)}</strong><span>Budget total</span></div>
+          <div><strong>{euros(b.initial)}</strong><span>Budget initial</span></div>
           <div><strong>{euros(b.engaged)}</strong><span>Engagé</span></div>
-          <div><strong>{euros(b.paid)}</strong><span>Payé</span></div>
+          <div><strong>{euros(b.paid)}</strong><span>Déjà payé</span></div>
         </div>
       </div>
 
@@ -510,11 +460,6 @@ export default function Budget() {
                     <span className="d-swatch" style={{ background: x.amount ? pastel(x.member.color).mid : "#efeee9" }} />
                     <span className="d-legend-text">
                       <span>{x.member.display_name}</span>
-                      <small>
-                        {x.count
-                          ? `${x.count} paiement${x.count > 1 ? "s" : ""} · ${Math.round((x.amount * 100) / (b.paid || 1))} %`
-                          : "Rien payé pour l'instant"}
-                      </small>
                     </span>
                     <span className="d-legend-amount">{euros(x.amount)}</span>
                   </li>
@@ -537,60 +482,19 @@ export default function Budget() {
                       <span className="d-swatch" style={{ background: POSTE_COLORS[i % POSTE_COLORS.length] }} />
                       <span className="d-legend-text">
                         <span>{posteName(it)}</span>
-                        <small>{vendorById.get(it.vendor_id)?.name || " "}</small>
                       </span>
                       <span className="d-legend-amount">{euros(it.quote_amount)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-            ) : (
-              <p className="d-small d-muted" style={{ margin: 0 }}>
-                Le camembert apparaît dès le premier devis signé.
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
 
-      {upcoming.length ? (
-        <div className="d-col d-desk-only">
-          <Section title="Prochains paiements" />
-          <div className="d-g4">
-            {upcoming.map((p) => {
-              const it = itemById.get(p.budget_item_id);
-              const payer = p.payer_id ? memberById.get(p.payer_id) : null;
-              const d = toDate(p.due_date);
-              return (
-                <div key={p.id} className="d-paycard">
-                  <div className="d-paycard-top">
-                    <span className="d-datepill">
-                      {d ? d.getDate() : "?"} <small>{d ? monthShort(d) : "à planifier"}</small>
-                    </span>
-                    <span className="d-amount">{euros(p.amount)}</span>
-                  </div>
-                  <strong style={{ fontSize: 15, fontWeight: 500 }}>{paymentTitle(it, p)}</strong>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 36 }}>
-                    {payer ? <PersonChip members={[payer]} /> : <span className="d-small d-muted">Payeur à choisir</span>}
-                    {!payer || itemFinance(it, payments).paid === 0 ? (
-                      <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${p.id}`} className="d-btn d-btn-primary d-btn-small">
-                        Marquer payé
-                      </Link>
-                    ) : (
-                      <Link href={`/dashboard/budget/paiement/${it.id}?echeance=${p.id}`} className="d-link" style={{ fontSize: 12 }}>
-                        Marquer payé
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
       <div className="d-col">
-        <Section title="Par poste" right={<span className="d-small d-muted d-hide-mobile">Le crayon modifie un poste, la corbeille le supprime</span>} />
+        <Section title="Par poste" />
 
         <div className="d-cards d-mob-only">
           {groups.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
@@ -675,11 +579,6 @@ export default function Budget() {
             Ajouter un poste
           </button>
         </div>
-        {b.initial && Math.round(b.sumBudgeted) !== Math.round(b.initial) ? (
-          <p className="d-small d-muted" style={{ margin: 0 }}>
-            Les postes totalisent {euros(b.sumBudgeted)} pour un budget initial de {euros(b.initial)}.
-          </p>
-        ) : null}
       </div>
 
       {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
