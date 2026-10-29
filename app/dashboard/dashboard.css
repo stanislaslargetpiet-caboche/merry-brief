@@ -3132,12 +3132,10 @@ button.d-rsvp:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .d-folders .d-folder {
-    flex-direction: row;
-    align-items: center;
-    padding: 12px 14px;
+  .d-root .d-folders .d-folder {
+    padding: 18px 14px;
     min-height: 0;
-    gap: 12px;
+    gap: 10px;
     border-radius: 16px;
   }
 
@@ -4588,6 +4586,9 @@ button.d-rsvp:hover {
 .d-folders .d-folder {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 16px;
   padding: 22px;
   border: 1px solid var(--d-line);
@@ -4599,7 +4600,6 @@ button.d-rsvp:hover {
   min-height: 180px;
   box-sizing: border-box;
   font: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
@@ -4624,6 +4624,7 @@ button.d-rsvp:hover {
 .d-folder-text {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
   min-width: 0;
 }
@@ -14245,7 +14246,6 @@ body.d-noscroll {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--d-line);
 }
 
 .d-balance-list li {
@@ -14286,4 +14286,118 @@ body.d-noscroll {
   gap: 8px;
   font-size: 14px;
   color: var(--d-ok-ink);
+}
+
+/* Répartition : la règle du couple, une jauge et un curseur par personne */
+.d-rule {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+}
+
+.d-rule-gauge {
+  display: flex;
+  height: 30px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--d-panel);
+}
+
+.d-rule-gauge span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-ink);
+  transition: width 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.d-rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-rule-list li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 140px) minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 12px;
+}
+
+.d-rule-name {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-rule-list input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--rule-color) var(--rule-pct), #ecebe6 var(--rule-pct));
+  outline: none;
+  cursor: pointer;
+}
+
+.d-rule-list input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid var(--d-ink);
+  box-shadow: 0 1px 4px rgba(28, 28, 26, 0.2);
+}
+
+.d-rule-list input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid var(--d-ink);
+}
+
+.d-rule-pct {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.d-rule-pct strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-rule-pct small {
+  font-size: 11.5px;
+  color: var(--d-muted);
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-rule {
+    padding: 14px;
+  }
+
+  .d-rule-list li {
+    grid-template-columns: 28px minmax(0, 1fr) 64px;
+    row-gap: 6px;
+  }
+
+  .d-rule-list input[type="range"] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
