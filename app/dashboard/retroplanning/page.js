@@ -15,6 +15,7 @@ export default function Retroplanning() {
   const { tasks, members, wedding } = data;
   const [who, setWho] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [doneView, setDoneView] = useState(false); // « Tâches faites » : la liste des tâches cochées, pour en décocher une
   const [dates, setDates] = useState(null); // null | "first" | "edit"
 
   // À la première visite, on demande les grandes dates (civil, veille, brunch…)
@@ -32,10 +33,21 @@ export default function Retroplanning() {
   const couple = coupleIds(members);
   const coupleMembers = members.filter((m) => couple.includes(m.id));
 
-  // Une tâche cochée disparaît ; un mois sans tâche à faire disparaît avec elle (artboard 3a)
+  // Une tâche cochée disparaît ; un mois sans tâche à faire disparaît avec elle (artboard 3a).
+  // « Tâches faites » montre l'inverse : seulement les tâches cochées (artboard 3d)
   const filtered = tasks
-    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && !t.done);
-  const groups = taskGroups(filtered);
+    .filter((t) => (!who || (who === "both" ? isBoth(t.assignees || [], members) : (t.assignees || []).includes(who))) && (doneView ? t.done : !t.done));
+  const groups = doneView
+    ? filtered.length
+      ? [{ key: "done", label: "Tâches faites", tasks: [...filtered].sort((a, b) => String(b.done_at || b.due_date || "").localeCompare(String(a.done_at || a.due_date || ""))) }]
+      : []
+    : taskGroups(filtered);
+  const doneButton = (short) => (
+    <button type="button" className={`d-pill${doneView ? " is-on" : ""}`} aria-pressed={doneView} onClick={() => setDoneView((x) => !x)}>
+      <Icon name="check" size={13} sw={2.6} />
+      {short ? "Faites" : "Tâches faites"} · {st.done}
+    </button>
+  );
 
   // Qui fait quoi : chaque personne, et « Vous deux » pour les tâches du couple
   const rows = [];
@@ -90,6 +102,7 @@ export default function Retroplanning() {
               {m.display_name}
             </button>
           ))}
+          {doneButton(false)}
         </div>
         </div>
       </div>
@@ -100,6 +113,7 @@ export default function Retroplanning() {
           <button type="button" className={`d-pill${!who ? " is-on" : ""}`} onClick={() => setWho(null)}>
             Tout
           </button>
+          {doneButton(true)}
           {members.map((m) => (
             <button key={m.id} type="button" className={`d-pill d-pill-face${who === m.id ? " is-on" : ""}`} onClick={() => setWho(who === m.id ? null : m.id)} aria-label={m.display_name} aria-pressed={who === m.id}>
               <Avatar member={m} size={26} />
@@ -135,8 +149,8 @@ export default function Retroplanning() {
           ))}
           {!groups.length ? (
             <div className="d-empty">
-              <p>{who ? "Rien pour cette personne." : "Aucune tâche pour l'instant."}</p>
-              {!who && !tasks.length ? (
+              <p>{doneView ? "Pas encore de tâche faite." : who ? "Rien pour cette personne." : "Aucune tâche pour l'instant."}</p>
+              {!who && !doneView && !tasks.length ? (
                 <Btn kind="ghost" small icon="sparkle" href="/dashboard/retroplanning/generer">
                   Générer un rétroplanning
                 </Btn>
