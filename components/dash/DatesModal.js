@@ -102,7 +102,7 @@ export default function DatesModal({ onClose, first }) {
             <Tile name={r.icon} size={36} bg={r.on ? "var(--d-limetint)" : "var(--d-panel)"} />
             <span className="d-keydate-text">
               <strong>{r.label}</strong>
-              <span className="d-small d-muted">{r.on && r.date ? longDate(r.date) : r.hint}</span>
+              {r.on && r.date ? <span className="d-small d-muted">{longDate(r.date)}</span> : null}
             </span>
             {r.on ? (
               <span className="d-keydate-date">

@@ -10,10 +10,11 @@ import { Icon } from "./icons";
 import { Avatar, Popover } from "./ui";
 import Organisers from "./Organisers";
 
+// Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires
 const NAV = [
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
-  { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", exact: true },
+  { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
   { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
 ];
 

@@ -13251,6 +13251,21 @@ body.d-noscroll {
   color: #b3b1a8;
 }
 
+/* « Bientôt ! » en petit, au-dessus du nom de l'onglet, qui reste sur la ligne des autres */
+.d-root .d-itab.is-soon {
+  position: relative;
+  padding-right: 14px;
+}
+
+.d-root .d-itab.is-soon .d-itab-soon {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  padding: 0 7px;
+  font-size: 10px;
+  line-height: 13px;
+}
+
 .d-group-pick.is-on {
   border-color: var(--d-ink);
   background: var(--d-limetint);
@@ -13336,16 +13351,17 @@ body.d-noscroll {
   /* « Bientôt ! » en petit, au-dessus du nom de l'onglet */
   .d-root .d-itab.is-soon {
     position: relative;
-    padding: 12px 10px 0 4px;
+    padding: 0 10px 0 4px;
   }
 
+  /* Le nom reste sur la ligne des autres onglets ; la pastille se pose dans le coin */
   .d-root .d-itab.is-soon .d-itab-soon {
     display: inline-block;
     position: absolute;
-    top: 1px;
-    right: 0;
-    padding: 1px 7px;
-    font-size: 10px;
-    line-height: 1.4;
+    top: 0;
+    right: -2px;
+    padding: 0 6px;
+    font-size: 9px;
+    line-height: 13px;
   }
 }

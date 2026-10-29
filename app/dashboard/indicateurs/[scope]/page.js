@@ -38,9 +38,6 @@ export default function Indicateurs() {
 
       <div className="d-desk-only">
         <div className="d-col" style={{ gap: 10 }}>
-          <div className="d-small d-muted" style={{ fontWeight: 600, fontSize: 14 }}>
-            {conf.preview} · la croix retire un indicateur
-          </div>
           <div className="d-stats" style={{ "--cols": Math.max(chosen.length, 1), padding: 12, gap: 10 }}>
             {chosen.map((id) => {
               const def = kpiDef(sc, id, data);

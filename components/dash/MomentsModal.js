@@ -106,9 +106,6 @@ export default function MomentsModal({ onClose }) {
       wide
       footer={<Btn onClick={onClose}>Terminé</Btn>}
     >
-      <p className="d-muted" style={{ margin: 0 }}>
-        Chaque mariage a les siens : renommez, ajoutez, supprimez. L'ordre ici est celui des onglets et des colonnes.
-      </p>
       <ul className="d-moments">
         {sorted.map((ev, i) => (
           <li key={ev.id} className="d-moment">
