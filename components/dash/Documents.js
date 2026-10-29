@@ -425,11 +425,11 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
 }
 
 // Carte d'un dossier dans la grille : son nom et son nombre de documents
-export function FolderCard({ folder, docs }) {
-  const p = pastel(folder.color);
+export function FolderCard({ folder, docs, color }) {
+  const p = pastel(color || folder.color);
   return (
-    <Link href={`/dashboard/documents/${folder.id}`} className="d-folder">
-      <span className="d-tile" style={{ width: 48, height: 48, borderRadius: 14, background: p.bg }}>
+    <Link href={`/dashboard/documents/${folder.id}`} className="d-folder" style={{ background: p.bg, borderColor: "transparent" }}>
+      <span className="d-tile" style={{ width: 48, height: 48, borderRadius: 14, background: "#ffffff" }}>
         <Icon name="folder" size={24} stroke={p.ink} sw={1.7} />
       </span>
       <span className="d-folder-text">

@@ -14156,3 +14156,134 @@ body.d-noscroll {
     text-align: center;
   }
 }
+
+/* Budget : tri des postes par montant */
+.d-sort-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--d-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Ajouter une dépense : le poste se choisit d'un geste, icône comprise */
+.d-poste-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-poste-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.d-poste-opt.is-on {
+  border-color: var(--d-ink);
+  box-shadow: inset 0 0 0 1px var(--d-ink);
+  font-weight: 600;
+}
+
+.d-poste-new {
+  background: var(--d-panel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Répartition : équilibrer les comptes */
+.d-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.d-balance-who {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-balance-who > span:first-child {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.d-balance-part {
+  font-size: 13px;
+}
+
+.d-balance-part strong {
+  font-weight: 600;
+}
+
+.d-balance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-balance-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-balance-list li:last-child {
+  border-bottom: 0;
+}
+
+.d-balance-people {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--d-ok-ink);
+}
+
+.d-balance-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.d-balance-text strong {
+  font-weight: 600;
+}
+
+.d-balance-ok {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--d-ok-ink);
+}

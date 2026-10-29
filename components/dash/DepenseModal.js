@@ -1,27 +1,25 @@
 "use client";
 
-// Ajouter une dépense déjà payée : pour quel poste, quoi, combien, payée par qui et quand.
+// Ajouter une dépense déjà payée : le poste d'abord, puis le nom de la dépense ou du prestataire,
+// combien, payée par qui et quand.
 // Elle s'inscrit dans le poste (tableau « Par poste ») et dans « Qui a payé quoi ».
 
 import { useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
 import { posteName } from "@/lib/dash/model";
 import { euros, parseAmount, todayIso, uid } from "@/lib/dash/format";
-import { guessIcon } from "./icons";
+import { Tile, guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
 import { Avatar, Btn, Field, Modal } from "./ui";
 import { Icon } from "./icons";
 import { fileSize } from "@/lib/dash/documents";
-
-const KINDS = ["Acompte", "Solde", "Paiement"];
 
 export default function DepenseModal({ onClose, itemId: initialItem }) {
   const dash = useDash();
   const { items, members, meId, folders = [] } = dash.data;
   const [itemId, setItemId] = useState(initialItem || items[0]?.id || "new");
   const [newLabel, setNewLabel] = useState("");
-  const [kind, setKind] = useState("Acompte");
-  const [other, setOther] = useState("");
+  const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
   const [paidAt, setPaidAt] = useState(todayIso());
   const [payerId, setPayerId] = useState(meId || members[0]?.id || null);
@@ -33,7 +31,8 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const isNew = itemId === "new" || !items.length;
   const item = items.find((i) => i.id === itemId);
   const value = parseAmount(amount);
-  const label = kind === "Autre" ? other.trim() || "Paiement" : kind;
+  const vendor = item?.vendor_id ? (dash.data.vendors || []).find((v) => v.id === item.vendor_id) : null;
+  const label = what.trim().slice(0, 120) || vendor?.name || "Paiement";
   const ready = value !== null && value > 0 && (!isNew || newLabel.trim());
 
   async function save(e) {
@@ -72,30 +71,29 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
       }
     >
       <form className="d-form-grid" onSubmit={save}>
-        <Field label="Pour quel poste ?" full>
-          <select className="d-select" value={isNew ? "new" : itemId} onChange={(e) => setItemId(e.target.value)} autoFocus>
+        <Field label="Pour quel poste ?" full group>
+          <div className="d-poste-pick" role="radiogroup" aria-label="Pour quel poste ?">
             {items.map((i) => (
-              <option key={i.id} value={i.id}>
+              <button key={i.id} type="button" role="radio" aria-checked={!isNew && itemId === i.id} className={`d-poste-opt${!isNew && itemId === i.id ? " is-on" : ""}`} onClick={() => setItemId(i.id)}>
+                <Tile name={i.icon || guessIcon(i.label)} size={28} />
                 {posteName(i)}
-              </option>
+              </button>
             ))}
-            <option value="new">Nouveau poste…</option>
-          </select>
+            <button type="button" role="radio" aria-checked={isNew} className={`d-poste-opt${isNew ? " is-on" : ""}`} onClick={() => setItemId("new")}>
+              <span className="d-tile d-poste-new" style={{ width: 28, height: 28, borderRadius: 8 }}>
+                <Icon name="plus" size={14} sw={2.4} />
+              </span>
+              Nouveau poste
+            </button>
+          </div>
         </Field>
         {isNew ? (
           <Field label="Nom du nouveau poste" full>
             <input className="d-input" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Faire-part, coiffure, navette…" />
           </Field>
         ) : null}
-        <Field label="Quoi ?" full group>
-          <div className="d-filters">
-            {[...KINDS, "Autre"].map((k) => (
-              <button key={k} type="button" className={`d-pill${kind === k ? " is-on" : ""}`} aria-pressed={kind === k} onClick={() => setKind(k)}>
-                {k}
-              </button>
-            ))}
-            {kind === "Autre" ? <input className="d-input" style={{ flex: "1 1 160px", width: "auto" }} value={other} onChange={(e) => setOther(e.target.value)} placeholder="Essayage, location…" aria-label="Quoi" /> : null}
-          </div>
+        <Field label="Nom de la dépense ou du prestataire" full>
+          <input className="d-input" value={what} onChange={(e) => setWhat(e.target.value)} maxLength={120} placeholder={vendor ? `Acompte ${vendor.name}` : "Acompte, robe, Maison Lemoine…"} />
         </Field>
         <Field label="Montant (€)">
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />

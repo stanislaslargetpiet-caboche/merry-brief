@@ -61,6 +61,7 @@ export default function Budget() {
   const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
   const [lining, setLining] = useState(null); // nom du poste où l'on ajoute une ligne
   const [folded, setFolded] = useState(() => new Set()); // postes à plusieurs lignes repliés
+  const [sort, setSort] = useState(null); // null (ordre des postes), "desc" ou "asc" : par montant
   const toggleGroup = (key) =>
     setFolded((s) => {
       const n = new Set(s);
@@ -76,6 +77,13 @@ export default function Budget() {
     }
     setLining(name);
   };
+
+  // Tri par montant (devis signé, sinon budget) ; sans tri, l'ordre des postes
+  const amountOf = (g) => g.items.reduce((acc, it) => {
+    const f = itemFinance(it, payments);
+    return acc + (f.quote ?? f.budgeted ?? 0);
+  }, 0);
+  const sorted = sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups;
 
   const b = budgetTotals(data);
   const kpis = kpiItems(data, "budget");
@@ -494,10 +502,18 @@ export default function Budget() {
       </section>
 
       <div className="d-col">
-        <Section title="Par poste" />
+        <Section
+          title="Par poste"
+          right={
+            <button type="button" className="d-sort-btn" onClick={() => setSort((x) => (x === "desc" ? "asc" : x === "asc" ? null : "desc"))} aria-label="Trier les postes par montant">
+              <Icon name={sort === "asc" ? "arrowUp" : "arrowDown"} size={14} sw={2.2} />
+              {sort === "desc" ? "Montant décroissant" : sort === "asc" ? "Montant croissant" : "Trier par montant"}
+            </button>
+          }
+        />
 
         <div className="d-cards d-mob-only">
-          {groups.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
+          {sorted.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
           <button type="button" className="d-mrow d-mrow-add" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} sw={2.4} />
             Ajouter un poste
@@ -514,12 +530,6 @@ export default function Budget() {
           </span>
         </div>
 
-        <div className="d-mob-only">
-          <button type="button" className="d-pill is-dashed" style={{ width: "100%", justifyContent: "center" }} onClick={() => setAdding(true)}>
-            <Icon name="plus" size={14} sw={2} />
-            Ajouter une dépense
-          </button>
-        </div>
 
         <div className="d-table-wrap d-desk-only">
           <table className="d-table">
@@ -537,7 +547,7 @@ export default function Budget() {
               </tr>
             </thead>
             <tbody>
-              {groups.map((g) =>
+              {sorted.map((g) =>
                 g.multi ? (
                   <Fragment key={g.key}>
                     {renderGroupRow(g)}
@@ -585,6 +595,12 @@ export default function Budget() {
         </div>
       </div>
 
+      {/* Téléphone : le petit bouton noir « + » pour ajouter une dépense */}
+      {!adding ? (
+        <button type="button" className="d-fab" aria-label="Ajouter une dépense" onClick={() => setAdding(true)}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
+      ) : null}
       {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
       {lining ? <LigneModal category={lining} onClose={() => setLining(null)} /> : null}
       {editing ? (
