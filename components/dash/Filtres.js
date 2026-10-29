@@ -9,23 +9,16 @@ import { useEffect, useRef, useState } from "react";
 import { searchTowns } from "@/lib/places";
 import { useDash } from "@/lib/dash/store";
 import { REGIONS } from "@/lib/dash/filters";
-import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList, guestsOf, periodText, placeText } from "@/lib/dash/criteria";
+import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList } from "@/lib/dash/criteria";
 import { PRICE_BARS } from "@/lib/dash/provenceMap";
-import { catOf } from "@/lib/dash/catalog";
-import { euros, toDate, withArticle } from "@/lib/dash/format";
+import { euros, toDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, VENUE, styleCriteria } from "./Prestataires";
 
 export const PRICE_MAX = 30000;
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-const SHORT_MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 const fmt = (n) => Math.round(n).toLocaleString("fr-FR").replace(/\s/g, " ");
 
-// « 25 sept. 2027 »
-function shortDay(iso) {
-  const d = toDate(iso);
-  return d ? `${d.getDate() === 1 ? "1er" : d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}` : "";
-}
 
 // Nombre de filtres en place (badge du bouton) : critères du couple non retirés, et le prix
 export function activeFilters(data, price) {
@@ -33,30 +26,18 @@ export function activeFilters(data, price) {
 }
 
 // La ligne de résumé : ce qui compte pour la recherche, en court
-export function SearchSummary({ category, venueName, price, onOpen, busy }) {
+export function SearchSummary({ price, onOpen, busy }) {
   const data = useDash().data;
-  const w = data.wishes?.wishes || {};
-  const off = (k) => (w.off || []).includes(k);
-  const lieu = category === "lieu";
-  // Les prestataires qui ne sont pas des lieux se cherchent autour du lieu choisi, sinon dans la région
-  const where = lieu ? (off("lieu") ? "" : placeText(data)) : venueName ? `Autour ${withArticle(venueName, "de")}` : off("lieu") ? "" : placeText(data);
-  const when = off("date") ? "" : w.when ? periodText(w.when) : shortDay(data.wedding.wedding_date);
-  const g = guestsOf(data);
-  const guests = off("invites") ? "" : g.range ? g.range.label.replace(/ à /, "–") : g.label;
-  const parts = [where, when, guests].filter(Boolean);
   const n = activeFilters(data, price);
+  // Le bouton Filtres seul : les critères se lisent et se changent dans le panneau
   return (
     <div className="d-pr-summary">
-      <button type="button" className="d-pr-summary-text" onClick={onOpen} aria-label={`Modifier la recherche : ${parts.join(", ") || "aucun critère"}`}>
-        <Icon name="search" size={16} sw={2} />
-        <span>{parts.length ? parts.join(" · ") : `Tous les ${catOf(category).many}`}</span>
-        {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
-      </button>
       <button type="button" className={`d-pr-filters-btn${n ? " is-on" : ""}`} onClick={onOpen} aria-haspopup="dialog">
         <Icon name="list" size={16} sw={2} />
         Filtres
         {n ? <span className="d-pr-filters-badge" aria-label={`${n} filtres actifs`}>{n}</span> : null}
       </button>
+      {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
     </div>
   );
 }

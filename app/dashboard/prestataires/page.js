@@ -182,7 +182,7 @@ export default function Trouver() {
       <PrHead on="trouver" />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <SearchSummary category={cat} venueName={venueName} price={price} busy={searching} onOpen={() => setFilters(true)} />
+      <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
         <div className="d-pr-tabrow-right">

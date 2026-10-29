@@ -55,7 +55,7 @@ export default function Lieux() {
       </div>
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <SearchSummary category="lieu" price={price} busy={rec.loading} onOpen={() => setFilters(true)} />
+      <SearchSummary price={price} busy={rec.loading} onOpen={() => setFilters(true)} />
       <div className="d-pr-grid is-lieux">
         {list.map((v, i) => {
           const photo = (v.photos || []).find(Boolean);
