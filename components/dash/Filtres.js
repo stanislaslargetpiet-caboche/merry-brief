@@ -5,26 +5,20 @@
 // Tout ce qu'on touche dans le panneau est un brouillon : rien ne change avant « Rechercher ».
 // Remplace la boîte « Vos critères » (puces) et « Préciser mes envies ». Retours mobile de Stan, octobre 2026.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { searchTowns } from "@/lib/places";
 import { useDash } from "@/lib/dash/store";
 import { REGIONS } from "@/lib/dash/filters";
-import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList, guestsOf, periodText, placeText } from "@/lib/dash/criteria";
+import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList } from "@/lib/dash/criteria";
 import { PRICE_BARS } from "@/lib/dash/provenceMap";
-import { catOf } from "@/lib/dash/catalog";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, VENUE, styleCriteria } from "./Prestataires";
 
 export const PRICE_MAX = 30000;
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-const SHORT_MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 const fmt = (n) => Math.round(n).toLocaleString("fr-FR").replace(/\s/g, " ");
 
-// « 25 sept. 2027 »
-function shortDay(iso) {
-  const d = toDate(iso);
-  return d ? `${d.getDate() === 1 ? "1er" : d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}` : "";
-}
 
 // Nombre de filtres en place (badge du bouton) : critères du couple non retirés, et le prix
 export function activeFilters(data, price) {
@@ -32,30 +26,18 @@ export function activeFilters(data, price) {
 }
 
 // La ligne de résumé : ce qui compte pour la recherche, en court
-export function SearchSummary({ category, venueName, price, onOpen, busy }) {
+export function SearchSummary({ price, onOpen, busy }) {
   const data = useDash().data;
-  const w = data.wishes?.wishes || {};
-  const off = (k) => (w.off || []).includes(k);
-  const lieu = category === "lieu";
-  // Les prestataires qui ne sont pas des lieux se cherchent autour du lieu choisi, sinon dans la région
-  const where = lieu ? (off("lieu") ? "" : placeText(data)) : venueName ? `Autour ${withArticle(venueName, "de")}` : off("lieu") ? "" : placeText(data);
-  const when = off("date") ? "" : w.when ? periodText(w.when) : shortDay(data.wedding.wedding_date);
-  const g = guestsOf(data);
-  const guests = off("invites") ? "" : g.range ? g.range.label.replace(/ à /, "–") : g.label;
-  const parts = [where, when, guests].filter(Boolean);
   const n = activeFilters(data, price);
+  // Le bouton Filtres seul : les critères se lisent et se changent dans le panneau
   return (
     <div className="d-pr-summary">
-      <button type="button" className="d-pr-summary-text" onClick={onOpen} aria-label={`Modifier la recherche : ${parts.join(", ") || "aucun critère"}`}>
-        <Icon name="search" size={16} sw={2} />
-        <span>{parts.length ? parts.join(" · ") : `Tous les ${catOf(category).many}`}</span>
-        {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
-      </button>
       <button type="button" className={`d-pr-filters-btn${n ? " is-on" : ""}`} onClick={onOpen} aria-haspopup="dialog">
         <Icon name="list" size={16} sw={2} />
         Filtres
         {n ? <span className="d-pr-filters-badge" aria-label={`${n} filtres actifs`}>{n}</span> : null}
       </button>
+      {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
     </div>
   );
 }
@@ -124,6 +106,110 @@ export function PriceRange({ value, onChange }) {
   );
 }
 
+// « Où » : une seule recherche, qui propose les régions puis les villes (code postal et département,
+// pour choisir la bonne parmi les homonymes). Le choix s'affiche en pastille au-dessus du champ.
+const fold = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function PlaceField({ onPickRegion, onPickTown }) {
+  const [q, setQ] = useState("");
+  const [towns, setTowns] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const query = q.trim();
+  const regions = query.length >= 2 ? REGIONS.filter((r) => fold(r).includes(fold(query))).map((r) => ({ region: r })) : [];
+
+  useEffect(() => {
+    if (query.length < 2) {
+      setTowns([]);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      searchTowns(query, { signal: ctrl.signal })
+        .then((list) => setTowns(list))
+        .catch(() => {});
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [query]);
+
+  const items = [...regions, ...towns];
+  const pick = (it) => {
+    if (it.region) onPickRegion(it.region);
+    else onPickTown(it);
+    setQ("");
+    setOpen(false);
+    setTowns([]);
+  };
+  const onKeyDown = (e) => {
+    if (!open || !items.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => (i + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => (i - 1 + items.length) % items.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(items[Math.min(active, items.length - 1)]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+  const showList = open && items.length > 0;
+
+  return (
+    <div className="d-pr-townfield">
+      <div className="d-pr-townsearch">
+        <Icon name="search" size={16} sw={2} />
+        <input
+          className="d-input"
+          value={q}
+          placeholder="Une région ou une ville"
+          aria-label="Où : une région ou une ville"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls="filtres-lieux"
+          aria-autocomplete="list"
+          autoComplete="off"
+          onChange={(e) => {
+            setQ(e.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onKeyDown={onKeyDown}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+      </div>
+      {showList ? (
+        <ul className="d-pr-townlist" id="filtres-lieux" role="listbox">
+          {items.map((it, i) => (
+            <li
+              key={it.region || `${it.name}|${it.sub}`}
+              role="option"
+              aria-selected={i === active}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(it);
+              }}
+              onMouseEnter={() => setActive(i)}
+            >
+              <Icon name={it.region ? "map" : "pin"} size={16} sw={1.8} />
+              <span>
+                <strong>{it.region || it.name}</strong>
+                <small>{it.region ? "Région" : it.sub}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function Section({ title, children, ruled = true }) {
   return (
     <section className={`d-pr-fsect${ruled ? " is-ruled" : ""}`}>
@@ -145,6 +231,7 @@ function startDraft(data, price) {
     placeOn: !!place && !off.has("lieu"),
     regions: off.has("lieu") ? [] : w.regions.length ? w.regions : REGIONS.includes(data.wedding.region) ? [data.wedding.region] : [],
     city: off.has("lieu") ? "" : w.city?.name || "",
+    cityAt: off.has("lieu") || w.city?.lat == null ? null : { lat: w.city.lat, lng: w.city.lng },
     cityMax: w.city?.max || 60,
     flexible: !!w.when,
     when: w.when || { months: [], years: [] },
@@ -177,6 +264,7 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       placeOn: false,
       regions: [],
       city: "",
+      cityAt: null,
       flexible: false,
       when: { months: [], years: [] },
       date: "",
@@ -198,7 +286,7 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       ...d.w,
       off,
       regions: d.regions,
-      city: d.city.trim() && !d.regions.length ? { name: d.city.trim(), max: d.cityMax } : { name: "", max: null },
+      city: d.city.trim() && !d.regions.length ? { name: d.city.trim(), max: d.cityMax, ...(d.cityAt ? d.cityAt : {}) } : { name: "", max: null },
       when: d.flexible && dateSet ? d.when : null,
       criteria,
     };
@@ -227,22 +315,29 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
       </div>
       <div className="d-pr-panel-body d-pr-filters">
         <Section title="Où" ruled={false}>
-          <div className="d-pr-optrow">
-            {d.place ? (
-              <Choice on={d.placeOn} onClick={() => set((x) => ({ placeOn: !x.placeOn, regions: [], city: "" }))}>
-                {d.place}
-              </Choice>
-            ) : null}
-            {REGIONS.map((r) => (
-              <Choice key={r} on={d.regions.includes(r)} onClick={() => set((x) => ({ regions: toggle(x.regions, r), city: "", placeOn: false }))}>
-                {r}
-              </Choice>
-            ))}
-          </div>
-          <label className="d-pr-fieldline">
-            <span>Ou près d’une ville</span>
-            <input className="d-input" value={d.city} placeholder="Aix-en-Provence" onChange={(e) => set({ city: e.target.value, regions: e.target.value ? [] : d.regions, placeOn: false })} />
-          </label>
+          {d.placeOn || d.regions.length || d.city.trim() ? (
+            <div className="d-pr-optrow">
+              {d.placeOn ? (
+                <Choice on onClick={() => set({ placeOn: false })}>
+                  {d.place}
+                </Choice>
+              ) : null}
+              {d.regions.map((r) => (
+                <Choice key={r} on onClick={() => set((x) => ({ regions: x.regions.filter((y) => y !== r) }))}>
+                  {r}
+                </Choice>
+              ))}
+              {d.city.trim() ? (
+                <Choice on onClick={() => set({ city: "", cityAt: null })}>
+                  Près {withArticle(d.city.trim(), "de")}
+                </Choice>
+              ) : null}
+            </div>
+          ) : null}
+          <PlaceField
+            onPickRegion={(r) => set((x) => ({ regions: x.regions.includes(r) ? x.regions : [...x.regions, r], city: "", cityAt: null, placeOn: false }))}
+            onPickTown={(t) => set({ city: t.name, cityAt: { lat: t.lat, lng: t.lon }, regions: [], placeOn: false })}
+          />
           {d.city.trim() ? <MaxRow value={d.cityMax} onChange={(cityMax) => set({ cityMax: cityMax || 60 })} label="Temps de route maximum" /> : null}
         </Section>
 

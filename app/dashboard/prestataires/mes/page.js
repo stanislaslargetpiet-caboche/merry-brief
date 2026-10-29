@@ -1,7 +1,8 @@
 "use client";
 
-// Mes prestataires (canvas 7j et 7v) : ceux que l'on a gardés, où en est chaque demande,
-// et ceux à cocher pour la prochaine demande de devis
+// Mes prestataires (canvas 4k, ordinateur et téléphone) : ceux que l'on a gardés, où en est chaque demande,
+// et ceux à cocher pour la prochaine demande de devis. Une action par ligne ; « Comparer les devis »
+// une seule fois par rubrique, dès deux devis reçus ; les rubriques vides ne s'affichent pas.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,8 +22,10 @@ export default function Mes() {
   const [fiche, setFiche] = useState(null);
   const [devis, setDevis] = useState(null);
   const by = picksBy(picks);
-  const sections = CATEGORIES.filter((c) => c.key !== "autre" || by.autre.length);
+  const sections = CATEGORIES.filter((c) => by[c.key].length);
   const next = picks.filter((p) => !p.requested_at && p.checked);
+
+  const compare = () => dash.setToast({ kind: "ok", text: "La comparaison des devis arrive bientôt dans Merry." });
 
   async function remove(p) {
     await toggle({ id: p.catalog_ref });
@@ -40,42 +43,40 @@ export default function Mes() {
           </span>
         </div>
       ) : null}
-      <div className="d-pr-mes-intro">
-        <Link href="/dashboard/prestataires/demandes" className="d-btn d-btn-ghost d-pr-mes-requests">
-          <Icon name="requests" size={16} sw={1.8} />
-          Voir mes demandes de devis
-        </Link>
-      </div>
       <div className="d-pr-boxes">
-        {sections.map((c) => (
-          <section key={c.key} className="d-pr-box is-mes">
-            <div className="d-pr-box-head">
-              <h3>{c.group}</h3>
-              <Link href={c.key === "lieu" ? "/dashboard/prestataires" : `/dashboard/prestataires/autour`} className="d-pr-arrowlink is-13">
-                {c.more}
-                <Icon name="arrowRight" size={14} sw={2} />
-              </Link>
-            </div>
-            {by[c.key].length ? (
+        {sections.map((c) => {
+          const quotes = by[c.key].filter((p) => pickStatus(p, data).key === "devis").length;
+          return (
+            <section key={c.key} className="d-pr-box is-mes">
+              <div className="d-pr-box-head">
+                <h3>{c.group}</h3>
+                {quotes > 1 ? (
+                  <button type="button" className="d-pr-arrowlink is-13" onClick={compare}>
+                    Comparer les {quotes} devis
+                    <Icon name="arrowRight" size={14} sw={2} />
+                  </button>
+                ) : (
+                  <Link href={c.key === "lieu" ? "/dashboard/prestataires" : `/dashboard/prestataires?cat=${c.key}`} className="d-pr-arrowlink is-13">
+                    {c.more}
+                    <Icon name="arrowRight" size={14} sw={2} />
+                  </Link>
+                )}
+              </div>
               <ul className="d-pr-lines">
                 {by[c.key].map((p) => (
                   <MesRow
                     key={p.id}
                     p={p}
                     status={pickStatus(p, data)}
-                    label={c.label}
                     onCheck={() => dash.update("vendor_picks", p.id, { checked: !p.checked })}
                     onRemove={() => remove(p)}
                     onFiche={() => setFiche(vendorFromPick(p))}
-                    onCompare={() => dash.setToast({ kind: "ok", text: "La comparaison des devis arrive bientôt dans Merry." })}
                   />
                 ))}
               </ul>
-            ) : (
-              <p className="d-pr-empty">Aucun {c.one} enregistré pour l’instant.</p>
-            )}
-          </section>
-        ))}
+            </section>
+          );
+        })}
       </div>
       {next.length ? (
         <div role="region" aria-label="Prochaine demande" className="d-pr-nextbar">
@@ -103,12 +104,12 @@ export default function Mes() {
           }}
         />
       ) : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
     </>
   );
 }
 
-function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
+function MesRow({ p, status, onCheck, onRemove, onFiche }) {
   const v = p.data || {};
   const [talk, setTalk] = useState(false);
   const comments = useVendorComments(p.catalog_ref);
@@ -126,7 +127,7 @@ function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
   );
   const todo = status.key === "todo";
   const line = status.line;
-  const acts = <RowActions p={p} status={status} onFiche={onFiche} onCompare={onCompare} />;
+  const acts = <RowActions p={p} status={status} onFiche={onFiche} />;
   return (
     <li className="d-pr-line is-mes">
       <div className="d-pr-mes-top">
@@ -143,10 +144,7 @@ function MesRow({ p, status, label, onCheck, onRemove, onFiche, onCompare }) {
               <StatusChip k={status.key} />
             </span>
           </div>
-          <div className="d-pr-line-meta">
-            {label}
-            {v.area ? ` · ${v.area}` : ""}
-          </div>
+          {v.area ? <div className="d-pr-line-meta">{v.area}</div> : null}
           {line ? <div className="d-pr-line-text d-desk-only">{line}</div> : null}
         </div>
         <div className="d-pr-line-acts d-desk-only-flex">

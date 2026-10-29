@@ -17,7 +17,6 @@ import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { FactChips } from "./Criteria";
 import { BusyDots } from "./ui";
 import VendorComments from "./VendorComments";
 
@@ -309,8 +308,29 @@ export function Heart({ on, onClick, label, size = 20, className = "d-pr-heart" 
   );
 }
 
-export function Negotiated({ small }) {
-  return <span className={`d-pr-nego${small ? " is-small" : ""}`}>Tarif négocié</span>;
+// Aperçu d'un prestataire : ses caractéristiques, une par ligne avec son icône
+// (places assises, couchages, gare ou aéroport le plus proche ; distance au lieu pour les autres)
+export function Specs({ v, venueName }) {
+  const rows = [];
+  if (v.category === "lieu" || v.seats || v.beds !== undefined) {
+    if (v.seats) rows.push(["seat", `${v.seats} places assises`]);
+    if (v.beds !== undefined && v.beds !== null) rows.push(["bed", `${v.beds} couchage${v.beds > 1 ? "s" : ""}`]);
+    if (v.access) rows.push([/a[ée]roport/i.test(v.access) ? "plane" : /gare|tgv/i.test(v.access) ? "train" : "pin", v.access]);
+  } else {
+    const d = details(v, venueName);
+    if (d) rows.push(["pin", d]);
+  }
+  if (!rows.length) return null;
+  return (
+    <ul className="d-pr-specs">
+      {rows.map(([icon, text]) => (
+        <li key={text}>
+          <Icon name={icon} size={16} sw={1.8} />
+          {text}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function BestMatch({ small }) {
@@ -397,8 +417,6 @@ export function Photos({ v, height, children, onOpen }) {
 }
 
 export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
-  const data = useDash().data;
-  const facts = venueFacts(v, data);
   return (
     <article className="d-pr-card">
       <Photos v={v} onOpen={onOpen}>
@@ -413,16 +431,10 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
                 {v.name}
               </button>
             </h3>
-            <div className="d-pr-area">{v.area}</div>
+            {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
           </div>
-          {v.negotiated ? <Negotiated /> : null}
         </div>
-        {facts.length ? <FactChips facts={facts} /> : details(v, venueName) ? <div className="d-pr-details">{details(v, venueName)}</div> : null}
-        {v.why ? (
-          <div className="d-pr-why">
-            <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
-          </div>
-        ) : null}
+        <Specs v={v} venueName={venueName} />
         <ToConfirm v={v} />
         {v.price || (onMap && mapPoint(v)) ? (
           <div className="d-pr-card-price">
@@ -1019,7 +1031,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
   // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
   const vf = venueFacts(v, dash.data, { all: true });
   const facts = vf.length ? vf.map((f) => [f.key, f.label, f.value, f.match]) : factsOf(v).map(([icon, k, val]) => [icon, k, val, false]);
-  const matched = vf.filter((f) => f.match);
   const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
@@ -1033,9 +1044,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
     <Layer kind="fiche" labelledBy="fiche-titre" onClose={onClose}>
       <div className="d-pr-panel-head is-fiche">
         <span className="d-pr-fiche-pos">
-          <span>
-            {list || c.tab} · {index + 1} sur {total}
-          </span>
           <Link href="/dashboard/prestataires/mes" className="d-pr-pillink d-mob-only-inline" onClick={onMes}>
             <Icon name="heart" size={14} sw={2} />
             Mes prestataires
@@ -1072,10 +1080,15 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
           <div>
             {v.best ? <BestMatch /> : null}
             <h1 id="fiche-titre">{v.name}</h1>
-            <div className="d-pr-fiche-place">{v.place || v.area}</div>
+            {v.place || v.area ? (
+              <div className="d-pr-fiche-place d-pr-area is-hl">
+                <span>{v.place || v.area}</span>
+              </div>
+            ) : null}
           </div>
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
+        <Specs v={v} />
         {facts.length ? (
           // Le détail des faits, replié : la liste « Pourquoi ce lieu » dit déjà l'essentiel
           <details className="d-pr-fdetails">
@@ -1101,7 +1114,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
                 <span className="d-pr-price-v is-28">{euros(v.price)}</span>
                 <span className="d-pr-price-from is-13">{v.unitWeekend || v.unit}</span>
               </span>
-              {v.negotiated ? <Negotiated /> : null}
             </div>
             {v.included ? (
               <div className="d-pr-included">
@@ -1129,10 +1141,9 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
             ) : null}
           </section>
         ) : null}
-        {v.story || v.why || matched.length || vf.length ? (
+        {v.story || v.why || v.checks?.length ? (
           <section className="d-pr-fsec">
             <h2>{v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"}</h2>
-            {matched.length ? <FactChips facts={matched} className="is-fiche" /> : vf.length ? <FactChips facts={vf.slice(0, 4)} className="is-fiche" /> : null}
             {v.story || v.why ? <p>{v.story || `${v.why.charAt(0).toUpperCase()}${v.why.slice(1)}.`}</p> : null}
             {v.checks?.length ? (
               <div className="d-pr-included">
@@ -1527,9 +1538,11 @@ export function RowActions({ p, status, onFiche, onCompare }) {
           Voir le devis
         </Link>
       ) : null}
-      <button type="button" className="d-pr-sage" onClick={onCompare}>
-        Comparer les devis
-      </button>
+      {onCompare ? (
+        <button type="button" className="d-pr-sage" onClick={onCompare}>
+          Comparer les devis
+        </button>
+      ) : null}
     </>
   );
 }

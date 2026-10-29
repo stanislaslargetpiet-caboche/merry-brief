@@ -6748,7 +6748,7 @@ button.d-group-none {
   max-width: calc(1000px + 2 * clamp(16px, 3.5vw, 56px));
 }
 
-.d-wrap:has(> .d-pr-mes-intro) {
+.d-wrap:has(> .d-pr-boxes) {
   max-width: calc(1040px + 2 * clamp(16px, 3.5vw, 56px));
 }
 
@@ -7183,17 +7183,39 @@ body.d-noscroll {
   color: var(--pr-sub);
 }
 
-.d-pr-nego {
-  flex: none;
-  background: var(--pr-nego-bg);
-  color: var(--pr-nego-ink);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
+/* Lieu du prestataire, surligné au feutre vert */
+.d-pr-area.is-hl span {
+  color: var(--d-ink);
+  font-weight: 500;
+  background: linear-gradient(transparent 55%, #cbff75 55%);
+  padding: 0 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
-.d-pr-nego.is-small {
-  padding: 3px 7px;
+/* Caractéristiques d'un prestataire dans son aperçu, une par ligne avec son icône */
+.d-pr-specs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--d-ink);
+}
+
+.d-pr-specs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.d-pr-specs svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--d-ok-ink);
 }
 
 .d-pr-details {
@@ -11525,6 +11547,81 @@ body.d-noscroll {
 
 .d-pr-dateinput {
   max-width: 240px;
+}
+
+/* « Près d'une ville » : suggestions pendant la frappe (4b) */
+.d-pr-townfield {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-pr-townsearch {
+  position: relative;
+}
+
+.d-pr-townsearch svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--d-muted);
+  pointer-events: none;
+}
+
+.d-pr-townfield .d-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 40px;
+}
+
+.d-pr-townlist {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px;
+  border: 1px solid var(--d-line, #ecebe6);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(28, 28, 26, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-pr-townlist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--d-muted);
+}
+
+.d-pr-townlist li svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--d-ok-ink);
+}
+
+.d-pr-townlist li[aria-selected="true"] {
+  background: #f6f5f1;
+}
+
+.d-pr-townlist li span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.d-pr-townlist strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink, #1c1c1a);
+}
+
+.d-pr-townlist small {
+  font-size: 12px;
 }
 
 .d-pr-pricerange {

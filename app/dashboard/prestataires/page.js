@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { catOf, countLabel, inWords, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
+import { catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
@@ -21,12 +21,12 @@ import {
   FiltersNote,
   Heart,
   MapCanvas,
-  Negotiated,
   PrHead,
   Price,
   PricePin,
   SampleNote,
   SelectionBar,
+  Specs,
   Thumb,
   ToConfirm,
   MAP_MIN_SCALE,
@@ -141,7 +141,7 @@ export default function Trouver() {
   const subtitle = loading || searching
     ? "Recherche en cours…"
     : list.length
-      ? `${inWords(list.length, cat)} d'après vos critères.`
+      ? null
       : wishesOn && cat === "lieu"
         ? "Aucun lieu ne tient tous vos critères ici."
         : `Aucun ${c.one} à vous proposer pour l’instant.`;
@@ -164,7 +164,7 @@ export default function Trouver() {
         />
       ) : null}
       {fiche ? <FichePanel v={fiche} index={Math.max(0, list.indexOf(fiche))} total={list.length} onClose={closeFiche} onRequest={requestOne} onMap={showOnMap} /> : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/demandes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
     </>
   );
 
@@ -183,7 +183,7 @@ export default function Trouver() {
       <PrHead on="trouver" />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <SearchSummary category={cat} venueName={venueName} price={price} busy={searching} onOpen={() => setFilters(true)} />
+      <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />
       <div className="d-pr-tabrow">
         <CategoryTabs value={cat} onChange={changeCat} />
         <div className="d-pr-tabrow-right">
@@ -196,8 +196,8 @@ export default function Trouver() {
       ) : (
         <>
           <div className="d-pr-intro">
-            <h2>Nos recommandations pour vous</h2>
-            <p>{subtitle}</p>
+            <h2>Recommandations</h2>
+            {subtitle ? <p>{subtitle}</p> : null}
           </div>
           <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
             {list.map((v, i) => (
@@ -452,14 +452,13 @@ function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
               {v.name}
             </button>
           </h3>
-          <div className="d-pr-area">{v.area}</div>
+          {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
         </div>
-        {v.seats || v.beds !== undefined ? <div className="d-pr-mini-line">{[v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null].filter(Boolean).join(" · ")}</div> : null}
+        <Specs v={v} />
         <ToConfirm v={v} />
-        {v.best || v.negotiated ? (
+        {v.best ? (
           <div className="d-pr-mini-tags">
             {v.best ? <BestMatch small /> : null}
-            {v.negotiated ? <Negotiated small /> : null}
           </div>
         ) : null}
         <div className="d-pr-mini-price">
