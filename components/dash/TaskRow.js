@@ -81,7 +81,8 @@ export function AssigneePicker({ value, onChange, members }) {
   return (
     <div className="d-filters">
       {members.map((m) => (
-        <button key={m.id} type="button" className={`d-pill${value.includes(m.id) ? " is-on" : ""}`} onClick={() => toggle(m.id)} aria-pressed={value.includes(m.id)}>
+        <button key={m.id} type="button" className={`d-pill${value.includes(m.id) ? " is-on" : ""}`} onClick={() => toggle(m.id)} aria-pressed={value.includes(m.id)} style={{ paddingLeft: 5 }}>
+          <Avatar member={m} size={24} />
           {m.display_name}
         </button>
       ))}
@@ -103,10 +104,10 @@ export function TaskForm({ task, onDone, onDelete }) {
     const patch = { title: title.trim(), due_date: due || null, assignees, icon: !renamed && task?.icon ? task.icon : guessIcon(title) };
     let id = task?.id;
     if (task) await dash.update("tasks", task.id, patch);
-    else [{ id }] = await dash.insert("tasks", { ...patch, done: false, added_by_merry: false, position: dash.data.tasks.length });
+    else id = (await dash.insert("tasks", { ...patch, done: false, added_by_merry: false, position: dash.data.tasks.length }))?.[0]?.id;
     onDone();
     // L'IA affine l'icône d'après le thème de la tâche
-    if (renamed) refineIcon(dash, "tasks", id, patch.title, patch.icon);
+    if (renamed && id) refineIcon(dash, "tasks", id, patch.title, patch.icon);
   }
 
   return (
