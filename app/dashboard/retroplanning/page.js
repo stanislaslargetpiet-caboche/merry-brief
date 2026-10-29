@@ -5,7 +5,7 @@ import { useData } from "@/lib/dash/store";
 import { coupleIds, isBoth, taskGroups, taskStats } from "@/lib/dash/model";
 import { pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
-import { Avatar, Bar, Btn, Faces, PageHeader } from "@/components/dash/ui";
+import { Avatar, Bar, Btn, Faces, Modal, PageHeader } from "@/components/dash/ui";
 import TaskRow, { TaskForm } from "@/components/dash/TaskRow";
 import DatesModal, { DATES_SEEN_KEY } from "@/components/dash/DatesModal";
 import Timeline from "@/components/dash/Timeline";
@@ -62,7 +62,7 @@ export default function Retroplanning() {
                 Grandes dates
               </Btn>
             </span>
-            <Btn icon="plus" onClick={() => setAdding((x) => !x)}>
+            <Btn icon="plus" onClick={() => setAdding(true)}>
               Ajouter une tâche
             </Btn>
           </>
@@ -116,9 +116,9 @@ export default function Retroplanning() {
       </div>
 
       {adding ? (
-        <div className="d-tasks" style={{ padding: 14 }}>
+        <Modal title="Ajouter une tâche" onClose={() => setAdding(false)}>
           <TaskForm onDone={() => setAdding(false)} />
-        </div>
+        </Modal>
       ) : null}
 
       <div className="d-grid-side">
@@ -136,6 +136,12 @@ export default function Retroplanning() {
               </div>
             </div>
           ))}
+          <span className="d-mob-only">
+            <button type="button" className="d-pill is-dashed" style={{ width: "100%", justifyContent: "center", minHeight: 48 }} onClick={() => setAdding(true)}>
+              <Icon name="plus" size={14} sw={2} />
+              Ajouter une tâche
+            </button>
+          </span>
           {!groups.length ? (
             <div className="d-empty">
               <p>{who ? "Rien pour cette personne." : "Aucune tâche pour l'instant."}</p>
@@ -173,11 +179,6 @@ export default function Retroplanning() {
           </span>
         </div>
       </div>
-      {!adding ? (
-        <button type="button" className="d-fab" aria-label="Ajouter une tâche" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={22} sw={2.4} />
-        </button>
-      ) : null}
       {dates ? (
         <DatesModal
           first={dates === "first"}
