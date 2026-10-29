@@ -13282,11 +13282,22 @@ body.d-noscroll {
   }
 
   /* Reste visible au-dessus des onglets du bas */
+  .d-fm {
+    padding-bottom: 120px;
+  }
+
+  /* L'aperçu reste sur ordinateur ; sur téléphone, « Voir comme un invité » et « Modifier l'apparence » */
+  .d-root .d-fm-side {
+    display: none;
+  }
+
+  /* Fixée juste au-dessus de la barre d'onglets : en sticky, elle remontait en bas de page */
   .d-root .d-fm-share {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: calc(64px + env(safe-area-inset-bottom));
     z-index: 5;
-    margin: 0 -16px;
     padding: 12px 16px 14px;
     border-top: 1px solid var(--d-line);
     background: #ffffff;
