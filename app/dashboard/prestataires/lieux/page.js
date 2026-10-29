@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { inWords, rank } from "@/lib/dash/catalog";
+import { rank } from "@/lib/dash/catalog";
 import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
 import { FiltersPanel, SearchSummary, inPrice } from "@/components/dash/Filtres";
@@ -95,19 +95,6 @@ export default function Lieux() {
         })}
       </div>
       <MoreButton rec={rec} category="lieu" />
-      <section className="d-pr-panelcta">
-        <div>
-          <h2>{inWords(n, "lieu")}, pas davantage</h2>
-        </div>
-        <div className="d-pr-panelcta-btns">
-          <button type="button" className="d-btn d-btn-ghost" onClick={() => setEnvies(true)}>
-            Affiner la sélection
-          </button>
-          <Link href="/dashboard/prestataires/mes" className="d-btn d-btn-primary">
-            Comparer les {inWords(n, "lieu").toLowerCase()}
-          </Link>
-        </div>
-      </section>
       {fiche ? (
         <FichePanel
           v={fiche}
