@@ -634,7 +634,6 @@ export default function Importer() {
           <Icon name="upload" size={24} />
         </span>
         <strong>Déposez vos listes ici</strong>
-        <p>N'importe quel format : Excel ou Google Sheets (toutes les feuilles), CSV, Word, PDF, photo d'une liste écrite à la main, capture d'écran, notes du téléphone.</p>
         <div className="d-filters" style={{ justifyContent: "center" }}>
           <Btn icon="upload" onClick={() => inputRef.current?.click()}>
             Choisir des fichiers
