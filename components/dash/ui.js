@@ -230,13 +230,17 @@ export function Modal({ title, onClose, children, footer, wide }) {
   const ref = useRef(null);
   // Affichée à la racine du tableau de bord : ouverte depuis un en-tête de tableau, elle héritait sinon de ses majuscules et de son texte sans retour à la ligne
   const [host, setHost] = useState(null);
+  // onClose change à chaque rendu du parent : sans cette référence, chaque frappe dans un champ
+  // relançait l'effet ci-dessous et renvoyait le curseur dans le premier champ de la fenêtre
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     setHost(document.querySelector(".d-root") || document.body);
   }, []);
   useEffect(() => {
     if (!host) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
@@ -245,7 +249,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
       document.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };
-  }, [onClose, host]);
+  }, [host]);
   if (!host) return null;
   return createPortal(
     <div className="d-modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
