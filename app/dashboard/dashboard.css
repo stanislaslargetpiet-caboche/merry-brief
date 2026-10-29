@@ -13681,3 +13681,11 @@ body.d-noscroll {
   padding: 0;
   background: transparent;
 }
+
+/* Si le navigateur détecte quand même un mail, il reste du texte simple */
+.d-org-row a[x-apple-data-detectors],
+.d-org-row a[href^="mailto:"] {
+  color: inherit;
+  text-decoration: none;
+  pointer-events: none;
+}
