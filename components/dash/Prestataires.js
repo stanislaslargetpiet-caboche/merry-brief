@@ -309,8 +309,29 @@ export function Heart({ on, onClick, label, size = 20, className = "d-pr-heart" 
   );
 }
 
-export function Negotiated({ small }) {
-  return <span className={`d-pr-nego${small ? " is-small" : ""}`}>Tarif négocié</span>;
+// Aperçu d'un prestataire : ses caractéristiques, une par ligne avec son icône
+// (places assises, couchages, gare ou aéroport le plus proche ; distance au lieu pour les autres)
+export function Specs({ v, venueName }) {
+  const rows = [];
+  if (v.category === "lieu" || v.seats || v.beds !== undefined) {
+    if (v.seats) rows.push(["seat", `${v.seats} places assises`]);
+    if (v.beds !== undefined && v.beds !== null) rows.push(["bed", `${v.beds} couchage${v.beds > 1 ? "s" : ""}`]);
+    if (v.access) rows.push([/a[ée]roport/i.test(v.access) ? "plane" : /gare|tgv/i.test(v.access) ? "train" : "pin", v.access]);
+  } else {
+    const d = details(v, venueName);
+    if (d) rows.push(["pin", d]);
+  }
+  if (!rows.length) return null;
+  return (
+    <ul className="d-pr-specs">
+      {rows.map(([icon, text]) => (
+        <li key={text}>
+          <Icon name={icon} size={16} sw={1.8} />
+          {text}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function BestMatch({ small }) {
@@ -411,15 +432,10 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
                 {v.name}
               </button>
             </h3>
-            <div className="d-pr-area">{v.area}</div>
+            {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
           </div>
-          {v.negotiated ? <Negotiated /> : null}
         </div>
-        {v.why ? (
-          <div className="d-pr-why">
-            <span>{v.category === "lieu" ? "Pourquoi ce lieu :" : "Pourquoi :"}</span> {v.why}
-          </div>
-        ) : null}
+        <Specs v={v} venueName={venueName} />
         <ToConfirm v={v} />
         {v.price || (onMap && mapPoint(v)) ? (
           <div className="d-pr-card-price">
@@ -1098,7 +1114,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
                 <span className="d-pr-price-v is-28">{euros(v.price)}</span>
                 <span className="d-pr-price-from is-13">{v.unitWeekend || v.unit}</span>
               </span>
-              {v.negotiated ? <Negotiated /> : null}
             </div>
             {v.included ? (
               <div className="d-pr-included">

@@ -7,9 +7,8 @@ import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { inWords, rank } from "@/lib/dash/catalog";
-import { searchWishes, venueFacts } from "@/lib/dash/criteria";
+import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
-import { FactChips } from "@/components/dash/Criteria";
 import { FiltersPanel, SearchSummary, inPrice } from "@/components/dash/Filtres";
 import {
   ConfirmDivider,
@@ -17,9 +16,9 @@ import {
   FichePanel,
   FiltersNote,
   MoreButton,
-  Negotiated,
   Price,
   SampleNote,
+  Specs,
   ToConfirm,
   usePicks,
   useRecommendations,
@@ -71,15 +70,11 @@ export default function Lieux() {
                   <div className="d-pr-card-top">
                     <div className="d-pr-card-name">
                       <h3>{v.name}</h3>
-                      <div className="d-pr-area">{v.area}</div>
+                      {v.area ? <div className="d-pr-area is-hl"><span>{v.area}</span></div> : null}
                     </div>
-                    {v.negotiated ? <Negotiated /> : null}
                   </div>
+                  <Specs v={v} />
                   <Price v={v} unit={v.unitWeekend || v.unit} />
-                  <div className="d-pr-lieu-more">
-                    <FactChips facts={venueFacts(v, data)} />
-                    {v.pitch || v.why ? <div className="d-pr-pitch">{v.pitch || v.why}</div> : null}
-                  </div>
                   <ToConfirm v={v} />
                   <div className="d-pr-maplinks">
                     <button type="button" className="d-pr-arrowlink" onClick={() => setFiche(v)}>

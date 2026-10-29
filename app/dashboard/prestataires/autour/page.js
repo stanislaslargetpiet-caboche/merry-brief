@@ -10,7 +10,7 @@ import { chosenVenue, guestsLabel, monthYear } from "@/lib/dash/picks";
 import { euros } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
 import { BusyDots } from "@/components/dash/ui";
-import { details, DevisDialog, FichePanel, Heart, Negotiated, Price, PrHead, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
+import { details, DevisDialog, FichePanel, Heart, Price, PrHead, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
 
 const ROWS = CATEGORIES.filter((c) => c.key !== "lieu" && c.key !== "autre");
 
@@ -148,7 +148,6 @@ function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
                       </h4>
                       <div className="d-pr-area">{v.area}</div>
                     </div>
-                    {v.negotiated ? <Negotiated /> : null}
                   </div>
                   <div className="d-pr-details is-sm">{details(v, venueName)}</div>
                   {v.why ? (

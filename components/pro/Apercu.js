@@ -8,7 +8,7 @@ import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { fromCatalog } from "@/lib/dash/catalog";
 import { euros } from "@/lib/dash/format";
-import { MiniMap, Negotiated, VendorCard } from "@/components/dash/Prestataires";
+import { MiniMap, VendorCard } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
 import { ProIcon } from "./icons";
 import { Sheet } from "./ui";
@@ -119,7 +119,6 @@ export default function Apercu({ onClose }) {
                       <span className="d-pr-price-v is-28">{euros(v.price)}</span>
                       <span className="d-pr-price-from is-13">{v.unit}</span>
                     </span>
-                    {v.negotiated ? <Negotiated /> : null}
                   </div>
                   {v.included ? (
                     <div className="d-pr-included">

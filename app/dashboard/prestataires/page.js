@@ -21,7 +21,6 @@ import {
   FiltersNote,
   Heart,
   MapCanvas,
-  Negotiated,
   PrHead,
   Price,
   PricePin,
@@ -456,10 +455,9 @@ function MiniCard({ v, size, picked, active, onToggle, onOpen, onFocus }) {
         </div>
         {v.seats || v.beds !== undefined ? <div className="d-pr-mini-line">{[v.seats ? `${v.seats} places assises` : null, v.beds !== undefined ? `${v.beds} couchages` : null].filter(Boolean).join(" · ")}</div> : null}
         <ToConfirm v={v} />
-        {v.best || v.negotiated ? (
+        {v.best ? (
           <div className="d-pr-mini-tags">
             {v.best ? <BestMatch small /> : null}
-            {v.negotiated ? <Negotiated small /> : null}
           </div>
         ) : null}
         <div className="d-pr-mini-price">
