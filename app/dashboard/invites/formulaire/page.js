@@ -19,7 +19,7 @@ import {
   withPresets,
 } from "@/lib/dash/form";
 import { Icon } from "@/components/dash/icons";
-import { Btn } from "@/components/dash/ui";
+import { Btn, Modal } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 
 const MODES = [
@@ -102,8 +102,8 @@ export default function FormulaireInvites() {
   const [uploading, setUploading] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  // Téléphone : aperçu + 3 actions d'abord, le détail des champs n'apparaît qu'à la demande
-  const [mobileEditing, setMobileEditing] = useState(false);
+  // Téléphone : panneau ouvert, { kind: "edit", row, label, req } ou { kind: "add" }
+  const [sheet, setSheet] = useState(null);
   const timer = useRef(null);
   const latest = useRef(form);
   const fileInput = useRef(null);
@@ -191,6 +191,67 @@ export default function FormulaireInvites() {
     ...form.custom.map((c) => ({ id: c.id, label: c.label, req: !!c.req, pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 3) : null })),
     modeOf("mot") !== "off" ? { id: "mot", label: labelOf("mot"), req: modeOf("mot") === "req", tall: true } : null,
   ].filter(Boolean);
+
+  // Téléphone : seulement les questions posées, dans l'ordre de la page invité ; les autres reviennent par « Ajouter »
+  const PILLS = { presence: ["Oui", "Non"], plusun: ["Oui", "Non"], regime: ["Aucun", "Végétarien", "Sans gluten"], hebergement: ["Oui", "Non"] };
+  const modeText = (req) => (req ? "Obligatoire" : "Facultatif");
+  const presetRow = (f) => ({
+    id: f.key,
+    key: f.key,
+    label: f.label,
+    req: f.mode === "req",
+    pills: PILLS[f.key] || null,
+    tall: f.key === "mot",
+    sub:
+      f.key === "presence"
+        ? `${modeText(f.mode === "req")} · ${form.presence_mode === "global" ? "une seule question" : inForm.length ? inForm.map((e) => e.name.toLowerCase()).join(", ") : "aucun moment"}`
+        : modeText(f.mode === "req"),
+  });
+  const shown = form.fields.filter((f) => f.mode !== "off");
+  const mobileRows = [
+    ...shown.filter((f) => f.key !== "mot").map(presetRow),
+    ...form.custom.map((c) => ({
+      id: c.id,
+      customId: c.id,
+      label: c.label,
+      req: !!c.req,
+      pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 4) : null,
+      sub: `${modeText(!!c.req)} · ${CUSTOM_TYPES.find((t) => t.id === c.type)?.label.toLowerCase()}`,
+    })),
+    ...shown.filter((f) => f.key === "mot").map(presetRow),
+  ];
+  const suggestions = PRESET_FIELDS.filter((p) => modeOf(p.key) === "off");
+  const openEdit = (row) => setSheet({ kind: "edit", row, label: row.label, req: row.req });
+  const saveSheet = () => {
+    const label = sheet.label.trim().slice(0, 120) || sheet.row.label;
+    if (sheet.row.customId) setCustom(sheet.row.customId, { label, req: sheet.req });
+    else setField(sheet.row.key, { label, mode: sheet.req ? "req" : "opt" });
+    setSheet(null);
+  };
+  const removeSheet = () => {
+    if (sheet.row.customId) change((f) => ({ custom: f.custom.filter((x) => x.id !== sheet.row.customId) }));
+    else setField(sheet.row.key, { mode: "off" });
+    setSheet(null);
+  };
+  const addFromSheet = async () => {
+    await addCustom();
+    setSheet(null);
+  };
+  // Le menu de partage du téléphone (WhatsApp, Messages…) ; à défaut, le lien est copié
+  const share = async () => {
+    clearTimeout(timer.current);
+    await save(latest.current);
+    const link = formUrl(latest.current.slug);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: pageTitle, text: "Dites-nous si vous serez des nôtres :", url: link });
+      } catch {
+        // Partage annulé
+      }
+      return;
+    }
+    copy();
+  };
   // Enregistre d'abord, pour que la page invité montre la dernière version
   const openGuestPage = async () => {
     const win = window.open("", "_blank");
@@ -264,61 +325,176 @@ export default function FormulaireInvites() {
         tab="formulaire"
         actions={<span className="d-small" role="status" style={{ color: status === "error" ? "var(--d-red-ink)" : "var(--d-muted)" }}>{statusLabel}</span>}
       />
-      <p className="d-muted" style={{ margin: "-8px 0 0", maxWidth: 640, lineHeight: 1.5 }}>
+      <p className="d-muted d-desk-only" style={{ margin: "-8px 0 0", maxWidth: 640, lineHeight: 1.5 }}>
         Un seul lien pour tous vos invités. Chaque réponse arrive directement dans votre liste, colonne par colonne.
       </p>
 
-      {!mobileEditing ? (
-        <div className="d-mob-only d-col" style={{ gap: 20 }}>
-          <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">
-            <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center ${coverPos}% / cover no-repeat url("${form.cover_url}")` : theme.deep }} />
-            <div className="d-fpreview-body">
-              <span style={{ color: theme.accent }}>Save the date</span>
-              <strong>{pageTitle}</strong>
-              <em>{[data.wedding.wedding_date ? longDate(data.wedding.wedding_date) : null, data.wedding.venue].filter(Boolean).join(" · ")}</em>
-              {form.message ? <p>{form.message}</p> : null}
-              {previewItems.map((f) => (
-                <div key={f.id} className="d-fpreview-line">
-                  <small>
-                    {f.label}
-                    {f.req ? " *" : ""}
-                  </small>
-                  {f.pills ? (
-                    <span className="d-fpreview-pills">
-                      {f.pills.map((x) => (
-                        <u key={x}>{x}</u>
-                      ))}
-                    </span>
-                  ) : (
-                    <i style={f.tall ? { height: 40 } : undefined} />
-                  )}
-                </div>
-              ))}
-              <b style={{ background: theme.accent }} />
+      {/* Téléphone (artboards 2t, 2t1, 2t2) : la liste des questions posées, un panneau pour chacune, un bouton pour partager */}
+      <div className="d-mob-only d-fm">
+        <div className="d-fm-status">
+          <span>
+            <span className="d-fm-dot" aria-hidden="true" />
+            <strong>En ligne</strong>
+            {data.form?.submissions ? ` · ${data.form.submissions} réponse${data.form.submissions > 1 ? "s" : ""}` : ""}
+          </span>
+          <button type="button" className="d-link" onClick={openGuestPage}>
+            Voir comme un invité
+          </button>
+        </div>
+
+        <section className="d-fm-list" aria-label="Les questions du formulaire">
+          <div className="d-fm-row is-locked">
+            <Icon name="lock" size={16} />
+            <span className="d-fm-text">
+              <strong>Prénom, nom et mail</strong>
+              <span>Toujours demandés</span>
+            </span>
+          </div>
+          {mobileRows.map((r) => (
+            <button key={r.id} type="button" className="d-fm-row" onClick={() => openEdit(r)}>
+              <span className="d-fm-text">
+                <strong>{r.label}</strong>
+                <span>{r.sub}</span>
+              </span>
+              <Icon name="chev" size={16} sw={2.2} />
+            </button>
+          ))}
+          <button type="button" className="d-fm-row is-add" onClick={() => setSheet({ kind: "add" })}>
+            <span className="d-fm-plus">
+              <Icon name="plus" size={13} sw={2.8} />
+            </span>
+            Ajouter une question
+          </button>
+        </section>
+
+        <div className="d-fm-share">
+          <Btn icon={copied ? "check" : "send"} className="d-btn-block" onClick={share}>
+            {copied ? "Lien copié" : "Partager à mes invités"}
+          </Btn>
+          <span>
+            {url.replace(/^https?:\/\//, "")} ·{" "}
+            <button type="button" className="d-link" onClick={copy}>
+              Copier
+            </button>
+          </span>
+        </div>
+      </div>
+
+      {sheet?.kind === "edit" ? (
+        <Modal
+          title="Modifier la question"
+          onClose={() => setSheet(null)}
+          footer={
+            <div className="d-fm-sheet-foot">
+              <Btn className="d-btn-block" onClick={saveSheet}>
+                Enregistrer
+              </Btn>
+              <button type="button" className="d-fm-remove" onClick={removeSheet}>
+                Retirer du formulaire
+              </button>
+            </div>
+          }
+        >
+          <label className="d-field">
+            <span className="d-field-label">La question posée</span>
+            <input className="d-input" value={sheet.label} maxLength={120} onChange={(e) => setSheet({ ...sheet, label: e.target.value })} />
+          </label>
+          <button type="button" className="d-fm-switch-row" role="switch" aria-checked={sheet.req} onClick={() => setSheet({ ...sheet, req: !sheet.req })}>
+            <span className="d-fm-text">
+              <strong>Réponse obligatoire</strong>
+              <span>Sinon l'invité peut la passer</span>
+            </span>
+            <span className={`d-fm-switch${sheet.req ? " is-on" : ""}`} aria-hidden="true" />
+          </button>
+          <div className="d-field">
+            <span className="d-field-label">Ce que voit l'invité</span>
+            <div className="d-fm-guest" style={{ background: theme.bg }} aria-hidden="true">
+              <strong>
+                {sheet.label.trim() || sheet.row.label}
+                {sheet.req ? " *" : ""}
+              </strong>
+              {sheet.row.pills ? (
+                <span>
+                  {sheet.row.pills.map((x, i) => (
+                    <u key={x} style={i === 0 ? { background: theme.accent, color: "#ffffff" } : undefined}>
+                      {x}
+                    </u>
+                  ))}
+                </span>
+              ) : (
+                <i style={sheet.row.tall ? { height: 56 } : undefined} />
+              )}
             </div>
           </div>
-          <div className="d-col" style={{ gap: 10 }}>
-            <Btn kind="strong" icon="plus" className="d-btn-block" onClick={() => { setAdding(true); setMobileEditing(true); }}>
-              Ajouter une question
-            </Btn>
-            <Btn className="d-btn-block" icon="pencil" onClick={() => setMobileEditing(true)}>
-              Modifier les questions
-            </Btn>
-            <Btn kind="ghost" className="d-btn-block" icon={copied ? "check" : "copy"} onClick={copy}>
-              {copied ? "Lien copié" : "Copier le lien du formulaire"}
-            </Btn>
-          </div>
-        </div>
+        </Modal>
       ) : null}
 
-      {mobileEditing ? (
-        <button type="button" className="d-back d-mob-only" style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer" }} onClick={() => setMobileEditing(false)}>
-          <Icon name="back" size={16} sw={2} />
-          Aperçu
-        </button>
+      {sheet?.kind === "add" ? (
+        <Modal
+          title="Ajouter une question"
+          onClose={() => setSheet(null)}
+          footer={
+            form.custom.length < CUSTOM_MAX ? (
+              <Btn className="d-btn-block" onClick={addFromSheet}>
+                Ajouter au formulaire
+              </Btn>
+            ) : null
+          }
+        >
+          {suggestions.length ? (
+            <div className="d-field">
+              <span className="d-field-label">En un geste</span>
+              <div className="d-filters">
+                {suggestions.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    className="d-pill"
+                    onClick={() => {
+                      setField(p.key, { mode: p.mode === "off" ? "opt" : p.mode });
+                      setSheet(null);
+                    }}
+                  >
+                    <Icon name="plus" size={13} sw={2.4} />
+                    {labelOf(p.key)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {form.custom.length < CUSTOM_MAX ? (
+            <>
+              {suggestions.length ? <div className="d-fm-or">ou votre question</div> : null}
+              <label className="d-field">
+                <span className="d-field-label">La question posée</span>
+                <input className="d-input" value={newLabel} maxLength={120} placeholder="Ex. : Votre chanson pour la soirée" onChange={(e) => setNewLabel(e.target.value)} />
+              </label>
+              <div className="d-field" role="radiogroup" aria-label="L'invité répond par">
+                <span className="d-field-label">L'invité répond par</span>
+                <div className="d-fm-seg">
+                  {[
+                    { id: "text", label: "Un texte" },
+                    { id: "yesno", label: "Oui ou non" },
+                    { id: "choice", label: "Un choix" },
+                  ].map((t) => (
+                    <button key={t.id} type="button" role="radio" aria-checked={newType === t.id} className={newType === t.id ? "is-on" : ""} onClick={() => setNewType(t.id)}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {newType === "choice" ? (
+                <label className="d-field">
+                  <span className="d-field-label">Les choix proposés</span>
+                  <input className="d-input" value={newOptions} placeholder="Séparés par des virgules : Bus, Voiture, Train" onChange={(e) => setNewOptions(e.target.value)} />
+                </label>
+              ) : null}
+            </>
+          ) : null}
+        </Modal>
       ) : null}
 
-      <div className={mobileEditing ? "d-grid-side d-form-grid-side" : "d-grid-side d-form-grid-side d-desk-only"}>
+      <div className="d-grid-side d-form-grid-side d-desk-only">
         <section className="d-card">
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <h2>Les champs du formulaire</h2>
