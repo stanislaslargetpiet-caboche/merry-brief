@@ -9,6 +9,7 @@ import { CATEGORIES, catOf } from "@/lib/dash/catalog";
 import { chosenVenue, guestsLabel, monthYear } from "@/lib/dash/picks";
 import { euros } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
+import { BusyDots } from "@/components/dash/ui";
 import { details, DevisDialog, FichePanel, Heart, Negotiated, Price, PrHead, SampleNote, usePicks, useRecommendations } from "@/components/dash/Prestataires";
 
 const ROWS = CATEGORIES.filter((c) => c.key !== "lieu" && c.key !== "autre");
@@ -167,7 +168,7 @@ function Row({ cat, venueName, near, isPicked, onToggle, onSkip, onOpen }) {
           {rec.hasMore ? (
             <div className="d-pr-rowmore">
               <button type="button" className="d-btn d-btn-ghost" onClick={rec.more} disabled={rec.loadingMore}>
-                {rec.loadingMore ? "Chargement…" : `Voir plus de ${c.many}`}
+                {rec.loadingMore ? <BusyDots /> : `Voir plus de ${c.many}`}
               </button>
             </div>
           ) : null}

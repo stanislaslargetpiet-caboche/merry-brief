@@ -422,3 +422,25 @@ export function Donut({ segments, size = 168, thickness = 26, center, sub }) {
     </div>
   );
 }
+
+// Chargements (artboard « Chargement ») : la page qui se charge, puis l'attente dans un bouton
+export function PageLoader() {
+  return (
+    <div className="d-loader" role="status" aria-label="Chargement">
+      <span className="d-loader-word">Merry</span>
+      <span className="d-loadbar">
+        <span />
+      </span>
+    </div>
+  );
+}
+
+export function BusyDots({ label = "En cours" }) {
+  return (
+    <span className="d-dots" role="status" aria-label={label}>
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}

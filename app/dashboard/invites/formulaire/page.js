@@ -8,7 +8,7 @@ import { useDash } from "@/lib/dash/store";
 import { longDate } from "@/lib/dash/format";
 import { CUSTOM_MAX, CUSTOM_TYPES, FORM_THEMES, MESSAGE_MAX, TITLE_MAX, PRESET_FIELDS, defaultForm, formTheme, formUrl, makeSlug, shrinkImage, withPresets } from "@/lib/dash/form";
 import { Icon } from "@/components/dash/icons";
-import { Btn, Modal } from "@/components/dash/ui";
+import { Btn, Modal, BusyDots } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 
 const PILLS = { presence: ["Oui", "Non"], plusun: ["Oui", "Non"], regime: ["Aucun", "Végétarien", "Sans gluten"], hebergement: ["Oui", "Non"] };
@@ -517,7 +517,7 @@ export default function FormulaireInvites() {
             <div className="d-fm-photo">
               <span className="d-fm-thumb" style={form.cover_url ? { background: `center ${coverPos}% / cover no-repeat url("${form.cover_url}")` } : { background: theme.deep }} />
               <Btn kind="ghost" small onClick={() => fileInput.current?.click()} disabled={uploading}>
-                {uploading ? "Envoi…" : form.cover_url ? "Changer la photo" : "Choisir une photo"}
+                {uploading ? <BusyDots /> : form.cover_url ? "Changer la photo" : "Choisir une photo"}
               </Btn>
               {form.cover_url ? (
                 <button type="button" className="d-fm-remove" onClick={() => change({ cover_url: null, cover_position: 50 })}>

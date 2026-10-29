@@ -8,7 +8,7 @@ import { longDate } from "@/lib/dash/format";
 import { signedVendorChoices } from "@/lib/dash/links";
 import { MOMENT_CHOICES, VENDOR_CHOICES, buildTasks, countTasks, currentDevice, defaultAnswers, missingEvents, savedAnswers, whenLabel } from "@/lib/dash/retro";
 import { Icon, Tile } from "@/components/dash/icons";
-import { Btn, PageHeader } from "@/components/dash/ui";
+import { Btn, PageHeader, BusyDots } from "@/components/dash/ui";
 
 // `known` : réponse déjà donnée dans le brief ; on la rappelle au lieu de reposer la question
 function Question({ n, title, hint, known, children }) {
@@ -218,7 +218,7 @@ export default function GenererRetroplanning() {
               Plus tard
             </Link>
             <Btn icon="sparkle" onClick={generate} disabled={busy}>
-              {busy ? "Création…" : "Générer mon rétroplanning"}
+              {busy ? <BusyDots /> : "Générer mon rétroplanning"}
             </Btn>
           </div>
         </div>

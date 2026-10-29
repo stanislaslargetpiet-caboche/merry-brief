@@ -9,7 +9,7 @@ import { fetchDocumentFile, readVendorDocument, VENDOR_FIELDS } from "@/lib/dash
 import { docTitle, fileSize, findFolder } from "@/lib/dash/documents";
 import { euros, shortDate } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { Btn, Field, Modal } from "./ui";
+import { Btn, Field, Modal, BusyDots } from "./ui";
 import { DocLink, TypeBadge } from "./Documents";
 
 const KIND_LABEL = { devis: "Devis", facture: "Facture", autre: "Document" };
@@ -230,7 +230,7 @@ export function VendorDocuments({ vendor, item, docs }) {
               Annuler
             </Btn>
             <Btn small onClick={saveFile} disabled={busy}>
-              {busy ? "Envoi…" : "Ajouter"}
+              {busy ? <BusyDots /> : "Ajouter"}
             </Btn>
           </div>
         </div>

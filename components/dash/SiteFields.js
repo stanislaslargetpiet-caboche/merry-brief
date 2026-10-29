@@ -9,7 +9,7 @@ import { useDash } from "@/lib/dash/store";
 import { shrinkImage } from "@/lib/dash/form";
 import { TRAVEL_KINDS } from "@/lib/site/model";
 import { Icon } from "./icons";
-import { Btn } from "./ui";
+import { Btn, BusyDots } from "./ui";
 
 const SHORT = { weekday: "short", day: "numeric", month: "short" };
 const dayLabel = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", SHORT).replace(/^./, (c) => c.toUpperCase()) : "");
@@ -63,11 +63,11 @@ export function PhotoField({ label, hint, value, onChange }) {
       {hint ? <span className="d-field-hint">{hint}</span> : null}
       <button type="button" className={`d-fcover d-site-photo${value ? " has-photo" : ""}`} onClick={() => input.current?.click()} disabled={busy} style={value ? { backgroundImage: `url("${value}")` } : undefined}>
         {value ? (
-          <span className="d-fcover-change">{busy ? "Envoi…" : "Changer la photo"}</span>
+          <span className="d-fcover-change">{busy ? <BusyDots /> : "Changer la photo"}</span>
         ) : (
           <>
             <Icon name="upload" size={22} />
-            <strong>{busy ? "Envoi…" : "Choisir une photo"}</strong>
+            <strong>{busy ? <BusyDots /> : "Choisir une photo"}</strong>
           </>
         )}
       </button>
@@ -115,7 +115,7 @@ export function PhotosField({ label, hint, value = [], onChange, max = 6 }) {
         {value.length < max ? (
           <button type="button" className="d-site-thumb is-add" onClick={() => input.current?.click()} disabled={busy} aria-label="Ajouter des photos">
             <Icon name={busy ? "upload" : "plus"} size={20} sw={2} />
-            <span>{busy ? "Envoi…" : "Ajouter"}</span>
+            <span>{busy ? <BusyDots /> : "Ajouter"}</span>
           </button>
         ) : null}
       </div>

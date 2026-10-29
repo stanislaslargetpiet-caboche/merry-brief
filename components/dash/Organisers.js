@@ -6,7 +6,7 @@ import { PASTEL_KEYS } from "@/lib/dash/theme";
 import { uid } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { supabase } from "@/lib/supabase";
-import { Avatar, Btn, Field, Modal, Popover } from "./ui";
+import { Avatar, Btn, Field, Modal, Popover, BusyDots } from "./ui";
 
 function inviteLink(token) {
   if (typeof window === "undefined") return "";
@@ -129,7 +129,7 @@ export default function Organisers({ onClose }) {
                 </Btn>
                 <span className="d-desk-only-inline">
                   <Btn kind="ghost" small icon={sent[m.id] ? "check" : "mail"} onClick={() => sendMail(m)} disabled={sending === m.id}>
-                    {sending === m.id ? "Envoi…" : sent[m.id] ? "Envoyée" : "Renvoyer"}
+                    {sending === m.id ? <BusyDots /> : sent[m.id] ? "Envoyée" : "Renvoyer"}
                   </Btn>
                 </span>
                 <button type="button" className="d-icon-btn is-flat" title="Retirer l'invitation" aria-label={`Retirer ${m.display_name}`} onClick={() => remove(m)}>

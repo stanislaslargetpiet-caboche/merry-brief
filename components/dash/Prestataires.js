@@ -18,6 +18,7 @@ import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { FactChips } from "./Criteria";
+import { BusyDots } from "./ui";
 import VendorComments from "./VendorComments";
 
 // ---------------------------------------------------------------------------
@@ -237,7 +238,7 @@ export function MoreButton({ rec, category, className = "" }) {
   return (
     <div className={`d-pr-more ${className}`}>
       <button type="button" className="d-btn d-btn-ghost" onClick={rec.more} disabled={rec.loadingMore}>
-        {rec.loadingMore ? "Chargement…" : `Voir plus de ${c.many}`}
+        {rec.loadingMore ? <BusyDots /> : `Voir plus de ${c.many}`}
       </button>
     </div>
   );
