@@ -11,7 +11,7 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
-import GroupsModal from "@/components/dash/GroupsModal";
+import GroupEdit from "@/components/dash/GroupEdit";
 import GuestsNote from "@/components/dash/GuestsNote";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
@@ -519,7 +519,6 @@ export default function Invites() {
   const { guests, groups, events, fields, wedding } = data;
   const [eventPick, setEventFilter] = useState(null);
   const [moments, setMoments] = useState(false);
-  const [groupsModal, setGroupsModal] = useState(false);
   const [groupFilter, setGroupFilter] = useState(null);
   const [fieldFilter, setFieldFilter] = useState(null);
   const [query, setQuery] = useState("");
@@ -812,24 +811,22 @@ export default function Invites() {
             {groups.map((g) => {
               const p = pastel(g.color);
               const on = groupFilter === g.id;
+              const n = base.filter((x) => x.group_id === g.id).length;
               return (
-                <button
-                  key={g.id}
-                  type="button"
-                  className="d-group d-group-big"
-                  style={{ background: p.bg, color: p.ink, boxShadow: on ? `0 0 0 1.5px ${p.ink}` : undefined, fontWeight: on ? 600 : 500 }}
-                  onClick={() => setGroupFilter(on ? null : g.id)}
-                  aria-pressed={on}
-                >
-                  {g.name} · {base.filter((x) => x.group_id === g.id).length}
-                </button>
+                <span key={g.id} className="d-group-filter">
+                  <button
+                    type="button"
+                    className="d-group d-group-big"
+                    style={{ background: p.bg, color: p.ink, boxShadow: on ? `0 0 0 1.5px ${p.ink}` : undefined, fontWeight: on ? 600 : 500 }}
+                    onClick={() => setGroupFilter(on ? null : g.id)}
+                    aria-pressed={on}
+                  >
+                    {g.name} · {n}
+                  </button>
+                  <GroupEdit group={g} count={guests.filter((x) => x.group_id === g.id).length} />
+                </span>
               );
             })}
-            {/* Gérer les groupes (renommer, couleur, supprimer) : réservé à l'ordinateur */}
-            <button type="button" className="d-pill is-dashed d-desk-only-flex" onClick={() => setGroupsModal(true)} aria-label="Modifier les groupes" title="Modifier les groupes">
-              <Icon name="pencil" size={14} sw={2} />
-              Modifier les groupes
-            </button>
             <ColumnFilter fields={fields} guests={guests} value={activeFieldFilter} onChange={setFieldFilter} />
           </div>
           <span className="d-filters d-desk-only">
@@ -1022,7 +1019,6 @@ export default function Invites() {
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
-      {groupsModal ? <GroupsModal onClose={() => setGroupsModal(false)} /> : null}
       {filtering ? (
         <Modal
           title="Filtrer par"

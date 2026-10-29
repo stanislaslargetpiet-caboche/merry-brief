@@ -13522,3 +13522,62 @@ body.d-noscroll {
   padding: 0;
   justify-content: center;
 }
+
+/* Groupes : un crayon à côté de chaque groupe du filtre (artboard 1f2) */
+.d-group-filter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.d-group-pen {
+  width: 30px;
+  height: 30px;
+}
+
+.d-group-edit {
+  width: 300px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-group-edit-head,
+.d-group-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.d-group-edit-head strong {
+  font-size: 15px;
+}
+
+.d-group-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.d-group-color {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(28, 28, 26, 0.12);
+  cursor: pointer;
+}
+
+.d-group-color.is-on {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px var(--d-ink);
+}
+
+.d-group-edit .d-link.is-danger {
+  color: var(--d-red-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
