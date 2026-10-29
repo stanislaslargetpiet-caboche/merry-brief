@@ -187,120 +187,23 @@ function BulkColumnMenu({ fields, onApply }) {
   );
 }
 
-// Téléphone : les menus en pop-up du bulk desktop tiennent mal sur petit écran ; un seul
-// écran plein, section par section (coche = « appliquer ce changement »), comme la maquette
-function BulkEditSheet({ n, groups, events, fields, onApply, onClose }) {
-  const [onGroup, setOnGroup] = useState(false);
-  const [groupId, setGroupId] = useState(undefined); // undefined : rien choisi, null : « Sans groupe »
-  const [onMoments, setOnMoments] = useState(false);
-  const [moments, setMoments] = useState({}); // { [eventId]: true | false }
-  const [onFields, setOnFields] = useState({}); // { [fieldId]: true }
-  const [fieldValues, setFieldValues] = useState({}); // { [fieldId]: string | null }
+const FILTER_STATUSES = [
+  { id: "oui", label: "Vient" },
+  { id: "non", label: "Ne vient pas" },
+  { id: "attente", label: "En attente" },
+  { id: "non_invite", label: "Non invité" },
+];
 
-  const count = (onGroup && groupId !== undefined ? 1 : 0) + (onMoments && Object.keys(moments).length ? 1 : 0) + Object.keys(onFields).filter((id) => onFields[id]).length;
-
-  const apply = () => {
-    if (onGroup && groupId !== undefined) onApply.group(groupId);
-    if (onMoments) {
-      events.forEach((ev) => {
-        if (moments[ev.id] !== undefined) onApply.moment(ev, moments[ev.id]);
-      });
-    }
-    fields.forEach((f) => {
-      if (onFields[f.id]) onApply.field(f, fieldValues[f.id] ?? null);
-    });
-    onClose();
-  };
-
+function StatusChips({ value, onChange }) {
   return (
-    <Modal
-      title="Modifier en masse"
-      onClose={onClose}
-      footer={
-        <>
-          <Btn kind="ghost" onClick={onClose}>
-            Annuler
-          </Btn>
-          <Btn onClick={apply} disabled={!count}>
-            {count ? `Appliquer ${n(count, "changement", "changements")}` : "Rien à appliquer"}
-          </Btn>
-        </>
-      }
-    >
-      <div className="d-col" style={{ gap: 18 }}>
-        <div className="d-bm-row">
-          <label className="d-bm-check">
-            <input type="checkbox" checked={onGroup} onChange={(e) => setOnGroup(e.target.checked)} />
-            <strong>Groupe</strong>
-          </label>
-          <div className="d-chip-row" style={{ paddingLeft: 30 }}>
-            {groups.map((g) => (
-              <button key={g.id} type="button" className={`d-pill${groupId === g.id ? " is-on" : ""}`} onClick={() => setGroupId(g.id)}>
-                <GroupChip group={g} />
-              </button>
-            ))}
-            <button type="button" className={`d-pill${groupId === null ? " is-on" : ""}`} onClick={() => setGroupId(null)}>
-              Sans groupe
-            </button>
-          </div>
-        </div>
-
-        {events.length ? (
-          <div className="d-bm-row">
-            <label className="d-bm-check">
-              <input type="checkbox" checked={onMoments} onChange={(e) => setOnMoments(e.target.checked)} />
-              <strong>Moments</strong>
-            </label>
-            <div className="d-col" style={{ gap: 8, paddingLeft: 30 }}>
-              {events.map((ev) => (
-                <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span className="d-small" style={{ flex: "1 1 120px" }}>
-                    {ev.name}
-                  </span>
-                  <button type="button" className={`d-pill d-pill-sm${moments[ev.id] === true ? " is-on" : ""}`} onClick={() => setMoments((m) => ({ ...m, [ev.id]: true }))}>
-                    Oui
-                  </button>
-                  <button type="button" className={`d-pill d-pill-sm${moments[ev.id] === false ? " is-on" : ""}`} onClick={() => setMoments((m) => ({ ...m, [ev.id]: false }))}>
-                    Non
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {fields.map((f) => (
-          <div key={f.id} className="d-bm-row">
-            <label className="d-bm-check">
-              <input type="checkbox" checked={!!onFields[f.id]} onChange={(e) => setOnFields((x) => ({ ...x, [f.id]: e.target.checked }))} />
-              <strong>
-                {f.name} <span className="d-small d-muted">· colonne</span>
-              </strong>
-            </label>
-            {f.kind === "choice" ? (
-              <div className="d-chip-row" style={{ paddingLeft: 30 }}>
-                {(f.options || []).map((o) => (
-                  <button key={o} type="button" className={`d-pill${fieldValues[f.id] === o ? " is-on" : ""}`} onClick={() => setFieldValues((x) => ({ ...x, [f.id]: o }))}>
-                    {o}
-                  </button>
-                ))}
-                <button type="button" className={`d-pill${fieldValues[f.id] === null ? " is-on" : ""}`} onClick={() => setFieldValues((x) => ({ ...x, [f.id]: null }))}>
-                  Effacer
-                </button>
-              </div>
-            ) : (
-              <input
-                className="d-input"
-                style={{ marginLeft: 30, maxWidth: "calc(100% - 30px)" }}
-                placeholder="Même texte pour tous les invités sélectionnés"
-                value={fieldValues[f.id] || ""}
-                onChange={(e) => setFieldValues((x) => ({ ...x, [f.id]: e.target.value }))}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    </Modal>
+    <div className="d-filters">
+      {FILTER_STATUSES.map((st) => (
+        <button key={st.id} type="button" className={`d-gfilter-chip${value === st.id ? " is-on" : ""}`} aria-pressed={value === st.id} onClick={() => onChange(value === st.id ? null : st.id)}>
+          {value === st.id ? <Icon name="check" size={12} sw={3} /> : null}
+          {st.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -579,16 +482,15 @@ function AddGuests({ onClose }) {
   );
 }
 
-// Téléphone : une ligne par invité, qui mène à la fiche ; en mode sélection, une case à cocher
-// remplace le lien, comme sur la maquette (2m)
-function GuestCard({ guest: g, events, idx, byId, groupById, selected, onToggle, selectMode }) {
+// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a)
+function GuestCard({ guest: g, events, idx, byId, groupById }) {
   const r = idx.get(g.id) || {};
   const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
   const status = guestStatus(r, events);
   const label = guestLabel(g, byId) || (host ? `+1 de ${fullName(host)}` : "Sans nom");
   const group = groupById.get(g.group_id);
   const p = pastel(group?.color);
-  const sub = [g.age ? `${g.age} ans` : null, host && !fullName(g) ? "À nommer" : null, group ? group.name : "Sans groupe"].filter(Boolean).join(" · ");
+  const sub = [g.age ? `${g.age} ans` : null, host && !fullName(g) ? "À nommer" : null].filter(Boolean).join(" · ");
   const inner = (
     <>
       <span className="d-gavatar" style={{ background: group ? p.bg : "#e4e2dc" }} aria-hidden="true">
@@ -596,19 +498,14 @@ function GuestCard({ guest: g, events, idx, byId, groupById, selected, onToggle,
       </span>
       <span className="d-gcard-name">
         <strong style={status === "non" ? { textDecoration: "line-through", color: "var(--d-muted)" } : undefined}>{label}</strong>
-        <span className="d-guest-sub">{sub}</span>
+        <span className="d-guest-sub">
+          <GroupChip group={group} />
+          {sub ? <span>{sub}</span> : null}
+        </span>
       </span>
       <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
     </>
   );
-  if (selectMode) {
-    return (
-      <button type="button" className={`d-gcard d-gcard-row${selected ? " is-selected" : ""}`} onClick={onToggle} aria-pressed={!!selected}>
-        <input type="checkbox" className="d-check" checked={!!selected} readOnly tabIndex={-1} style={{ pointerEvents: "none" }} aria-label={`Sélectionner ${label}`} />
-        {inner}
-      </button>
-    );
-  }
   return (
     <Link href={`/dashboard/invites/${g.id}`} className="d-gcard d-gcard-row">
       {inner}
@@ -629,9 +526,10 @@ export default function Invites() {
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
   const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
-  const [bulkSheet, setBulkSheet] = useState(false); // téléphone : écran « Modifier en masse »
-  const [selectMode, setSelectMode] = useState(false); // téléphone : affiche les cases à cocher
-  const [groupPick, setGroupPick] = useState(false); // téléphone : menu « Groupe »
+  // Téléphone (artboard 1a3) : filtres par présence globale et par moment, en plus du groupe
+  const [filtering, setFiltering] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(null);
+  const [momentFilter, setMomentFilter] = useState({}); // { [eventId]: statut }
 
   // Un moment supprimé ne reste pas sélectionné
   const eventFilter = events.some((e) => e.id === eventPick) ? eventPick : null;
@@ -645,7 +543,11 @@ export default function Invites() {
   const inFieldFilter = (g) => !activeFieldFilter || normalize((g.custom || {})[activeFieldFilter.fieldId] || "") === activeFieldFilter.key;
   const base = guests.filter(inEvent);
   const q = normalize(query);
-  const shown = base.filter((g) => (!groupFilter || g.group_id === groupFilter) && inFieldFilter(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q)));
+  const inStatus = (g) => !statusFilter || guestStatus(idx.get(g.id) || {}, events) === statusFilter;
+  const inMoments = (g) => Object.entries(momentFilter).every(([evId, st]) => !events.some((e) => e.id === evId) || ((idx.get(g.id) || {})[evId] || "non_invite") === st);
+  const matches = (g) => (!groupFilter || g.group_id === groupFilter) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q));
+  const shown = base.filter((g) => matches(g));
+  const filterCount = (groupFilter ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length;
 
   // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris),
   // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
@@ -844,14 +746,14 @@ export default function Invites() {
       <InvitesHeader
         tab="liste"
         actions={
-          <>
+          <span className="d-desk-only-flex" style={{ gap: 10 }}>
             <Btn kind="strong" icon="download" href="/dashboard/invites/exporter">
               Exporter
             </Btn>
             <Btn icon="sparkle" href="/dashboard/invites/importer">
               Importer une liste
             </Btn>
-          </>
+          </span>
         }
       />
 
@@ -871,7 +773,7 @@ export default function Invites() {
       </div>
 
       <div className="d-col" style={{ gap: 14 }}>
-        <div className="d-filters" style={{ justifyContent: "space-between" }}>
+        <div className="d-filters d-ifilters" style={{ justifyContent: "space-between" }}>
           <div className="d-desk-only">
           <div className="d-filters d-scroll-x">
             <div className="d-tabs" role="tablist" aria-label="Moments du mariage">
@@ -895,47 +797,13 @@ export default function Invites() {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
           </label>
           <div className="d-mob-only">
-            <span className="d-anchor">
-              <button type="button" className="d-group-pick" onClick={() => setGroupPick((o) => !o)} aria-haspopup="menu" aria-expanded={groupPick}>
-                {groupFilter ? groupById.get(groupFilter)?.name : "Groupe"}
-                <Icon name="chevDown" size={13} sw={2.2} />
-              </button>
-              <Popover open={groupPick} onClose={() => setGroupPick(false)} align="right">
-                <button type="button" className={`d-pop-item${!groupFilter ? " is-on" : ""}`} onClick={() => { setGroupFilter(null); setGroupPick(false); }}>
-                  <span className="d-pop-label">Tous · {base.length}</span>
-                </button>
-                {groups.map((gr) => (
-                  <button
-                    key={gr.id}
-                    type="button"
-                    className={`d-pop-item${groupFilter === gr.id ? " is-on" : ""}`}
-                    onClick={() => { setGroupFilter(gr.id); setGroupPick(false); }}
-                  >
-                    <GroupChip group={gr} />
-                    <span className="d-pop-label">· {base.filter((x) => x.group_id === gr.id).length}</span>
-                  </button>
-                ))}
-              </Popover>
-            </span>
+            <button type="button" className={`d-group-pick${filterCount ? " is-on" : ""}`} onClick={() => setFiltering(true)}>
+              <Icon name="list" size={14} sw={2.2} />
+              {filterCount ? `Filtrer · ${filterCount}` : "Filtrer"}
+            </button>
           </div>
         </div>
 
-        <div className="d-mob-only">
-          <div className="d-filters-m">
-            <button type="button" className={selectMode ? "is-on" : ""} onClick={() => { setSelectMode((o) => !o); if (selectMode) clearSel(); }}>
-              <Icon name={selectMode ? "x" : "check"} size={13} sw={2.2} />
-              {selectMode ? "Annuler" : "Sélectionner"}
-            </button>
-            <button type="button" onClick={() => setMoments(true)}>
-              <Icon name="pencil" size={13} sw={2} />
-              Moments
-            </button>
-            <button type="button" onClick={() => setGroupsModal(true)}>
-              <Icon name="pencil" size={13} sw={2} />
-              Groupes
-            </button>
-          </div>
-        </div>
         <div className="d-filters d-desk-only" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-scroll-x">
             <button type="button" className={`d-pill${!groupFilter ? " is-on" : ""}`} onClick={() => setGroupFilter(null)}>
@@ -1073,14 +941,6 @@ export default function Invites() {
               </div>
             </div>
 
-            <div className="d-mob-only">
-              <div className="d-selbar-m" role="region" aria-label="Invités sélectionnés">
-                <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
-                <button type="button" onClick={() => setBulkSheet(true)}>
-                  Modifier en masse
-                </button>
-              </div>
-            </div>
           </>
         ) : (
           <>
@@ -1092,16 +952,6 @@ export default function Invites() {
                 </button>
               </div>
             </div>
-            {selectMode ? (
-              <div className="d-mob-only">
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
-                    <Icon name="check" size={14} sw={2.2} />
-                    Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
-                  </button>
-                </div>
-              </div>
-            ) : null}
           </>
         )
       ) : null}
@@ -1109,7 +959,7 @@ export default function Invites() {
       {guests.length ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} selected={!!selected[g.id]} onToggle={() => toggle(g.id)} selectMode={selectMode} />
+            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} />
           ))}
           {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
         </div>
@@ -1150,11 +1000,13 @@ export default function Invites() {
         </div>
       ) : (
         <div className="d-empty">
-          <p>Pas encore d'invités. Importez vos listes (Excel, photo d'une liste, notes du téléphone) ou ajoutez-les à la main.</p>
+          <p>Pas encore d'invités.</p>
           <div className="d-filters">
-            <Btn icon="sparkle" href="/dashboard/invites/importer">
-              Importer une liste
-            </Btn>
+            <span className="d-desk-only-flex">
+              <Btn icon="sparkle" href="/dashboard/invites/importer">
+                Importer une liste
+              </Btn>
+            </span>
             <Btn kind="ghost" icon="plus" onClick={() => setAdding(true)}>
               Ajouter des invités
             </Btn>
@@ -1162,23 +1014,93 @@ export default function Invites() {
         </div>
       )}
 
-      <Link href="/dashboard/invites/importer" className="d-fab" aria-label="Ajouter un invité">
+      <button type="button" className="d-fab" aria-label="Ajouter un invité" onClick={() => setAdding(true)}>
         <Icon name="plus" size={22} sw={2.4} />
-      </Link>
+      </button>
 
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {groupsModal ? <GroupsModal onClose={() => setGroupsModal(false)} /> : null}
-      {bulkSheet ? (
-        <BulkEditSheet
-          n={n}
-          groups={groups}
-          events={events}
-          fields={fields}
-          onApply={{ group: bulkGroup, moment: bulkMoment, field: bulkField }}
-          onClose={() => setBulkSheet(false)}
-        />
+      {filtering ? (
+        <Modal
+          title="Filtrer par"
+          onClose={() => setFiltering(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="d-link"
+                onClick={() => {
+                  setGroupFilter(null);
+                  setStatusFilter(null);
+                  setMomentFilter({});
+                }}
+              >
+                Tout effacer
+              </button>
+              <span className="d-spacer" />
+              <Btn onClick={() => setFiltering(false)}>{`Voir ${n(shown.length, "invité", "invités")}`}</Btn>
+            </>
+          }
+        >
+          <div className="d-gfilter">
+            <div className="d-gfilter-head">
+              <strong>Groupe</strong>
+              <button
+                type="button"
+                className="d-link"
+                onClick={() => {
+                  setFiltering(false);
+                  setGroupsModal(true);
+                }}
+              >
+                Modifier les groupes
+              </button>
+            </div>
+            <div className="d-filters">
+              {groups.map((gr) => {
+                const p = pastel(gr.color);
+                const on = groupFilter === gr.id;
+                return (
+                  <button key={gr.id} type="button" className={`d-gfilter-chip${on ? " is-on" : ""}`} style={on ? undefined : { background: p.bg, borderColor: p.bg }} aria-pressed={on} onClick={() => setGroupFilter(on ? null : gr.id)}>
+                    {on ? <Icon name="check" size={12} sw={3} /> : null}
+                    {gr.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="d-gfilter">
+            <div className="d-gfilter-head">
+              <strong>Présence</strong>
+            </div>
+            <StatusChips value={statusFilter} onChange={setStatusFilter} />
+          </div>
+          {events.length ? (
+            <div className="d-gfilter">
+              <div className="d-gfilter-head">
+                <strong>Moment</strong>
+              </div>
+              {events.map((ev) => (
+                <div key={ev.id} className="d-gfilter-moment">
+                  <span>{ev.name}</span>
+                  <StatusChips
+                    value={momentFilter[ev.id] || null}
+                    onChange={(st) =>
+                      setMomentFilter((m) => {
+                        const next = { ...m };
+                        if (st) next[ev.id] = st;
+                        else delete next[ev.id];
+                        return next;
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Modal>
       ) : null}
     </>
   );

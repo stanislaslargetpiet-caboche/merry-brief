@@ -47,7 +47,7 @@ export default function FicheInvite() {
         <span className="d-avatar" style={{ width: 56, height: 56, background: "#e4e2dc", fontSize: 20 }}>
           {label.charAt(0).toUpperCase()}
         </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
           <h1 className="d-title">
             <InlineEdit value={fullName(guest)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", guest.id, splitName(v))} />
           </h1>
@@ -58,6 +58,10 @@ export default function FicheInvite() {
       <div className="d-grid-side" style={{ marginTop: 20 }}>
         <div className="d-col">
           <section className="d-card">
+            <span className="d-fm-tag is-opt d-autofill">
+              <Icon name="sparkle" size={12} sw={2.2} />
+              Auto-remplie par le formulaire
+            </span>
             <h2>Réponses par moment</h2>
             {events.length ? (
               <div className="d-col" style={{ gap: 2 }}>
@@ -72,9 +76,7 @@ export default function FicheInvite() {
               <p className="d-small d-muted" style={{ margin: 0 }}>
                 Pas encore de moment défini.
               </p>
-            )}
-            <p className="d-small d-muted" style={{ margin: 0 }}>Chaque moment a sa propre réponse : un invité peut venir au dîner sans rester au brunch.</p>
-          </section>
+            )}          </section>
 
           {host || plusOnes.length ? (
             <section className="d-card">
