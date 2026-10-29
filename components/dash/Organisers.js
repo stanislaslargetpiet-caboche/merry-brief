@@ -6,7 +6,7 @@ import { PASTEL_KEYS } from "@/lib/dash/theme";
 import { uid } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { supabase } from "@/lib/supabase";
-import { Avatar, Btn, Field, Modal } from "./ui";
+import { Avatar, Btn, Field, Modal, Popover } from "./ui";
 
 function inviteLink(token) {
   if (typeof window === "undefined") return "";
@@ -21,6 +21,7 @@ export default function Organisers({ onClose }) {
   const [copied, setCopied] = useState(null);
   const [sending, setSending] = useState(null);
   const [sent, setSent] = useState({});
+  const [menu, setMenu] = useState(null);
 
   const meName = (members.find((x) => x.id === meId)?.display_name || "").trim();
   const couple = [wedding.partner1, wedding.partner2].filter(Boolean).join(" et ");
@@ -32,7 +33,7 @@ export default function Organisers({ onClose }) {
     const color = PASTEL_KEYS.find((k) => !used.has(k)) || "gris";
     const id = uid();
     const role = /^parents?\b/i.test(name.trim()) ? "parents" : "organisateur";
-    await dash.insert("wedding_members", {
+    const [row] = await dash.insert("wedding_members", {
       id,
       display_name: name.trim(),
       initial: name.trim().replace(/^parents? de /i, "P").charAt(0).toUpperCase(),
@@ -47,6 +48,8 @@ export default function Organisers({ onClose }) {
     await dash.refreshMember(id);
     setName("");
     setEmail("");
+    // Avec un mail, l'invitation part tout de suite (le serveur relit le lien à jour de la base)
+    if (row?.email) sendMail(row);
   }
 
   async function copy(m) {
@@ -97,70 +100,72 @@ export default function Organisers({ onClose }) {
     }
   }
 
+  const remove = (m) => {
+    setMenu(null);
+    if (window.confirm(m.user_id ? `Retirer ${m.display_name} des organisateurs ? Il n'aura plus accès à ce mariage.` : `Retirer l'invitation de ${m.display_name} ?`)) dash.remove("wedding_members", m.id);
+  };
+
+  // Artboard 5a : la liste avec le statut de chacun, puis « Inviter un organisateur »
   return (
-    <Modal title="Organisateurs" onClose={onClose} wide>
-      <p className="d-muted">Chaque organisateur a les mêmes droits que vous : invités, rétroplanning et budget. Envoyez-lui son lien personnel pour qu'il crée son accès.</p>
+    <Modal title="Les organisateurs" onClose={onClose} wide>
       <ul className="d-org-list">
         {members.map((m) => (
           <li key={m.id} className="d-org-row">
-            <Avatar member={m} size={34} />
+            <Avatar member={m} size={38} />
             <div className="d-org-who">
               <strong>
                 {m.display_name}
-                {m.id === meId ? <span className="d-muted"> (vous)</span> : null}
+                {m.id === meId ? <span className="d-muted" style={{ fontWeight: 400 }}> (vous)</span> : null}
               </strong>
-              <span className="d-small d-muted">{m.user_id ? "A accès au tableau de bord" : m.email ? `Invitation en attente · ${m.email}` : "Invitation en attente"}</span>
+              <span className="d-org-meta">
+                <span className={`d-org-status${m.user_id ? " is-on" : ""}`}>{m.user_id ? "Connecté" : "Invitation envoyée"}</span>
+                {m.email ? <span className="d-small d-muted d-org-mail">{m.email}</span> : null}
+              </span>
             </div>
-            {m.id === meId && dash.mode === "live" && members.filter((x) => x.user_id).length > 1 ? (
-              <button
-                type="button"
-                className="d-link"
-                style={{ color: "var(--d-muted)" }}
-                onClick={async () => {
-                  if (!window.confirm("Quitter l'organisation de ce mariage ? Il faudra un nouveau lien pour revenir.")) return;
-                  const res = await dash.leaveWedding();
-                  if (!res.ok) dash.setToast({ kind: "error", text: "Impossible de quitter ce mariage pour l'instant." });
-                }}
-              >
-                Quitter ce mariage
-              </button>
-            ) : null}
             {!m.user_id ? (
               <div className="d-org-actions">
                 <Btn kind="ghost" small icon={copied === m.id ? "check" : "copy"} onClick={() => copy(m)}>
                   {copied === m.id ? "Lien copié" : "Copier le lien"}
                 </Btn>
-                <Btn kind="ghost" small icon={sent[m.id] ? "check" : "mail"} onClick={() => sendMail(m)} disabled={sending === m.id}>
-                  {sending === m.id ? "Envoi…" : sent[m.id] ? "Invitation envoyée" : "Envoyer par mail"}
-                </Btn>
-                <button
-                  type="button"
-                  className="d-icon-btn"
-                  title="Retirer cette invitation"
-                  aria-label={`Retirer ${m.display_name}`}
-                  onClick={() => {
-                    if (window.confirm(`Retirer ${m.display_name} des organisateurs ?`)) dash.remove("wedding_members", m.id);
-                  }}
-                >
-                  <Icon name="trash" size={16} />
+                <span className="d-desk-only-inline">
+                  <Btn kind="ghost" small icon={sent[m.id] ? "check" : "mail"} onClick={() => sendMail(m)} disabled={sending === m.id}>
+                    {sending === m.id ? "Envoi…" : sent[m.id] ? "Envoyée" : "Renvoyer"}
+                  </Btn>
+                </span>
+                <button type="button" className="d-icon-btn is-flat" title="Retirer l'invitation" aria-label={`Retirer ${m.display_name}`} onClick={() => remove(m)}>
+                  <Icon name="x" size={14} sw={2.4} />
                 </button>
               </div>
+            ) : m.id !== meId ? (
+              <span className="d-anchor">
+                <button type="button" className="d-icon-btn is-flat" aria-label={`Options pour ${m.display_name}`} onClick={() => setMenu(menu === m.id ? null : m.id)}>
+                  <Icon name="dots" size={16} sw={2.4} />
+                </button>
+                <Popover open={menu === m.id} onClose={() => setMenu(null)} align="right">
+                  <button type="button" className="d-pop-item is-danger" onClick={() => remove(m)}>
+                    <span className="d-pop-label">
+                      <Icon name="trash" size={14} sw={2} />
+                      Retirer des organisateurs
+                    </span>
+                  </button>
+                </Popover>
+              </span>
             ) : null}
           </li>
         ))}
       </ul>
-      <form className="d-org-form" onSubmit={add}>
-        <Field label="Qui invitez-vous ?">
-          <input className="d-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parents de Margue, Léa (témoin)…" required />
-        </Field>
-        <Field label="Son mail (facultatif)">
-          <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@exemple.fr" />
-        </Field>
-        <Btn type="submit" icon="plus">
-          Ajouter
-        </Btn>
+      <form className="d-org-invite" onSubmit={add}>
+        <strong>Inviter un organisateur</strong>
+        <div className="d-org-form">
+          <Field label="Qui ?">
+            <input className="d-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Léa, témoin" required />
+          </Field>
+          <Field label="Son mail">
+            <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@exemple.fr" />
+          </Field>
+          <Btn type="submit">Inviter</Btn>
+        </div>
       </form>
-      <p className="d-small d-muted">Un lien ne sert qu'une fois. S'il a circulé par erreur, retirez l'invitation et créez-en une nouvelle.</p>
     </Modal>
   );
 }
