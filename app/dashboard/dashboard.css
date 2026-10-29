@@ -13360,7 +13360,7 @@ body.d-noscroll {
   }
 }
 
-/* Budget, onglet Répartition (artboard 2b) : le total dépensé, puis ce que chacun a payé */
+/* Budget, onglet Répartition (artboard 2b) : le total dépensé, ce que chacun a payé, puis le détail */
 .d-split-stats {
   align-self: flex-start;
   display: flex;
@@ -13429,6 +13429,12 @@ body.d-noscroll {
 .d-split-text small {
   font-size: 12.5px;
   color: var(--d-muted);
+}
+
+.d-split-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .d-split-amount {
