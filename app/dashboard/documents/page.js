@@ -3,12 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDash } from "@/lib/dash/store";
-import { allFolders, findFolder, folderDocs, sortRecent } from "@/lib/dash/documents";
+import { allFolders, findFolder, folderColors, folderDocs, sortRecent } from "@/lib/dash/documents";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
 import { DocumentRow, DropZone, FolderCard, FolderModal } from "@/components/dash/Documents";
-import { PASTEL_KEYS } from "@/lib/dash/theme";
 
 export default function Documents() {
   const dash = useDash();
@@ -22,12 +21,7 @@ export default function Documents() {
   const recent = useMemo(() => sortRecent(documents).slice(0, 6), [documents]);
   const folderName = (d) => findFolder(data, d.folder_id || "budget")?.name;
 
-  // Une couleur par dossier : celle du dossier, sauf si un dossier précédent l'a déjà (alors la suivante libre)
-  const folderColors = [];
-  for (const f of folders) {
-    const free = PASTEL_KEYS.filter((k) => k !== "gris" && !folderColors.includes(k));
-    folderColors.push(f.color && !folderColors.includes(f.color) ? f.color : free[0] || PASTEL_KEYS[folderColors.length % PASTEL_KEYS.length]);
-  }
+  const colors = folderColors(folders);
 
   return (
     <>
@@ -61,8 +55,8 @@ export default function Documents() {
           <Section title="Dossiers" count={folders.length} />
         </span>
         <div className="d-g3 d-folders">
-          {folders.map((f, i) => (
-            <FolderCard key={f.id} folder={f} color={folderColors[i]} docs={folderDocs(documents, f.id)} />
+          {folders.map((f) => (
+            <FolderCard key={f.id} folder={f} color={colors[f.id]} docs={folderDocs(documents, f.id)} />
           ))}
         </div>
       </div>
@@ -72,7 +66,7 @@ export default function Documents() {
           <Section title="Ajoutés récemment" />
           <div className="d-docs-list">
             {recent.map((d) => (
-              <DocumentRow key={d.id} doc={d} showFolder folderName={folderName(d)} />
+              <DocumentRow key={d.id} doc={d} showFolder folderName={folderName(d)} tint={colors[d.folder_id]} />
             ))}
           </div>
         </div>

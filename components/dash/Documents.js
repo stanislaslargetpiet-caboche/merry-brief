@@ -258,10 +258,10 @@ export function DropZone({ folderId, folderName, onDone }) {
   );
 }
 
-// Pastille du type de fichier (PDF, JPG…)
-export function TypeBadge({ doc, size = 38 }) {
+// Pastille du type de fichier (PDF, JPG…), à la couleur de son dossier quand on la connaît
+export function TypeBadge({ doc, size = 38, tint }) {
   const t = docType(doc);
-  const p = pastel(t.key);
+  const p = pastel(tint || t.key);
   return (
     <span className="d-file-badge" style={{ width: size, height: size, background: p.bg, color: p.ink, fontSize: t.label.length > 3 ? 9 : 10 }}>
       {t.label}
@@ -271,7 +271,7 @@ export function TypeBadge({ doc, size = 38 }) {
 
 // Une ligne de document : type, nom, qui, date, menu
 // `compact` : version téléphone, empilée (maquette 5n) au lieu de la grille large desktop
-export function DocumentRow({ doc, showFolder, folderName, compact }) {
+export function DocumentRow({ doc, showFolder, folderName, compact, tint }) {
   const dash = useDash();
   const { members, vendors, items, folders } = dash.data;
   const [open, setOpen] = useState(false);
@@ -383,7 +383,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
     const metaBits = [by?.display_name, doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : null].filter(Boolean);
     return (
       <div className="d-docrow-m">
-        <TypeBadge doc={doc} size={34} />
+        <TypeBadge doc={doc} size={34} tint={tint} />
         <span className="d-docrow-m-text">
           {nameEl}
           {sub ? <span className="d-docrow-sub">{sub}</span> : null}
@@ -401,7 +401,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact }) {
   return (
     <div className="d-docrow">
       <span className="d-docrow-main">
-        <TypeBadge doc={doc} />
+        <TypeBadge doc={doc} tint={tint} />
         <span className="d-docrow-text">
           {nameEl}
           {sub ? <span className="d-docrow-sub">{sub}</span> : null}

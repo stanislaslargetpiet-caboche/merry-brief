@@ -6791,7 +6791,8 @@ body.d-noscroll {
   border: 1px solid var(--d-line);
 }
 
-.d-pr-seg a {
+.d-pr-seg a,
+.d-pr-seg button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6807,7 +6808,8 @@ body.d-noscroll {
   box-sizing: border-box;
 }
 
-.d-pr-seg a.is-on {
+.d-pr-seg a.is-on,
+.d-pr-seg button.is-on {
   background: #ffffff;
   border-color: var(--d-border);
   font-weight: 600;
@@ -14400,4 +14402,134 @@ body.d-noscroll {
     grid-column: 1 / -1;
     grid-row: 2;
   }
+}
+
+/* Répartition : le résumé de la règle et son bouton ; la page de la règle */
+.d-rule-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.d-rule-summary > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.d-rule-summary strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-rule-summary small {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-rule-modes {
+  align-self: flex-start;
+}
+
+.d-rule-modes button {
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.d-rule-list.is-fixed li {
+  grid-template-columns: 28px minmax(0, 1fr) 150px 90px;
+}
+
+.d-rule-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.d-rule-amount .d-input {
+  text-align: right;
+}
+
+.d-rule-rest {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.d-rule-postes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-rule-postes li {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--d-line);
+}
+
+.d-rule-postes li:first-child {
+  border-top: 0;
+}
+
+.d-rule-poste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.d-rule-poste strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.d-rule-poste > span:last-child {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-rule-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-rule-modes {
+    align-self: stretch;
+  }
+
+  .d-rule-modes button {
+    flex: 1;
+    padding: 0 8px;
+    font-size: 12.5px;
+  }
+
+  .d-rule-list.is-fixed li {
+    grid-template-columns: 28px minmax(0, 1fr) 110px;
+  }
+
+  .d-rule-list.is-fixed .d-rule-pct {
+    display: none;
+  }
+
+  .d-rule-actions .d-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.d-wrap:has(> .d-rule-modes) {
+  max-width: calc(860px + 2 * clamp(16px, 3.5vw, 56px));
+  gap: 20px;
 }
