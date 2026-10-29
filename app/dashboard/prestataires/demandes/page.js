@@ -22,7 +22,7 @@ export default function Demandes() {
     <>
       <PrHead on="mes" />
       <div className="d-pr-req-intro">
-        <h2>Vos demandes de devis</h2>
+        <h2>Vos demandes.</h2>
       </div>
       {sections.length ? (
         <div className="d-pr-boxes is-req">
