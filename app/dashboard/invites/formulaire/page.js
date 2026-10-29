@@ -302,6 +302,11 @@ export default function FormulaireInvites() {
               Ajouter une question
             </button>
           </section>
+          <div className="d-mob-only">
+            <Btn kind="ghost" icon="pencil" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
+              Modifier l'apparence
+            </Btn>
+          </div>
         </div>
 
         <aside className="d-fm-side d-desk-only">
