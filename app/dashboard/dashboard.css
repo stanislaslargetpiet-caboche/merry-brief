@@ -37,7 +37,7 @@
   color: inherit;
 }
 
-@media (min-width: 701px) {
+@media (min-width: 701px) and (min-height: 501px), (min-width: 701px) and (orientation: portrait) {
   .d-root {
     background: linear-gradient(to right, var(--d-lime) 240px, #ffffff 240px);
   }
@@ -231,7 +231,7 @@
 }
 
 /* Écrans peu hauts (portables) : barre latérale resserrée pour que tout tienne sans défiler */
-@media (min-width: 701px) and (max-height: 860px) {
+@media (min-width: 701px) and (min-height: 501px) and (max-height: 860px) {
   .d-nav {
     padding: 16px 16px;
     gap: 12px;
@@ -1593,7 +1593,7 @@ button.d-rsvp:hover {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr) auto;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-plan-form {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2313,7 +2313,7 @@ button.d-rsvp:hover {
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-root {
     flex-direction: column;
     background: #ffffff;
@@ -4036,7 +4036,7 @@ button.d-rsvp:hover {
   line-height: 1.5;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-hide-mobile {
     display: none;
   }
@@ -4168,7 +4168,7 @@ button.d-rsvp:hover {
   cursor: default;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-thread {
     margin-left: 0;
   }
@@ -4993,7 +4993,7 @@ button.d-rsvp:hover {
   color: #4d4c46;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-payway {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -5609,7 +5609,7 @@ button.d-group-none {
     opacity: 0.25;
   }
 }
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-import-badge {
     right: 16px;
     left: 16px;
@@ -5777,7 +5777,7 @@ button.d-group-none {
   width: 160px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-keydate {
     flex-wrap: wrap;
   }
@@ -6146,7 +6146,7 @@ button.d-group-none {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-readout {
     padding: 14px;
   }
@@ -9687,7 +9687,7 @@ body.d-noscroll {
 }
 
 /* ---------- Prestataires, téléphone (7m à 7v) ---------- */
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-root .d-mob-only-flex {
     display: flex;
   }
@@ -10622,7 +10622,7 @@ body.d-noscroll {
   gap: 8px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-crits {
     padding: 12px;
   }
@@ -11087,7 +11087,7 @@ body.d-noscroll {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-grid-side.d-site-grid {
     display: flex;
     flex-direction: column;
@@ -11232,7 +11232,7 @@ body.d-noscroll {
   cursor: pointer;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-selpill-wrap {
     bottom: calc(64px + 12px + env(safe-area-inset-bottom));
     margin-bottom: 8px;
@@ -11314,7 +11314,7 @@ body.d-noscroll {
 }
 
 /* Mes prestataires, téléphone : barre compacte d'une ligne (le texte prenait 260 px de haut) */
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-nextbar {
     flex-direction: row;
     align-items: center;
@@ -11391,7 +11391,7 @@ body.d-noscroll {
   margin: 0;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-fiche-title h1 {
     font-size: 22px;
   }
@@ -11548,7 +11548,7 @@ body.d-noscroll {
   pointer-events: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-summary-text {
     min-height: 46px;
     padding: 0 14px;
@@ -11690,7 +11690,7 @@ body.d-noscroll {
   cursor: pointer;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-pr-mapm .d-pr-zone {
     top: 70px;
     bottom: auto;
@@ -12398,10 +12398,17 @@ body.d-noscroll {
   gap: 18px;
 }
 
+/* Sur une fenêtre étroite, les onglets défilent au lieu d'élargir la page */
 .d-itabs {
   display: flex;
   gap: 28px;
   border-bottom: 1px solid var(--d-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.d-itabs::-webkit-scrollbar {
+  display: none;
 }
 
 .d-root .d-itab {
@@ -12697,7 +12704,7 @@ body.d-noscroll {
   background: var(--d-line);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-itabs {
     gap: 18px;
     margin: 0 -16px;
@@ -13140,7 +13147,7 @@ body.d-noscroll {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-fm {
     gap: 16px;
   }
@@ -13220,5 +13227,15 @@ body.d-noscroll {
 
   .d-fm-pair {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Téléphone tourné : même mise en page qu'en portrait, sans passer sous l'encoche */
+@media (max-height: 500px) and (orientation: landscape) {
+  .d-topbar,
+  .d-wrap,
+  .d-tabbar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
 }

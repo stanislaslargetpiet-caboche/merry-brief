@@ -106,7 +106,7 @@ export function usePicks() {
 export function useIsPhone() {
   const [phone, setPhone] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 700px)");
+    const mq = window.matchMedia("(max-width: 700px), (max-height: 500px) and (orientation: landscape)");
     const on = () => setPhone(mq.matches);
     on();
     mq.addEventListener("change", on);
