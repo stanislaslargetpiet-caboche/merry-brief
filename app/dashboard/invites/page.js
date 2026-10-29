@@ -769,7 +769,7 @@ export default function Invites() {
           <>
             <div className="d-desk-only">
               <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
-                <strong>{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</strong>
+                <strong>{n(selIds.length, "sélection", "sélections")}</strong>
                 <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
                   {!allSelected ? (
                     <button type="button" onClick={selectAll}>
