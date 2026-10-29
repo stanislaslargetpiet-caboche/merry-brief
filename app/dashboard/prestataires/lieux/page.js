@@ -7,12 +7,10 @@ import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { inWords, rank } from "@/lib/dash/catalog";
-import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
 import { FactChips } from "@/components/dash/Criteria";
 import { FiltersPanel, SearchSummary, inPrice } from "@/components/dash/Filtres";
-import { withArticle } from "@/lib/dash/format";
 import {
   ConfirmDivider,
   DevisDialog,
@@ -39,7 +37,6 @@ export default function Lieux() {
   const [fiche, setFiche] = useState(null);
   const [filters, setFilters] = useState(false);
   const [devis, setDevis] = useState(null);
-  const venue = chosenVenue(data, picks);
   const n = list.length;
 
   return (
@@ -56,10 +53,6 @@ export default function Lieux() {
       </div>
       <div className="d-pr-lieux-head">
         <h1 className="d-title">Lieux.</h1>
-        <p>
-          {inWords(n, "lieu")} choisi{n > 1 ? "s" : ""} d'après votre brief.
-          {venue?.data?.name ? ` Vous avez retenu ${withArticle(venue.data.name, "")}.` : ""}
-        </p>
       </div>
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
