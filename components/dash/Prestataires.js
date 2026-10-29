@@ -1046,9 +1046,6 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
     <Layer kind="fiche" labelledBy="fiche-titre" onClose={onClose}>
       <div className="d-pr-panel-head is-fiche">
         <span className="d-pr-fiche-pos">
-          <span>
-            {list || c.tab} · {index + 1} sur {total}
-          </span>
           <Link href="/dashboard/prestataires/mes" className="d-pr-pillink d-mob-only-inline" onClick={onMes}>
             <Icon name="heart" size={14} sw={2} />
             Mes prestataires
