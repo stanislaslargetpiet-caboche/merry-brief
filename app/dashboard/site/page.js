@@ -384,9 +384,8 @@ export default function SiteMariage() {
       {TEMPLATES.map((x) => (
         <button key={x.id} type="button" title={`${x.name} · ${x.style}`} className={`d-se-tpl${x.id === site.template ? " is-on" : ""}`} aria-pressed={x.id === site.template} onClick={() => change({ template: x.id, palette: "origine", fonts: null })}>
           <span className="d-se-tpl-sample" style={TPL_SAMPLE(x)}>
-            {p1.charAt(0)} &amp; {p2.charAt(0)}
+            {x.name}
           </span>
-          <span className="d-se-tpl-name">{x.name}</span>
           <span className="d-se-tpl-style">{x.style}</span>
         </button>
       ))}

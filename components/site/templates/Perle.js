@@ -30,8 +30,8 @@ function Top({ ctx }) {
         </div>
         <nav>
           {ctx.nav.map((n) => (
-            <a key={n.key} href={`#${n.key}`} className="pe-lab is-ink">
-              {n.label}
+            <a key={n.key} href={`#${n.key}`} className="pe-lab is-ink" onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+              <L>{n.label}</L>
             </a>
           ))}
         </nav>
