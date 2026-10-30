@@ -6732,6 +6732,32 @@ button.d-group-none {
   animation: d-row-flash 1.4s ease-out;
 }
 
+.d-mrow.is-flash,
+.d-line.is-flash {
+  animation: d-row-flash 1.4s ease-out;
+}
+
+.d-quickadd-mob {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  background: var(--d-limetint);
+  border-top: 1px solid var(--d-line);
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-quickadd-mob .d-input {
+  width: 100%;
+}
+
+.d-quickadd-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .d-budget-poste-text button.d-add-line-link,
 .d-pcard-text > button.d-add-line-link,
 .d-add-line-link {

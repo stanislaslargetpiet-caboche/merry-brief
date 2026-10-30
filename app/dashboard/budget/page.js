@@ -201,18 +201,44 @@ export default function Budget() {
               const f = itemFinance(it, payments);
               const v = vendorById.get(it.vendor_id);
               return (
-                <div key={it.id} className="d-line">
-                  <span className="d-line-text">
-                    <button type="button" className="d-line-tag" onClick={() => setEditing(it)} title="Modifier la ligne">
-                      {lineLabel(it, g.name)}
+                <Fragment key={it.id}>
+                  <div className={`d-line${flash === it.id ? " is-flash" : ""}`} onAnimationEnd={() => setFlash((p) => (p === it.id ? null : p))}>
+                    <span className="d-line-text">
+                      <button type="button" className="d-line-tag" onClick={() => setEditing(it)} title="Modifier la ligne">
+                        {lineLabel(it, g.name)}
+                      </button>
+                      {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
+                    </span>
+                    <span className="d-line-amount">
+                      <strong>{(f.quote ?? f.budgeted) !== null ? euros(f.quote ?? f.budgeted) : "–"}</strong>
+                      {lineAction(it, f)}
+                    </span>
+                    <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${lineLabel(it, g.name)}`}>
+                      <Icon name="plus" size={14} sw={2.2} />
                     </button>
-                    {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
-                  </span>
-                  <span className="d-line-amount">
-                    <strong>{(f.quote ?? f.budgeted) !== null ? euros(f.quote ?? f.budgeted) : "–"}</strong>
-                    {lineAction(it, f)}
-                  </span>
-                </div>
+                  </div>
+                  {quickAdd === it.id ? (
+                    <form className="d-quickadd d-quickadd-mob" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
+                      <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" />
+                      <div className="d-filters" role="radiogroup" aria-label="Payé par">
+                        {members.map((m) => (
+                          <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
+                            <Avatar member={m} size={20} />
+                            {m.display_name}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="d-quickadd-actions">
+                        <Btn small onClick={() => submitQuickAdd(it)}>
+                          Ajouter
+                        </Btn>
+                        <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
+                          <Icon name="x" size={14} sw={2.2} />
+                        </button>
+                      </span>
+                    </form>
+                  ) : null}
+                </Fragment>
               );
             })}
             <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
@@ -297,27 +323,53 @@ export default function Budget() {
     const v = vendorById.get(it.vendor_id);
     const sub = v ? v.name : it.note || null;
     return (
-      <div key={it.id} className="d-mrow">
-        <Tile name={it.icon || guessIcon(it.label)} />
-        <span className="d-mrow-text">
-          <strong>{posteName(it)}</strong>
-          {sub ? <small>{sub}</small> : null}
-        </span>
-        {f.quote !== null ? (
-          <strong className="d-mrow-amount">{euros(f.quote)}</strong>
-        ) : (
-          <button
-            type="button"
-            className="d-link d-mrow-amount"
-            onClick={() => {
-              setQuoteFocus(true);
-              setEditing(it);
-            }}
-          >
-            Ajouter un devis
+      <Fragment key={it.id}>
+        <div className={`d-mrow${flash === it.id ? " is-flash" : ""}`} onAnimationEnd={() => setFlash((p) => (p === it.id ? null : p))}>
+          <Tile name={it.icon || guessIcon(it.label)} />
+          <span className="d-mrow-text">
+            <strong>{posteName(it)}</strong>
+            {sub ? <small>{sub}</small> : null}
+          </span>
+          {f.quote !== null ? (
+            <strong className="d-mrow-amount">{euros(f.quote)}</strong>
+          ) : (
+            <button
+              type="button"
+              className="d-link d-mrow-amount"
+              onClick={() => {
+                setQuoteFocus(true);
+                setEditing(it);
+              }}
+            >
+              Ajouter un devis
+            </button>
+          )}
+          <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${posteName(it)}`}>
+            <Icon name="plus" size={15} sw={2.2} />
           </button>
-        )}
-      </div>
+        </div>
+        {quickAdd === it.id ? (
+          <form className="d-quickadd d-quickadd-mob" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
+            <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" />
+            <div className="d-filters" role="radiogroup" aria-label="Payé par">
+              {members.map((m) => (
+                <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
+                  <Avatar member={m} size={20} />
+                  {m.display_name}
+                </button>
+              ))}
+            </div>
+            <span className="d-quickadd-actions">
+              <Btn small onClick={() => submitQuickAdd(it)}>
+                Ajouter
+              </Btn>
+              <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
+                <Icon name="x" size={14} sw={2.2} />
+              </button>
+            </span>
+          </form>
+        ) : null}
+      </Fragment>
     );
   };
 
