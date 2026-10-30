@@ -166,7 +166,7 @@ export default function Budget() {
                     {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
                   </span>
                   <span className="d-line-amount">
-                    <strong>{f.paid > 0 ? euros(f.paid) : <span className="d-muted">–</span>}</strong>
+                    <strong>{f.paid > 0 ? euros(f.paid) : f.hasPlan ? <span className="d-muted">{euros(f.quote)}</span> : <span className="d-muted">–</span>}</strong>
                     {lineAction(it, f)}
                   </span>
                 </div>
@@ -205,6 +205,8 @@ export default function Budget() {
         <td className="is-num">
           {gf.paid > 0 ? (
             <span>{euros(gf.paid)}</span>
+          ) : gf.hasPlan ? (
+            <span className="d-muted">{euros(gf.quote)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -212,19 +214,17 @@ export default function Budget() {
         <td>
           {gf.fullyPaid ? (
             <OkPill small>Payé</OkPill>
-          ) : gf.paid > 0 ? (
+          ) : gf.hasPlan ? (
             <span className="d-status is-red">À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
         <td>
-          {gf.paid > 0 ? (
-            gf.fullyPaid ? (
-              <span className="d-status is-purple">100 %</span>
-            ) : (
-              <span className="d-status is-info">Acompte</span>
-            )
+          {gf.fullyPaid || (gf.hasPlan && !gf.isAcompte) ? (
+            <span className="d-status is-purple">100 %</span>
+          ) : gf.hasPlan ? (
+            <span className="d-status is-info">Acompte</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -263,6 +263,8 @@ export default function Budget() {
         </span>
         {f.paid > 0 ? (
           <strong className="d-mrow-amount">{euros(f.paid)}</strong>
+        ) : f.hasPlan ? (
+          <span className="d-mrow-amount d-muted">{euros(f.quote)}</span>
         ) : (
           <button
             type="button"
@@ -306,6 +308,8 @@ export default function Budget() {
         <td className="is-num">
           {f.paid > 0 ? (
             <span>{euros(f.paid)}</span>
+          ) : f.hasPlan ? (
+            <span className="d-muted">{euros(f.quote)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -313,19 +317,17 @@ export default function Budget() {
         <td>
           {f.fullyPaid ? (
             <OkPill small>Payé</OkPill>
-          ) : f.paid > 0 ? (
+          ) : f.hasPlan ? (
             <span className="d-status is-red">À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
         <td>
-          {f.paid > 0 ? (
-            f.fullyPaid ? (
-              <span className="d-status is-purple">100 %</span>
-            ) : (
-              <span className="d-status is-info">Acompte</span>
-            )
+          {f.fullyPaid || (f.hasPlan && !f.isAcompte) ? (
+            <span className="d-status is-purple">100 %</span>
+          ) : f.hasPlan ? (
+            <span className="d-status is-info">Acompte</span>
           ) : (
             <span className="d-muted">–</span>
           )}
