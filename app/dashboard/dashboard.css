@@ -17,6 +17,10 @@
   --d-green-ink: #1f6b30;
   --d-orange-bg: #ffe6cc;
   --d-orange-ink: #8a4b0f;
+  --d-info-bg: #e3ebf3;
+  --d-info-ink: #30567a;
+  --d-purple-bg: #ece3f5;
+  --d-purple-ink: #5b3a84;
   --d-display: Fraunces, Georgia, serif;
 
   display: flex;
@@ -843,6 +847,21 @@ button.d-rsvp:hover {
 .d-status.is-done {
   background: var(--d-green-bg);
   color: var(--d-green-ink);
+}
+
+.d-status.is-info {
+  background: var(--d-info-bg);
+  color: var(--d-info-ink);
+}
+
+.d-status.is-red {
+  background: var(--d-red-bg);
+  color: var(--d-red-ink);
+}
+
+.d-status.is-purple {
+  background: var(--d-purple-bg);
+  color: var(--d-purple-ink);
 }
 
 /* ---------- Barres de chiffres ---------- */
