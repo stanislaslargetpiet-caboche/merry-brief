@@ -4,32 +4,15 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName } from "@/lib/dash/model";
-import { euros, parseAmount, shortDate, todayIso } from "@/lib/dash/format";
+import { euros, shortDate } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Avatar, Btn, Donut, InlineEdit, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
+import { Btn, Donut, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
 import LigneModal from "@/components/dash/LigneModal";
 import { DocLink } from "@/components/dash/Documents";
-
-function Variance({ value, big }) {
-  if (value === null || value === undefined) return null;
-  const v = Math.round(value);
-  if (v === 0)
-    return (
-      <span className={`d-variance is-equal${big ? " is-big" : ""}`}>
-        = budget
-      </span>
-    );
-  return (
-    <span className={`d-variance ${v > 0 ? "is-over" : "is-under"}${big ? " is-big" : ""}`}>
-      <Icon name={v > 0 ? "arrowUp" : "arrowDown"} size={big ? 13 : 12} sw={2.4} />
-      {euros(v, { signed: true })} vs budget
-    </span>
-  );
-}
 
 function dueLabel(p, weddingDate) {
   if (!p) return "";
@@ -49,13 +32,6 @@ export default function Budget() {
   const data = dash.data;
   const { items, members, vendors, documents, wedding, payments, guests } = data;
   const groups = groupItems(items);
-  // Pied de la colonne « Par invité » : la moyenne des postes (un poste à plusieurs lignes compte pour un), pas leur somme
-  const groupValue = (g) => {
-    const vals = g.items.map((it) => itemFinance(it, payments)).map((f) => f.quote ?? f.budgeted ?? null).filter((v) => v !== null);
-    return vals.length ? vals.reduce((a, v) => a + v, 0) : null;
-  };
-  const perGuestValues = guests.length ? groups.map(groupValue).filter((v) => v !== null).map((v) => v / guests.length) : [];
-  const avgPerGuest = perGuestValues.length ? perGuestValues.reduce((a, v) => a + v, 0) / perGuestValues.length : null;
   const [editing, setEditing] = useState(null); // item | "new"
   const [quoteFocus, setQuoteFocus] = useState(false);
   const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
@@ -70,27 +46,6 @@ export default function Budget() {
       return n;
     });
 
-  // Ajout rapide : un paiement directement sur la ligne, sans ouvrir la fenêtre « Ajouter une dépense »
-  // (réservée à la création d'un nouveau poste, qui a besoin d'un nom)
-  const [quickAdd, setQuickAdd] = useState(null); // id de la ligne où le mini-formulaire est ouvert
-  const [quickAmount, setQuickAmount] = useState("");
-  const [quickPayer, setQuickPayer] = useState(data.meId || members[0]?.id || null);
-  const [flash, setFlash] = useState(null); // id de la ligne tout juste augmentée, pour la mettre en valeur
-  const openQuickAdd = (it) => {
-    setQuickAdd(it.id);
-    setQuickAmount("");
-    setQuickPayer(data.meId || members[0]?.id || null);
-  };
-  const submitQuickAdd = async (it) => {
-    const value = parseAmount(quickAmount);
-    if (!value || value <= 0) return;
-    const vendor = vendorById.get(it.vendor_id);
-    await dash.insert("payments", { budget_item_id: it.id, label: vendor?.name || "Paiement", amount: value, paid_at: todayIso(), payer_id: quickPayer || null, due_date: null, note: null });
-    dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${posteName(it)}.` });
-    setQuickAdd(null);
-    setQuickAmount("");
-    setFlash(it.id);
-  };
   // Plusieurs lignes dans un poste : demande la colonne « category » (supabase/reponses-et-lignes.sql)
   const addLine = (name) => {
     if (dash.mode === "live" && !data.categoriesSetup) {
@@ -134,7 +89,7 @@ export default function Budget() {
       const f = itemFinance(it, payments);
       return [
         g.multi ? g.name : it.category ? it.category : it.label,
-        g.multi ? lineLabel(it, g.name) : it.category ? it.label : "",
+        g.multi ? lineLabel(it) : it.category ? it.label : "",
         vendorById.get(it.vendor_id)?.name || "",
         f.budgeted ?? "",
         f.quote ?? "",
@@ -207,44 +162,18 @@ export default function Budget() {
               const f = itemFinance(it, payments);
               const v = vendorById.get(it.vendor_id);
               return (
-                <Fragment key={it.id}>
-                  <div className={`d-line${flash === it.id ? " is-flash" : ""}`} onAnimationEnd={() => setFlash((p) => (p === it.id ? null : p))}>
-                    <span className="d-line-text">
-                      <button type="button" className="d-line-tag" onClick={() => setEditing(it)} title="Modifier la ligne">
-                        {lineLabel(it, g.name)}
-                      </button>
-                      {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
-                    </span>
-                    <span className="d-line-amount">
-                      <strong>{(f.quote ?? f.budgeted) !== null ? euros(f.quote ?? f.budgeted) : "–"}</strong>
-                      {lineAction(it, f)}
-                    </span>
-                    <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${lineLabel(it, g.name)}`}>
-                      <Icon name="plus" size={14} sw={2.2} />
+                <div key={it.id} className="d-line">
+                  <span className="d-line-text">
+                    <button type="button" className="d-line-tag" onClick={() => setEditing(it)} title="Modifier la ligne">
+                      {lineLabel(it)}
                     </button>
-                  </div>
-                  {quickAdd === it.id ? (
-                    <form className="d-quickadd d-quickadd-mob" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
-                      <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" />
-                      <div className="d-filters" role="radiogroup" aria-label="Payé par">
-                        {members.map((m) => (
-                          <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
-                            <Avatar member={m} size={20} />
-                            {m.display_name}
-                          </button>
-                        ))}
-                      </div>
-                      <span className="d-quickadd-actions">
-                        <Btn small onClick={() => submitQuickAdd(it)}>
-                          Ajouter
-                        </Btn>
-                        <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
-                          <Icon name="x" size={14} sw={2.2} />
-                        </button>
-                      </span>
-                    </form>
-                  ) : null}
-                </Fragment>
+                    {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
+                  </span>
+                  <span className="d-line-amount">
+                    <strong>{(f.quote ?? f.budgeted) !== null ? euros(f.quote ?? f.budgeted) : "–"}</strong>
+                    {lineAction(it, f)}
+                  </span>
+                </div>
               );
             })}
             <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
@@ -261,7 +190,6 @@ export default function Budget() {
   const renderGroupRow = (g) => {
     const gf = groupFinance(g, payments);
     const open = !folded.has(g.key);
-    const value = gf.lines.reduce((a, f) => a + (f.quote ?? f.budgeted ?? 0), 0);
     return (
       <tr key={g.key} className="d-group-row">
         <td>
@@ -278,18 +206,13 @@ export default function Budget() {
             </span>
           </button>
         </td>
-        <td className="is-num">{gf.budgeted !== null ? euros(gf.budgeted) : <span className="d-muted">–</span>}</td>
         <td className="is-num">
           {gf.quote !== null ? (
-            <div className="d-quote">
-              <span>{euros(gf.quote)}</span>
-              <Variance value={gf.variance} />
-            </div>
+            <span>{euros(gf.quote)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
-        <td className="is-num">{guests.length ? euros(value / guests.length) : "–"}</td>
         <td>
           {gf.fullyPaid ? (
             <OkPill small>Oui</OkPill>
@@ -329,72 +252,44 @@ export default function Budget() {
     const v = vendorById.get(it.vendor_id);
     const sub = v ? v.name : it.note || null;
     return (
-      <Fragment key={it.id}>
-        <div className={`d-mrow${flash === it.id ? " is-flash" : ""}`} onAnimationEnd={() => setFlash((p) => (p === it.id ? null : p))}>
-          <Tile name={it.icon || guessIcon(it.label)} />
-          <span className="d-mrow-text">
-            <strong>{posteName(it)}</strong>
-            {sub ? <small>{sub}</small> : null}
-          </span>
-          {f.quote !== null ? (
-            <strong className="d-mrow-amount">{euros(f.quote)}</strong>
-          ) : (
-            <button
-              type="button"
-              className="d-link d-mrow-amount"
-              onClick={() => {
-                setQuoteFocus(true);
-                setEditing(it);
-              }}
-            >
-              Ajouter un devis
-            </button>
-          )}
-          <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${posteName(it)}`}>
-            <Icon name="plus" size={15} sw={2.2} />
+      <div key={it.id} className="d-mrow">
+        <Tile name={it.icon || guessIcon(it.label)} />
+        <span className="d-mrow-text">
+          <strong>{posteName(it)}</strong>
+          {sub ? <small>{sub}</small> : null}
+        </span>
+        {f.quote !== null ? (
+          <strong className="d-mrow-amount">{euros(f.quote)}</strong>
+        ) : (
+          <button
+            type="button"
+            className="d-link d-mrow-amount"
+            onClick={() => {
+              setQuoteFocus(true);
+              setEditing(it);
+            }}
+          >
+            Ajouter un devis
           </button>
-        </div>
-        {quickAdd === it.id ? (
-          <form className="d-quickadd d-quickadd-mob" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
-            <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" />
-            <div className="d-filters" role="radiogroup" aria-label="Payé par">
-              {members.map((m) => (
-                <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
-                  <Avatar member={m} size={20} />
-                  {m.display_name}
-                </button>
-              ))}
-            </div>
-            <span className="d-quickadd-actions">
-              <Btn small onClick={() => submitQuickAdd(it)}>
-                Ajouter
-              </Btn>
-              <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
-                <Icon name="x" size={14} sw={2.2} />
-              </button>
-            </span>
-          </form>
-        ) : null}
-      </Fragment>
+        )}
+      </div>
     );
   };
 
-  const renderRow = (it, line, groupName) => {
+  const renderRow = (it, line) => {
     const f = itemFinance(it, payments);
     const v = vendorById.get(it.vendor_id);
     const docs = documents.filter((x) => x.budget_item_id === it.id);
     const devis = docs.find((x) => x.kind === "devis");
     const facture = docs.filter((x) => x.kind === "facture").pop();
-    const perGuest = guests.length ? (f.quote ?? f.budgeted ?? 0) / guests.length : null;
     return (
-      <Fragment key={it.id}>
-      <tr className={[line ? "d-line-row" : null, flash === it.id ? "is-flash" : null].filter(Boolean).join(" ") || undefined} onAnimationEnd={() => setFlash((f) => (f === it.id ? null : f))}>
+      <tr key={it.id} className={line ? "d-line-row" : undefined}>
         <td>
           <div className={`d-budget-poste${line ? " is-line" : ""}`}>
             {line ? null : <Tile name={it.icon || guessIcon(it.label)} />}
             <span className="d-budget-poste-text">
               <button type="button" className={line ? "d-line-tag" : undefined} onClick={() => setEditing(it)} title="Modifier le poste">
-                {line ? lineLabel(it, groupName) : posteName(it)}
+                {line ? lineLabel(it) : posteName(it)}
               </button>
               {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : line ? <small>Prestataire à choisir</small> : null}
               {line ? null : (
@@ -406,33 +301,18 @@ export default function Budget() {
           </div>
         </td>
         <td className="is-num">
-          <InlineEdit
-            value={f.budgeted !== null ? String(Math.round(f.budgeted)) : ""}
-            display={f.budgeted !== null ? euros(f.budgeted) : null}
-            label={`budget ${it.label}`}
-            width={90}
-            onSave={(val) => dash.update("budget_items", it.id, { budgeted: parseAmount(val) })}
-          />
-        </td>
-        <td className="is-num">
           {f.quote !== null ? (
-            <div className="d-quote">
-              <span>{euros(f.quote)}</span>
-              <Variance value={f.variance} />
-            </div>
+            <span>{euros(f.quote)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
-        <td className="is-num">{perGuest !== null ? euros(perGuest) : "–"}</td>
         <td>
           {f.fullyPaid ? (
             <OkPill small>Oui</OkPill>
           ) : f.paid > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
-              <span className="d-pill" style={{ minHeight: 24, padding: "0 10px", fontSize: 12 }}>
-                {f.paidList.length === 1 ? f.paidList[0].label : "Acomptes"}
-              </span>
+              <span className="d-status is-todo">{f.paidList.length === 1 ? f.paidList[0].label : "Acomptes"}</span>
               <span className="d-small-muted">{euros(f.paid)} payés</span>
             </div>
           ) : f.quote !== null ? (
@@ -481,10 +361,7 @@ export default function Budget() {
         </td>
         <td className="is-num">
           <span className="d-row-tools">
-            <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${posteName(it)}`} title="Ajouter une dépense">
-              <Icon name="plus" size={15} sw={2.2} />
-            </button>
-                          <button type="button" className="d-icon-btn is-flat" onClick={() => setEditing(it)} aria-label={`Modifier ${posteName(it)}`} title="Modifier le poste">
+            <button type="button" className="d-icon-btn is-flat" onClick={() => setEditing(it)} aria-label={`Modifier ${posteName(it)}`} title="Modifier le poste">
               <Icon name="pencil" size={15} sw={2} />
             </button>
             <button
@@ -504,31 +381,6 @@ export default function Budget() {
           </span>
         </td>
       </tr>
-      {quickAdd === it.id ? (
-        <tr className="d-quickadd-row">
-          <td colSpan={9}>
-            <form className="d-quickadd" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
-              <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" style={{ width: 130 }} />
-              <div className="d-filters" role="radiogroup" aria-label="Payé par">
-                {members.map((m) => (
-                  <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
-                    <Avatar member={m} size={20} />
-                    {m.display_name}
-                  </button>
-                ))}
-              </div>
-              <span style={{ flex: 1 }} />
-              <Btn small onClick={() => submitQuickAdd(it)}>
-                Ajouter
-              </Btn>
-              <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
-                <Icon name="x" size={14} sw={2.2} />
-              </button>
-            </form>
-          </td>
-        </tr>
-      ) : null}
-      </Fragment>
     );
   };
 
@@ -612,7 +464,7 @@ export default function Budget() {
                         <ul className="d-legend-detail">
                           {finance.lines.map((f, j) => (
                             <li key={group.items[j].id}>
-                              <span>{lineLabel(group.items[j], group.name)}</span>
+                              <span>{lineLabel(group.items[j])}</span>
                               <span>{euros(f.quote ?? f.paid)}</span>
                             </li>
                           ))}
@@ -647,11 +499,9 @@ export default function Budget() {
           <span className="d-desk-only">
             <div className="d-pcard-total">
               <span>
-                Total <strong>{euros(b.sumBudgeted)}</strong>
+                Total <strong>{euros(b.engaged)}</strong>
               </span>
-              <small>
-                {euros(b.engaged)} engagés · {euros(b.paid)} payés
-              </small>
+              <small>{euros(b.paid)} payés</small>
             </div>
           </span>
         </div>
@@ -662,9 +512,7 @@ export default function Budget() {
             <thead>
               <tr>
                 <th>Poste</th>
-                <th className="is-num">Budget</th>
                 <th className="is-num">Devis signé</th>
-                <th className="is-num">Par invité</th>
                 <th>Payé ?</th>
                 <th>Payé par</th>
                 <th>Documents</th>
@@ -677,10 +525,10 @@ export default function Budget() {
                 g.multi ? (
                   <Fragment key={g.key}>
                     {renderGroupRow(g)}
-                    {folded.has(g.key) ? null : g.items.map((it) => renderRow(it, true, g.name))}
+                    {folded.has(g.key) ? null : g.items.map((it) => renderRow(it, true))}
                     {folded.has(g.key) ? null : (
                       <tr className="d-line-addrow">
-                        <td colSpan={9}>
+                        <td colSpan={7}>
                           <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
                             <Icon name="plus" size={14} sw={2.4} />
                             Ajouter une ligne dans {g.name}
@@ -697,17 +545,7 @@ export default function Budget() {
             <tfoot>
               <tr>
                 <td>Total</td>
-                <td className="is-num">{euros(b.sumBudgeted)}</td>
-                <td className="is-num">
-                  <div className="d-quote">
-                    <span>{euros(b.engaged)}</span>
-                    {b.signed ? <Variance value={b.variance} big /> : null}
-                  </div>
-                </td>
-                <td className="is-num" title="Moyenne des postes">
-                  {avgPerGuest !== null ? euros(avgPerGuest) : "–"}
-                  {avgPerGuest !== null ? <small className="d-muted" style={{ display: "block", fontSize: 11, fontWeight: 400 }}>en moyenne</small> : null}
-                </td>
+                <td className="is-num">{euros(b.engaged)}</td>
                 <td colSpan={5}>{euros(b.paid)} payés</td>
               </tr>
             </tfoot>
