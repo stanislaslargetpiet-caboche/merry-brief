@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { guestStats } from "@/lib/dash/model";
-import { defaultSite, fontsHref, fontsOf, siteUrl, siteView, templateOf } from "@/lib/site/model";
+import { defaultSite, fontsHref, fontsOf, siteUrl } from "@/lib/site/model";
 import { Btn } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 
@@ -17,7 +17,6 @@ export default function InvitesSite() {
   const [url, setUrl] = useState("");
   const site = data.site || defaultSite(data);
   const fonts = fontsOf(site);
-  const v = siteView({ site, wedding: data.wedding, events: data.events, preview: true });
   const g = guestStats(data);
 
   // L'adresse complète dépend du domaine : connue seulement dans le navigateur
@@ -54,52 +53,6 @@ export default function InvitesSite() {
       />
 
       <section className="d-isite">
-        <div className="d-isite-cover">
-          <div
-            className="d-isite-demo"
-            role="img"
-            aria-label="Aperçu animé du site : la couverture, le programme et le lieu, tel que vos invités le voient en faisant défiler la page"
-          >
-            <div
-              className="d-isite-demo-page"
-              style={v.photos.cover ? { backgroundImage: `linear-gradient(rgba(28,28,26,.32), rgba(28,28,26,.32)), url(${v.photos.cover})` } : undefined}
-            >
-              <span className="d-isite-demo-eyebrow">Mariage</span>
-              <span className="d-isite-demo-names" style={{ fontFamily: `'${fonts.display}', serif` }}>
-                {v.names}
-              </span>
-              {v.date ? (
-                <small>
-                  {v.date.dd}.{v.date.mm}.{v.date.year}
-                </small>
-              ) : null}
-            </div>
-            <div className="d-isite-demo-page">
-              <span className="d-isite-demo-eyebrow" style={{ color: "#9c4f2e" }}>
-                Le programme
-              </span>
-              <span className="d-isite-demo-item">
-                <b>14h</b> Mairie
-              </span>
-              <span className="d-isite-demo-item">
-                <b>17h</b> Cocktail
-              </span>
-              <span className="d-isite-demo-item">
-                <b>20h</b> Dîner
-              </span>
-            </div>
-            <div className="d-isite-demo-page">
-              <span className="d-isite-demo-eyebrow" style={{ color: "#9c4f2e" }}>
-                Le lieu
-              </span>
-              <span className="d-isite-demo-names" style={{ fontFamily: `'${fonts.display}', serif`, fontSize: 22 }}>
-                Domaine des Oliviers
-              </span>
-              <small>Luberon, Vaucluse</small>
-            </div>
-          </div>
-          <span className="d-isite-tpl">Modèle {templateOf(site.template).name}</span>
-        </div>
         <div className="d-isite-body">
           {status}
           <h2>Votre site de mariage</h2>

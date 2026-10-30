@@ -466,7 +466,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
         <p className="d-small d-muted" style={{ margin: 0, lineHeight: 1.5 }}>
           Le QR code, le partage sur WhatsApp et le lien à copier viennent tout seuls.
         </p>
-        <TextField label="Lien de votre groupe WhatsApp" hint="Facultatif. Perle l'affiche en « Notre groupe »." value={c.whatsapp} max={200} placeholder="https://chat.whatsapp.com/…" onChange={(whatsapp) => setContent({ whatsapp })} />
+        <TextField label="Lien de votre groupe WhatsApp" hint="Facultatif. Certains modèles l'affichent en « Notre groupe »." value={c.whatsapp} max={200} placeholder="https://chat.whatsapp.com/…" onChange={(whatsapp) => setContent({ whatsapp })} />
       </div>
     );
 

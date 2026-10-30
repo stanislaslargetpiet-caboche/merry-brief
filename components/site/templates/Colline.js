@@ -37,7 +37,7 @@ function Top({ ctx }) {
       <div className="co-band">
         <span className="co-lab">{[v.date?.long, v.venueName].filter(Boolean).join(" · ")}</span>
         {ctx.keys.includes("programme") ? (
-          <a href="#programme" className="co-lab is-soft">
+          <a href="#programme" className="co-lab is-soft" onClickCapture={(e) => ctx.edit && e.preventDefault()}>
             <L>Voir le programme</L>
           </a>
         ) : null}
@@ -45,8 +45,8 @@ function Top({ ctx }) {
       <div className="co-header">
         <nav className="is-l">
           {left.map((n) => (
-            <a key={n.key} href={`#${n.key}`} className="co-lab">
-              {n.label}
+            <a key={n.key} href={`#${n.key}`} className="co-lab" onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+              <L>{n.label}</L>
             </a>
           ))}
         </nav>
@@ -58,8 +58,8 @@ function Top({ ctx }) {
         </div>
         <nav className="is-r">
           {right.map((n) => (
-            <a key={n.key} href={`#${n.key}`} className="co-lab">
-              {n.label}
+            <a key={n.key} href={`#${n.key}`} className="co-lab" onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+              <L>{n.label}</L>
             </a>
           ))}
         </nav>
