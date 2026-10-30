@@ -46,7 +46,7 @@
 }
 
 .p-brand-logo {
-  font-family: var(--d-display, "Climate Crisis", "Arial Black", sans-serif);
+  font-family: var(--font-logo);
   font-size: 26px;
   line-height: 1;
 }
@@ -743,7 +743,7 @@
   grid-template-columns: 520px minmax(0, 1fr);
   background: #f5f4f0;
   color: var(--d-ink, #1c1c1a);
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
   --p-muted: #5f5e58;
   --p-line: #e4e2dc;
 }
@@ -765,7 +765,7 @@
 }
 
 .p-claim-word {
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-size: clamp(48px, 6.5vw, 84px);
   line-height: 1;
   overflow-wrap: anywhere;
@@ -855,7 +855,7 @@
 
 .p-claim-h1 {
   margin: 0;
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-weight: 400;
   font-size: 26px;
   line-height: 1.15;

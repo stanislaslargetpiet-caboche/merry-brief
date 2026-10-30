@@ -89,7 +89,7 @@ export default function Exporter() {
       await writeXlsxFile(sheet, { columns: cols.map((c) => ({ width: c.id === "address" ? 42 : c.id === "name" ? 26 : 16 })) }).toFile(`${fileBase}.xlsx`);
     } else {
       const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(fileBase)}</title>
-<style>body{font-family:Archivo,Helvetica,Arial,sans-serif;color:#1c1c1a;margin:32px}h1{font-size:20px;margin:0 0 4px}p{color:#6b6a63;margin:0 0 18px;font-size:13px}
+<style>body{font-family:Inter,Helvetica,Arial,sans-serif;color:#1c1c1a;margin:32px}h1{font-size:20px;margin:0 0 4px}p{color:#6b6a63;margin:0 0 18px;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;background:#f6f5f1;padding:8px;text-transform:uppercase;font-size:11px;letter-spacing:.04em;color:#6b6a63}td{padding:8px;border-top:1px solid #ecebe6}</style></head>
 <body><h1>${escapeHtml([wedding.partner1, wedding.partner2].filter(Boolean).join(" & "))}</h1><p>${escapeHtml(audience.label)} · ${audience.list.length} invités</p>
 <table><thead><tr>${cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((v) => `<td>${escapeHtml(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>

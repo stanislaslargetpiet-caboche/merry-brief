@@ -4,7 +4,7 @@
   min-height: 100dvh;
   background: var(--gf-bg);
   color: #1c1c1a;
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
   padding-bottom: 72px;
 }
 
@@ -48,7 +48,7 @@
 
 .gf-hero h1 {
   margin: 0;
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-weight: 400;
   font-size: clamp(30px, 7vw, 46px);
   line-height: 1.05;
@@ -318,7 +318,7 @@ textarea.gf-input {
 }
 
 .gf-foot b {
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: var(--font-logo);
   font-weight: 400;
 }
 
