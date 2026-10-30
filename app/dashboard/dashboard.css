@@ -1845,8 +1845,22 @@ button.d-rsvp:hover {
   font-size: 14px;
 }
 
+.d-legend li.is-group {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
 .d-legend li + li {
   border-top: 1px solid var(--d-line);
+}
+
+.d-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .d-legend .d-swatch {
@@ -1854,6 +1868,26 @@ button.d-rsvp:hover {
   width: 12px;
   height: 12px;
   border-radius: 4px;
+}
+
+.d-legend-detail {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.d-legend-detail li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--d-muted);
+  border-top: none;
 }
 
 .d-legend-text {

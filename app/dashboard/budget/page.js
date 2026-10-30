@@ -98,7 +98,13 @@ export default function Budget() {
   // Répartition : qui a déjà payé quoi, et où va l'argent
   const byPayer = paidByPayer(data);
   const paying = byPayer.filter((x) => x.amount > 0);
-  const signed = items.filter((i) => i.quote_amount !== null && i.quote_amount !== undefined).sort((a, z) => Number(z.quote_amount) - Number(a.quote_amount));
+  // Où va l'argent : un total par poste (devis signé, sinon déjà payé pour qu'ajouter une dépense se voie tout de suite),
+  // avec le détail des lignes en dessous pour les postes à plusieurs prestataires (traiteur, lieu…)
+  const spending = groups
+    .map((g) => ({ group: g, finance: groupFinance(g, payments) }))
+    .filter(({ finance }) => finance.quote !== null || finance.paid > 0)
+    .map(({ group, finance }) => ({ group, finance, value: finance.quote ?? finance.paid }))
+    .sort((a, z) => z.value - a.value);
 
   function exportCsv() {
     const head = ["Poste", "Ligne", "Prestataire", "Budget", "Devis signé", "Écart", "Par invité", "Payé", "Payé par", "Prochaine échéance"];
@@ -486,17 +492,29 @@ export default function Budget() {
                 <strong>Où va l'argent</strong>
               </span>
             </div>
-            {signed.length ? (
+            {spending.length ? (
               <div className="d-repart">
-                <Donut segments={signed.map((it, i) => ({ value: Number(it.quote_amount), color: POSTE_COLORS[i % POSTE_COLORS.length] }))} center={euros(b.engaged)} sub="engagés" />
+                <Donut segments={spending.map((s, i) => ({ value: s.value, color: POSTE_COLORS[i % POSTE_COLORS.length] }))} center={euros(spending.reduce((a, s) => a + s.value, 0))} sub="au total" />
                 <ul className="d-legend">
-                  {signed.map((it, i) => (
-                    <li key={it.id}>
-                      <span className="d-swatch" style={{ background: POSTE_COLORS[i % POSTE_COLORS.length] }} />
-                      <span className="d-legend-text">
-                        <span>{posteName(it)}</span>
+                  {spending.map(({ group, finance, value }, i) => (
+                    <li key={group.key} className={group.multi ? "is-group" : undefined}>
+                      <span className="d-legend-row">
+                        <span className="d-swatch" style={{ background: POSTE_COLORS[i % POSTE_COLORS.length] }} />
+                        <span className="d-legend-text">
+                          <span>{group.name}</span>
+                        </span>
+                        <span className="d-legend-amount">{euros(value)}</span>
                       </span>
-                      <span className="d-legend-amount">{euros(it.quote_amount)}</span>
+                      {group.multi ? (
+                        <ul className="d-legend-detail">
+                          {finance.lines.map((f, j) => (
+                            <li key={group.items[j].id}>
+                              <span>{lineLabel(group.items[j], group.name)}</span>
+                              <span>{euros(f.quote ?? f.paid)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
