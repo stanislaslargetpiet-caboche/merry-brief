@@ -10,6 +10,7 @@ import { guestStats } from "@/lib/dash/model";
 import { defaultSite, fontsHref, fontsOf, siteUrl } from "@/lib/site/model";
 import { Btn } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
+import SiteView from "@/components/site/SiteView";
 
 export default function InvitesSite() {
   const data = useDash().data;
@@ -79,6 +80,13 @@ export default function InvitesSite() {
             ) : null}
           </div>
         </div>
+        {data.site ? (
+          <div className="d-isite-preview" aria-hidden="true" inert={true}>
+            <div className="d-isite-preview-frame">
+              <SiteView site={site} wedding={data.wedding} events={data.events} preview />
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <div className="d-isite-cards">
