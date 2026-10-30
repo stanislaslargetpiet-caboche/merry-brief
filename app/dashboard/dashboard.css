@@ -6741,57 +6741,6 @@ button.d-group-none {
   font-size: 13px;
 }
 
-.d-quickadd-row > td {
-  padding: 10px 14px 14px 40px;
-  background: var(--d-limetint);
-}
-
-.d-quickadd {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-@keyframes d-row-flash {
-  0% {
-    background: var(--d-limetint);
-  }
-  100% {
-    background: transparent;
-  }
-}
-
-.d-table tr.is-flash > td {
-  animation: d-row-flash 1.4s ease-out;
-}
-
-.d-mrow.is-flash,
-.d-line.is-flash {
-  animation: d-row-flash 1.4s ease-out;
-}
-
-.d-quickadd-mob {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px 14px;
-  background: var(--d-limetint);
-  border-top: 1px solid var(--d-line);
-  border-bottom: 1px solid var(--d-line);
-}
-
-.d-quickadd-mob .d-input {
-  width: 100%;
-}
-
-.d-quickadd-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 .d-budget-poste-text button.d-add-line-link,
 .d-pcard-text > button.d-add-line-link,
 .d-add-line-link {
