@@ -37,6 +37,7 @@ const LINE_ICONS = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',
+  settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   logout: '<path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15M10 8l-4 4 4 4M6 12h10"/>',
   folder: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
   notepad: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/>',
@@ -134,7 +135,7 @@ export function DuoIcon({ name, size = 20, fill = "var(--d-lime)", stroke = "#1c
 export function Tile({ name, size = 36, bg = "#f4f3ef", fill }) {
   return (
     <span className="d-tile" style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: bg }}>
-      <DuoIcon name={name} size={Math.round(size * 0.56)} fill={fill} stroke="#8a3f1c" />
+      <DuoIcon name={name} size={Math.round(size * 0.56)} fill={fill} stroke="var(--d-ok-ink)" />
     </span>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
+import { syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
 import { Icon } from "./icons";
@@ -81,6 +82,11 @@ function Frame({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [showOrganisers, setShowOrganisers] = useState(false);
+  const accent = useAccent();
+
+  useEffect(() => {
+    if (dash.status === "ready" && dash.mode === "live") syncAccent(dash.user);
+  }, [dash.status, dash.mode, dash.user]);
 
   useEffect(() => {
     if (dash.status === "signedout") router.replace(`/connexion?next=${encodeURIComponent(pathname)}`);
@@ -112,7 +118,7 @@ function Frame({ children }) {
   const [menu, setMenu] = useState(false);
 
   return (
-    <div className="d-root">
+    <div className="d-root" data-accent={accent}>
       {/* Téléphone : en-tête compact en haut, onglets en bas */}
       <header className="d-topbar">
         <Link href="/dashboard" className="d-logo">
@@ -123,7 +129,7 @@ function Frame({ children }) {
             <button type="button" className="d-topbar-faces" onClick={() => setShowOrganisers(true)} aria-label="Voir les organisateurs">
               {members.slice(0, 4).map((m, i) => (
                 <span key={m.id} style={{ marginLeft: i ? -8 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
-                  <Avatar member={m} size={28} ring="#f6c9a8" />
+                  <Avatar member={m} size={28} ring="var(--d-lime)" />
                 </span>
               ))}
               {pending.length ? <span className="d-topbar-dot" aria-hidden="true" /> : null}
@@ -159,6 +165,9 @@ function Frame({ children }) {
                 >
                   Organisateurs
                 </button>
+                <Link className="d-pop-item" href="/dashboard/reglages" onClick={() => setMenu(false)}>
+                  Réglages
+                </Link>
                 <a className="d-pop-item" href={SITE_URL}>
                   Retour au site
                 </a>
@@ -208,10 +217,10 @@ function Frame({ children }) {
         </div>
         <div className="d-nav-bottom">
           <div className="d-help">
-            <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-              <Icon name="calendar" size={16} sw={2} />
-              <span>Démonstration</span>
-            </a>
+            <Link className={`d-help-btn${pathname.startsWith("/dashboard/reglages") ? " is-on" : ""}`} href="/dashboard/reglages">
+              <Icon name="settings" size={16} sw={2} />
+              <span>Réglages</span>
+            </Link>
             <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
               <Icon name="bubble" size={16} sw={2} />
               <span>Aide</span>

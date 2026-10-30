@@ -473,7 +473,7 @@ export function FiltersPanel({ category, price, onClose, onApply }) {
                     <span key={c} className="d-pr-crit">
                       {c}
                       <button type="button" aria-label={`Retirer ${c}`} onClick={() => setW({ removed: [...(d.w.removed || []), c] })}>
-                        <Icon name="x" size={11} sw={2.6} stroke="#8a3f1c" />
+                        <Icon name="x" size={11} sw={2.6} stroke="var(--d-ok-ink)" />
                       </button>
                     </span>
                   ))}

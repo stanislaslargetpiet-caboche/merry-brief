@@ -8,8 +8,8 @@ import { DuoIcon, Icon } from "./icons";
 
 export function CritIcon({ k, size = 16, tint }) {
   const [set, name] = CRIT_ICON[k] || CRIT_ICON.words;
-  if (set === "duo") return <DuoIcon name={name} size={size} fill={tint ? "#f6c9a8" : "var(--d-lime)"} stroke={tint ? "#8a3f1c" : "#1c1c1a"} />;
-  return <Icon name={name} size={size} sw={1.8} stroke={tint ? "#8a3f1c" : "#1c1c1a"} />;
+  if (set === "duo") return <DuoIcon name={name} size={size} fill={tint ? "var(--d-lime)" : "var(--d-lime)"} stroke={tint ? "var(--d-ok-ink)" : "#1c1c1a"} />;
+  return <Icon name={name} size={size} sw={1.8} stroke={tint ? "var(--d-ok-ink)" : "#1c1c1a"} />;
 }
 
 // Faits d'un lieu en petites étiquettes (cartes) : teinte lime quand ils répondent à un critère

@@ -10,6 +10,7 @@
   --d-limetint: #fcebdd;
   --d-ok-bg: #fcebdd;
   --d-ok-ink: #8a3f1c;
+  --d-veil: #fef6ef;
   --d-red-bg: #fde0de;
   --d-red-ink: #b42318;
   --d-green-bg: #dff3e1;
@@ -23,6 +24,23 @@
   background: #ffffff;
   color: var(--d-ink);
   font-family: Inter, Helvetica, Arial, sans-serif;
+}
+
+/* Couleur choisie dans Réglages : la pêche est la valeur par défaut */
+.d-root[data-accent="corail"] {
+  --d-lime: #ff8a6b;
+  --d-limetint: #ffe0d6;
+  --d-ok-bg: #ffe0d6;
+  --d-ok-ink: #8a2e14;
+  --d-veil: #fff4f0;
+}
+
+.d-root[data-accent="mangue"] {
+  --d-lime: #ffb54a;
+  --d-limetint: #ffebc7;
+  --d-ok-bg: #ffebc7;
+  --d-ok-ink: #7a4a00;
+  --d-veil: #fff8ec;
 }
 
 :where(.d-root) a {
@@ -169,6 +187,15 @@
 .d-help-btn:focus-visible {
   outline: 2px solid var(--d-ink);
   outline-offset: 3px;
+}
+
+.d-help-btn.is-on {
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.d-help-btn.is-on span {
+  text-decoration: none;
 }
 
 .d-team {
@@ -923,7 +950,7 @@ button.d-rsvp:hover {
   gap: 14px;
   padding: 14px 22px;
   border-radius: 18px;
-  background: #fcebdd;
+  background: var(--d-limetint);
 }
 
 .d-countdown strong {
@@ -937,7 +964,7 @@ button.d-rsvp:hover {
 .d-countdown span {
   font-size: 13px;
   line-height: 1.35;
-  color: #8a3f1c;
+  color: var(--d-ok-ink);
 }
 
 .d-module {
@@ -1923,7 +1950,7 @@ button.d-rsvp:hover {
   gap: 4px;
   padding: 3px 10px;
   border-radius: 999px;
-  background: #fef6ef;
+  background: var(--d-veil);
   font-size: 15px;
   font-weight: 600;
 }
@@ -5444,7 +5471,7 @@ button.d-rsvp:hover {
   gap: 22px;
   padding: 26px 28px;
   border-radius: 22px;
-  background: #fcebdd;
+  background: var(--d-limetint);
 }
 
 .d-first-icon {
@@ -5525,7 +5552,7 @@ button.d-rsvp:hover {
   gap: 16px;
   padding: 20px 24px;
   border-radius: 20px;
-  background: #fcebdd;
+  background: var(--d-limetint);
 }
 
 .d-generate-icon {
@@ -5554,10 +5581,10 @@ button.d-group-none {
 
 /* Sélection d'invités */
 .d-guests .d-row-selected td {
-  background: var(--d-limetint, #fef6ef);
+  background: var(--d-limetint);
 }
 .d-gcard.is-selected {
-  background: var(--d-limetint, #fef6ef);
+  background: var(--d-limetint);
 }
 .d-gcard-top {
   align-items: flex-start;
@@ -5589,14 +5616,14 @@ button.d-group-none {
 }
 .d-import-badge strong {
   flex: none;
-  color: var(--d-lime, #f6c9a8);
+  color: var(--d-lime);
 }
 .d-import-dot {
   flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--d-lime, #f6c9a8);
+  background: var(--d-lime);
 }
 .d-import-badge.is-running .d-import-dot {
   animation: d-pulse 1.1s ease-in-out infinite;
@@ -6219,7 +6246,7 @@ button.d-group-none {
   padding: 0 12px;
   border-radius: 999px;
   background: var(--d-limetint);
-  color: #8a3f1c;
+  color: var(--d-ok-ink);
   font-size: 13px;
   font-weight: 600;
 }
@@ -6726,7 +6753,7 @@ button.d-group-none {
   --pr-rule: #e4e2dc;
   --pr-ph: #e9e7e0;
   --pr-ph-dot: #e2ded3;
-  --pr-nego-bg: #fcebdd;
+  --pr-nego-bg: var(--d-limetint);
   --pr-nego-ink: #3a3d14;
   --pr-sage: #5a6b45;
   --pr-grey-bg: #efeeea;
@@ -7192,7 +7219,7 @@ body.d-noscroll {
 .d-pr-area.is-hl span {
   color: var(--d-ink);
   font-weight: 500;
-  background: linear-gradient(transparent 55%, #f6c9a8 55%);
+  background: linear-gradient(transparent 55%, var(--d-lime) 55%);
   padding: 0 2px;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
@@ -13865,7 +13892,7 @@ body.d-noscroll {
   inset: 0 auto 0 0;
   width: 40%;
   border-radius: 999px;
-  background: var(--d-lime, #f6c9a8);
+  background: var(--d-lime);
   animation: d-load-slide 1.2s cubic-bezier(0.5, 0, 0.3, 1) infinite;
 }
 
@@ -13886,7 +13913,7 @@ body.d-noscroll {
 
 .d-btn-primary .d-dots > span,
 .d-btn-strong .d-dots > span {
-  background: var(--d-lime, #f6c9a8);
+  background: var(--d-lime);
 }
 
 .d-dots > span:nth-child(2) {
@@ -13911,7 +13938,7 @@ body.d-noscroll {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: var(--d-lime, #f6c9a8);
+  background: var(--d-lime);
   color: var(--d-ink);
   animation: d-load-pop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
@@ -14547,4 +14574,186 @@ body.d-noscroll {
 .d-wrap:has(> .d-rule-modes) {
   max-width: calc(860px + 2 * clamp(16px, 3.5vw, 56px));
   gap: 20px;
+}
+
+/* ---------- Réglages (section 6) ---------- */
+
+.d-accents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.d-accent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--d-line);
+  border-radius: 18px;
+  background: #ffffff;
+  font: inherit;
+  color: var(--d-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-accent.is-on {
+  border-color: var(--d-ink);
+  box-shadow: 0 0 0 1px var(--d-ink);
+}
+
+.d-accent-preview {
+  display: flex;
+  height: 96px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--d-line);
+}
+
+.d-accent-side {
+  width: 38%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.d-accent-side b {
+  font-family: var(--font-logo);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.d-accent-main {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 8px;
+  padding: 10px;
+}
+
+.d-accent-tag {
+  width: 46px;
+  height: 14px;
+  border-radius: 5px;
+}
+
+.d-accent-pill {
+  width: 56px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid;
+  box-sizing: border-box;
+}
+
+.d-accent-tile {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.d-accent-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.d-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  margin-bottom: 28px;
+}
+
+.d-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.d-settings-danger {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.d-btn-danger {
+  background: #ffffff;
+  border: 1px solid var(--d-red-ink);
+  color: var(--d-red-ink);
+}
+
+.d-btn-danger:hover {
+  background: var(--d-red-bg);
+}
+
+.d-modal-foot .d-btn-danger {
+  background: var(--d-red-ink);
+  color: #ffffff;
+}
+
+.d-settings-warn {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-accents {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .d-accent {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .d-accent-preview {
+    width: 132px;
+    height: 64px;
+    flex: none;
+  }
+
+  .d-accent-side {
+    width: 30%;
+  }
+
+  .d-accent-side b {
+    display: none;
+  }
+
+  .d-accent-main {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .d-accent-pill {
+    width: 40px;
+    height: 18px;
+  }
+
+  .d-accent-tile {
+    width: 22px;
+    height: 22px;
+  }
+
+  .d-accent-name {
+    flex: 1;
+  }
+
+  .d-settings .d-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .d-settings-actions .d-btn {
+    width: 100%;
+  }
 }
