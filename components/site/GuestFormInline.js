@@ -3,7 +3,7 @@
 // Formulaire RSVP intégré directement dans la rubrique « Votre réponse » du site de mariage,
 // au lieu d'un lien vers /f/[slug] : l'invité répond sans quitter le site. Mêmes champs, même
 // logique d'envoi et de rappel (RESPONSE_KEY) que la page publique du formulaire (app/f/[slug]/page.js),
-// extraits ici pour être réutilisés par chaque modèle de site via Reponse (voir Horizon, Terracotta,
+// extraits ici pour être réutilisés par chaque modèle de site via Reponse (voir Moisson, Terracotta,
 // Colline).
 
 import "@/app/f/form.css";
