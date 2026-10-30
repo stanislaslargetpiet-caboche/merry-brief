@@ -220,7 +220,7 @@ export default function Budget() {
         </td>
         <td>
           {gf.paid > 0 ? (
-            <span className="d-small-muted">{gf.fullyPaid ? "100 %" : "Acompte"}</span>
+            <span className="d-status is-info">{gf.fullyPaid ? "100 %" : "Acompte"}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -317,7 +317,7 @@ export default function Budget() {
         </td>
         <td>
           {f.paid > 0 ? (
-            <span className="d-small-muted">{f.fullyPaid ? "100 %" : "Acompte"}</span>
+            <span className="d-status is-info">{f.fullyPaid ? "100 %" : "Acompte"}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
