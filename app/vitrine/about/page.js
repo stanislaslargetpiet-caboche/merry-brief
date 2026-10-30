@@ -1,7 +1,7 @@
 import Frame from "@/components/vitrine/Frame";
 
 export const metadata = {
-  title: "À propos — Merry",
+  title: "À propos | Merry",
   description: "On ne cessera jamais de se réunir. Merry met le métier d’event planner entre les mains de chacun.",
   alternates: { canonical: "https://www.withmerry.com/about" },
 };

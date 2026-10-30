@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { SHARE_IMAGE } from "@/lib/site";
 import "./vitrine.css";
 
 // Weglot traduit le site en anglais, comme sur Squarespace (clé publique du projet Weglot de Merry)
@@ -8,6 +9,9 @@ export const metadata = {
   title: "Merry",
   description: "Merry : l’assistant qui simplifie l’organisation de tous tes événements, de A à Z. 100 % gratuit pour les organisateurs.",
   alternates: { canonical: "https://www.withmerry.com/" },
+  // Aperçu des liens partagés (WhatsApp, iMessage, réseaux) : photo du haut de l'accueil
+  openGraph: { siteName: "Merry", locale: "fr_FR", type: "website", images: [{ url: SHARE_IMAGE, width: 1200, height: 630 }] },
+  twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
 export default function VitrineLayout({ children }) {

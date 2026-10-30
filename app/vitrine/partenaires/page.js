@@ -6,7 +6,7 @@ import credits from "@/lib/vitrine/blocks/pro-credits";
 import fiche from "@/lib/vitrine/blocks/pro-fiche";
 
 export const metadata = {
-  title: "Prestataires — Merry",
+  title: "Prestataires | Merry",
   description: "Des demandes de mariage qualifiées, sans abonnement ni commission : vous ne payez en crédits que les demandes auxquelles vous répondez. 100 crédits offerts.",
   alternates: { canonical: "https://www.withmerry.com/partenaires" },
 };
