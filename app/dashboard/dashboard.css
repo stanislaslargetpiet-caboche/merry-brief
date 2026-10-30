@@ -12741,6 +12741,24 @@ body.d-noscroll {
   gap: 10px;
 }
 
+.d-isite-preview {
+  flex: none;
+  width: 260px;
+  height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--d-line);
+  background: var(--d-panel);
+  display: block;
+}
+
+.d-isite-preview-frame {
+  width: 1280px;
+  transform: scale(0.203125);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
 .d-isite-cards {
   display: flex;
   gap: 12px;
@@ -12878,17 +12896,14 @@ body.d-noscroll {
     padding: 14px;
   }
 
-  .d-isite-cover {
-    flex: none;
+  .d-isite-preview {
+    width: 100%;
     height: 220px;
   }
 
-  .d-isite-demo-names {
-    font-size: 26px;
-  }
-
-  .d-isite-names span {
-    font-size: 32px;
+  .d-isite-preview-frame {
+    width: 1280px;
+    transform: scale(0.2578);
   }
 
   .d-isite-body {
