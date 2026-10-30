@@ -1,12 +1,13 @@
 // Page SEO métier × zone (canvas « 8 - SEO », artboards SEO-Metier-Zone et SEO-Metier-Zone-Tel).
 // Composant serveur : tout le texte est rendu dans le HTML, lisible par Google et par les moteurs IA.
 
-import { APP_URL, euros, hasPage, hrefOf, num, statOf } from "@/lib/seo/data";
+import { PUBLIC_URL, euros, hasPage, hrefOf, num, statOf } from "@/lib/seo/data";
 import { FRANCE, REGIONS, departmentsOf, regionZone, zoneOf } from "@/lib/seo/geo";
 import { MEDIAN_LABEL, MEDIAN_PHRASE, NATIONAL, TRADES } from "@/lib/seo/trades";
 
-const SIGNUP = "/?source=seo";
-const CLAIM = "/pro/fiche";
+// Les pages sont servies sur www.withmerry.com : l'inscription et l'espace pro restent sur l'appli
+const SIGNUP = "https://app.withmerry.com/?source=seo";
+const CLAIM = "https://app.withmerry.com/pro/fiche";
 const SITE = "https://www.withmerry.com";
 
 const ICONS = {
@@ -169,11 +170,11 @@ export function pageModel(trade, zone, stats) {
 }
 
 function jsonLd(trade, zone, model, vendors) {
-  const url = `${APP_URL}${hrefOf(trade, zone)}`;
+  const url = `${PUBLIC_URL}${hrefOf(trade, zone)}`;
   const graph = [
     {
       "@type": "BreadcrumbList",
-      itemListElement: model.crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.label, item: c.href.startsWith("http") ? c.href : `${APP_URL}${c.href}` })),
+      itemListElement: model.crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.label, item: c.href.startsWith("http") ? c.href : `${PUBLIC_URL}${c.href}` })),
     },
     {
       "@type": "FAQPage",
