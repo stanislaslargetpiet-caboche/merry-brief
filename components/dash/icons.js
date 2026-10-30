@@ -134,7 +134,7 @@ export function DuoIcon({ name, size = 20, fill = "var(--d-lime)", stroke = "#1c
 export function Tile({ name, size = 36, bg = "#f4f3ef", fill }) {
   return (
     <span className="d-tile" style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: bg }}>
-      <DuoIcon name={name} size={Math.round(size * 0.56)} fill={fill} stroke="#35520a" />
+      <DuoIcon name={name} size={Math.round(size * 0.56)} fill={fill} stroke="#8a3f1c" />
     </span>
   );
 }

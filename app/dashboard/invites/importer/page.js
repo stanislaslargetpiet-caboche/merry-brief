@@ -996,7 +996,7 @@ export default function Importer() {
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
                                 {r.dup ? (
                                   <>
-                                    <span className="d-status" style={{ background: "#f4f5d6", color: "#5d5e12" }}>
+                                    <span className="d-status" style={{ background: "#fef6ef", color: "#8a3f1c" }}>
                                       Sera fusionné
                                     </span>
                                     <span className="d-small-muted">Déjà dans votre liste</span>
