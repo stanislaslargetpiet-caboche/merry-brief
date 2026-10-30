@@ -1,9 +1,11 @@
-/* Pages SEO métier × zone : canvas « 8 - SEO ». Préfixe sm- pour ne croiser aucune autre feuille. */
+/* Pages SEO métier × zone : canvas « 8 - SEO ». Préfixe sm- pour ne croiser aucune autre feuille.
+   Système de design v2 (30 oct. 2026) : Alan Sans partout, Climate Crisis pour le seul logo, accent citron. */
+@font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
 
-.sm-root { min-height: 100dvh; background: #ffffff; color: #1c1c1a; font-family: Inter, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+.sm-root { min-height: 100dvh; background: #ffffff; color: #1c1c1a; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 500; -webkit-font-smoothing: antialiased; }
 .sm-root a { color: #1c1c1a; }
 
-.sm-top { background: #f6c9a8; }
+.sm-top { background: #fff700; }
 .sm-top-in { max-width: 1252px; margin: 0 auto; padding: 0 56px; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-sizing: border-box; }
 .sm-logo { font-family: "Climate Crisis", "Arial Black", sans-serif; font-size: 26px; text-decoration: none; }
 
@@ -12,7 +14,7 @@
 .sm-crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
 .sm-crumb { display: inline-flex; gap: 8px; }
 .sm-root .sm-crumbs a { color: #5f5e58; }
-.sm-title { margin: 0; font: 400 44px/1.05 Fraunces, Georgia, serif; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.sm-title { margin: 0; font: 600 44px/1.05 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; overflow-wrap: anywhere; }
 
 .sm-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; box-sizing: border-box; border: 1px solid transparent; }
 .sm-root .sm-btn-primary { background: #1c1c1a; color: #ffffff; }
@@ -27,14 +29,14 @@
 
 .sm-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; border-top: 1px solid #ecebe6; border-bottom: 1px solid #ecebe6; padding: 24px 0; }
 .sm-fig { display: flex; flex-direction: column; gap: 6px; }
-.sm-fig b { font: 400 40px/1 Fraunces, Georgia, serif; letter-spacing: -0.015em; }
+.sm-fig b { font: 600 40px/1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; }
 .sm-fig span { font-size: 14px; font-weight: 500; }
 
 .sm-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 .sm-pill { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 500; border: 1px solid #d9d7cf; background: #ffffff; text-decoration: none; }
-.sm-pill.is-on { background: #fcebdd; border-color: #f6c9a8; font-weight: 600; }
+.sm-pill.is-on { background: #fffdb8; border-color: #fff700; font-weight: 600; }
 
-.sm-h2 { margin: 0; font: 400 28px/1.1 Fraunces, Georgia, serif; letter-spacing: -0.01em; }
+.sm-h2 { margin: 0; font: 600 28px/1.1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.01em; }
 .sm-sel { display: flex; flex-direction: column; gap: 16px; }
 .sm-more { align-self: center; }
 
@@ -47,19 +49,19 @@
 .sm-card-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .sm-card-name h3 { margin: 0; font-size: 14px; font-weight: 500; }
 .sm-area { font-size: 12px; }
-.sm-area span { font-weight: 500; background: linear-gradient(transparent 55%, #f6c9a8 55%); padding: 0 2px; }
+.sm-area span { font-weight: 500; background: linear-gradient(transparent 55%, #fff700 55%); padding: 0 2px; }
 .sm-specs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; }
 .sm-specs li { display: flex; align-items: flex-start; gap: 8px; }
-.sm-specs svg { flex: none; margin-top: 1px; color: #8a3f1c; }
+.sm-specs svg { flex: none; margin-top: 1px; color: #574e00; }
 .sm-card-price { margin-top: auto; padding-top: 12px; border-top: 1px solid #e4e2dc; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
 .sm-price { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .sm-price-from { font-size: 12px; color: #5f5e58; }
 .sm-price-v { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .sm-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-.sm-cta { background: #fcebdd; border-radius: 20px; padding: 28px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+.sm-cta { background: #fffdb8; border-radius: 20px; padding: 28px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
 .sm-cta-text { display: flex; flex-direction: column; gap: 6px; }
-.sm-cta p { margin: 0; font: 400 28px/1.15 Fraunces, Georgia, serif; letter-spacing: -0.01em; }
+.sm-cta p { margin: 0; font: 600 28px/1.15 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.01em; }
 .sm-cta span { font-size: 15px; }
 
 .sm-block { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; padding-top: 32px; border-top: 1px solid #ecebe6; }
