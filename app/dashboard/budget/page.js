@@ -492,9 +492,11 @@ export default function Budget() {
           <span className="d-desk-only">
             <div className="d-pcard-total">
               <span>
-                Total <strong>{euros(b.engaged)}</strong>
+                Total <strong>{euros(b.paid)}</strong>
               </span>
-              <small>{euros(b.paid)} payés</small>
+              <small>
+                {sorted.length} poste{sorted.length > 1 ? "s" : ""}
+              </small>
             </div>
           </span>
         </div>
@@ -538,8 +540,10 @@ export default function Budget() {
             <tfoot>
               <tr>
                 <td>Total</td>
-                <td className="is-num">{euros(b.engaged)}</td>
-                <td colSpan={5}>{euros(b.paid)} payés</td>
+                <td className="is-num">{euros(b.paid)}</td>
+                <td colSpan={5} className="d-muted">
+                  {sorted.length} poste{sorted.length > 1 ? "s" : ""}
+                </td>
               </tr>
             </tfoot>
           </table>
