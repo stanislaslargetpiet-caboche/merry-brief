@@ -19,6 +19,8 @@
   --d-orange-ink: #8a4b0f;
   --d-info-bg: #e3ebf3;
   --d-info-ink: #30567a;
+  --d-purple-bg: #ece3f5;
+  --d-purple-ink: #5b3a84;
   --d-display: Fraunces, Georgia, serif;
 
   display: flex;
@@ -850,6 +852,11 @@ button.d-rsvp:hover {
 .d-status.is-info {
   background: var(--d-info-bg);
   color: var(--d-info-ink);
+}
+
+.d-status.is-purple {
+  background: var(--d-purple-bg);
+  color: var(--d-purple-ink);
 }
 
 /* ---------- Barres de chiffres ---------- */
