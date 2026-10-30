@@ -75,12 +75,12 @@ export default function Budget() {
   // Répartition : qui a déjà payé quoi, et où va l'argent
   const byPayer = paidByPayer(data);
   const paying = byPayer.filter((x) => x.amount > 0);
-  // Où va l'argent : un total par poste (devis signé, sinon déjà payé pour qu'ajouter une dépense se voie tout de suite),
-  // avec le détail des lignes en dessous pour les postes à plusieurs prestataires (traiteur, lieu…)
+  // Où va l'argent : ce qui a été payé, par poste, avec le détail des lignes en dessous
+  // pour les postes à plusieurs prestataires (traiteur, lieu…)
   const spending = groups
     .map((g) => ({ group: g, finance: groupFinance(g, payments) }))
-    .filter(({ finance }) => finance.quote !== null || finance.paid > 0)
-    .map(({ group, finance }) => ({ group, finance, value: finance.quote ?? finance.paid }))
+    .filter(({ finance }) => finance.paid > 0)
+    .map(({ group, finance }) => ({ group, finance, value: finance.paid }))
     .sort((a, z) => z.value - a.value);
 
   function exportCsv() {
@@ -130,7 +130,7 @@ export default function Budget() {
           setEditing(it);
         }}
       >
-        Ajouter un devis
+        Ajouter un paiement
       </button>
     );
 
@@ -147,10 +147,6 @@ export default function Budget() {
             <small>
               {g.items.length} lignes{gf.paid ? ` · ${euros(gf.paid)} payés` : ""}
             </small>
-          </span>
-          <span className="d-pcard-amounts">
-            <strong>{gf.budgeted !== null ? euros(gf.budgeted) : gf.quote !== null ? euros(gf.quote) : "–"}</strong>
-            <small>{gf.quote !== null ? `dont ${euros(gf.quote)} signés` : "budget"}</small>
           </span>
           <span className={`d-gchev${open ? " is-open" : ""}`}>
             <Icon name="chev" size={16} sw={2.2} />
@@ -170,7 +166,7 @@ export default function Budget() {
                     {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
                   </span>
                   <span className="d-line-amount">
-                    <strong>{(f.quote ?? f.budgeted) !== null ? euros(f.quote ?? f.budgeted) : "–"}</strong>
+                    <strong>{f.paid > 0 ? euros(f.paid) : <span className="d-muted">–</span>}</strong>
                     {lineAction(it, f)}
                   </span>
                 </div>
@@ -207,8 +203,8 @@ export default function Budget() {
           </button>
         </td>
         <td className="is-num">
-          {gf.quote !== null ? (
-            <span>{euros(gf.quote)}</span>
+          {gf.paid > 0 ? (
+            <span>{euros(gf.paid)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -217,7 +213,7 @@ export default function Budget() {
           {gf.fullyPaid ? (
             <OkPill small>Oui</OkPill>
           ) : gf.paid > 0 ? (
-            <span className="d-small-muted">{euros(gf.paid)} payés</span>
+            <span className="d-status is-todo">Acomptes</span>
           ) : gf.anyQuote ? (
             <span className="d-status" style={{ background: "var(--d-panel)", color: "var(--d-muted)", fontWeight: 500 }}>
               Non
@@ -258,8 +254,8 @@ export default function Budget() {
           <strong>{posteName(it)}</strong>
           {sub ? <small>{sub}</small> : null}
         </span>
-        {f.quote !== null ? (
-          <strong className="d-mrow-amount">{euros(f.quote)}</strong>
+        {f.paid > 0 ? (
+          <strong className="d-mrow-amount">{euros(f.paid)}</strong>
         ) : (
           <button
             type="button"
@@ -269,7 +265,7 @@ export default function Budget() {
               setEditing(it);
             }}
           >
-            Ajouter un devis
+            Ajouter un paiement
           </button>
         )}
       </div>
@@ -301,8 +297,8 @@ export default function Budget() {
           </div>
         </td>
         <td className="is-num">
-          {f.quote !== null ? (
-            <span>{euros(f.quote)}</span>
+          {f.paid > 0 ? (
+            <span>{euros(f.paid)}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -311,10 +307,7 @@ export default function Budget() {
           {f.fullyPaid ? (
             <OkPill small>Oui</OkPill>
           ) : f.paid > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
-              <span className="d-status is-todo">{f.paidList.length === 1 ? f.paidList[0].label : "Acomptes"}</span>
-              <span className="d-small-muted">{euros(f.paid)} payés</span>
-            </div>
+            <span className="d-status is-todo">{f.paidList.length === 1 ? f.paidList[0].label : "Acomptes"}</span>
           ) : f.quote !== null ? (
             <span className="d-status" style={{ background: "var(--d-panel)", color: "var(--d-muted)", fontWeight: 500 }}>
               Non
@@ -465,7 +458,7 @@ export default function Budget() {
                           {finance.lines.map((f, j) => (
                             <li key={group.items[j].id}>
                               <span>{lineLabel(group.items[j])}</span>
-                              <span>{euros(f.quote ?? f.paid)}</span>
+                              <span>{euros(f.paid)}</span>
                             </li>
                           ))}
                         </ul>
@@ -512,7 +505,7 @@ export default function Budget() {
             <thead>
               <tr>
                 <th>Poste</th>
-                <th className="is-num">Devis signé</th>
+                <th className="is-num">Payé</th>
                 <th>Payé ?</th>
                 <th>Payé par</th>
                 <th>Documents</th>
