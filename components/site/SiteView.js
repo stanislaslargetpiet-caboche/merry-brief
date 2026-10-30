@@ -11,9 +11,9 @@ import { EmptySection } from "./parts";
 import { SiteEditProvider, SiteTextProvider } from "./edit";
 import Horizon from "./templates/Horizon";
 import Terracotta from "./templates/Terracotta";
-import Perle from "./templates/Perle";
+import Colline from "./templates/Colline";
 
-const IMPL = { horizon: Horizon, terracotta: Terracotta, perle: Perle };
+const IMPL = { horizon: Horizon, terracotta: Terracotta, colline: Colline };
 
 const SIZE = { half: 2, third: 3, wide: 2, narrow: 2 };
 
