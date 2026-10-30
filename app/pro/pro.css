@@ -749,7 +749,7 @@
 }
 
 .p-claim-panel {
-  background: #cbff75;
+  background: #f6c9a8;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1354,7 +1354,7 @@
     min-height: 100dvh;
   }
   .p-claim-band {
-    background: #cbff75;
+    background: #f6c9a8;
     padding: 16px 16px 20px;
     display: flex;
     flex-direction: column;
@@ -2655,7 +2655,7 @@ select.p-input {
 
 .p-legend-box.is-option {
   background: var(--d-limetint);
-  border-color: #d7ebb2;
+  border-color: #fcebdd;
 }
 
 .p-legend-box.is-reserve {
@@ -2746,7 +2746,7 @@ select.p-input {
 .p-cal-day.is-option {
   background: var(--d-limetint);
   color: var(--d-ok-ink);
-  border-color: #d7ebb2;
+  border-color: #fcebdd;
 }
 
 .p-cal-day.is-reserve {
@@ -3063,7 +3063,7 @@ select.p-input {
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    background: #8db34a;
+    background: #efae85;
   }
   .p-cal-dot.is-reserve {
     background: var(--d-ink);
@@ -3081,7 +3081,7 @@ select.p-input {
     border: 1.5px solid #9d978a;
   }
   .p-legend.is-dots .p-legend-box.is-option {
-    background: #8db34a;
+    background: #efae85;
     border: none;
   }
   .p-legend.is-dots .p-legend-box.is-reserve {

@@ -132,7 +132,7 @@ function MaFiche() {
           <div className="p-sec-row">
             <h2 className="p-sec-title">Accès</h2>
             <span className="p-calc">
-              <ProIcon name="sparkle" size={13} stroke="#35520a" sw={2} />
+              <ProIcon name="sparkle" size={13} stroke="#8a3f1c" sw={2} />
               Calculé par Merry, modifiable
             </span>
           </div>

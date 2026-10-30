@@ -123,7 +123,7 @@ function Frame({ children }) {
             <button type="button" className="d-topbar-faces" onClick={() => setShowOrganisers(true)} aria-label="Voir les organisateurs">
               {members.slice(0, 4).map((m, i) => (
                 <span key={m.id} style={{ marginLeft: i ? -8 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
-                  <Avatar member={m} size={28} ring="#cbff75" />
+                  <Avatar member={m} size={28} ring="#f6c9a8" />
                 </span>
               ))}
               {pending.length ? <span className="d-topbar-dot" aria-hidden="true" /> : null}
