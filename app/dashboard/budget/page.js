@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName } from "@/lib/dash/model";
-import { euros, parseAmount, shortDate } from "@/lib/dash/format";
+import { euros, parseAmount, shortDate, todayIso } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Btn, Donut, InlineEdit, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
+import { Avatar, Btn, Donut, InlineEdit, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
@@ -69,6 +69,28 @@ export default function Budget() {
       else n.add(key);
       return n;
     });
+
+  // Ajout rapide : un paiement directement sur la ligne, sans ouvrir la fenêtre « Ajouter une dépense »
+  // (réservée à la création d'un nouveau poste, qui a besoin d'un nom)
+  const [quickAdd, setQuickAdd] = useState(null); // id de la ligne où le mini-formulaire est ouvert
+  const [quickAmount, setQuickAmount] = useState("");
+  const [quickPayer, setQuickPayer] = useState(data.meId || members[0]?.id || null);
+  const [flash, setFlash] = useState(null); // id de la ligne tout juste augmentée, pour la mettre en valeur
+  const openQuickAdd = (it) => {
+    setQuickAdd(it.id);
+    setQuickAmount("");
+    setQuickPayer(data.meId || members[0]?.id || null);
+  };
+  const submitQuickAdd = async (it) => {
+    const value = parseAmount(quickAmount);
+    if (!value || value <= 0) return;
+    const vendor = vendorById.get(it.vendor_id);
+    await dash.insert("payments", { budget_item_id: it.id, label: vendor?.name || "Paiement", amount: value, paid_at: todayIso(), payer_id: quickPayer || null, due_date: null, note: null });
+    dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${posteName(it)}.` });
+    setQuickAdd(null);
+    setQuickAmount("");
+    setFlash(it.id);
+  };
   // Plusieurs lignes dans un poste : demande la colonne « category » (supabase/reponses-et-lignes.sql)
   const addLine = (name) => {
     if (dash.mode === "live" && !data.categoriesSetup) {
@@ -307,7 +329,8 @@ export default function Budget() {
     const facture = docs.filter((x) => x.kind === "facture").pop();
     const perGuest = guests.length ? (f.quote ?? f.budgeted ?? 0) / guests.length : null;
     return (
-      <tr key={it.id} className={line ? "d-line-row" : undefined}>
+      <Fragment key={it.id}>
+      <tr className={[line ? "d-line-row" : null, flash === it.id ? "is-flash" : null].filter(Boolean).join(" ") || undefined} onAnimationEnd={() => setFlash((f) => (f === it.id ? null : f))}>
         <td>
           <div className={`d-budget-poste${line ? " is-line" : ""}`}>
             {line ? null : <Tile name={it.icon || guessIcon(it.label)} />}
@@ -400,6 +423,9 @@ export default function Budget() {
         </td>
         <td className="is-num">
           <span className="d-row-tools">
+            <button type="button" className="d-icon-btn is-flat" onClick={() => (quickAdd === it.id ? setQuickAdd(null) : openQuickAdd(it))} aria-label={`Ajouter une dépense pour ${posteName(it)}`} title="Ajouter une dépense">
+              <Icon name="plus" size={15} sw={2.2} />
+            </button>
                           <button type="button" className="d-icon-btn is-flat" onClick={() => setEditing(it)} aria-label={`Modifier ${posteName(it)}`} title="Modifier le poste">
               <Icon name="pencil" size={15} sw={2} />
             </button>
@@ -420,6 +446,31 @@ export default function Budget() {
           </span>
         </td>
       </tr>
+      {quickAdd === it.id ? (
+        <tr className="d-quickadd-row">
+          <td colSpan={9}>
+            <form className="d-quickadd" onSubmit={(e) => { e.preventDefault(); submitQuickAdd(it); }}>
+              <input className="d-input" inputMode="decimal" autoFocus value={quickAmount} onChange={(e) => setQuickAmount(e.target.value)} placeholder="Montant (€)" style={{ width: 130 }} />
+              <div className="d-filters" role="radiogroup" aria-label="Payé par">
+                {members.map((m) => (
+                  <button key={m.id} type="button" className={`d-pill d-pill-person${quickPayer === m.id ? " is-on" : ""}`} aria-pressed={quickPayer === m.id} onClick={() => setQuickPayer(m.id)}>
+                    <Avatar member={m} size={20} />
+                    {m.display_name}
+                  </button>
+                ))}
+              </div>
+              <span style={{ flex: 1 }} />
+              <Btn small onClick={() => submitQuickAdd(it)}>
+                Ajouter
+              </Btn>
+              <button type="button" className="d-icon-btn is-flat" aria-label="Annuler" onClick={() => setQuickAdd(null)}>
+                <Icon name="x" size={14} sw={2.2} />
+              </button>
+            </form>
+          </td>
+        </tr>
+      ) : null}
+      </Fragment>
     );
   };
 
