@@ -11,10 +11,19 @@
 .wv-nav a.on { text-decoration: underline; text-underline-offset: 5px; }
 .wv-right { display: flex; align-items: center; gap: 14px; }
 .wv-menu { display: none; position: relative; }
-.wv-menu summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; border: 1px solid #000; }
-.wv-menu summary::-webkit-details-marker { display: none; }
+.wv-menu > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; border: 1px solid #000; }
+.wv-menu > summary::-webkit-details-marker { display: none; }
 .wv-menu-list { position: absolute; right: 0; top: 52px; min-width: 200px; background: #ffffff; border: 1px solid #000; border-radius: 16px; padding: 8px; display: flex; flex-direction: column; }
 .wv-menu-list a { padding: 12px 14px; text-decoration: none; font-size: 16px; border-radius: 10px; }
+.wv-lang { position: relative; font-size: 14px; }
+.wv-lang summary { list-style: none; cursor: pointer; padding: 8px 4px; white-space: nowrap; }
+.wv-lang summary::-webkit-details-marker { display: none; }
+.wv-lang-list { position: absolute; right: 0; top: 40px; min-width: 140px; background: #ffffff; border: 1px solid #000; border-radius: 16px; padding: 6px; display: flex; flex-direction: column; }
+.wv-lang-list button { padding: 10px 12px; border: 0; border-radius: 10px; background: none; text-align: left; font-size: 14px; cursor: pointer; }
+.wv-lang-list button[aria-current] { text-decoration: underline; text-underline-offset: 4px; }
+.wv-lang-menu { display: none; }
+.wv-lang-menu summary { padding: 12px 14px; font-size: 16px; }
+.wv-lang-menu .wv-lang-list { position: static; min-width: 0; border: 0; padding: 0 0 0 8px; }
 
 .wv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 30px; border-radius: 300px; font-size: 16px; font-weight: 500; text-transform: uppercase; text-decoration: none; white-space: nowrap; box-sizing: border-box; border: 1px solid transparent; cursor: pointer; }
 .wv .wv-btn-lime { background: #cfff81; color: #000000; }
@@ -101,6 +110,8 @@
   .wv-head { padding: 14px 16px; }
   .wv-nav { display: none; }
   .wv-menu { display: block; }
+  .wv-right > .wv-lang { display: none; }
+  .wv-lang-menu { display: block; }
   .wv-sec, .wv-about { padding: 56px 16px; }
   .wv-hero { padding: 0 16px 48px; min-height: 560px; }
   .wv-split, .wv-faq, .wv-credits, .wv-two, .wv-end, .wv-about, .wv-foot { grid-template-columns: minmax(0, 1fr); }

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { LOGIN, SIGNUP, linksFor } from "@/lib/vitrine/routes";
+import LangSwitch from "./LangSwitch";
 
 export async function getLinks() {
   return linksFor((await headers()).get("host"));
@@ -31,6 +32,7 @@ export default async function Frame({ current, children }) {
           <a href={LOGIN}>Connexion</a>
         </nav>
         <div className="wv-right">
+          <LangSwitch />
           <a href={SIGNUP} className="wv-btn wv-btn-dark wv-btn-small">
             J'organise
           </a>
@@ -45,6 +47,7 @@ export default async function Frame({ current, children }) {
               <a href={links.pro}>Prestataires</a>
               <a href={links.about}>À propos</a>
               <a href={LOGIN}>Connexion</a>
+              <LangSwitch className="wv-lang-menu" />
             </nav>
           </details>
         </div>
