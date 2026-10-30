@@ -87,7 +87,8 @@ export default function Budget() {
     const f = itemFinance(it, payments);
     return f.quote !== null || f.paid > 0;
   });
-  const sorted = sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups;
+  // Seulement les postes où l'on a déjà engagé ou payé quelque chose, rien de prérempli
+  const sorted = (sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups).filter(hasSpend);
 
   const b = budgetTotals(data);
   const kpis = kpiItems(data, "budget");
@@ -517,8 +518,7 @@ export default function Budget() {
         />
 
         <div className="d-cards d-mob-only">
-          {/* Téléphone : seulement les postes où l'on a déjà engagé ou payé quelque chose, rien de prérempli */}
-          {sorted.filter(hasSpend).map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
+          {sorted.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
           <button type="button" className="d-mrow d-mrow-add" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} sw={2.4} />
             Ajouter un poste
