@@ -12,7 +12,7 @@ export default function InvitesHeader({ tab, actions }) {
   const data = useDash().data;
   const replies = data.form?.submissions || 0;
   const tabs = [
-    { id: "liste", href: "/dashboard/invites", label: "Liste des invités", short: "Invités", extra: <span className="d-itab-count">{data.guests.length}</span> },
+    { id: "liste", href: "/dashboard/invites", label: "Liste des invités", short: "Invités" },
     {
       id: "site",
       href: "/dashboard/invites/site",
