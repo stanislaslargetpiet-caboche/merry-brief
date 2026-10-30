@@ -106,6 +106,16 @@
 .wv-foot { background: #e1dfd9; padding: 4vw; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4vw; }
 .wv-quote { margin: 0; font-size: 14.4px; line-height: 1.6; }
 
+.wv-seo { background: #e1dfd9; padding: 4vw 4vw 0; }
+.wv-seo-t { margin: 0 0 28px; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.wv-seo-g { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 32px; padding-bottom: 4vw; border-bottom: 1px solid rgba(0, 0, 0, .18); }
+.wv-seo-h { display: block; margin-bottom: 12px; font-size: 15px; font-weight: 700; text-decoration: none; }
+.wv-seo ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.wv-seo li a { font-size: 13.5px; line-height: 1.35; color: rgba(0, 0, 0, .72); text-decoration: none; }
+.wv-seo a:hover { color: #000000; text-decoration: underline; }
+@media (max-width: 1000px) { .wv-seo-g { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .wv-seo { padding: 40px 16px 0; } .wv-seo-g { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; padding-bottom: 40px; } }
+
 @media (max-width: 760px) {
   .wv-head { padding: 14px 16px; }
   .wv-nav { display: none; }
