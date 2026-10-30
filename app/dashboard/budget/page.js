@@ -211,13 +211,16 @@ export default function Budget() {
         </td>
         <td>
           {gf.fullyPaid ? (
-            <OkPill small>Oui</OkPill>
+            <OkPill small>Payé</OkPill>
           ) : gf.paid > 0 ? (
-            <span className="d-status is-todo">Acomptes</span>
-          ) : gf.anyQuote ? (
-            <span className="d-status" style={{ background: "var(--d-panel)", color: "var(--d-muted)", fontWeight: 500 }}>
-              Non
-            </span>
+            <span className="d-status is-todo">À payer</span>
+          ) : (
+            <span className="d-muted">–</span>
+          )}
+        </td>
+        <td>
+          {gf.paid > 0 ? (
+            <span className="d-small-muted">{gf.fullyPaid ? "100 %" : "Acompte"}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -305,13 +308,16 @@ export default function Budget() {
         </td>
         <td>
           {f.fullyPaid ? (
-            <OkPill small>Oui</OkPill>
+            <OkPill small>Payé</OkPill>
           ) : f.paid > 0 ? (
-            <span className="d-status is-todo">{f.paidList.length === 1 ? f.paidList[0].label : "Acomptes"}</span>
-          ) : f.quote !== null ? (
-            <span className="d-status" style={{ background: "var(--d-panel)", color: "var(--d-muted)", fontWeight: 500 }}>
-              Non
-            </span>
+            <span className="d-status is-todo">À payer</span>
+          ) : (
+            <span className="d-muted">–</span>
+          )}
+        </td>
+        <td>
+          {f.paid > 0 ? (
+            <span className="d-small-muted">{f.fullyPaid ? "100 %" : "Acompte"}</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -507,11 +513,12 @@ export default function Budget() {
             <thead>
               <tr>
                 <th>Poste</th>
-                <th className="is-num">Payé</th>
-                <th>Payé ?</th>
+                <th className="is-num">Montant</th>
+                <th>Statut</th>
+                <th>Type</th>
                 <th>Payé par</th>
                 <th>Documents</th>
-                <th aria-label="Statut" />
+                <th aria-label="Échéance" />
                 <th aria-label="Modifier ou supprimer" />
               </tr>
             </thead>
@@ -523,7 +530,7 @@ export default function Budget() {
                     {folded.has(g.key) ? null : g.items.map((it) => renderRow(it, true))}
                     {folded.has(g.key) ? null : (
                       <tr className="d-line-addrow">
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
                             <Icon name="plus" size={14} sw={2.4} />
                             Ajouter une ligne dans {g.name}
@@ -541,7 +548,7 @@ export default function Budget() {
               <tr>
                 <td>Total</td>
                 <td className="is-num">{euros(b.paid)}</td>
-                <td colSpan={5} className="d-muted">
+                <td colSpan={6} className="d-muted">
                   {sorted.length} poste{sorted.length > 1 ? "s" : ""}
                 </td>
               </tr>
