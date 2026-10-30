@@ -854,6 +854,11 @@ button.d-rsvp:hover {
   color: var(--d-info-ink);
 }
 
+.d-status.is-red {
+  background: var(--d-red-bg);
+  color: var(--d-red-ink);
+}
+
 .d-status.is-purple {
   background: var(--d-purple-bg);
   color: var(--d-purple-ink);

@@ -213,7 +213,7 @@ export default function Budget() {
           {gf.fullyPaid ? (
             <OkPill small>Payé</OkPill>
           ) : gf.paid > 0 ? (
-            <span className="d-status is-todo">À payer</span>
+            <span className="d-status is-red">À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -314,7 +314,7 @@ export default function Budget() {
           {f.fullyPaid ? (
             <OkPill small>Payé</OkPill>
           ) : f.paid > 0 ? (
-            <span className="d-status is-todo">À payer</span>
+            <span className="d-status is-red">À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
