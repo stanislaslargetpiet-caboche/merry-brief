@@ -16,13 +16,13 @@
   --d-green-ink: #1f6b30;
   --d-orange-bg: #ffe6cc;
   --d-orange-ink: #8a4b0f;
-  --d-display: "Climate Crisis", "Arial Black", sans-serif;
+  --d-display: Fraunces, Georgia, serif;
 
   display: flex;
   min-height: 100dvh;
   background: #ffffff;
   color: var(--d-ink);
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
 }
 
 :where(.d-root) a {
@@ -59,7 +59,7 @@
 }
 
 .d-logo {
-  font-family: var(--d-display);
+  font-family: var(--font-logo);
   font-size: 26px;
   text-decoration: none;
   padding: 0 12px;
@@ -844,8 +844,9 @@ button.d-rsvp:hover {
 }
 
 .d-stat-value {
-  font-size: 26px;
-  font-weight: 600;
+  font-family: var(--d-display);
+  font-size: 28px;
+  font-weight: 400;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -926,8 +927,9 @@ button.d-rsvp:hover {
 }
 
 .d-countdown strong {
+  font-family: var(--d-display);
   font-size: 40px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -4671,7 +4673,7 @@ button.d-rsvp:hover {
 .d-folder-meta {
   display: block;
   margin-top: 6px;
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: var(--d-muted);
 }
@@ -5344,7 +5346,7 @@ button.d-rsvp:hover {
 }
 .d-imp-fin h2 {
   margin: 0;
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-weight: 400;
   font-size: clamp(24px, 6.4vw, 30px);
 }
@@ -11872,7 +11874,7 @@ body.d-noscroll {
 
 .d-se-title {
   margin: 0;
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-weight: 400;
   font-size: 24px;
   line-height: 1.1;
@@ -12348,7 +12350,7 @@ body.d-noscroll {
   flex-direction: column;
   gap: 12px;
   box-sizing: border-box;
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
 }
 
 .d-se-pop-head {
@@ -13489,8 +13491,9 @@ body.d-noscroll {
 }
 
 .d-split-stats strong {
-  font-size: 20px;
-  font-weight: 600;
+  font-family: var(--d-display);
+  font-size: 24px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 
@@ -13843,7 +13846,7 @@ body.d-noscroll {
 }
 
 .d-loader-word {
-  font-family: var(--d-display, "Climate Crisis", "Arial Black", sans-serif);
+  font-family: var(--font-logo);
   font-size: 44px;
   animation: d-load-breathe 1.6s ease-in-out infinite;
 }
@@ -13963,7 +13966,7 @@ body.d-noscroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Climate Crisis", "Arial Black", sans-serif;
+  font-family: Fraunces, Georgia, serif;
   font-size: 18px;
   box-shadow: 0 0 0 6px #ffffff;
 }

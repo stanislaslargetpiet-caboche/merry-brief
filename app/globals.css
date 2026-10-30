@@ -8,8 +8,9 @@
   --navy: #0f2537;
   --danger: #8a3a2c;
   --radius: 18px;
-  --font-body: Archivo, Helvetica, Arial, sans-serif;
-  --font-display: "Climate Crisis", "Arial Black", sans-serif;
+  --font-body: Inter, Helvetica, Arial, sans-serif;
+  --font-display: Fraunces, Georgia, serif;
+  --font-logo: "Climate Crisis", "Arial Black", sans-serif;
 }
 
 * {
@@ -53,7 +54,7 @@ textarea {
 }
 
 .panel-logo {
-  font-family: var(--font-display);
+  font-family: var(--font-logo);
   font-size: 26px;
   letter-spacing: 0.01em;
   color: inherit;
@@ -629,7 +630,7 @@ h1.question {
 }
 
 .ob-logo {
-  font-family: var(--font-display);
+  font-family: var(--font-logo);
   font-size: 26px;
   color: var(--ink);
   text-decoration: none;
