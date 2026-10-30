@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { paidByPayer } from "@/lib/dash/model";
-import { MODES, paidPostes, rebalance, ruleOf, sharesOf, targetsOf } from "@/lib/dash/partage";
+import { MODES, guestProrataShares, paidPostes, prorataOptions, rebalance, ruleOf, sharesOf, targetsOf } from "@/lib/dash/partage";
 import { euros, parseAmount } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
@@ -29,6 +29,7 @@ export default function Regle() {
   const [fixed, setFixed] = useState(() => Object.fromEntries(ids.map((id) => [id, saved.fixed[id] ? String(saved.fixed[id]) : ""])));
   const [postes, setPostes] = useState(saved.postes);
   const postesPaid = paidPostes(data);
+  const prorata = prorataOptions(data);
 
   const draft = { mode, shares, fixed: Object.fromEntries(ids.map((id) => [id, parseAmount(fixed[id]) || 0])), postes };
   const targets = targetsOf(draft, data, byPayer);
@@ -57,6 +58,7 @@ export default function Regle() {
           </button>
         ))}
       </nav>
+      {mode === "poste" ? <p className="d-rule-note">Pour un poste : partagé à parts égales, pris par quelqu'un, ou au prorata des invités à ce moment précis (dîner, cocktail, ou toute la liste pour les faire-part).</p> : null}
 
       <div className="d-card d-rule">
         <RuleGauge byPayer={byPayer} targets={targets} total={total} />
@@ -131,6 +133,11 @@ export default function Regle() {
                       <button type="button" role="radio" aria-checked={who === "partage"} className={`d-pill${who === "partage" ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: "partage" }))}>
                         Partagé
                       </button>
+                      {prorata.map((opt) => (
+                        <button key={opt.key} type="button" role="radio" aria-checked={who === opt.key} className={`d-pill${who === opt.key ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: opt.key }))}>
+                          {opt.label}
+                        </button>
+                      ))}
                       {byPayer.map((x) => (
                         <button key={x.member.id} type="button" role="radio" aria-checked={who === x.member.id} className={`d-pill d-pill-person${who === x.member.id ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: x.member.id }))}>
                           <Avatar member={x.member} size={22} />
@@ -138,6 +145,16 @@ export default function Regle() {
                         </button>
                       ))}
                     </div>
+                    {who && who.startsWith("invites:")
+                      ? (() => {
+                          const shares = guestProrataShares(data, byPayer, who.slice("invites:".length));
+                          return (
+                            <div className="d-rule-prorata-note">
+                              Au prorata : {byPayer.map((x) => `${x.member.display_name} ${Math.round(shares[x.member.id] || 0)} %`).join(" · ")}
+                            </div>
+                          );
+                        })()
+                      : null}
                   </li>
                 );
               })}
