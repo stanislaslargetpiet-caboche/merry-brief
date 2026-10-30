@@ -333,7 +333,7 @@ export function useShare(v) {
 // Réponse enregistrée : ce que cet invité a envoyé depuis ce navigateur (formulaire /f/…)
 // ---------------------------------------------------------------------------
 
-export function useSavedResponse(formSlug, preview) {
+export function useSavedResponse(formSlug, preview, reloadKey) {
   const [res, setRes] = useState(null);
   useEffect(() => {
     if (preview) {
@@ -347,7 +347,8 @@ export function useSavedResponse(formSlug, preview) {
     } catch {
       // stockage indisponible : la rubrique invite à répondre
     }
-  }, [formSlug, preview]);
+    // reloadKey : relit le stockage juste après un envoi fait depuis le formulaire intégré (GuestFormInline)
+  }, [formSlug, preview, reloadKey]);
   return res;
 }
 

@@ -28,7 +28,12 @@ function startSite(data, demo) {
 const TPL_SAMPLE = (t) => {
   const o = paletteOf(t.id, "origine").vars;
   const f = FONT_PAIRS.find((p) => p.id === t.fonts);
-  return { background: o.bg, color: t.id === "embarquement" ? o.onBg : o.accent, fontFamily: `'${f.display}', serif` };
+  return {
+    background: `linear-gradient(160deg, ${o.bg} 0%, ${o.tint} 100%)`,
+    color: o.accent,
+    fontFamily: `'${f.display}', serif`,
+    boxShadow: `inset 0 -3px 0 ${o.accent2 || o.accent}`,
+  };
 };
 
 const Grip = () => (
@@ -382,6 +387,7 @@ export default function SiteMariage() {
             {p1.charAt(0)} &amp; {p2.charAt(0)}
           </span>
           <span className="d-se-tpl-name">{x.name}</span>
+          <span className="d-se-tpl-style">{x.style}</span>
         </button>
       ))}
     </div>

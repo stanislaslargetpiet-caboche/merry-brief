@@ -32,6 +32,21 @@
   gap: 28px;
 }
 
+/* Formulaire intégré dans une rubrique du site de mariage (GuestFormInline), pas de pleine hauteur ni de couverture */
+.gf-embed {
+  color: #1c1c1a;
+  font-family: Inter, Helvetica, Arial, sans-serif;
+  text-align: left;
+}
+
+.gf-embed .gf-card {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(28, 28, 26, 0.08);
+}
+
 .gf-hero {
   align-items: center;
   text-align: center;

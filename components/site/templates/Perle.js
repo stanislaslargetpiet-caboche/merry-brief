@@ -3,8 +3,10 @@
 // Modèle 3 · Perle (Chic) : rangs de perles, capitales didone, programme sur bande taupe.
 // Maquettes Site-Perle (1440 px) et Site-Perle-Tel (390 px).
 
+import { useState } from "react";
 import { contactHref, hourClock, mapsUrl } from "@/lib/site/model";
 import { AgendaLink, Faq, Orn, Pearls, PearlPath, Photo, QR, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { travelLabel, writeTo } from "../kit";
 
@@ -372,7 +374,8 @@ function Citation({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
-  const res = useSavedResponse(v.formSlug, ctx.preview);
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   return (
     <section id="reponse" className="pe-block">
       <Head title="Votre réponse" script={res ? (res.present === false ? "vous nous manquerez" : "vous serez des nôtres") : "deux minutes suffisent"} />
@@ -396,9 +399,7 @@ function Reponse({ ctx }) {
               ) : null}
             </>
           ) : v.formSlug ? (
-            <a className="pe-lnk" href={`/f/${v.formSlug}`}>
-              <L>Répondre</L>
-            </a>
+            <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} />
           ) : null}
         </div>
       </div>

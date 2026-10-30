@@ -3,8 +3,10 @@
 // Modèle 8 · Rivage (Bord de mer) : plage, « Nos moments » en photos éparpillées, album.
 // Maquettes Site-Rivage (1440 px) et Site-Rivage-Tel (390 px).
 
+import { useState } from "react";
 import { contactHref, hourClock } from "@/lib/site/model";
 import { AgendaLink, Faq, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { placeDot, travelLabel, writeTo } from "../kit";
 
@@ -360,19 +362,24 @@ function Tenue({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
-  const res = useSavedResponse(v.formSlug, ctx.preview);
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   return (
     <Simple id="reponse" kicker={res ? "Merci, votre réponse est enregistrée" : "Votre réponse"} title={res ? (res.present === false ? "Vous nous manquerez" : "Vous serez des nôtres") : "Serez-vous des nôtres ?"}>
       {res ? (
-        <p className="rv-p rv-narrow">
-          <span className="rv-ink">{res.names}</span>
-          {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
-        </p>
-      ) : null}
-      {v.formSlug ? (
-        <a className="rv-pill is-fill" href={`/f/${v.formSlug}`}>
-          {res ? "Changer ma réponse" : "Répondre"}
-        </a>
+        <>
+          <p className="rv-p rv-narrow">
+            <span className="rv-ink">{res.names}</span>
+            {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
+          </p>
+          {v.formSlug ? (
+            <a className="rv-pill is-fill" href={`/f/${v.formSlug}`}>
+              Changer ma réponse
+            </a>
+          ) : null}
+        </>
+      ) : v.formSlug ? (
+        <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} />
       ) : null}
     </Simple>
   );

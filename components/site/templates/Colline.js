@@ -3,8 +3,10 @@
 // Modèle 5 · Colline (Bohème) : site de photographe, logo en médaillon, grandes photos.
 // Maquettes Site-Colline (1440 px) et Site-Colline-Tel (390 px).
 
+import { useState } from "react";
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, QR, RouteLink, joinList, useSavedResponse, useShare } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { momentWhen, placeLine, travelLabel, witnesses } from "../kit";
 
@@ -371,19 +373,24 @@ function Citation({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
-  const res = useSavedResponse(v.formSlug, ctx.preview);
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   return (
     <Simple id="reponse" title="Votre réponse" kicker={res ? "Merci, elle est enregistrée" : "Pas encore répondu ?"} tint>
       {res ? (
-        <p className="co-p co-jour-p">
-          <span className="co-ink">{res.names}</span>
-          {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
-        </p>
-      ) : null}
-      {v.formSlug ? (
-        <a className="co-btn" href={`/f/${v.formSlug}`}>
-          {res ? "Changer ma réponse" : "Répondre"}
-        </a>
+        <>
+          <p className="co-p co-jour-p">
+            <span className="co-ink">{res.names}</span>
+            {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
+          </p>
+          {v.formSlug ? (
+            <a className="co-btn" href={`/f/${v.formSlug}`}>
+              Changer ma réponse
+            </a>
+          ) : null}
+        </>
+      ) : v.formSlug ? (
+        <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} />
       ) : null}
     </Simple>
   );

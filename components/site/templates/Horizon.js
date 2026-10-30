@@ -3,8 +3,10 @@
 // Modèle 1 · Horizon (par défaut) : panneaux clairs sur fond lin, deux colonnes décalées sur ordinateur.
 // Maquettes Site-Horizon (1440 px) et Site-Horizon-Tel (390 px).
 
+import { useState } from "react";
 import { hourClock } from "@/lib/site/model";
 import { AgendaLink, Faq, Orn, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { placeLine, travelLabel, writeTo } from "../kit";
 
@@ -180,20 +182,20 @@ function Moments({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
-  const res = useSavedResponse(v.formSlug, ctx.preview);
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   const contacts = v.content.contacts;
   if (!res) {
     return (
       <section id="reponse" className="hz-panel hz-pad">
         <Head kicker="Votre réponse" title="Serez-vous des nôtres ?" />
-        <div className="hz-answer">
-          {v.formSlug ? (
-            <a className="hz-pill is-on" href={`/f/${v.formSlug}`}>
-              <L>Répondre</L>
-            </a>
-          ) : null}
-          {contacts.length ? <span className="hz-cg hz-change">{writeTo(contacts)}</span> : null}
-        </div>
+        {v.formSlug ? (
+          <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} />
+        ) : contacts.length ? (
+          <div className="hz-answer">
+            <span className="hz-cg hz-change">{writeTo(contacts)}</span>
+          </div>
+        ) : null}
       </section>
     );
   }

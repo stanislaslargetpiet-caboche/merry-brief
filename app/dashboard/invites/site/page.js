@@ -7,18 +7,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { guestStats } from "@/lib/dash/model";
-import { defaultSite, fontsHref, fontsOf, SECTIONS, sectionsOf, siteUrl, siteView, templateOf } from "@/lib/site/model";
+import { defaultSite, fontsHref, fontsOf, siteUrl, siteView, templateOf } from "@/lib/site/model";
 import { Btn } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
-
-const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
-
-function hiddenText(hidden) {
-  if (!hidden.length) return "Toutes les rubriques sont affichées";
-  if (hidden.length > 2) return `${hidden.length} rubriques sont masquées`;
-  const names = hidden.map((k, i) => (i ? lower(SECTIONS[k].label) : SECTIONS[k].label)).join(" et ");
-  return `${names} ${hidden.length > 1 ? "sont masqués" : "est masqué"}`;
-}
 
 export default function InvitesSite() {
   const data = useDash().data;
@@ -28,10 +19,6 @@ export default function InvitesSite() {
   const fonts = fontsOf(site);
   const v = siteView({ site, wedding: data.wedding, events: data.events, preview: true });
   const g = guestStats(data);
-  const replies = data.form?.submissions || 0;
-  const sections = sectionsOf(site);
-  const hidden = sections.filter((s) => s.hidden).map((s) => s.key);
-  const total = Object.keys(SECTIONS).length;
 
   // L'adresse complète dépend du domaine : connue seulement dans le navigateur
   useEffect(() => {
@@ -67,21 +54,59 @@ export default function InvitesSite() {
       />
 
       <section className="d-isite">
-        <div className="d-isite-cover" style={v.photos.cover ? { backgroundImage: `linear-gradient(rgba(28,28,26,0.28), rgba(28,28,26,0.28)), url(${v.photos.cover})` } : undefined}>
-          <div className="d-isite-names">
-            <span style={{ fontFamily: `'${fonts.display}', serif` }}>{v.names}</span>
-            {v.date ? (
-              <small>
-                Mariage · {v.date.dd}.{v.date.mm}.{v.date.year}
-              </small>
-            ) : null}
+        <div className="d-isite-cover">
+          <div
+            className="d-isite-demo"
+            role="img"
+            aria-label="Aperçu animé du site : la couverture, le programme et le lieu, tel que vos invités le voient en faisant défiler la page"
+          >
+            <div
+              className="d-isite-demo-page"
+              style={v.photos.cover ? { backgroundImage: `linear-gradient(rgba(28,28,26,.32), rgba(28,28,26,.32)), url(${v.photos.cover})` } : undefined}
+            >
+              <span className="d-isite-demo-eyebrow">Mariage</span>
+              <span className="d-isite-demo-names" style={{ fontFamily: `'${fonts.display}', serif` }}>
+                {v.names}
+              </span>
+              {v.date ? (
+                <small>
+                  {v.date.dd}.{v.date.mm}.{v.date.year}
+                </small>
+              ) : null}
+            </div>
+            <div className="d-isite-demo-page">
+              <span className="d-isite-demo-eyebrow" style={{ color: "#9c4f2e" }}>
+                Le programme
+              </span>
+              <span className="d-isite-demo-item">
+                <b>14h</b> Mairie
+              </span>
+              <span className="d-isite-demo-item">
+                <b>17h</b> Cocktail
+              </span>
+              <span className="d-isite-demo-item">
+                <b>20h</b> Dîner
+              </span>
+            </div>
+            <div className="d-isite-demo-page">
+              <span className="d-isite-demo-eyebrow" style={{ color: "#9c4f2e" }}>
+                Le lieu
+              </span>
+              <span className="d-isite-demo-names" style={{ fontFamily: `'${fonts.display}', serif`, fontSize: 22 }}>
+                Domaine des Oliviers
+              </span>
+              <small>Luberon, Vaucluse</small>
+            </div>
           </div>
           <span className="d-isite-tpl">Modèle {templateOf(site.template).name}</span>
         </div>
         <div className="d-isite-body">
           {status}
           <h2>Votre site de mariage</h2>
-          <p className="d-muted">Vos invités y trouvent le programme, le lieu et le formulaire pour répondre. Chaque réponse arrive dans votre liste.</p>
+          <p className="d-muted">
+            Vos invités y trouvent <span className="d-isite-hl">le programme</span>, <span className="d-isite-hl">le lieu</span> et{" "}
+            <span className="d-isite-hl">le formulaire</span> pour répondre. Chaque réponse arrive dans votre liste.
+          </p>
           {data.site ? (
             <div className="d-isite-url">
               <span>{url.replace(/^https?:\/\//, "")}</span>
@@ -104,18 +129,6 @@ export default function InvitesSite() {
       </section>
 
       <div className="d-isite-cards">
-        <Link href="/dashboard/site" className="d-isite-card">
-          <strong>
-            {total - hidden.length} sur {total}
-          </strong>
-          <span>Rubriques affichées</span>
-          <small>{hiddenText(hidden)}</small>
-        </Link>
-        <Link href="/dashboard/invites/formulaire" className="d-isite-card">
-          <strong>{replies}</strong>
-          <span>Réponses par le formulaire</span>
-          <small>Voir l'onglet Formulaire</small>
-        </Link>
         <Link href="/dashboard/invites" className="d-isite-card">
           <strong>{g.total - g.answered}</strong>
           <span>Invités sans réponse</span>

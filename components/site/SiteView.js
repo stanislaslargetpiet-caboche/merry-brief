@@ -12,13 +12,10 @@ import { SiteEditProvider, SiteTextProvider } from "./edit";
 import Horizon from "./templates/Horizon";
 import Terracotta from "./templates/Terracotta";
 import Perle from "./templates/Perle";
-import Embarquement from "./templates/Embarquement";
 import Colline from "./templates/Colline";
-import Belvedere from "./templates/Belvedere";
-import Moisson from "./templates/Moisson";
 import Rivage from "./templates/Rivage";
 
-const IMPL = { horizon: Horizon, terracotta: Terracotta, perle: Perle, embarquement: Embarquement, colline: Colline, belvedere: Belvedere, moisson: Moisson, rivage: Rivage };
+const IMPL = { horizon: Horizon, terracotta: Terracotta, perle: Perle, colline: Colline, rivage: Rivage };
 
 const SIZE = { half: 2, third: 3, wide: 2, narrow: 2 };
 
