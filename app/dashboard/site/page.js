@@ -22,7 +22,7 @@ import "../../s/site.css";
 function startSite(data, demo) {
   const base = data.site ? { ...data.site } : defaultSite(data);
   if (!data.site && demo) base.content = demoSiteContent(data);
-  return { ...base, content: withDefaults(base.content), sections: sectionsOf(base) };
+  return { ...base, template: templateOf(base.template).id, content: withDefaults(base.content), sections: sectionsOf(base) };
 }
 
 const TPL_SAMPLE = (t) => {
@@ -382,7 +382,7 @@ export default function SiteMariage() {
   const modele = (
     <div className="d-se-tpls">
       {TEMPLATES.map((x) => (
-        <button key={x.id} type="button" title={`${x.name} · ${x.style}`} className={`d-se-tpl${x.id === site.template ? " is-on" : ""}`} aria-pressed={x.id === site.template} onClick={() => change({ template: x.id, palette: "origine", fonts: null })}>
+        <button key={x.id} type="button" title={`${x.name} · ${x.style}`} className={`d-se-tpl${x.id === site.template ? " is-on" : ""}`} aria-pressed={x.id === site.template} onClick={() => change({ template: x.id })}>
           <span className="d-se-tpl-sample" style={TPL_SAMPLE(x)}>
             {x.name}
           </span>

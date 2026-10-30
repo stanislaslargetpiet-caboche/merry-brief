@@ -56,13 +56,22 @@ export function Ico({ name, size = 24, sw = 1, className = "", style }) {
 // ---------------------------------------------------------------------------
 
 // « path » : où la photo s'enregistre (« photos.cover », « photos.story.1 ») ; dans l'éditeur, un clic la change
-export function Photo({ src, tone = 1, label, preview, className = "", style, frame = true, round, position, gray, children, path }) {
+export function Photo({ src, tone = 1, label, preview, className = "", style, frame = true, round, position, gray, children, path, cropKey }) {
   const edit = useSiteEdit();
+  // « cropKey » : où s'enregistre le cadrage (« crop.cover ») ; « Recadrer » passe de haut en centre puis en bas
+  const next = position === 20 ? 50 : position === 80 ? 20 : position === 50 || position == null ? 80 : 50;
   const pick = edit && path ? (
-    <button type="button" className="s-photo-pick" onClick={(e) => (e.stopPropagation(), edit.pickPhoto(path))}>
-      <Ico name="photo" size={16} sw={1.4} />
-      {src && !isExample(src) ? "Changer la photo" : "Ajouter votre photo"}
-    </button>
+    <span className="s-photo-tools">
+      <button type="button" className="s-photo-pick" onClick={(e) => (e.stopPropagation(), edit.pickPhoto(path))}>
+        <Ico name="photo" size={16} sw={1.4} />
+        {src && !isExample(src) ? "Changer la photo" : "Ajouter votre photo"}
+      </button>
+      {cropKey && src ? (
+        <button type="button" className="s-photo-pick" onClick={(e) => (e.stopPropagation(), edit.set(cropKey, next))}>
+          Recadrer
+        </button>
+      ) : null}
+    </span>
   ) : null;
   if (src) {
     return (

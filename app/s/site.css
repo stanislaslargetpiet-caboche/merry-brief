@@ -1664,11 +1664,13 @@
 }
 
 .s-ed:hover {
-  box-shadow: 0 0 0 1.5px rgba(28, 28, 26, 0.35);
+  outline: 1.5px dashed currentColor;
+  outline-offset: 4px;
 }
 
 .s-ed:focus {
-  box-shadow: 0 0 0 2px #cbff75, 0 0 0 6px rgba(203, 255, 117, 0.35);
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
 }
 
 .s-ed.is-empty::before {
@@ -1683,12 +1685,24 @@
   min-width: 4em;
 }
 
-.s-photo-pick {
+.s-photo-tools {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  left: 16px;
+  right: 16px;
+  top: 16px;
   z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.s-photo-tools .s-photo-pick {
+  pointer-events: auto;
+}
+
+.s-photo-pick {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1696,9 +1710,10 @@
   padding: 0 14px;
   border-radius: 999px;
   border: 0;
-  background: rgba(28, 28, 26, 0.82);
-  color: #ffffff;
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #1c1c1a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  font-family: Inter, Helvetica, Arial, sans-serif;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -1708,6 +1723,7 @@
 }
 
 .s-photo:hover .s-photo-pick,
+.s-photo.is-empty .s-photo-tools .s-photo-pick,
 .s-photo-pick:focus-visible,
 .s-photo.is-empty .s-photo-pick {
   opacity: 1;
@@ -1727,7 +1743,7 @@
 
 .s-ed-x,
 .s-ed-add {
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
   cursor: pointer;
 }
 
@@ -1770,10 +1786,408 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.88);
   color: #1c1c1a;
-  font-family: Archivo, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
   pointer-events: none;
+}
+
+
+/* ---------- Socle commun : trois structures (plein cadre, éditorial, côte à côte) ---------- */
+
+.st-socle {
+  font-family: var(--f-sans);
+  font-weight: 400;
+  color: var(--s-ink);
+  background: var(--s-bg);
+}
+
+.st-socle .so-names {
+  font-family: var(--f-display);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-size: clamp(48px, 9cqi, 112px);
+}
+
+.st-socle .so-when {
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.st-socle .so-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+  font-size: 13px;
+}
+
+.st-socle .so-nav a {
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.st-socle .so-kicker {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--s-accent);
+}
+
+.st-socle .so-kicker.is-soft {
+  color: var(--s-soft);
+}
+
+.st-socle .so-h2 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(32px, 4.4cqi, 52px);
+  line-height: 1.05;
+  color: var(--s-ink);
+}
+
+.st-socle .so-p {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--s-soft);
+}
+
+.st-socle .so-p.is-small {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.st-socle .so-ink {
+  color: var(--s-ink);
+}
+
+.st-socle .so-item {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--s-ink);
+}
+
+.st-socle .so-item.is-small {
+  font-family: var(--f-sans);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.st-socle .so-meta {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--s-accent);
+}
+
+.st-socle .so-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.st-socle .so-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 0;
+  border-top: 1px solid var(--s-line);
+}
+
+.st-socle .so-list.is-tight > li {
+  padding: 10px 0;
+}
+
+.st-socle .so-link,
+.st-socle .so-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--s-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.st-socle .so-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.st-socle .so-block {
+  padding: 72px 24px;
+}
+
+.st-socle .so-block.is-tint {
+  background: var(--s-tint);
+}
+
+.st-socle .so-block-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.st-socle .so-block-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.st-socle .so-venue-photo {
+  height: 360px;
+  border-radius: 4px;
+}
+
+.st-socle .s-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.st-socle .so-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 24px 48px;
+  border-top: 1px solid var(--s-line);
+}
+
+.st-socle .so-footer-names {
+  font-family: var(--f-display);
+  font-size: 28px;
+}
+
+/* Plein cadre : la photo en grand, tout est centré */
+
+.so-cadre .so-hero {
+  position: relative;
+}
+
+.so-cadre .so-hero-photo {
+  height: 720px;
+}
+
+.so-cadre .so-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.18), transparent 30%, transparent 50%, rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+
+.so-cadre .so-nav.is-over {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  justify-content: center;
+  color: #ffffff;
+  z-index: 1;
+}
+
+.so-cadre .so-hero-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 48px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.so-cadre .so-flow .so-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.so-cadre .so-block-head,
+.so-cadre .so-block-body {
+  align-items: center;
+  max-width: 620px;
+  width: 100%;
+}
+
+.so-cadre .so-list > li {
+  align-items: center;
+}
+
+/* Éditorial : titre de journal, photo encadrée, texte à gauche */
+
+.so-edito .so-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px clamp(24px, 6cqi, 80px);
+  border-bottom: 1px solid var(--s-line);
+}
+
+.so-edito .so-initials {
+  font-family: var(--f-display);
+  font-size: 20px;
+}
+
+.so-edito .so-mast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 72px clamp(24px, 6cqi, 80px) 40px;
+}
+
+.so-edito .so-names {
+  font-size: clamp(56px, 11cqi, 150px);
+}
+
+.so-edito .so-mast-photo {
+  height: 600px;
+  width: auto;
+  margin: 0 clamp(24px, 6cqi, 80px);
+  border-radius: 4px;
+}
+
+.so-edito .so-flow .so-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 40px;
+  padding: 72px clamp(24px, 6cqi, 80px);
+  border-bottom: 1px solid var(--s-line);
+}
+
+.so-edito .so-block-body {
+  max-width: 640px;
+}
+
+/* Côte à côte : la photo reste en place à gauche */
+
+.so-cote .so-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 900px;
+}
+
+.so-cote .so-split-photo {
+  position: relative;
+}
+
+.so-cote .so-split-pic {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.so-cote .so-split-side {
+  display: flex;
+  flex-direction: column;
+  padding: 16px clamp(24px, 5cqi, 72px) 0;
+}
+
+.so-cote .so-split-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 72px 0 24px;
+}
+
+.so-cote .so-split-head .so-when {
+  color: var(--s-accent);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.so-cote .so-names {
+  font-size: clamp(48px, 6.5cqi, 96px);
+}
+
+.so-cote .so-flow .so-block {
+  padding: 48px 0;
+  border-top: 1px solid var(--s-line);
+}
+
+.so-cote .so-flow .so-block.is-tint {
+  background: transparent;
+}
+
+.so-cote .so-footer {
+  align-items: flex-start;
+  padding: 40px 0 48px;
+}
+
+/* Téléphone */
+
+@container site (max-width: 700px) {
+  .st-socle .so-block {
+    padding: 52px 20px;
+  }
+
+  .so-cadre .so-hero-photo {
+    height: 560px;
+  }
+
+  .so-cadre .so-nav.is-over {
+    display: none;
+  }
+
+  .so-edito .so-bar .so-nav {
+    display: none;
+  }
+
+  .so-edito .so-mast-text {
+    padding: 44px 20px 28px;
+  }
+
+  .so-edito .so-mast-photo {
+    margin: 0 20px;
+    height: 420px;
+  }
+
+  .so-edito .so-flow .so-block {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 52px 20px;
+  }
+
+  .so-cote .so-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .so-cote .so-split-pic {
+    position: relative;
+    height: 440px;
+  }
+
+  .so-cote .so-split-side {
+    padding: 0 20px;
+  }
+
+  .so-cote .so-split-side > .so-nav {
+    display: none;
+  }
+
+  .so-cote .so-split-head {
+    padding: 40px 0 16px;
+  }
+
+  .st-socle .so-venue-photo {
+    height: 240px;
+  }
 }
