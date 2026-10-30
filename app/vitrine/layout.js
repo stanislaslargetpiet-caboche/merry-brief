@@ -17,7 +17,7 @@ export const metadata = {
 export default function VitrineLayout({ children }) {
   return (
     <>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" precedence="default" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" precedence="default" />
       {children}
       <Script src="https://cdn.weglot.com/weglot.min.js" strategy="afterInteractive" />
       <Script id="weglot-init" strategy="afterInteractive">{`(function w(){if(window.Weglot){window.Weglot.initialize({api_key:"${WEGLOT_KEY}"})}else{setTimeout(w,50)}})()`}</Script>
