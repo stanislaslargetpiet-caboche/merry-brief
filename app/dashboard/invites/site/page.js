@@ -16,10 +16,10 @@ import { supabase } from "@/lib/supabase";
 // Nombre de visites de la page publique sur les 7 derniers jours. En démo, comptées dans
 // localStorage par app/s/[slug]/page.js à chaque chargement ; en vrai, lues dans Supabase
 // (merry_site_visits_7j, supabase/site-visites.sql), journalisées par merry_site_public.
-function useSiteVisits(weddingId, visits) {
+function useSiteVisits(weddingId, visits, demo) {
   const [remote, setRemote] = useState(null);
   useEffect(() => {
-    if (!weddingId || visits || !supabase) return;
+    if (!weddingId || visits || demo || !supabase) return;
     let live = true;
     supabase
       .rpc("merry_site_visits_7j", { p_wedding_id: weddingId })
@@ -29,19 +29,21 @@ function useSiteVisits(weddingId, visits) {
     return () => {
       live = false;
     };
-  }, [weddingId, visits]);
+  }, [weddingId, visits, demo]);
+  if (demo && !visits) return 0;
   if (visits) return visits.filter((t) => Date.now() - new Date(t).getTime() < 7 * 86400000).length;
   return remote;
 }
 
 export default function InvitesSite() {
-  const data = useDash().data;
+  const dash = useDash();
+  const data = dash.data;
   const [copied, setCopied] = useState(false);
   const [url, setUrl] = useState("");
   const site = data.site || defaultSite(data);
   const fonts = fontsOf(site);
   const g = guestStats(data);
-  const visits7j = useSiteVisits(data.wedding?.id, data.site?.visits);
+  const visits7j = useSiteVisits(data.wedding?.id, data.site?.visits, dash.mode === "demo");
 
   // L'adresse complète dépend du domaine : connue seulement dans le navigateur
   useEffect(() => {
