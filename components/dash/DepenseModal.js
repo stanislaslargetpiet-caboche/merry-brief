@@ -21,6 +21,9 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const [newLabel, setNewLabel] = useState("");
   const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
+  const [full, setFull] = useState(true); // paiement intégral, sinon acompte avec un reste
+  const [rest, setRest] = useState("");
+  const [statutPaid, setStatutPaid] = useState(true); // déjà payée, sinon à payer
   const [paidAt, setPaidAt] = useState(todayIso());
   const [payerId, setPayerId] = useState(meId || members[0]?.id || null);
   const [file, setFile] = useState(null);
@@ -40,18 +43,34 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
     if (!ready || busy) return;
     setBusy(true);
     let id = item?.id;
+    let hadQuote = item?.quote_amount !== null && item?.quote_amount !== undefined;
     if (isNew) {
       id = uid();
       await dash.insert("budget_items", { id, label: newLabel.trim(), icon: guessIcon(newLabel), position: items.length });
       refineIcon(dash, "budget_items", id, newLabel.trim(), guessIcon(newLabel));
+      hadQuote = false;
     }
-    await dash.insert("payments", { budget_item_id: id, label, amount: value, paid_at: paidAt || todayIso(), payer_id: payerId || null, due_date: null, note: note.trim().slice(0, 500) || null });
+    // Un poste sans montant prévu en reçoit un, à partir de cette dépense (montant + reste si acompte) ;
+    // s'il en a déjà un, on ne le touche pas pour ne pas écraser ce que Modifier le poste a pu fixer.
+    if (!hadQuote) {
+      const restAmount = full ? 0 : parseAmount(rest) || 0;
+      await dash.update("budget_items", id, { quote_amount: value + restAmount });
+    }
+    await dash.insert("payments", {
+      budget_item_id: id,
+      label,
+      amount: value,
+      paid_at: statutPaid ? paidAt || todayIso() : null,
+      payer_id: statutPaid ? payerId || null : null,
+      due_date: null,
+      note: note.trim().slice(0, 500) || null,
+    });
     if (file) {
       const folder = folders.find((x) => /facture|devis/i.test(x.name)) || null;
       const res = await dash.uploadDocument(file, { folderId: folder?.id || null, kind: "facture", budgetItemId: id, vendorId: item?.vendor_id || null, name: file.name });
       if (!res.ok) dash.setToast({ kind: "error", text: res.reason === "size" ? `La facture dépasse ${fileSize(DOCUMENT_MAX_BYTES)}.` : res.reason === "setup" ? "Le stockage des documents n'est pas installé (supabase/documents.sql) : la dépense est notée sans la facture." : "La facture n'a pas pu être envoyée ; la dépense est notée sans elle." });
     }
-    dash.setToast({ kind: "ok", text: `${euros(value)} ajoutés à ${isNew ? newLabel.trim() : posteName(item)}.` });
+    dash.setToast({ kind: "ok", text: `${euros(value)} ${statutPaid ? "payés" : "prévus"} pour ${isNew ? newLabel.trim() : posteName(item)}.` });
     onClose();
   }
 
@@ -98,19 +117,48 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
         <Field label="Montant (€)">
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />
         </Field>
-        <Field label="Payé le">
-          <input className="d-input" type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
-        </Field>
-        <Field label="Payé par" full group>
-          <div className="d-filters">
-            {members.map((m) => (
-              <button key={m.id} type="button" className={`d-pill d-pill-person${payerId === m.id ? " is-on" : ""}`} aria-pressed={payerId === m.id} onClick={() => setPayerId(m.id)}>
-                <Avatar member={m} size={24} />
-                {m.display_name}
-              </button>
-            ))}
+        <Field label="Type" full group>
+          <div className="d-filters" role="radiogroup" aria-label="Paiement intégral ou acompte">
+            <button type="button" className={`d-pill${full ? " is-on" : ""}`} aria-pressed={full} onClick={() => setFull(true)}>
+              Paiement intégral
+            </button>
+            <button type="button" className={`d-pill${!full ? " is-on" : ""}`} aria-pressed={!full} onClick={() => setFull(false)}>
+              Acompte
+            </button>
           </div>
         </Field>
+        {!full ? (
+          <Field label="Reste à payer (€)">
+            <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="300" />
+          </Field>
+        ) : null}
+        <Field label="Statut" full group>
+          <div className="d-filters" role="radiogroup" aria-label="C'est payé ou à payer">
+            <button type="button" className={`d-pill${statutPaid ? " is-on" : ""}`} aria-pressed={statutPaid} onClick={() => setStatutPaid(true)}>
+              C&rsquo;est payé
+            </button>
+            <button type="button" className={`d-pill${!statutPaid ? " is-on" : ""}`} aria-pressed={!statutPaid} onClick={() => setStatutPaid(false)}>
+              À payer
+            </button>
+          </div>
+        </Field>
+        {statutPaid ? (
+          <>
+            <Field label="Payé le">
+              <input className="d-input" type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+            </Field>
+            <Field label="Payé par" full group>
+              <div className="d-filters">
+                {members.map((m) => (
+                  <button key={m.id} type="button" className={`d-pill d-pill-person${payerId === m.id ? " is-on" : ""}`} aria-pressed={payerId === m.id} onClick={() => setPayerId(m.id)}>
+                    <Avatar member={m} size={24} />
+                    {m.display_name}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </>
+        ) : null}
         <Field label="Descriptif (facultatif)" full>
           <textarea className="d-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre, remise de 10 % négociée…" />
         </Field>
