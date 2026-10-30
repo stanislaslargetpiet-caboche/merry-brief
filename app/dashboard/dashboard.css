@@ -30,21 +30,38 @@
   font-family: Inter, Helvetica, Arial, sans-serif;
 }
 
-/* Couleur choisie dans Réglages : la pêche est la valeur par défaut */
-.d-root[data-accent="corail"] {
-  --d-lime: #ff8a6b;
-  --d-limetint: #ffe0d6;
-  --d-ok-bg: #ffe0d6;
-  --d-ok-ink: #8a2e14;
-  --d-veil: #fff4f0;
+/* Couleur choisie dans Réglages (tableau de bord des organisateurs ; citron par défaut).
+   L'espace prestataires, sans data-accent, garde les valeurs de .d-root. */
+.d-root[data-accent="citron"] {
+  --d-lime: #fff700;
+  --d-limetint: #fffdb8;
+  --d-ok-bg: #fffdb8;
+  --d-ok-ink: #574e00;
+  --d-veil: #fffceb;
 }
 
-.d-root[data-accent="mangue"] {
-  --d-lime: #ffb54a;
-  --d-limetint: #ffebc7;
-  --d-ok-bg: #ffebc7;
-  --d-ok-ink: #7a4a00;
-  --d-veil: #fff8ec;
+.d-root[data-accent="beurre"] {
+  --d-lime: #ffe58a;
+  --d-limetint: #fff5cc;
+  --d-ok-bg: #fff5cc;
+  --d-ok-ink: #6b5300;
+  --d-veil: #fffcee;
+}
+
+.d-root[data-accent="anis"] {
+  --d-lime: #e4f78f;
+  --d-limetint: #f5fcd2;
+  --d-ok-bg: #f5fcd2;
+  --d-ok-ink: #4e5a00;
+  --d-veil: #fbfef0;
+}
+
+.d-root[data-accent="pistache"] {
+  --d-lime: #bfe9a6;
+  --d-limetint: #e6f7dc;
+  --d-ok-bg: #e6f7dc;
+  --d-ok-ink: #2f5a1a;
+  --d-veil: #f6fcf2;
 }
 
 :where(.d-root) a {
@@ -12340,7 +12357,7 @@ body.d-noscroll {
 
 .d-se-box.is-drag {
   outline-style: solid;
-  background: rgba(246, 201, 168, 0.22);
+  background: color-mix(in srgb, var(--d-lime) 22%, transparent);
 }
 
 .d-se-handle {
@@ -14619,9 +14636,15 @@ body.d-noscroll {
 
 .d-accents {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 28px;
+}
+
+@media (max-width: 1100px) {
+  .d-accents {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .d-accent {
