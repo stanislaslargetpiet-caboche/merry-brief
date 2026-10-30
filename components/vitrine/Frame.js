@@ -111,6 +111,9 @@ export default async function Frame({ current, children }) {
         <div>
           <p className="wv-quote">“Never miss a party… good for the nerves - like celery.”</p>
           <p className="wv-quote">F. Scott Fitzgerald</p>
+          <p className="wv-quote wv-foot-links">
+            <a href={links.about}>À propos</a> · <a href={links.pro}>Prestataires</a>
+          </p>
         </div>
       </footer>
     </div>
