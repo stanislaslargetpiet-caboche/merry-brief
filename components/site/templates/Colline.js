@@ -7,7 +7,7 @@ import { useState } from "react";
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Ico, Orn, Photo, QR, RouteLink, joinList, useSavedResponse, useShare } from "../parts";
 import GuestFormInline from "../GuestFormInline";
-import { F, L } from "../edit";
+import { Editable, F, L, useLabel, useSiteEdit } from "../edit";
 import { momentWhen, placeLine, travelLabel, witnesses } from "../kit";
 
 // Titres en capitales Cormorant avec un mot en italique (« Le programme » : le premier, « Les essentiels » : le dernier)
@@ -25,6 +25,12 @@ function Ital({ text, at = "last" }) {
       {words.slice(0, -1).join(" ")} <i>{words[words.length - 1]}</i>
     </>
   );
+}
+
+// Titre en capitales Cormorant avec un mot en italique, éditable (remplace ou efface le texte du modèle)
+function TitleItal({ text, at }) {
+  const lbl = useLabel(text);
+  return lbl.edit ? <Editable value={lbl.text} placeholder={text} onChange={lbl.edit.onChange} /> : <Ital text={lbl.text} at={at} />;
 }
 
 function Top({ ctx }) {
@@ -115,7 +121,7 @@ function Programme({ ctx }) {
       <div className="co-prog-left">
         <div className="co-prog-text">
           <h2 className="co-cg co-h2">
-            <Ital text="Le programme" at="first" />
+            <TitleItal text="Le programme" at="first" />
           </h2>
           <div className="co-prog-list">
             {v.moments.map((m) => (
@@ -178,7 +184,7 @@ function Pratique({ ctx }) {
     <section id="pratique" className="co-tint co-ess">
       <div className="co-ess-head">
         <h2 className="co-cg co-h2">
-          <Ital text="Les essentiels" />
+          <TitleItal text="Les essentiels" />
         </h2>
         <span />
       </div>
@@ -228,6 +234,7 @@ function Pratique({ ctx }) {
 
 function Histoire({ ctx }) {
   const { v } = ctx;
+  const edit = useSiteEdit();
   const [a, b] = v.photos.story || [];
   return (
     <section id="histoire" className="co-story">
@@ -236,7 +243,11 @@ function Histoire({ ctx }) {
         <div className="co-story-over">
           <span className="co-lab is-small"><L>C’est ici que tout a commencé</L></span>
           <h2 className="co-cg co-h2">
-            <Ital text={v.content.story.title || "Notre histoire"} />
+            {edit ? (
+              <Editable value={v.content.story.title || ""} placeholder="Notre histoire" onChange={(t) => edit.set("story.title", t)} />
+            ) : (
+              <Ital text={v.content.story.title || "Notre histoire"} />
+            )}
           </h2>
         </div>
         <div className="co-story-round">
@@ -295,7 +306,7 @@ function Simple({ id, title, kicker, tint, children }) {
     <section id={id} className={`co-simple${tint ? " co-tint" : ""}`}>
       {kicker ? <span className="co-lab is-small"><L>{kicker}</L></span> : null}
       <h2 className="co-cg co-h2">
-        <Ital text={title} />
+        <TitleItal text={title} />
       </h2>
       {children}
     </section>
