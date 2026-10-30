@@ -11,6 +11,28 @@ import { defaultSite, fontsHref, fontsOf, siteUrl } from "@/lib/site/model";
 import { Btn } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import SiteView from "@/components/site/SiteView";
+import { supabase } from "@/lib/supabase";
+
+// Nombre de visites de la page publique sur les 7 derniers jours. En démo, comptées dans
+// localStorage par app/s/[slug]/page.js à chaque chargement ; en vrai, lues dans Supabase
+// (merry_site_visits_7j, supabase/site-visites.sql), journalisées par merry_site_public.
+function useSiteVisits(weddingId, visits) {
+  const [remote, setRemote] = useState(null);
+  useEffect(() => {
+    if (!weddingId || visits || !supabase) return;
+    let live = true;
+    supabase
+      .rpc("merry_site_visits_7j", { p_wedding_id: weddingId })
+      .then(({ data, error }) => {
+        if (live && !error) setRemote(data);
+      });
+    return () => {
+      live = false;
+    };
+  }, [weddingId, visits]);
+  if (visits) return visits.filter((t) => Date.now() - new Date(t).getTime() < 7 * 86400000).length;
+  return remote;
+}
 
 export default function InvitesSite() {
   const data = useDash().data;
@@ -19,6 +41,7 @@ export default function InvitesSite() {
   const site = data.site || defaultSite(data);
   const fonts = fontsOf(site);
   const g = guestStats(data);
+  const visits7j = useSiteVisits(data.wedding?.id, data.site?.visits);
 
   // L'adresse complète dépend du domaine : connue seulement dans le navigateur
   useEffect(() => {
@@ -95,6 +118,13 @@ export default function InvitesSite() {
           <span>Invités sans réponse</span>
           <small>À relancer avec le lien du site</small>
         </Link>
+        {data.site?.published && visits7j != null ? (
+          <div className="d-isite-card">
+            <strong>{visits7j}</strong>
+            <span>Visiteurs</span>
+            <small>7 derniers jours</small>
+          </div>
+        ) : null}
       </div>
     </>
   );
