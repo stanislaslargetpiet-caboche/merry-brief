@@ -77,7 +77,7 @@ export default function Credits() {
                 <ul className="p-checks is-plan">
                   {(PERKS[p.key] || []).map((t) => (
                     <li key={t}>
-                      <ProIcon name="check" size={15} sw={2.4} stroke="#8a3f1c" style={{ flex: "none", marginTop: 2 }} />
+                      <ProIcon name="check" size={15} sw={2.4} stroke="#574e00" style={{ flex: "none", marginTop: 2 }} />
                       <span>{t}</span>
                     </li>
                   ))}

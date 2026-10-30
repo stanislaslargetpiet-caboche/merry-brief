@@ -6,11 +6,11 @@
   --d-line: #ecebe6;
   --d-panel: #f6f5f1;
   --d-border: #d9d7cf;
-  --d-lime: #f6c9a8;
-  --d-limetint: #fcebdd;
-  --d-ok-bg: #fcebdd;
-  --d-ok-ink: #8a3f1c;
-  --d-veil: #fef6ef;
+  --d-lime: #fff700;
+  --d-limetint: #fffdb8;
+  --d-ok-bg: #fffdb8;
+  --d-ok-ink: #574e00;
+  --d-veil: #fffceb;
   --d-red-bg: #fde0de;
   --d-red-ink: #b42318;
   --d-green-bg: #dff3e1;
@@ -31,7 +31,7 @@
 }
 
 /* Couleur choisie dans Réglages (tableau de bord des organisateurs ; citron par défaut).
-   L'espace prestataires, sans data-accent, garde les valeurs de .d-root. */
+   L'espace prestataires, sans data-accent, prend le citron de .d-root. */
 .d-root[data-accent="citron"] {
   --d-lime: #fff700;
   --d-limetint: #fffdb8;
