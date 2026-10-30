@@ -102,6 +102,21 @@ export function L({ children }) {
   return <Editable value={text} placeholder={children} onChange={(t) => edit.setLabel(key, t.trim() && t.trim() !== children ? t : null)} />;
 }
 
+// Valeur résolue d'un petit titre du modèle, pour un rendu personnalisé (ex. mise en forme
+// typographique autour du texte, comme les mots en italique de Colline) : { text, edit }.
+// « text » est ce qu'il faut afficher (le texte résolu, ou tel quel si « children » n'est pas
+// une chaîne) ; « edit », non nul seulement en édition sur une chaîne, donne onChange à poser
+// sur un <Editable>.
+export function useLabel(children) {
+  const { tpl, labels } = useContext(TextCtx);
+  const edit = useContext(EditCtx);
+  if (typeof children !== "string") return { text: children, edit: null };
+  const key = `${tpl}:${children}`;
+  const text = labels?.[key] || children;
+  if (!edit) return { text, edit: null };
+  return { text, edit: { onChange: (t) => edit.setLabel(key, t.trim() && t.trim() !== children ? t : null) } };
+}
+
 // Champ du contenu : « value » est ce que montre le site (le champ, ou ce qui le remplace quand il est vide :
 // le lieu du mariage, le prénom…) ; écrire enregistre le chemin « k » du contenu
 export function F({ k, value, as: Tag = "span", className = "", placeholder, multiline }) {

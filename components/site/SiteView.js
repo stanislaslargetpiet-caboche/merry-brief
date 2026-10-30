@@ -9,11 +9,11 @@
 import { hasContent, paletteOf, paletteStyle, fontsOf, fontStyle, sectionsOf, SECTIONS, siteView, templateOf } from "@/lib/site/model";
 import { EmptySection } from "./parts";
 import { SiteEditProvider, SiteTextProvider } from "./edit";
-import Horizon from "./templates/Horizon";
+import Moisson from "./templates/Moisson";
 import Terracotta from "./templates/Terracotta";
 import Colline from "./templates/Colline";
 
-const IMPL = { horizon: Horizon, terracotta: Terracotta, colline: Colline };
+const IMPL = { moisson: Moisson, terracotta: Terracotta, colline: Colline };
 
 const SIZE = { half: 2, third: 3, wide: 2, narrow: 2 };
 

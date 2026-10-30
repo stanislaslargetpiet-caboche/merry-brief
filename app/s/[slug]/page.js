@@ -12,12 +12,25 @@ import SiteView from "@/components/site/SiteView";
  * En démo (tableau de bord ?demo=1 ou sans Supabase), on lit le site du navigateur.
  */
 
+// Journalise une visite comme le fait merry_site_public côté serveur (supabase/site-visites.sql),
+// pour que le compteur du tableau de bord ait quelque chose de réel à montrer en démo aussi.
+function logDemoVisit(raw, data) {
+  try {
+    const visits = [...(data.site.visits || []), new Date().toISOString()].slice(-200);
+    const next = { ...JSON.parse(raw), data: { ...data, site: { ...data.site, visits } } };
+    window.localStorage.setItem("merry-demo-v1", JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
 function readDemoSite(slug) {
   try {
     const raw = window.localStorage.getItem("merry-demo-v1");
     const data = raw ? JSON.parse(raw)?.data : null;
     if (!data?.site || data.site.slug !== slug) return null;
     if (data.site.published === false) return { closed: true, partner1: data.wedding.partner1, partner2: data.wedding.partner2 };
+    logDemoVisit(raw, data);
     return {
       ...data.site,
       partner1: data.wedding.partner1,

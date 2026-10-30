@@ -3,8 +3,10 @@
 // Modèle 7 · Moisson (Intime) : champ de blé, carte blanche posée sur une photo.
 // Maquettes Site-Moisson (1440 px) et Site-Moisson-Tel (390 px).
 
+import { useState } from "react";
 import { contactHref, hourText } from "@/lib/site/model";
 import { AgendaLink, Faq, Photo, QR, RouteLink, joinList, useCountdown, useSavedResponse, useShare } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { momentWhen, placeLine, travelLabel, witnesses } from "../kit";
 
@@ -15,8 +17,8 @@ function Top({ ctx }) {
       <Photo path="photos.cover" src={v.photos.cover} tone={1} label="Votre photo, en plein champ" preview={ctx.preview} className="mo-hero-photo" />
       <nav className="mo-nav">
         {ctx.nav.map((n) => (
-          <a key={n.key} href={`#${n.key}`}>
-            {n.label}
+          <a key={n.key} href={`#${n.key}`} onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+            <L>{n.label}</L>
           </a>
         ))}
       </nav>
@@ -302,19 +304,24 @@ function Citation({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
-  const res = useSavedResponse(v.formSlug, ctx.preview);
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   return (
     <Simple id="reponse" kicker={res ? "Merci, votre réponse est enregistrée" : "Votre réponse"} title={res ? (res.present === false ? "Vous nous manquerez" : "Vous serez des nôtres") : "Serez-vous des nôtres ?"} tint>
       {res ? (
-        <p className="mo-p mo-col">
-          <span className="mo-ink">{res.names}</span>
-          {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
-        </p>
-      ) : null}
-      {v.formSlug ? (
-        <a className="mo-btn" href={`/f/${v.formSlug}`}>
-          {res ? "Changer ma réponse" : "Répondre"}
-        </a>
+        <>
+          <p className="mo-p mo-col">
+            <span className="mo-ink">{res.names}</span>
+            {res.moments?.length ? ` · ${joinList(res.moments)}` : ""}
+          </p>
+          {v.formSlug ? (
+            <a className="mo-btn" href={`/f/${v.formSlug}`}>
+              Changer ma réponse
+            </a>
+          ) : null}
+        </>
+      ) : v.formSlug ? (
+        <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} />
       ) : null}
     </Simple>
   );
