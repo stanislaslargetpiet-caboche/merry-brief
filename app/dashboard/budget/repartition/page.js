@@ -1,25 +1,30 @@
 "use client";
 
-// Onglet « Répartition » du budget (artboard 2b) : le total payé, qui a payé combien, puis le détail des dépenses effectuées.
-// Pas de partage imposé (à parts égales ou autre) : chaque famille s'organise comme elle veut.
+// Onglet « Répartition » du budget (artboard 2b) : le total payé, qui a payé combien, la règle de répartition
+// du couple en une jauge (le bouton ouvre la page de la règle, 2b2 à 2b4), puis les virements qui remettent
+// chacun à ce que la règle lui donne à payer.
 
+import Link from "next/link";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { paidByPayer, posteName } from "@/lib/dash/model";
-import { euros, pctLabel, shortDate } from "@/lib/dash/format";
+import { paidByPayer } from "@/lib/dash/model";
+import { MODES, ruleOf, ruleSummary, settle, targetsOf } from "@/lib/dash/partage";
+import { euros, pctLabel } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
 import { Avatar, Btn, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
 import DepenseModal from "@/components/dash/DepenseModal";
+import RuleGauge from "@/components/dash/RuleGauge";
 
 export default function Repartition() {
-  const data = useDash().data;
+  const dash = useDash();
+  const data = dash.data;
   const [adding, setAdding] = useState(false);
   const byPayer = paidByPayer(data);
   const total = byPayer.reduce((a, x) => a + x.amount, 0);
-  const memberById = new Map(data.members.map((m) => [m.id, m]));
-  const itemById = new Map(data.items.map((i) => [i.id, i]));
-  const paid = data.payments.filter((p) => p.paid_at).sort((a, b) => String(b.paid_at).localeCompare(String(a.paid_at)));
+  const rule = ruleOf(data);
+  const targets = targetsOf(rule, data, byPayer);
+  const transfers = settle(byPayer.map((x) => ({ member: x.member, diff: x.amount - (targets[x.member.id] || 0) })));
 
   return (
     <>
@@ -58,38 +63,52 @@ export default function Repartition() {
           </div>
         </div>
 
-        {paid.length ? (
-          <div className="d-col" style={{ gap: 12 }}>
-            <Section title="Le détail" />
-            <div className="d-card d-split-list">
-              {paid.map((p) => {
-                const it = itemById.get(p.budget_item_id);
-                const who = memberById.get(p.payer_id);
-                const what = [it ? posteName(it) : null, p.label ? String(p.label).toLowerCase() : null].filter(Boolean).join(" · ");
-                return (
-                  <div key={p.id} className="d-split-row">
-                    <span className="d-split-text">
-                      <strong>{what || "Dépense"}</strong>
-                      <small className="d-split-who">
-                        {who ? <Avatar member={who} size={16} /> : null}
-                        {[who?.display_name, shortDate(String(p.paid_at).slice(0, 10))].filter(Boolean).join(" · ")}
-                      </small>
-                    </span>
-                    <strong className="d-split-amount">{euros(p.amount)}</strong>
-                  </div>
-                );
-              })}
+        <div className="d-col" style={{ gap: 12 }}>
+          <Section title="Votre règle de répartition" />
+          <div className="d-card d-rule">
+            <RuleGauge byPayer={byPayer} targets={targets} total={total} />
+            <div className="d-rule-summary">
+              <span>
+                <strong>{MODES.find((m) => m.key === rule.mode).label}</strong>
+                <small>{ruleSummary(rule, byPayer)}</small>
+              </span>
+              <Link href="/dashboard/budget/repartition/regle" className="d-btn d-btn-ghost">
+                Définir la règle
+              </Link>
             </div>
           </div>
-        ) : null}
+
+          <Section title="Pour équilibrer les comptes" />
+          <div className="d-card d-balance">
+            {transfers.length ? (
+              <ul className="d-balance-list">
+                {transfers.map((t) => (
+                  <li key={`${t.from.id}-${t.to.id}`}>
+                    <span className="d-balance-people">
+                      <Avatar member={t.from} size={30} />
+                      <Icon name="arrowRight" size={16} sw={2} />
+                      <Avatar member={t.to} size={30} />
+                    </span>
+                    <span className="d-balance-text">
+                      <strong>{t.from.display_name}</strong> verse à <strong>{t.to.display_name}</strong>
+                    </span>
+                    <strong className="d-split-amount">{euros(t.amount)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="d-balance-ok">
+                <Icon name="check" size={16} sw={2.4} />
+                {total ? "Les comptes sont équilibrés." : "Aucune dépense pour l'instant."}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="d-mob-only">
-        <button type="button" className="d-pill is-dashed" style={{ width: "100%", justifyContent: "center" }} onClick={() => setAdding(true)}>
-          <Icon name="plus" size={14} sw={2} />
-          Ajouter une dépense
-        </button>
-      </div>
+      <button type="button" className="d-fab" aria-label="Ajouter une dépense" onClick={() => setAdding(true)}>
+        <Icon name="plus" size={22} sw={2.4} />
+      </button>
 
       {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
     </>

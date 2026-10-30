@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { findFolder, folderDocs, sortRecent } from "@/lib/dash/documents";
+import { allFolders, findFolder, folderColors, folderDocs, sortRecent } from "@/lib/dash/documents";
 import { pastel } from "@/lib/dash/theme";
 import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
@@ -32,7 +32,8 @@ export default function Dossier() {
     );
   }
 
-  const p = pastel(folder.color);
+  const tint = folderColors(allFolders(data))[folder.id] || folder.color;
+  const p = pastel(tint);
 
   const destroy = async () => {
     const n = docs.length;
@@ -90,13 +91,13 @@ export default function Dossier() {
                 <span />
               </div>
               {docs.map((d) => (
-                <DocumentRow key={d.id} doc={d} />
+                <DocumentRow key={d.id} doc={d} tint={tint} />
               ))}
             </div>
             <div className="d-mob-only">
               <div className="d-docs-list">
                 {docs.slice(0, 6).map((d) => (
-                  <DocumentRow key={d.id} doc={d} compact />
+                  <DocumentRow key={d.id} doc={d} compact tint={tint} />
                 ))}
               </div>
               {docs.length > 6 ? (

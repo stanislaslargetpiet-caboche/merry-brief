@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDash } from "@/lib/dash/store";
-import { allFolders, findFolder, folderDocs, sortRecent } from "@/lib/dash/documents";
+import { allFolders, findFolder, folderColors, folderDocs, sortRecent } from "@/lib/dash/documents";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
@@ -20,6 +20,8 @@ export default function Documents() {
   const folders = useMemo(() => allFolders(data), [data]);
   const recent = useMemo(() => sortRecent(documents).slice(0, 6), [documents]);
   const folderName = (d) => findFolder(data, d.folder_id || "budget")?.name;
+
+  const colors = folderColors(folders);
 
   return (
     <>
@@ -54,7 +56,7 @@ export default function Documents() {
         </span>
         <div className="d-g3 d-folders">
           {folders.map((f) => (
-            <FolderCard key={f.id} folder={f} docs={folderDocs(documents, f.id)} />
+            <FolderCard key={f.id} folder={f} color={colors[f.id]} docs={folderDocs(documents, f.id)} />
           ))}
         </div>
       </div>
@@ -64,7 +66,7 @@ export default function Documents() {
           <Section title="Ajoutés récemment" />
           <div className="d-docs-list">
             {recent.map((d) => (
-              <DocumentRow key={d.id} doc={d} showFolder folderName={folderName(d)} />
+              <DocumentRow key={d.id} doc={d} showFolder folderName={folderName(d)} tint={colors[d.folder_id]} />
             ))}
           </div>
         </div>
