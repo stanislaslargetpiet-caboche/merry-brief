@@ -3,7 +3,7 @@
 
 import { APP_URL, euros, hasPage, hrefOf, num, statOf } from "@/lib/seo/data";
 import { FRANCE, REGIONS, departmentsOf, regionZone, zoneOf } from "@/lib/seo/geo";
-import { MEDIAN_LABEL, MEDIAN_PHRASE, TRADES } from "@/lib/seo/trades";
+import { MEDIAN_LABEL, MEDIAN_PHRASE, NATIONAL, TRADES } from "@/lib/seo/trades";
 
 const SIGNUP = "/?source=seo";
 const CLAIM = "/pro/fiche";
@@ -99,6 +99,8 @@ function faqOf(trade, zone, stat, month) {
       q: `Combien coûte ${trade.one} ${zone.in} ?`,
       a: `Compte ${euros(stat.median)} ${MEDIAN_PHRASE[trade.unit]} : c'est le prix de départ médian des ${stat.priced} ${trade.many} ${zone.in} qui affichent leur tarif sur Merry (${month}).`,
     });
+  } else if (NATIONAL[trade.slug]) {
+    items.push({ q: `Combien coûte ${trade.one} ?`, a: NATIONAL[trade.slug].answer });
   }
   if (trade.key === "lieu") {
     items.push({
@@ -145,7 +147,10 @@ export function pageModel(trade, zone, stats) {
           .map((z) => ({ label: z.name, href: hrefOf(trade, z) }));
 
   const figures = [{ value: num(stat.n), label: trade.count }];
+  const national = stat.median ? null : NATIONAL[trade.slug] || null;
   if (stat.median) figures.push({ value: euros(stat.median), label: `prix de départ médian, ${MEDIAN_LABEL[trade.unit]}` });
+  else if (national) figures.push({ value: national.value, label: national.label });
+  const source = national ? `Sources : catalogue Merry, ${month} ; ${national.source}` : `Source : catalogue Merry, ${month}`;
   if (zone.kind === "region") {
     const n = departmentsOf(zone.region).filter((d) => statOf(stats, trade, zoneOf(d.slug)).n > 0).length;
     if (n > 1) figures.push({ value: String(n), label: "départements" });
@@ -160,7 +165,7 @@ export function pageModel(trade, zone, stats) {
   if (zone.kind === "department") crumbs.push({ label: region.name, href: hrefOf(trade, region) });
   if (zone.kind !== "france") crumbs.push({ label: zone.name, href: hrefOf(trade, zone) });
 
-  return { stat, month, tabs, pills, elsewhere, figures, crumbs, faq: faqOf(trade, zone, stat, month) };
+  return { stat, month, source, tabs, pills, elsewhere, figures, crumbs, faq: faqOf(trade, zone, stat, month) };
 }
 
 function jsonLd(trade, zone, model, vendors) {
@@ -319,7 +324,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
           </a>
         </section>
 
-        <p className="sm-src">Source : catalogue Merry, {model.month}.</p>
+        <p className="sm-src">{model.source}.</p>
       </main>
 
       <div className="sm-bar">
