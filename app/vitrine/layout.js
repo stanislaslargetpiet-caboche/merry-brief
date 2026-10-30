@@ -7,7 +7,7 @@ const WEGLOT_KEY = "wg_7a7d56df697abdba42bbcb9e1940599c4";
 
 export const metadata = {
   title: "Merry",
-  description: "Merry : l’assistant qui simplifie l’organisation de tous tes événements, de A à Z. 100 % gratuit pour les organisateurs.",
+  description: "Merry : l’assistant qui simplifie l’organisation de ton mariage, de A à Z. 100 % gratuit pour les mariés.",
   alternates: { canonical: "https://www.withmerry.com/" },
   // Aperçu des liens partagés (WhatsApp, iMessage, réseaux) : photo du haut de l'accueil
   openGraph: { siteName: "Merry", locale: "fr_FR", type: "website", images: [{ url: SHARE_IMAGE, width: 1200, height: 630 }] },
