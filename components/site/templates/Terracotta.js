@@ -3,8 +3,10 @@
 // Modèle 2 · Terracotta (Champêtre) : faire-part long, bords déchirés, brins fleuris au trait.
 // Maquettes Site-Terracotta (1440 px) et Site-Terracotta-Tel (390 px).
 
+import { useState } from "react";
 import { hourText } from "@/lib/site/model";
-import { AgendaLink, Faq, Ico, Orn, Photo, RouteLink, useCountdown } from "../parts";
+import { AgendaLink, Faq, Ico, Orn, Photo, RouteLink, useCountdown, useSavedResponse } from "../parts";
+import GuestFormInline from "../GuestFormInline";
 import { F, L } from "../edit";
 import { travelLabel } from "../kit";
 import { contactHref } from "@/lib/site/model";
@@ -400,14 +402,27 @@ function Citation({ ctx }) {
 
 function Reponse({ ctx }) {
   const { v } = ctx;
+  const [reload, setReload] = useState(0);
+  const res = useSavedResponse(v.formSlug, ctx.preview, reload);
+  if (res) {
+    return (
+      <Simple id="reponse" title="Merci, votre réponse est enregistrée">
+        <p className="tc-p tc-wide">
+          <span className="tc-ink">{res.names}</span>
+          {res.moments?.length ? ` · ${res.moments.join(", ")}` : ""}
+        </p>
+        {v.formSlug ? (
+          <a className="tc-pill" href={`/f/${v.formSlug}`}>
+            <L>Un changement ? Répondre à nouveau</L>
+          </a>
+        ) : null}
+      </Simple>
+    );
+  }
   return (
     <Simple id="reponse" title="Votre réponse">
       <p className="tc-p tc-wide"><L>Vous avez déjà répondu ? Rien à faire. Sinon, deux minutes suffisent.</L></p>
-      {v.formSlug ? (
-        <a className="tc-pill" href={`/f/${v.formSlug}`}>
-          <L>Répondre</L>
-        </a>
-      ) : null}
+      {v.formSlug ? <GuestFormInline formSlug={v.formSlug} preview={ctx.preview} onAnswered={() => setReload((n) => n + 1)} /> : null}
     </Simple>
   );
 }
