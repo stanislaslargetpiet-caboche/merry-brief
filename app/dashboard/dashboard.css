@@ -12017,13 +12017,14 @@ body.d-noscroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 60px;
-  padding: 0 6px;
+  height: 64px;
+  padding: 0 8px;
   border-radius: 12px;
   border: 1px solid var(--d-line);
-  font-size: 17px;
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   box-sizing: border-box;
 }
 
@@ -12031,26 +12032,19 @@ body.d-noscroll {
   border: 2px solid var(--d-ink);
 }
 
-.d-se-tpl-name {
+.d-se-tpl-style {
   padding: 0 2px;
   font-size: 12.5px;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.d-se-tpl.is-on .d-se-tpl-name {
-  font-weight: 600;
-}
-
-.d-se-tpl-style {
-  padding: 0 2px;
-  font-size: 11px;
   color: var(--d-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.d-se-tpl.is-on .d-se-tpl-style {
+  color: var(--d-ink);
+  font-weight: 600;
 }
 
 .d-se-swatches {

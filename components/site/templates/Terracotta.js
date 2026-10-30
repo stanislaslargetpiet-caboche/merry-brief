@@ -37,8 +37,8 @@ function Top({ ctx }) {
       </div>
       <header className="tc-nav">
         {ctx.nav.map((n) => (
-          <a key={n.key} href={`#${n.key}`}>
-            {n.label}
+          <a key={n.key} href={`#${n.key}`} onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+            <L>{n.label}</L>
           </a>
         ))}
       </header>

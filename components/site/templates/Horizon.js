@@ -22,8 +22,8 @@ function Top({ ctx }) {
   return (
     <header className="hz-nav">
       {ctx.nav.map((n) => (
-        <a key={n.key} href={`#${n.key}`} className="hz-tiny">
-          {n.label}
+        <a key={n.key} href={`#${n.key}`} className="hz-tiny" onClickCapture={(e) => ctx.edit && e.preventDefault()}>
+          <L>{n.label}</L>
         </a>
       ))}
     </header>
