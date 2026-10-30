@@ -11,6 +11,7 @@ import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
+import { BusyDots } from "@/components/dash/ui";
 import { FiltersPanel, SearchSummary, activeFilters, inPrice } from "@/components/dash/Filtres";
 import {
   BestMatch,
@@ -139,7 +140,7 @@ export default function Trouver() {
 
   const wishesOn = wishes && Object.values(wishes).some((x) => (Array.isArray(x) ? x.length : x && typeof x === "object" ? x.on || x.name : x));
   const subtitle = loading || searching
-    ? "Recherche en cours…"
+    ? null
     : list.length
       ? null
       : wishesOn && cat === "lieu"
@@ -197,7 +198,13 @@ export default function Trouver() {
         <>
           <div className="d-pr-intro">
             <h2>Recommandations</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
+            {loading || searching ? (
+              <p className="d-pr-intro-loading">
+                <BusyDots label="Recherche en cours" />
+              </p>
+            ) : subtitle ? (
+              <p>{subtitle}</p>
+            ) : null}
           </div>
           <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
             {list.map((v, i) => (

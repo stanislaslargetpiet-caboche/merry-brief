@@ -1,20 +1,27 @@
 import Frame from "@/components/vitrine/Frame";
+import { SIGNUP } from "@/lib/vitrine/routes";
 
 export const metadata = {
   title: "À propos | Merry",
-  description: "On ne cessera jamais de se réunir. Merry met le métier d’event planner entre les mains de chacun.",
+  description: "On ne cessera jamais de se réunir. Merry met l’organisation entre tes mains, gratuitement.",
   alternates: { canonical: "https://www.withmerry.com/about" },
 };
 
 const BLOCKS = [
-  ["Organiser un événement est un métier", ["Un grand événement, c’est plusieurs prestataires, des semaines de préparation, des budgets à plusieurs €€€. Merry permet à chacun de devenir « event planner » (on avait pas mieux)."]],
   [
-    "Merry existe parce que l’IA rebat les cartes.",
-    ["Organiser un événement c’est : chercher, comparer, relancer, vérifier, suivre. L’IA sait désormais faire tout cela, pour tout le monde, et de manière ultra-personnalisée. Merry met ce métier entre les mains de chacun : un seul endroit pour choisir son lieu, ses prestataires, suivre son budget et ses paiements, avec un conseiller quand il le faut."],
-    "Vous gardez les choix. Nous prenons la logistique.",
+    "Organiser, c’est un métier.",
+    [
+      "Une dizaine de prestataires, des devis qui n’arrivent pas, des relances, des tableurs, de l’argent qui circule entre cinq comptes. Un mariage coûte 19 293 € en moyenne (Mariages.net, rapport 2026) et se prépare pendant 15 mois. Jusqu’ici, il fallait un wedding planner ou beaucoup de soirées.",
+    ],
   ],
-  ["Un marché immense, sans plateforme.", ["En Europe, 1,8 million de mariages par an et des millions de fêtes et de célébrations. 35 Mds€ dépensés chaque année pour les seuls mariages, des centaines de Mds€ en comptant tous les événements privés. Un marché fragmenté entre des milliers de lieux et de prestataires locaux, où aucun acteur ne prend l’événement en charge de bout en bout."]],
-  ["Une nouvelle catégorie : service-as-a-software (SaaS is not dead)", ["Merry n’est ni une agence, ni un annuaire. C’est une entreprise de service qui tourne comme un logiciel : gratuite pour ceux qui organisent, rémunérée par les prestataires, qui utilisent des crédits pour répondre aux demandes qu’elle leur apporte, capable de servir des millions d’événements avec la qualité d’un professionnel."]],
+  [
+    "Merry le fait avec toi.",
+    [
+      "Chercher, comparer, relancer, vérifier, suivre : l’IA sait désormais le faire, pour chaque fête. Merry réunit tout au même endroit : ton lieu, tes prestataires, ton budget, tes invités.",
+    ],
+    "Tu gardes les choix. On s’occupe de la logistique.",
+  ],
+  ["Gratuit pour toi.", ["Merry ne te coûte rien. Les prestataires utilisent des crédits pour répondre à tes demandes : c’est comme ça qu’on vit."]],
 ];
 
 export default async function VitrineAPropos() {
@@ -24,7 +31,7 @@ export default async function VitrineAPropos() {
         <img src="/vitrine/apropos.jpg" alt="" className="wv-photo" />
         <div className="wv-text">
           <h1 className="wv-h2">On ne cessera jamais de se réunir.</h1>
-          <p className="wv-p">Il restera toujours les moments où l’on se retrouve. Un mariage, un anniversaire, une fête de famille, un séminaire. Ce sont les dépenses que personne ne regrette. Et pourtant, organiser ces moments reste la partie que tout le monde déteste : des dizaines de prestataires, des devis qui n’arrivent pas, des relances, des tableurs, de l’argent qui circule entre cinq comptes.</p>
+          <p className="wv-lead">Un mariage, un anniversaire, une fête de famille : personne ne regrette ces moments. Les organiser, en revanche, tout le monde s’en passerait.</p>
           {BLOCKS.map(([title, paragraphs, lead]) => (
             <div key={title} className="wv-block">
               <h2 className="wv-h4">{title}</h2>
@@ -37,7 +44,12 @@ export default async function VitrineAPropos() {
             </div>
           ))}
           <div className="wv-block">
-            <h2 className="wv-h4">Nous construisons la plateforme sur laquelle tout le monde organisera chaque événement de sa vie.</h2>
+            <h2 className="wv-h4">On construit l’endroit où chacun organisera chaque fête de sa vie. On commence par le mariage.</h2>
+            <div>
+              <a href={SIGNUP} className="wv-btn wv-btn-dark">
+                J'organise ma fête
+              </a>
+            </div>
           </div>
         </div>
       </main>

@@ -7060,6 +7060,12 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+.d-pr-intro-loading {
+  min-height: 1em;
+  display: flex;
+  align-items: center;
+}
+
 /* Cartes de prestataires */
 .d-pr-grid {
   display: grid;
