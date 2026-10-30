@@ -1,7 +1,7 @@
 // Page SEO métier × zone (canvas « 8 - SEO », artboards SEO-Metier-Zone et SEO-Metier-Zone-Tel).
 // Composant serveur : tout le texte est rendu dans le HTML, lisible par Google et par les moteurs IA.
 
-import { APP_URL, euros, hasPage, hrefOf, statOf } from "@/lib/seo/data";
+import { APP_URL, euros, hasPage, hrefOf, num, statOf } from "@/lib/seo/data";
 import { FRANCE, REGIONS, departmentsOf, regionZone, zoneOf } from "@/lib/seo/geo";
 import { MEDIAN_LABEL, MEDIAN_PHRASE, TRADES } from "@/lib/seo/trades";
 
@@ -89,7 +89,7 @@ export function pageTitle(trade, zone) {
 
 export function pageDescription(trade, zone, stat) {
   const price = stat.median ? `, à partir de ${euros(stat.median)} en médiane` : "";
-  return `${stat.n} ${trade.count} ${zone.in}${price}. Compare les prix et demande tes devis sur Merry, gratuitement.`;
+  return `${num(stat.n)} ${trade.count} ${zone.in}${price}. Compare les prix et demande tes devis sur Merry, gratuitement.`;
 }
 
 function faqOf(trade, zone, stat, month) {
@@ -144,7 +144,7 @@ export function pageModel(trade, zone, stats) {
           .filter((z) => z.slug !== region.slug && hasPage(stats, trade, z))
           .map((z) => ({ label: z.name, href: hrefOf(trade, z) }));
 
-  const figures = [{ value: String(stat.n), label: trade.count }];
+  const figures = [{ value: num(stat.n), label: trade.count }];
   if (stat.median) figures.push({ value: euros(stat.median), label: `prix de départ médian, ${MEDIAN_LABEL[trade.unit]}` });
   if (zone.kind === "region") {
     const n = departmentsOf(zone.region).filter((d) => statOf(stats, trade, zoneOf(d.slug)).n > 0).length;
@@ -266,7 +266,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
               ))}
             </div>
             <a href={SIGNUP} className="sm-btn sm-btn-line sm-more">
-              Voir les {stat.n} {trade.many}
+              Voir les {num(stat.n)} {trade.many}
             </a>
           </section>
         )}
