@@ -558,10 +558,7 @@ export default function Invites() {
           className="d-check"
           checked={!!selected[g.id]}
           onChange={() => {}}
-          onClick={(e) => {
-            e.preventDefault();
-            toggleWithRange(g.id, rowIdx, e.shiftKey);
-          }}
+          onClick={(e) => toggleWithRange(g.id, rowIdx, e.shiftKey)}
           onKeyDown={(e) => {
             if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
             const nextIdx = e.key === "ArrowDown" ? rowIdx + 1 : rowIdx - 1;
