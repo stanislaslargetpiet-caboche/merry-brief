@@ -45,6 +45,7 @@
 .wv-black { background: #000000; color: #fff700; }
 .wv-center { display: flex; flex-direction: column; align-items: center; gap: 32px; text-align: center; }
 .wv-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; align-items: center; }
+.wv-split-big { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 .wv-stack { display: flex; flex-direction: column; gap: 22px; }
 .wv-media { width: 100%; border-radius: 20px; overflow: hidden; }
 .wv-media-mid { width: min(760px, 100%); }
@@ -137,6 +138,30 @@
   .wv-flow-match img, .wv-flow-match-ph { width: 100%; height: 180px; }
 }
 
+/* Page Prestataires (canvas « Site-Prestataires », 30 oct. 2026) : recherche de fiche, comparatif, garantie */
+.wv-media-wide { width: min(1040px, 100%); }
+.wv-find { display: flex; align-items: center; gap: 8px; width: min(620px, 100%); padding: 6px; background: #ffffff; border: 1px solid #000; border-radius: 300px; box-sizing: border-box; margin-top: 8px; }
+.wv-find-in { flex: 1; min-width: 0; display: flex; }
+.wv-find-in input { width: 100%; min-width: 0; border: 0; background: none; padding: 0 18px; font: inherit; font-size: 16px; color: #000; outline: none; }
+.wv-find-in input::placeholder { color: #6b6a63; }
+.wv-find-in input::-webkit-search-decoration, .wv-find-in input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.wv-find .wv-btn { flex: none; }
+.wv-find-note { margin: 0; font-size: 14px; }
+.wv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wv-cmp-sec { display: flex; flex-direction: column; gap: 32px; }
+.wv-cmp { border-top: 1px solid #000; }
+.wv-cmp-row { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 24px; padding: 18px 0; border-bottom: 1px solid rgba(0, 0, 0, .15); font-size: 17px; line-height: 1.45; }
+.wv-cmp-row > span:first-child { font-weight: 700; }
+.wv-cmp-row > span:nth-child(2) { color: #6b6a63; }
+.wv-cmp-row > span:nth-child(3) { font-weight: 600; background: linear-gradient(transparent 60%, #fff700 60%); justify-self: start; }
+.wv-cmp-head { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; }
+.wv-cmp-head > span:nth-child(3) { background: none; }
+.wv-guar { display: flex; flex-direction: column; gap: 24px; }
+.wv-guar .wv-h3 { max-width: 1000px; }
+.wv-guar .wv-lead { max-width: 760px; color: #ffffff; }
+.wv-guar-k { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.wv-end .wv-btn-line { color: #fff700; border-color: #fff700; }
+
 .wv-foot { background: #e1dfd9; padding: 4vw; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4vw; }
 .wv-quote { margin: 0; font-size: 14.4px; line-height: 1.6; }
 .wv-foot-links { margin-top: 14px; }
@@ -160,6 +185,11 @@
   .wv-sec, .wv-about { padding: 56px 16px; }
   .wv-hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 48px 16px 56px; min-height: 0; }
   .wv-split, .wv-faq, .wv-credits, .wv-two, .wv-end, .wv-about, .wv-foot { grid-template-columns: minmax(0, 1fr); }
+  .wv-split-big { grid-template-columns: minmax(0, 1fr); }
+  .wv-find { flex-direction: column; align-items: stretch; border-radius: 28px; padding: 8px; }
+  .wv-find-in input { padding: 12px 14px; }
+  .wv-cmp-row { grid-template-columns: 1fr 1fr; gap: 12px 16px; font-size: 15px; }
+  .wv-cmp-row > span:first-child { grid-column: 1 / -1; }
   .wv-faq .wv-photo { display: none; }
   .wv-about .wv-photo { min-height: 360px; position: static; }
   .wv-foot { padding: 40px 16px; }
