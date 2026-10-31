@@ -480,6 +480,7 @@ export default function Invites() {
   // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
   const [selected, setSelected] = useState({});
   const lastClickRef = useRef(null);
+  const checkboxRefs = useRef(new Map()); // id -> <input> : pour déplacer le focus avec ↑/↓
   const toggle = (id) => setSelected((x) => ({ ...x, [id]: !x[id] }));
   const toggleWithRange = (id, index, shiftKey) => {
     if (shiftKey && lastClickRef.current !== null) {
@@ -561,8 +562,21 @@ export default function Invites() {
             e.preventDefault();
             toggleWithRange(g.id, rowIdx, e.shiftKey);
           }}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            const nextIdx = e.key === "ArrowDown" ? rowIdx + 1 : rowIdx - 1;
+            const nextRow = shown[nextIdx];
+            if (!nextRow) return;
+            e.preventDefault();
+            if (e.shiftKey) toggleWithRange(nextRow.id, nextIdx, true);
+            checkboxRefs.current.get(nextRow.id)?.focus();
+          }}
+          ref={(el) => {
+            if (el) checkboxRefs.current.set(g.id, el);
+            else checkboxRefs.current.delete(g.id);
+          }}
           aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`}
-          title="Clic : sélectionner · Maj + clic : sélectionner une plage"
+          title="Clic : sélectionner · Maj + clic : sélectionner une plage · ↑/↓ : se déplacer entre les cases · Maj + ↑/↓ : étendre la sélection"
         />
       ),
     },
@@ -765,9 +779,10 @@ export default function Invites() {
         selIds.length ? (
           <>
             <div className="d-desk-only">
-              <div className="d-selbar" role="region" aria-label="Invités sélectionnés">
-                <strong>{n(selIds.length, "sélection", "sélections")}</strong>
-                <span className="d-selbar-actions" style={{ flexWrap: "wrap" }}>
+              {/* Largeur fixe, jamais de retour à la ligne : une sélection ne doit pas déplacer le tableau sous la souris */}
+              <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
+                <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
+                <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
                   {!allSelected ? (
                     <button type="button" onClick={selectAll}>
                       Tout sélectionner ({shown.length})
@@ -823,7 +838,8 @@ export default function Invites() {
         ) : (
           <>
             <div className="d-desk-only">
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {/* Même hauteur que la barre d'actions groupées ci-dessus : sélectionner un premier invité ne doit pas pousser le tableau */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", minHeight: 56, alignItems: "center" }}>
                 <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
                   <Icon name="check" size={14} sw={2.2} />
                   Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
