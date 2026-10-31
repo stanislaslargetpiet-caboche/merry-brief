@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
 import { GUEST_STATUS_LABEL, guestStats, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
@@ -481,6 +481,31 @@ export default function Invites() {
   const [selected, setSelected] = useState({});
   const lastClickRef = useRef(null);
   const checkboxRefs = useRef(new Map()); // id -> <input> : pour déplacer le focus avec ↑/↓
+  // Glisser : appuyer sur une case puis passer sur d'autres lignes leur donne le même état
+  const dragRef = useRef(null); // { on, lastIdx }
+  const skipClickRef = useRef(false); // le clic qui suit l'appui est déjà traité
+  useEffect(() => {
+    const end = () => {
+      dragRef.current = null;
+      setTimeout(() => {
+        skipClickRef.current = false;
+      }, 0);
+    };
+    document.addEventListener("mouseup", end);
+    return () => document.removeEventListener("mouseup", end);
+  }, []);
+  const dragOver = (rowIdx) => {
+    const d = dragRef.current;
+    if (!d || d.lastIdx === rowIdx) return;
+    const [a, b] = [d.lastIdx, rowIdx].sort((x, y) => x - y);
+    setSelected((x) => {
+      const next = { ...x };
+      for (let i = a; i <= b; i += 1) if (shown[i]) next[shown[i].id] = d.on;
+      return next;
+    });
+    d.lastIdx = rowIdx;
+    lastClickRef.current = rowIdx;
+  };
   const toggle = (id) => setSelected((x) => ({ ...x, [id]: !x[id] }));
   const toggleWithRange = (id, index, shiftKey) => {
     if (shiftKey && lastClickRef.current !== null) {
@@ -558,8 +583,21 @@ export default function Invites() {
           className="d-check"
           checked={!!selected[g.id]}
           onChange={() => {}}
+          onMouseDown={(e) => {
+            if (e.button !== 0 || e.shiftKey) return;
+            e.preventDefault(); // pas de sélection de texte pendant le glisser
+            e.currentTarget.focus();
+            const on = !selected[g.id];
+            dragRef.current = { on, lastIdx: rowIdx };
+            skipClickRef.current = true;
+            setSelected((x) => ({ ...x, [g.id]: on }));
+            lastClickRef.current = rowIdx;
+          }}
           onClick={(e) => {
-            e.preventDefault();
+            if (skipClickRef.current) {
+              skipClickRef.current = false;
+              return;
+            }
             toggleWithRange(g.id, rowIdx, e.shiftKey);
           }}
           onKeyDown={(e) => {
@@ -576,7 +614,7 @@ export default function Invites() {
             else checkboxRefs.current.delete(g.id);
           }}
           aria-label={`Sélectionner ${guestLabel(g, byId) || "cet invité"}`}
-          title="Clic : sélectionner · Maj + clic : sélectionner une plage · ↑/↓ : se déplacer entre les cases · Maj + ↑/↓ : étendre la sélection"
+          title="Clic : sélectionner · Glisser : sélectionner plusieurs lignes · Maj + clic : sélectionner une plage · ↑/↓ : se déplacer · Maj + ↑/↓ : étendre la sélection"
         />
       ),
     },
@@ -880,7 +918,7 @@ export default function Invites() {
                 const r = idx.get(g.id) || {};
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
-                  <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined}>
+                  <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined} onMouseEnter={() => dragOver(rowIdx)}>
                     {cols.columns.map((c) => (
                       <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
                         {c.render(g, r, host, rowIdx)}
