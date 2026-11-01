@@ -20,7 +20,7 @@ export default async function VitrineAccueil() {
           <p className="wv-eyebrow">Gratuit pour les mariés</p>
           <h1 className="wv-h2">Organiser un mariage devrait être (très) simple.</h1>
           <p className="wv-lead">
-            Merry : l’assistant qui <b>simplifie</b> l’organisation de ton mariage de A à Z. Lieu, prestataires, budget, invités : au même endroit.
+            Merry : l’assistant qui <b>simplifie</b> l’organisation de ton mariage de A à Z.
           </p>
           <div className="wv-cta">
             <a href={SIGNUP} className="wv-btn wv-btn-dark">
