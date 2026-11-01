@@ -30,7 +30,9 @@ export default async function VitrineAccueil() {
               Je suis prestataire →
             </a>
           </div>
-          <p className="wv-proof-line">Plus de 15 000 prestataires référencés (octobre 2026).</p>
+          <p className="wv-proof-line">
+            Plus de <span className="wv-proof-hl">15 000 prestataires</span> référencés (octobre 2026).
+          </p>
         </div>
         <Block html={proposition} className="wv-hero-media" />
       </section>
