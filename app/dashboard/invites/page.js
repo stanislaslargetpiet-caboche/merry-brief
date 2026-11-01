@@ -205,11 +205,6 @@ function SortItems({ dir, onSort, rsvp }) {
   );
 }
 
-function RsvpCell({ guest, event, status }) {
-  const dash = useDash();
-  return <RsvpMenu status={status} onPick={(k) => dash.setResponse(guest.id, event.id, k)} title={`${event.name} : modifier le statut`} />;
-}
-
 // Menu de fin de ligne : retirer l'invité de la liste
 function RowMenu({ guest, label }) {
   const dash = useDash();
@@ -689,46 +684,141 @@ export default function Invites() {
     ok(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`);
   }
 
-  // Écrit des cellules (collage, effacement) : une seule mise à jour par invité, les statuts groupés par moment
-  async function writeCells(list) {
+  // Valeur brute d'une cellule, pour pouvoir la remettre telle quelle (annuler)
+  const rawOf = (g, key) => {
+    if (key === "name") return { first_name: g.first_name || "", last_name: g.last_name || "" };
+    if (key.startsWith("ev:")) return statusOf(g, key.slice(3));
+    if (key.startsWith("field:")) return (g.custom || {})[key.slice(6)] ?? null;
+    return g[key] ?? null;
+  };
+  // Annuler / rétablir : chaque geste (saisie, collage, effacement, statut) est un pas de l'historique
+  const undoRef = useRef([]); // [{ before: [{ id, key, value }], after: [...] }]
+  const redoRef = useRef([]);
+
+  // Écrit des valeurs brutes : une seule mise à jour par invité, les statuts groupés par moment
+  async function applyValues(list, record = true) {
     const patches = new Map();
     const statuses = new Map(); // "eventId|statut" -> ids
-    let done = 0;
-    for (const { g, key, text } of list) {
-      const v = String(text ?? "").trim();
+    const step = { before: [], after: [] };
+    for (const { id, key, value } of list) {
+      const g = byId.get(id);
+      if (!g) continue;
+      const before = rawOf(g, key);
+      if (JSON.stringify(before) === JSON.stringify(value)) continue;
+      step.before.push({ id, key, value: before });
+      step.after.push({ id, key, value });
       if (key.startsWith("ev:")) {
-        const st = rsvpFromCell(v);
-        if (!st) continue;
-        const k = `${key.slice(3)}|${st}`;
-        statuses.set(k, [...(statuses.get(k) || []), g.id]);
-        done += 1;
+        const k = `${key.slice(3)}|${value}`;
+        statuses.set(k, [...(statuses.get(k) || []), id]);
         continue;
       }
-      const p = patches.get(g.id) || {};
-      if (key === "name") {
-        if (!v) continue;
-        Object.assign(p, splitName(v));
-      } else if (TEXT_KEYS.includes(key)) p[key] = v || null;
+      const p = patches.get(id) || {};
+      if (key === "name") Object.assign(p, value);
       else if (key.startsWith("field:")) {
-        const f = fields.find((x) => x.id === key.slice(6));
-        if (!f) continue;
-        const value = f.kind === "choice" && v ? (f.options || []).find((o) => normalize(o) === normalize(v)) : v;
-        if (v && !value) continue; // une colonne à choix n'accepte que ses options
         const custom = { ...(p.custom || g.custom || {}) };
-        if (value) custom[f.id] = value;
-        else delete custom[f.id];
+        if (value) custom[key.slice(6)] = value;
+        else delete custom[key.slice(6)];
         p.custom = custom;
-      } else continue;
-      patches.set(g.id, p);
-      done += 1;
+      } else p[key] = value;
+      patches.set(id, p);
+    }
+    if (!step.after.length) return 0;
+    if (record) {
+      undoRef.current = [...undoRef.current.slice(-99), step];
+      redoRef.current = [];
     }
     await Promise.all([...patches].map(([id, p]) => dash.update("guests", id, p)));
     for (const [k, ids] of statuses) {
       const [evId, st] = k.split("|");
       await dash.setResponses(ids, evId, st);
     }
-    return done;
+    return step.after.length;
   }
+
+  // Texte saisi ou collé → valeur brute ; les cellules qui n'acceptent pas le texte sont ignorées
+  function writeCells(list) {
+    const values = [];
+    for (const { g, key, text } of list) {
+      const v = String(text ?? "").trim();
+      if (key.startsWith("ev:")) {
+        const st = rsvpFromCell(v);
+        if (st) values.push({ id: g.id, key, value: st });
+      } else if (key === "name") {
+        if (v) values.push({ id: g.id, key, value: splitName(v) });
+      } else if (TEXT_KEYS.includes(key)) values.push({ id: g.id, key, value: v || null });
+      else if (key.startsWith("field:")) {
+        const f = fields.find((x) => x.id === key.slice(6));
+        if (!f) continue;
+        const value = f.kind === "choice" && v ? (f.options || []).find((o) => normalize(o) === normalize(v)) : v;
+        if (v && !value) continue; // une colonne à choix n'accepte que ses options
+        values.push({ id: g.id, key, value: value || null });
+      }
+    }
+    return applyValues(values);
+  }
+
+  const historyStep = async (from, to, word) => {
+    const step = from.current.pop();
+    if (!step) return;
+    to.current = [...to.current, step];
+    await applyValues(from === undoRef ? step.before : step.after, false);
+    const n = step.after.length;
+    ok(`${n > 1 ? `${n} modifications` : "Modification"} ${word}.`);
+  };
+  const historyRef = useRef(null);
+  historyRef.current = {
+    undo: () => historyStep(undoRef, redoRef, undoRef.current.at(-1)?.after.length > 1 ? "annulées" : "annulée"),
+    redo: () => historyStep(redoRef, undoRef, redoRef.current.at(-1)?.after.length > 1 ? "rétablies" : "rétablie"),
+  };
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k !== "z" && k !== "y") return;
+      // Dans un champ en cours de saisie, le navigateur annule la frappe lui-même
+      if (e.target.matches?.("input:not(.d-check), textarea, select, [contenteditable=true]")) return;
+      e.preventDefault();
+      if (k === "y" || e.shiftKey) historyRef.current.redo();
+      else historyRef.current.undo();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Ligne vide en bas du tableau : on tape un nom, Entrée, l'invité est créé (invité à tous les moments)
+  const [newName, setNewName] = useState("");
+  async function addRow() {
+    const v = newName.trim();
+    if (!v) return;
+    setNewName("");
+    const created = await dash.insert("guests", [{ ...splitName(v), group_id: groupFilter || null, custom: {}, position: guests.length }]);
+    const now = new Date().toISOString();
+    const responses = created.flatMap((g) => events.map((ev) => ({ guest_id: g.id, event_id: ev.id, status: "attente", updated_at: now })));
+    if (responses.length) await dash.insert("guest_responses", responses);
+    // La ligne de saisie reste en vue pour enchaîner les noms
+    requestAnimationFrame(() => sheetRef.current?.querySelector(".d-add-input")?.scrollIntoView({ block: "nearest" }));
+  }
+
+  // Pied du tableau : un total par colonne, calculé sur les invités affichés
+  const footFor = (c) => {
+    if (c.key === "name") return n(shown.length, "invité", "invités");
+    if (c.event) {
+      const count = (st) => shown.filter((g) => statusOf(g, c.event.id) === st).length;
+      const oui = count("oui");
+      const att = count("attente");
+      return (
+        <span className="d-foot-stack">
+          <b>{n(oui, "vient", "viennent")}</b>
+          {att ? <span>{att} en attente</span> : null}
+        </span>
+      );
+    }
+    if (c.key.startsWith("field:") || TEXT_KEYS.includes(c.key)) {
+      const filled = shown.filter((g) => cellText(c.key, g).trim()).length;
+      return filled ? <span className="d-foot-muted">{n(filled, "rempli", "remplis")}</span> : null;
+    }
+    return null;
+  };
 
   // Tableur : une cellule active (flèches, Tab, Entrée pour modifier, taper pour remplacer),
   // une plage (Maj + flèches, Maj + clic), copier-coller avec les autres tableurs
@@ -763,7 +853,7 @@ export default function Invites() {
     return out;
   };
   const onSheetKey = (e) => {
-    if (!cell || e.target.closest(".d-pop")) return;
+    if (!cell || e.target.closest(".d-pop, .d-add-row")) return;
     const editing = e.target.matches("input:not(.d-check), textarea, select");
     if (!editing && e.defaultPrevented) return; // déjà traité (↑/↓ sur une case à cocher)
     if (editing) {
@@ -882,7 +972,7 @@ export default function Invites() {
       fixed: true,
       render: (g, r, host) => (
         <div className="d-guest-name">
-          <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" width={170} onSave={(v) => dash.update("guests", g.id, splitName(v))} />
+          <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" width={170} onSave={(v) => applyValues([{ id: g.id, key: "name", value: splitName(v) }])} />
           <span className="d-guest-sub">
             {g.age ? <span>{g.age} ans</span> : null}
             {host && !fullName(g) ? <span>À nommer</span> : null}
@@ -891,23 +981,23 @@ export default function Invites() {
         </div>
       ),
     },
-    ...events.map((ev) => ({ key: `ev:${ev.id}`, label: ev.short_name, event: ev, render: (g, r) => <RsvpCell guest={g} event={ev} status={r[ev.id] || "non_invite"} /> })),
-    { key: "diet", label: "Régime", render: (g) => <InlineEdit value={g.diet} label="régime" width={110} onSave={(v) => dash.update("guests", g.id, { diet: v })} className="d-cell-clip" /> },
-    { key: "address", label: "Adresse", render: (g) => <InlineEdit value={g.address} label="adresse" width={220} onSave={(v) => dash.update("guests", g.id, { address: v })} className="d-cell-clip" /> },
-    { key: "email", label: "Mail", render: (g) => <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => dash.update("guests", g.id, { email: v })} className="d-cell-clip" /> },
-    { key: "phone", label: "Téléphone", render: (g) => <InlineEdit value={g.phone} label="téléphone" width={130} onSave={(v) => dash.update("guests", g.id, { phone: v })} className="d-cell-clip" /> },
+    ...events.map((ev) => ({
+      key: `ev:${ev.id}`,
+      label: ev.short_name,
+      event: ev,
+      render: (g, r) => <RsvpMenu status={r[ev.id] || "non_invite"} onPick={(k) => applyValues([{ id: g.id, key: `ev:${ev.id}`, value: k }])} title={`${ev.name} : modifier le statut`} />,
+    })),
+    { key: "diet", label: "Régime", render: (g) => <InlineEdit value={g.diet} label="régime" width={110} onSave={(v) => applyValues([{ id: g.id, key: "diet", value: v }])} className="d-cell-clip" /> },
+    { key: "address", label: "Adresse", render: (g) => <InlineEdit value={g.address} label="adresse" width={220} onSave={(v) => applyValues([{ id: g.id, key: "address", value: v }])} className="d-cell-clip" /> },
+    { key: "email", label: "Mail", render: (g) => <InlineEdit value={g.email} label="mail" width={180} onSave={(v) => applyValues([{ id: g.id, key: "email", value: v }])} className="d-cell-clip" /> },
+    { key: "phone", label: "Téléphone", render: (g) => <InlineEdit value={g.phone} label="téléphone" width={130} onSave={(v) => applyValues([{ id: g.id, key: "phone", value: v }])} className="d-cell-clip" /> },
     ...fields.map((f) => ({
       key: `field:${f.id}`,
       label: f.name,
       custom: true,
       field: f,
       render: (g) => {
-        const saveCustom = (v) => {
-          const custom = { ...(g.custom || {}) };
-          if (v) custom[f.id] = v;
-          else delete custom[f.id];
-          dash.update("guests", g.id, { custom });
-        };
+        const saveCustom = (v) => applyValues([{ id: g.id, key: `field:${f.id}`, value: v || null }]);
         return f.kind === "choice" ? (
           <ChoiceCell value={(g.custom || {})[f.id]} options={f.options} label={f.name} onChange={saveCustom} />
         ) : (
@@ -1222,7 +1312,38 @@ export default function Invites() {
                   </tr>
                 );
               })}
+              <tr className="d-add-row">
+                {cols.columns.map((c) => (
+                  <td key={c.key} className={c.key === "select" ? "d-frozen-1" : c.key === "name" ? "d-frozen-2" : undefined}>
+                    {c.key === "name" ? (
+                      <input
+                        className="d-add-input"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addRow();
+                          } else if (e.key === "Escape") setNewName("");
+                        }}
+                        onBlur={addRow}
+                        placeholder="+ Ajouter un invité"
+                        aria-label="Nom du nouvel invité"
+                      />
+                    ) : null}
+                  </td>
+                ))}
+              </tr>
             </tbody>
+            <tfoot>
+              <tr>
+                {cols.columns.map((c) => (
+                  <td key={c.key} className={c.key === "select" ? "d-frozen-1" : c.key === "name" ? "d-frozen-2" : undefined}>
+                    {footFor(c)}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (

@@ -4003,7 +4003,7 @@ button.d-rsvp:hover {
 .d-sheet {
   max-height: calc(100dvh - 120px);
   overflow: auto;
-  scroll-padding: 48px 0 0 260px;
+  scroll-padding: 48px 0 60px 260px;
 }
 
 .d-sheet .d-table {
@@ -4063,6 +4063,63 @@ button.d-rsvp:hover {
 
 .d-sheet td.is-cell-active :focus-visible {
   outline: none;
+}
+
+.d-sheet .d-add-row td {
+  height: 44px;
+  background: #ffffff;
+}
+
+.d-add-input {
+  width: 100%;
+  min-width: 160px;
+  border: 0;
+  padding: 6px 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--d-ink);
+  outline: none;
+}
+
+.d-add-input::placeholder {
+  color: var(--d-muted);
+}
+
+.d-sheet tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--d-panel);
+  border-top: 1px solid var(--d-border);
+  font-size: 12px;
+  font-weight: 500;
+  height: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+
+.d-sheet tfoot td.d-frozen-1,
+.d-sheet tfoot td.d-frozen-2 {
+  z-index: 3;
+  background: var(--d-panel);
+  font-weight: 700;
+}
+
+.d-foot-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-foot-stack b {
+  font-weight: 700;
+}
+
+.d-foot-stack span,
+.d-foot-muted {
+  color: var(--d-muted);
 }
 
 .d-sort-mark {
