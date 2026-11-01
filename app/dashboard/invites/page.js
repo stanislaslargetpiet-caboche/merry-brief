@@ -823,6 +823,25 @@ export default function Invites() {
   // Tableur : une cellule active (flèches, Tab, Entrée pour modifier, taper pour remplacer),
   // une plage (Maj + flèches, Maj + clic), copier-coller avec les autres tableurs
   const sheetRef = useRef(null);
+  // Plein écran : le tableau occupe tout l'écran, prêt pour le clavier ; Échap en sort
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    if (!full) return undefined;
+    document.body.style.overflow = "hidden";
+    if (!sheetRef.current?.contains(document.activeElement)) {
+      (sheetRef.current?.querySelector('td[data-r="0"][data-c="1"] button') || sheetRef.current)?.focus();
+    }
+    const onKey = (e) => {
+      if (e.key !== "Escape" || document.querySelector(".d-pop")) return;
+      if (e.target.matches?.("input:not(.d-check), textarea, select")) return; // Échap annule d'abord la saisie
+      setFull(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [full]);
   const [cell, setCell] = useState(null); // { r, c }
   const [anchor, setAnchor] = useState(null);
   const extendingRef = useRef(false);
@@ -1161,6 +1180,9 @@ export default function Invites() {
             <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
               Ajouter des invités
             </Btn>
+            <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
+              Plein écran
+            </Btn>
           </div>
         </div>
       ) : null}
@@ -1250,7 +1272,19 @@ export default function Invites() {
       ) : null}
 
       {guests.length ? (
-        <div className="d-table-wrap d-sheet d-desk-only" ref={sheetRef}>
+        <div className={`d-sheet-shell d-desk-only${full ? " is-full" : ""}`} role={full ? "dialog" : undefined} aria-modal={full || undefined} aria-label={full ? "Liste des invités en plein écran" : undefined}>
+        {full ? (
+          <div className="d-sheet-head">
+            <strong>Liste des invités</strong>
+            <span className="d-small d-muted">{n(shown.length, "invité", "invités")}{selIds.length ? ` · ${n(selIds.length, "sélection", "sélections")}` : ""}</span>
+            <span className="d-spacer" />
+            <span className="d-small d-muted d-sheet-keys">Flèches, Tab et Entrée pour se déplacer · Cmd+Z pour annuler</span>
+            <Btn kind="ghost" small icon="x" onClick={() => setFull(false)}>
+              Quitter le plein écran
+            </Btn>
+          </div>
+        ) : null}
+        <div className="d-table-wrap d-sheet" ref={sheetRef}>
           <table className="d-table d-guests d-cols" onKeyDown={onSheetKey} onCopy={onSheetCopy} onPaste={onSheetPaste}>
             <thead>
               <tr>
@@ -1345,6 +1379,7 @@ export default function Invites() {
               </tr>
             </tfoot>
           </table>
+        </div>
         </div>
       ) : (
         <div className="d-empty">
