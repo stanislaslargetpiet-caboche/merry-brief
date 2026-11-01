@@ -7,10 +7,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import AddVendorDialog from "@/components/dash/AddVendorDialog";
 import VendorComments, { useVendorComments } from "@/components/dash/VendorComments";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
 import { pickStatus, picksBy } from "@/lib/dash/picks";
+import { Btn } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { DevisDialog, FichePanel, Heart, PrHead, RowActions, StatusChip, Thumb, usePicks, vendorFromPick } from "@/components/dash/Prestataires";
 
@@ -21,6 +23,7 @@ export default function Mes() {
   const { picks, toggle, add } = usePicks();
   const [fiche, setFiche] = useState(null);
   const [devis, setDevis] = useState(null);
+  const [adding, setAdding] = useState(false);
   const by = picksBy(picks);
   const sections = CATEGORIES.filter((c) => by[c.key].length);
   const next = picks.filter((p) => !p.requested_at && p.checked);
@@ -33,6 +36,11 @@ export default function Mes() {
   return (
     <>
       <PrHead on="mes" />
+      <div className="d-pr-mes-toolbar">
+        <Btn kind="ghost" icon="plus" small onClick={() => setAdding(true)}>
+          Ajouter un prestataire
+        </Btn>
+      </div>
       {dash.mode === "live" && !data.picksSetup ? (
         <div className="d-card is-panel">
           <strong>Les prestataires ne sont pas encore installés sur la base.</strong>
@@ -103,6 +111,7 @@ export default function Mes() {
         />
       ) : null}
       {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
+      {adding ? <AddVendorDialog onClose={() => setAdding(false)} onAdded={() => setAdding(false)} /> : null}
     </>
   );
 }
