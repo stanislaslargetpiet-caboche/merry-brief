@@ -92,7 +92,9 @@ export default function InvitesFinder() {
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">On a trouvé la fête.</h1>
+        <h1 className="wv-h2">
+          On a trouvé <span className="wv-flow-hl">la fête</span>.
+        </h1>
         <div className="wv-flow-panel">
           <div className="wv-flow-match">
             {found.cover ? (
@@ -189,7 +191,9 @@ export default function InvitesFinder() {
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">Ton code d’invitation.</h1>
+        <h1 className="wv-h2">
+          Ton <span className="wv-flow-hl">code d’invitation</span>.
+        </h1>
         <form
           className="wv-flow-panel"
           onSubmit={(e) => {
@@ -230,7 +234,9 @@ export default function InvitesFinder() {
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">Qui se marie ?</h1>
+        <h1 className="wv-h2">
+          Qui <span className="wv-flow-hl">se marie</span> ?
+        </h1>
         <form
           className="wv-flow-panel"
           onSubmit={(e) => {
