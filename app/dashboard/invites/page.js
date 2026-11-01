@@ -481,20 +481,51 @@ export default function Invites() {
   const [selected, setSelected] = useState({});
   const lastClickRef = useRef(null);
   const checkboxRefs = useRef(new Map()); // id -> <input> : pour déplacer le focus avec ↑/↓
-  // Glisser : appuyer sur une case puis passer sur d'autres lignes leur donne le même état
+  // Glisser : appuyer sur une ligne (ou sa case) puis passer sur d'autres lignes leur donne le même état.
+  // Depuis la case, la sélection part tout de suite ; ailleurs sur la ligne, seulement quand la souris
+  // atteint une autre ligne, pour qu'un simple clic sur le nom ou un statut garde son effet.
   const dragRef = useRef(null); // { on, lastIdx }
+  const pendingRef = useRef(null); // { id, on, rowIdx } : appui hors de la case, pas encore glissé
   const skipClickRef = useRef(false); // le clic qui suit l'appui est déjà traité
   useEffect(() => {
     const end = () => {
+      const dragged = !!dragRef.current;
       dragRef.current = null;
+      pendingRef.current = null;
+      document.body.style.userSelect = "";
+      if (dragged) skipClickRef.current = true;
       setTimeout(() => {
         skipClickRef.current = false;
       }, 0);
     };
+    // Après un glisser, le clic qui suit ne doit pas ouvrir le nom ou un statut relâché dessous
+    const swallow = (e) => {
+      if (skipClickRef.current && !e.target.closest?.("input.d-check")) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    };
     document.addEventListener("mouseup", end);
-    return () => document.removeEventListener("mouseup", end);
+    document.addEventListener("click", swallow, true);
+    return () => {
+      document.removeEventListener("mouseup", end);
+      document.removeEventListener("click", swallow, true);
+    };
   }, []);
+  const rowMouseDown = (e, g, rowIdx) => {
+    // La case a sa propre gestion ; dans un champ en cours d'édition, on laisse sélectionner du texte
+    if (e.button !== 0 || e.shiftKey || e.target.closest("input, textarea, select")) return;
+    pendingRef.current = { id: g.id, on: !selected[g.id], rowIdx };
+  };
   const dragOver = (rowIdx) => {
+    const p = pendingRef.current;
+    if (p && !dragRef.current && rowIdx !== p.rowIdx) {
+      pendingRef.current = null;
+      dragRef.current = { on: p.on, lastIdx: p.rowIdx };
+      document.body.style.userSelect = "none";
+      window.getSelection()?.removeAllRanges();
+      document.activeElement?.blur?.();
+    }
     const d = dragRef.current;
     if (!d || d.lastIdx === rowIdx) return;
     const [a, b] = [d.lastIdx, rowIdx].sort((x, y) => x - y);
@@ -918,7 +949,7 @@ export default function Invites() {
                 const r = idx.get(g.id) || {};
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
-                  <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined} onMouseEnter={() => dragOver(rowIdx)}>
+                  <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined} onMouseDown={(e) => rowMouseDown(e, g, rowIdx)} onMouseEnter={() => dragOver(rowIdx)}>
                     {cols.columns.map((c) => (
                       <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
                         {c.render(g, r, host, rowIdx)}
