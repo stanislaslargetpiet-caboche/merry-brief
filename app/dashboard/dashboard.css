@@ -3998,6 +3998,147 @@ button.d-rsvp:hover {
   background: #f4f3ef;
 }
 
+/* Liste des invités en tableur : le tableau tient dans l'écran et défile seul,
+   l'en-tête et les colonnes case + nom restent figés */
+.d-sheet {
+  max-height: calc(100dvh - 120px);
+  overflow: auto;
+  scroll-padding: 48px 0 60px 260px;
+}
+
+.d-sheet .d-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.d-sheet thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--d-panel);
+}
+
+.d-sheet .d-frozen-1,
+.d-sheet .d-frozen-2 {
+  position: sticky;
+  z-index: 1;
+  background: #ffffff;
+}
+
+.d-sheet .d-frozen-1 {
+  left: 0;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  box-sizing: border-box;
+  padding-left: 14px;
+}
+
+.d-sheet .d-frozen-2 {
+  left: 44px;
+  box-shadow: inset -1px 0 0 var(--d-line);
+}
+
+.d-sheet thead th.d-frozen-1,
+.d-sheet thead th.d-frozen-2 {
+  z-index: 4;
+  background: var(--d-panel);
+}
+
+.d-sheet .d-row-selected td {
+  background: #f4f3ef;
+}
+
+.d-sheet td:focus {
+  outline: none;
+}
+
+.d-sheet td.is-cell-range {
+  background: var(--d-veil);
+}
+
+.d-sheet td.is-cell-active {
+  box-shadow: inset 0 0 0 2px var(--d-ink);
+}
+
+.d-sheet td.is-cell-active :focus-visible {
+  outline: none;
+}
+
+.d-sheet .d-add-row td {
+  height: 44px;
+  background: #ffffff;
+}
+
+.d-add-input {
+  width: 100%;
+  min-width: 160px;
+  border: 0;
+  padding: 6px 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--d-ink);
+  outline: none;
+}
+
+.d-add-input::placeholder {
+  color: var(--d-muted);
+}
+
+.d-sheet tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--d-panel);
+  border-top: 1px solid var(--d-border);
+  font-size: 12px;
+  font-weight: 500;
+  height: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+
+.d-sheet tfoot td.d-frozen-1,
+.d-sheet tfoot td.d-frozen-2 {
+  z-index: 3;
+  background: var(--d-panel);
+  font-weight: 700;
+}
+
+.d-foot-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-foot-stack b {
+  font-weight: 700;
+}
+
+.d-foot-stack span,
+.d-foot-muted {
+  color: var(--d-muted);
+}
+
+.d-sort-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--d-ink);
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.d-sort-mark:hover {
+  background: var(--d-line);
+}
+
 .d-note {
   display: flex;
   flex-direction: column;

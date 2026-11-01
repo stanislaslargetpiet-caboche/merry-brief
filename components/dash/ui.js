@@ -360,6 +360,10 @@ export function InlineEdit({ value, onSave, placeholder = "–", className = "",
       autoFocus: true,
       "aria-label": label,
       onChange: (e) => setDraft(e.target.value),
+      onFocus: (e) => {
+        const end = e.target.value.length;
+        e.target.setSelectionRange?.(end, end);
+      },
       onBlur: commit,
       onKeyDown: (e) => {
         if (e.key === "Enter" && !(multiline && e.shiftKey)) {
@@ -376,7 +380,19 @@ export function InlineEdit({ value, onSave, placeholder = "–", className = "",
     return multiline ? <textarea rows={3} {...props} /> : <input {...props} />;
   }
   return (
-    <button type="button" className={`d-inline ${className}${value ? "" : " is-empty"}`} onClick={() => setEditing(true)} title={label ? `Modifier : ${label}` : "Modifier"}>
+    <button
+      type="button"
+      className={`d-inline ${className}${value ? "" : " is-empty"}`}
+      onClick={() => setEditing(true)}
+      onKeyDown={(e) => {
+        // Comme dans un tableur : taper un caractère remplace le contenu
+        if (e.key.length !== 1 || e.key === " " || e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        setDraft(e.key);
+        setEditing(true);
+      }}
+      title={label ? `Modifier : ${label}` : "Modifier"}
+    >
       {display || value || placeholder}
     </button>
   );

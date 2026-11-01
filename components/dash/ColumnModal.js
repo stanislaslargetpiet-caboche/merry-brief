@@ -157,7 +157,7 @@ export function ColumnModal({ field, onClose }) {
 }
 
 // En-tête d'une colonne ajoutée : menu modifier / supprimer, icône selon qui la remplit
-export function FieldHeader({ field }) {
+export function FieldHeader({ field, extra }) {
   const dash = useDash();
   const { guests } = dash.data;
   const [open, setOpen] = useState(false);
@@ -234,6 +234,11 @@ export function FieldHeader({ field }) {
               Tout décocher
             </span>
           </button>
+        ) : null}
+        {extra ? (
+          <span style={{ display: "contents" }} onClick={() => setOpen(false)}>
+            {extra}
+          </span>
         ) : null}
         {canGroup ? (
           <button
