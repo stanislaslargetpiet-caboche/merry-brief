@@ -625,7 +625,8 @@
 }
 
 .d-btn-lime:hover {
-  background: #bdf55f;
+  background: var(--d-lime);
+  filter: brightness(0.94);
 }
 
 .d-btn-ghost {
