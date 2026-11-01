@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { CATEGORIES, catOf, customVendorId, searchCatalogByName } from "@/lib/dash/catalog";
+import { supabase } from "@/lib/supabase";
+import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName } from "@/lib/dash/catalog";
 import { Thumb, usePicks } from "./Prestataires";
 import { Btn, BusyDots, Field, Modal } from "./ui";
 
@@ -17,7 +18,7 @@ export default function AddVendorDialog({ onClose, onAdded }) {
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [manual, setManual] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "autre", area: "" });
+  const [form, setForm] = useState({ name: "", category: "", area: "" });
   const [busy, setBusy] = useState(false);
   const searched = q.trim().length >= 2;
 
@@ -53,12 +54,31 @@ export default function AddVendorDialog({ onClose, onAdded }) {
   async function submitManual(e) {
     e.preventDefault();
     const name = form.name.trim();
-    if (!name || busy) return;
+    if (!name || !form.category || busy) return;
+    const area = form.area.trim();
     setBusy(true);
-    await add({ id: customVendorId(), category: form.category, name, area: form.area.trim() || undefined });
-    setBusy(false);
-    dash.setToast({ kind: "ok", text: `${name} est ajouté à vos prestataires.` });
-    onAdded?.();
+    try {
+      let v;
+      if (dash.mode === "live" && supabase) {
+        const { data: newId, error } = await supabase.rpc("merry_add_vendor_manual", {
+          w: dash.data.wedding.id,
+          vname: name,
+          category: form.category,
+          city: area || null,
+        });
+        if (error) throw error;
+        v = { id: `catalog:${newId}`, category: catFromCatalog(form.category), name, area: area || undefined };
+      } else {
+        v = { id: customVendorId(), category: catFromCatalog(form.category), name, area: area || undefined };
+      }
+      await add(v);
+      dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
+      onAdded?.();
+    } catch {
+      dash.setToast({ kind: "error", text: "Ce prestataire n'a pas pu être créé : collez supabase/prestataires-ajout-manuel.sql dans Supabase (SQL Editor)." });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -93,22 +113,30 @@ export default function AddVendorDialog({ onClose, onAdded }) {
             <input className="d-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Maison Lemoine" maxLength={120} autoFocus required />
           </Field>
           <Field label="Catégorie">
-            <select className="d-input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
+            <select className="d-input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} required>
+              <option value="" disabled>
+                Choisir
+              </option>
               {CATEGORIES.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
-                </option>
+                <optgroup key={c.key} label={c.group}>
+                  {CATALOG_CATEGORIES.filter((x) => x.group === c.key).map((x) => (
+                    <option key={x.key} value={x.key}>
+                      {x.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </Field>
           <Field label="Ville ou région · facultatif">
             <input className="d-input" value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} placeholder="Luberon" maxLength={80} />
           </Field>
+          <span className="d-small d-muted d-pr-addvendor-note">Rejoint le catalogue Merry : les autres couples pourront aussi le trouver.</span>
           <div className="d-pr-addvendor-actions">
             <Btn kind="ghost" onClick={() => setManual(false)}>
               Annuler
             </Btn>
-            <Btn type="submit" disabled={busy || !form.name.trim()}>
+            <Btn type="submit" disabled={busy || !form.name.trim() || !form.category}>
               Ajouter à mes prestataires
             </Btn>
           </div>
