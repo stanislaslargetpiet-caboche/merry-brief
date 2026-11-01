@@ -210,7 +210,6 @@ export default function InvitesFinder() {
             autoCorrect="off"
             spellCheck={false}
           />
-          <p className="wv-help">Il est sur ton faire-part, ou dans le message que les mariés t’ont envoyé. Majuscules ou minuscules, peu importe.</p>
           <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !code.trim()}>
             {busy ? <BusyDots label="Recherche en cours" /> : "Trouver la fête"}
           </button>
@@ -253,7 +252,6 @@ export default function InvitesFinder() {
             <span className="wv-flow-label">Date de la fête</span>
             <input type="date" className="wv-flow-field" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
-          <p className="wv-help">Deux prénoms suffisent souvent. La date aide quand plusieurs couples portent les mêmes.</p>
           <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !name1.trim()}>
             {busy ? <BusyDots label="Recherche en cours" /> : "Trouver la fête"}
           </button>
@@ -277,9 +275,6 @@ export default function InvitesFinder() {
       <div className="wv-invites-in">
         <h1 className="wv-h2">Tu es invité au plus beau jour de leur vie.</h1>
         <p className="wv-h4">C’est pas rien.</p>
-        <p className="wv-lead" style={{ maxWidth: 640 }}>
-          Retrouve la page de leur fête : le programme, ta réponse, les infos pratiques et la liste de cadeaux.
-        </p>
         <div className="wv-btns" style={{ justifyContent: "center", marginTop: 18 }}>
           <button type="button" className="wv-btn wv-btn-dark" onClick={() => setView("code")}>
             J'ai un code
