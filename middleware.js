@@ -7,10 +7,17 @@ import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 const APP_ONLY = /^\/(dashboard|pro|connexion|s|f|api)(\/|$)/;
 const SEO_ONLY = /^\/(mariage(\/|$)|sitemap\.xml$)/;
 const VITRINE_PATHS = Object.fromEntries(Object.entries(VITRINE_PAGES).map(([path, page]) => [page.replace(/\/$/, ""), path]));
+// Alias Vercel stables du projet : on n'y laisse jamais traîner de lien, on renvoie vers withmerry.com.
+// Les URLs de preview par déploiement (hash-stan-f307.vercel.app) restent intactes pour tester une branche.
+const VERCEL_STABLE_ALIASES = ["merry-brief.vercel.app", "merry-brief-stan-f307.vercel.app"];
 
 export function middleware(req) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const { pathname, search } = req.nextUrl;
+  if (VERCEL_STABLE_ALIASES.includes(host)) {
+    const target = APP_ONLY.test(pathname) ? "app.withmerry.com" : "www.withmerry.com";
+    return NextResponse.redirect(`https://${target}${pathname}${search}`, 308);
+  }
   // Les pages internes /vitrine/* n'ont qu'une adresse publique : celle du site (/, /partenaires…)
   const publicPath = VITRINE_PATHS[pathname.replace(/\/$/, "")];
   if (publicPath && (host === "app.withmerry.com" || VITRINE_HOSTS.includes(host))) {
