@@ -8865,6 +8865,29 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+/* Ajouter un prestataire (Mes prestataires) : saisie à la main */
+.d-pr-addvendor-link {
+  margin-top: 4px;
+}
+
+.d-pr-addvendor-form {
+  margin-top: 4px;
+}
+
+.d-pr-addvendor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.d-pr-mes-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 4px;
+}
+
 .d-pr-field.is-note {
   min-height: 0;
   padding: 10px 12px;
