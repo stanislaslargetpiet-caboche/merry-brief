@@ -6,7 +6,8 @@ import { useDash } from "@/lib/dash/store";
 import { GUEST_STATUS_LABEL, guestStats, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, pctLabel, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
-import { PASTEL_KEYS, pastel } from "@/lib/dash/theme";
+import { PASTEL_KEYS, RSVP, pastel } from "@/lib/dash/theme";
+import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
@@ -137,6 +138,71 @@ function StatusChips({ value, onChange }) {
 function splitName(s) {
   const parts = String(s || "").trim().split(/\s+/);
   return { first_name: parts.shift() || "", last_name: parts.join(" ") };
+}
+
+const TEXT_KEYS = ["diet", "address", "email", "phone"];
+const RSVP_RANK = { oui: 0, attente: 1, non: 2, non_invite: 3 };
+const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
+
+// Texte collé depuis un tableur : tabulations entre colonnes, retours à la ligne entre lignes,
+// guillemets autour d'une cellule qui contient elle-même un retour à la ligne
+function parseTsv(text) {
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let quoted = false;
+  const s = String(text || "").replace(/\r\n?/g, "\n");
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s[i];
+    if (quoted) {
+      if (ch === '"' && s[i + 1] === '"') {
+        cur += '"';
+        i += 1;
+      } else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"' && cur === "") quoted = true;
+    else if (ch === "\t") {
+      row.push(cur);
+      cur = "";
+    } else if (ch === "\n") {
+      row.push(cur);
+      rows.push(row);
+      row = [];
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur !== "" || row.length) {
+    row.push(cur);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function SortItems({ dir, onSort, rsvp }) {
+  return (
+    <>
+      <button type="button" className={`d-pop-item${dir === 1 ? " is-on" : ""}`} onClick={() => onSort(1)}>
+        <span className="d-pop-label">
+          <Icon name="arrowDown" size={14} sw={2} />
+          {rsvp ? "Trier : « Vient » en premier" : "Trier de A à Z"}
+        </span>
+      </button>
+      <button type="button" className={`d-pop-item${dir === -1 ? " is-on" : ""}`} onClick={() => onSort(-1)}>
+        <span className="d-pop-label">
+          <Icon name="arrowUp" size={14} sw={2} />
+          {rsvp ? "Trier : « Non invité » en premier" : "Trier de Z à A"}
+        </span>
+      </button>
+      {dir ? (
+        <button type="button" className="d-pop-item" onClick={() => onSort(0)}>
+          <span className="d-pop-label">
+            <Icon name="x" size={14} sw={2.2} />
+            Retirer le tri
+          </span>
+        </button>
+      ) : null}
+    </>
+  );
 }
 
 function RsvpCell({ guest, event, status }) {
@@ -318,7 +384,11 @@ function ColumnHead({ col, onRename, onRemove, removeLabel, extraItems }) {
             Renommer la colonne
           </span>
         </button>
-        {extraItems}
+        {extraItems ? (
+          <span style={{ display: "contents" }} onClick={() => setOpen(false)}>
+            {extraItems}
+          </span>
+        ) : null}
         {onRemove ? (
           <button
             type="button"
@@ -468,7 +538,28 @@ export default function Invites() {
   const inStatus = (g) => !statusFilter || guestStatus(idx.get(g.id) || {}, events) === statusFilter;
   const inMoments = (g) => Object.entries(momentFilter).every(([evId, st]) => !events.some((e) => e.id === evId) || ((idx.get(g.id) || {})[evId] || "non_invite") === st);
   const matches = (g) => (!groupFilter || g.group_id === groupFilter) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q));
-  const shown = base.filter((g) => matches(g));
+  // Texte d'une cellule, tel qu'on le copie ou qu'on le trie
+  const statusOf = (g, evId) => (idx.get(g.id) || {})[evId] || "non_invite";
+  const cellText = (key, g) => {
+    if (key === "name") return fullName(g);
+    if (key.startsWith("ev:")) return RSVP[statusOf(g, key.slice(3))]?.label || "";
+    if (key.startsWith("field:")) return String((g.custom || {})[key.slice(6)] ?? "");
+    if (TEXT_KEYS.includes(key)) return g[key] || "";
+    return "";
+  };
+  // Tri par colonne (menu de l'en-tête) : les cellules vides passent à la fin
+  const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
+  const filtered = base.filter((g) => matches(g));
+  const shown = sort
+    ? [...filtered].sort((a, b) => {
+        if (sort.key.startsWith("ev:")) return (RSVP_RANK[statusOf(a, sort.key.slice(3))] - RSVP_RANK[statusOf(b, sort.key.slice(3))]) * sort.dir;
+        const x = cellText(sort.key, a).trim();
+        const y = cellText(sort.key, b).trim();
+        if (!x !== !y) return x ? -1 : 1;
+        return collator.compare(x, y) * sort.dir;
+      })
+    : filtered;
+  const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
   const filterCount = (groupFilter ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
     setGroupFilter(null);
@@ -598,6 +689,142 @@ export default function Invites() {
     ok(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`);
   }
 
+  // Écrit des cellules (collage, effacement) : une seule mise à jour par invité, les statuts groupés par moment
+  async function writeCells(list) {
+    const patches = new Map();
+    const statuses = new Map(); // "eventId|statut" -> ids
+    let done = 0;
+    for (const { g, key, text } of list) {
+      const v = String(text ?? "").trim();
+      if (key.startsWith("ev:")) {
+        const st = rsvpFromCell(v);
+        if (!st) continue;
+        const k = `${key.slice(3)}|${st}`;
+        statuses.set(k, [...(statuses.get(k) || []), g.id]);
+        done += 1;
+        continue;
+      }
+      const p = patches.get(g.id) || {};
+      if (key === "name") {
+        if (!v) continue;
+        Object.assign(p, splitName(v));
+      } else if (TEXT_KEYS.includes(key)) p[key] = v || null;
+      else if (key.startsWith("field:")) {
+        const f = fields.find((x) => x.id === key.slice(6));
+        if (!f) continue;
+        const value = f.kind === "choice" && v ? (f.options || []).find((o) => normalize(o) === normalize(v)) : v;
+        if (v && !value) continue; // une colonne à choix n'accepte que ses options
+        const custom = { ...(p.custom || g.custom || {}) };
+        if (value) custom[f.id] = value;
+        else delete custom[f.id];
+        p.custom = custom;
+      } else continue;
+      patches.set(g.id, p);
+      done += 1;
+    }
+    await Promise.all([...patches].map(([id, p]) => dash.update("guests", id, p)));
+    for (const [k, ids] of statuses) {
+      const [evId, st] = k.split("|");
+      await dash.setResponses(ids, evId, st);
+    }
+    return done;
+  }
+
+  // Tableur : une cellule active (flèches, Tab, Entrée pour modifier, taper pour remplacer),
+  // une plage (Maj + flèches, Maj + clic), copier-coller avec les autres tableurs
+  const sheetRef = useRef(null);
+  const [cell, setCell] = useState(null); // { r, c }
+  const [anchor, setAnchor] = useState(null);
+  const extendingRef = useRef(false);
+  const range = cell && anchor ? { r0: Math.min(cell.r, anchor.r), r1: Math.max(cell.r, anchor.r), c0: Math.min(cell.c, anchor.c), c1: Math.max(cell.c, anchor.c) } : null;
+  const inRange = (r, c) => !!range && r >= range.r0 && r <= range.r1 && c >= range.c0 && c <= range.c1;
+  const focusCell = (r, c) => {
+    const td = sheetRef.current?.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+    if (!td) return;
+    (td.querySelector("input.d-check, button.d-inline, button") || td).focus();
+  };
+  const goTo = (r, c, extend) => {
+    const nr = Math.max(0, Math.min(shown.length - 1, r));
+    const nc = Math.max(0, Math.min(cols.columns.length - 1, c));
+    extendingRef.current = !!extend;
+    setCell({ r: nr, c: nc });
+    if (!extend) setAnchor({ r: nr, c: nc });
+    focusCell(nr, nc);
+    extendingRef.current = false;
+  };
+  const cellFocus = (r, c) => {
+    setCell({ r, c });
+    if (!extendingRef.current) setAnchor({ r, c });
+  };
+  const rangeCells = () => {
+    if (!range) return [];
+    const out = [];
+    for (let r = range.r0; r <= range.r1; r += 1) for (let c = range.c0; c <= range.c1; c += 1) if (shown[r] && cols.columns[c]) out.push({ g: shown[r], key: cols.columns[c].key, r, c });
+    return out;
+  };
+  const onSheetKey = (e) => {
+    if (!cell || e.target.closest(".d-pop")) return;
+    const editing = e.target.matches("input:not(.d-check), textarea, select");
+    if (!editing && e.defaultPrevented) return; // déjà traité (↑/↓ sur une case à cocher)
+    if (editing) {
+      // Fin d'édition : Entrée descend, Tab passe à droite, Échap reste sur la cellule
+      if (e.key === "Enter" && !e.shiftKey) setTimeout(() => goTo(cell.r + 1, cell.c), 0);
+      else if (e.key === "Escape") setTimeout(() => focusCell(cell.r, cell.c), 0);
+      else if (e.key === "Tab") {
+        e.preventDefault();
+        goTo(cell.r, cell.c + (e.shiftKey ? -1 : 1));
+      }
+      return;
+    }
+    const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (moves[e.key]) {
+      e.preventDefault();
+      goTo(cell.r + moves[e.key][0], cell.c + moves[e.key][1], e.shiftKey);
+    } else if (e.key === "Tab") {
+      const next = cell.c + (e.shiftKey ? -1 : 1);
+      if (next < 0 || next >= cols.columns.length) return;
+      e.preventDefault();
+      goTo(cell.r, next);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      goTo(cell.r, e.key === "Home" ? 0 : cols.columns.length - 1, e.shiftKey);
+    } else if ((e.key === "Delete" || e.key === "Backspace") && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      const list = rangeCells().map((x) => ({ ...x, text: "" }));
+      writeCells(list).then((n) => n > 1 && ok(`${n} cellules effacées.`));
+    } else if (e.key === "Escape") setAnchor(cell);
+  };
+  const onSheetCopy = (e) => {
+    if (!range || e.target.matches?.("input:not(.d-check), textarea")) return;
+    const lines = [];
+    for (let r = range.r0; r <= range.r1; r += 1) {
+      const row = [];
+      for (let c = range.c0; c <= range.c1; c += 1) row.push(shown[r] && cols.columns[c] ? cellText(cols.columns[c].key, shown[r]).replace(/[\t\n]/g, " ") : "");
+      lines.push(row.join("\t"));
+    }
+    e.clipboardData.setData("text/plain", lines.join("\n"));
+    e.preventDefault();
+  };
+  const onSheetPaste = (e) => {
+    if (!range || e.target.matches?.("input:not(.d-check), textarea")) return;
+    const grid = parseTsv(e.clipboardData.getData("text/plain"));
+    if (!grid.length) return;
+    e.preventDefault();
+    const single = grid.length === 1 && grid[0].length === 1;
+    const list = [];
+    const rows = single ? range.r1 - range.r0 + 1 : grid.length;
+    for (let i = 0; i < rows; i += 1) {
+      const g = shown[range.r0 + i];
+      if (!g) break;
+      const width = single ? range.c1 - range.c0 + 1 : grid[i].length;
+      for (let j = 0; j < width; j += 1) {
+        const col = cols.columns[range.c0 + j];
+        if (col) list.push({ g, key: col.key, text: single ? grid[0][0] : grid[i][j] });
+      }
+    }
+    writeCells(list).then((n) => ok(n ? `${n} cellule${n > 1 ? "s" : ""} collée${n > 1 ? "s" : ""}.` : "Rien à coller ici."));
+  };
+
   const stats = kpiItems(data, "invites");
   const g = guestStats(data);
 
@@ -695,7 +922,7 @@ export default function Invites() {
 
   // En-tête de chaque colonne : renommer et supprimer sont possibles partout
   function headFor(c) {
-    if (c.custom) return <FieldHeader field={c.field} />;
+    if (c.custom) return <FieldHeader field={c.field} extra={sortItems(c.key)} />;
     if (c.key === "tools") return c.label;
     if (c.key === "select") {
       return (
@@ -724,12 +951,15 @@ export default function Invites() {
             if (window.confirm(msg)) dash.remove("events", ev.id);
           }}
           extraItems={
-            <button type="button" className="d-pop-item" onClick={() => setMoments(true)}>
-              <span className="d-pop-label">
-                <Icon name="pencil" size={14} sw={2} />
-                Modifier les moments
-              </span>
-            </button>
+            <>
+              {sortItems(c.key)}
+              <button type="button" className="d-pop-item" onClick={() => setMoments(true)}>
+                <span className="d-pop-label">
+                  <Icon name="pencil" size={14} sw={2} />
+                  Modifier les moments
+                </span>
+              </button>
+            </>
           }
         />
       );
@@ -739,6 +969,7 @@ export default function Invites() {
       <ColumnHead
         col={c}
         onRename={(v) => cols.rename(c.key, v)}
+        extraItems={sortItems(c.key)}
         removeLabel="Supprimer la colonne"
         onRemove={
           removable
@@ -929,15 +1160,21 @@ export default function Invites() {
       ) : null}
 
       {guests.length ? (
-        <div className="d-table-wrap d-desk-only">
-          <table className="d-table d-guests d-cols">
+        <div className="d-table-wrap d-sheet d-desk-only" ref={sheetRef}>
+          <table className="d-table d-guests d-cols" onKeyDown={onSheetKey} onCopy={onSheetCopy} onPaste={onSheetPaste}>
             <thead>
               <tr>
                 {cols.columns.map((c) => {
                   const hp = cols.headerProps(c);
+                  const frozen = c.key === "select" ? "d-frozen-1" : c.key === "name" ? "d-frozen-2" : "";
                   return (
-                    <th key={c.key} {...hp} className={[hp.className, c.custom ? "d-col-custom" : ""].filter(Boolean).join(" ") || undefined} title={c.fixed ? undefined : "Glisser pour déplacer la colonne"}>
+                    <th key={c.key} {...hp} className={[hp.className, c.custom ? "d-col-custom" : "", frozen].filter(Boolean).join(" ") || undefined} title={c.fixed ? undefined : "Glisser pour déplacer la colonne"}>
                       {headFor(c)}
+                      {sort?.key === c.key ? (
+                        <button type="button" className="d-sort-mark" onClick={() => setSort(null)} aria-label={`Retirer le tri sur ${c.label}`} title="Retirer le tri">
+                          <Icon name={sort.dir === 1 ? "arrowDown" : "arrowUp"} size={12} sw={2.4} />
+                        </button>
+                      ) : null}
                       {c.noResize ? null : <ResizeHandle label={c.label} onMouseDown={(e) => cols.startResize(c.key, e, e.currentTarget.parentElement)} />}
                     </th>
                   );
@@ -950,11 +1187,38 @@ export default function Invites() {
                 const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
                 return (
                   <tr key={g.id} className={selected[g.id] ? "d-row-selected" : undefined} onMouseDown={(e) => rowMouseDown(e, g, rowIdx)} onMouseEnter={() => dragOver(rowIdx)}>
-                    {cols.columns.map((c) => (
-                      <td key={c.key} style={cols.cellStyle(c)} className={c.custom ? "d-col-custom" : undefined}>
-                        {c.render(g, r, host, rowIdx)}
-                      </td>
-                    ))}
+                    {cols.columns.map((c, colIdx) => {
+                      const active = cell && cell.r === rowIdx && cell.c === colIdx;
+                      const cls = [
+                        c.custom ? "d-col-custom" : "",
+                        c.key === "select" ? "d-frozen-1" : c.key === "name" ? "d-frozen-2" : "",
+                        active ? "is-cell-active" : "",
+                        !active && range && (range.r0 !== range.r1 || range.c0 !== range.c1) && inRange(rowIdx, colIdx) ? "is-cell-range" : "",
+                      ].filter(Boolean);
+                      return (
+                        <td
+                          key={c.key}
+                          style={cols.cellStyle(c)}
+                          className={cls.join(" ") || undefined}
+                          data-r={rowIdx}
+                          data-c={colIdx}
+                          tabIndex={-1}
+                          onFocus={() => cellFocus(rowIdx, colIdx)}
+                          onMouseDown={(e) => {
+                            // Maj + clic sur une cellule : étend la plage (la case à cocher garde son Maj + clic)
+                            if (!e.shiftKey || !cell || c.key === "select") return;
+                            e.preventDefault();
+                            skipClickRef.current = true; // le clic ne doit pas ouvrir le nom ou le statut
+                            extendingRef.current = true;
+                            setCell({ r: rowIdx, c: colIdx });
+                            focusCell(rowIdx, colIdx);
+                            extendingRef.current = false;
+                          }}
+                        >
+                          {c.render(g, r, host, rowIdx)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
