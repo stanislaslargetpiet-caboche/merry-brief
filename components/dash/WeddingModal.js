@@ -75,11 +75,11 @@ export default function WeddingModal({ onClose }) {
           <input className="d-input" inputMode="decimal" value={form.budget_total} onChange={set("budget_total")} placeholder="40 000" />
         </Field>
         <ShiftOption plan={plan} checked={shift} onChange={setShift} />
-        <Field label="Lieu" full>
+        <Field label="Lieu" full hint={form.venue ? "Les prestataires sont cherchés autour de ce lieu, pas de la région." : undefined}>
           <input className="d-input" value={form.venue} onChange={set("venue")} placeholder="Domaine des Oliviers" />
         </Field>
         <Field label="Région" full>
-          <input className="d-input" value={form.region} onChange={set("region")} placeholder="Provence" />
+          <input className="d-input" value={form.region} onChange={(e) => setForm((f) => ({ ...f, region: e.target.value, venue: e.target.value !== w.region ? "" : f.venue }))} placeholder="Provence" />
         </Field>
         <button type="submit" hidden />
       </form>
