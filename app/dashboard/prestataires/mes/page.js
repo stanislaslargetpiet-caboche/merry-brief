@@ -5,7 +5,6 @@
 // une seule fois par rubrique, dès deux devis reçus ; les rubriques vides ne s'affichent pas.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import VendorComments, { useVendorComments } from "@/components/dash/VendorComments";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
@@ -17,7 +16,6 @@ import { DevisDialog, FichePanel, Heart, PrHead, RowActions, StatusChip, Thumb, 
 
 export default function Mes() {
   const dash = useDash();
-  const router = useRouter();
   const data = dash.data;
   const { picks, toggle, add } = usePicks();
   const [fiche, setFiche] = useState(null);
@@ -104,7 +102,7 @@ export default function Mes() {
           }}
         />
       ) : null}
-      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => router.push("/dashboard/prestataires/mes")} /> : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => setDevis(null)} /> : null}
     </>
   );
 }
