@@ -12,7 +12,8 @@ import { pastel } from "@/lib/dash/theme";
 import { householdKey, householdLabel, householdsOf } from "@/lib/dash/households";
 import { DEFAULT_CAPACITY, autoSeat, defaultSeatingEvent, eligibleGuests, planFor, splitHouseholds } from "@/lib/dash/seating";
 import { Icon } from "@/components/dash/icons";
-import { Btn, InlineEdit, PageHeader, Popover } from "@/components/dash/ui";
+import { Btn, InlineEdit, Popover } from "@/components/dash/ui";
+import InvitesHeader from "@/components/dash/InvitesTabs";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", '"': "&quot;", ">": "&gt;" })[c]);
@@ -181,9 +182,8 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
 
   return (
     <>
-      <PageHeader
-        back={{ href: "/dashboard/invites", label: "Invités" }}
-        title="Plan de table."
+      <InvitesHeader
+        tab="plan"
         actions={
           <span className="d-filters" style={{ gap: 10 }}>
             {events.length > 1 ? (
