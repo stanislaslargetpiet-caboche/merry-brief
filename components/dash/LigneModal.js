@@ -10,7 +10,7 @@ import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessCatalogCategory } from "@/lib/dash/catalog";
 import { CloseBtn, Layer } from "./Prestataires";
 import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
-import { Btn, Field, Modal } from "./ui";
+import { Avatar, Btn, Field, Modal } from "./ui";
 
 // Types de dépense proposés d'un clic, selon le poste
 const SUGGESTIONS = [
@@ -26,7 +26,7 @@ const FALLBACK = ["Location de matériel", "Livraison", "Personnel", "Assurance"
 // category : nom du poste (« Lieu »)
 export default function LigneModal({ category, onClose }) {
   const dash = useDash();
-  const { items, vendors, payments } = dash.data;
+  const { items, vendors, members, meId } = dash.data;
   const group = groupItems(items).find((g) => normalize(g.name) === normalize(category) || g.items.some((i) => normalize(i.category) === normalize(category)));
   const siblings = group ? group.items : [];
   const taken = new Set(siblings.map((i) => normalize(i.label)));
@@ -36,6 +36,9 @@ export default function LigneModal({ category, onClose }) {
   const [paid, setPaid] = useState("");
   const [full, setFull] = useState(true); // paiement intégral, sinon acompte avec un reste
   const [rest, setRest] = useState("");
+  const [restDue, setRestDue] = useState("");
+  // Sans payeur, la dépense manquait à « Qui a payé quoi » et à la répartition
+  const [payerId, setPayerId] = useState(meId || members[0]?.id || null);
   const [busy, setBusy] = useState(false);
   const [merryPrompt, setMerryPrompt] = useState(null); // null | { name, vendorId, category }
   const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
@@ -62,16 +65,23 @@ export default function LigneModal({ category, onClose }) {
       }
     }
     const itemId = uid();
-    await dash.insert("budget_items", {
-      id: itemId,
-      label: kind.trim().slice(0, 80),
-      category: String(category).trim(),
-      icon: siblings[0]?.icon || null,
-      vendor_id: vendorId,
-      quote_amount: paidAmount + restAmount,
-      position: items.length,
-    });
-    await dash.insert("payments", { budget_item_id: itemId, label: vName || "Paiement", amount: paidAmount, paid_at: todayIso(), payer_id: null, due_date: null });
+    // Montant prévu de la ligne (payé + reste), sans valoir devis signé pour le rétroplanning
+    await dash.insert(
+      "budget_items",
+      {
+        id: itemId,
+        label: kind.trim().slice(0, 80),
+        category: String(category).trim(),
+        icon: siblings[0]?.icon || null,
+        vendor_id: vendorId,
+        quote_amount: paidAmount + restAmount,
+        position: items.length,
+      },
+      { quoteHook: false },
+    );
+    const rows = [{ budget_item_id: itemId, label: vName || "Paiement", amount: paidAmount, paid_at: todayIso(), payer_id: payerId, due_date: null }];
+    if (restAmount > 0) rows.push({ budget_item_id: itemId, label: "Solde", amount: restAmount, paid_at: null, payer_id: null, due_date: restDue || null });
+    await dash.insert("payments", rows);
     dash.setToast({ kind: "ok", text: `Ligne « ${kind.trim()} » ajoutée dans ${category}.` });
     setBusy(false);
     // Un nouveau prestataire tapé à la main, dont on reconnaît le métier (via le poste) : propose de
@@ -151,10 +161,25 @@ export default function LigneModal({ category, onClose }) {
           </button>
         </div>
         {!full ? (
-          <Field label="Reste à payer (€)">
-            <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="2 000" />
-          </Field>
+          <>
+            <Field label="Reste à payer (€)">
+              <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="2 000" />
+            </Field>
+            <Field label="Reste à payer le · facultatif">
+              <input className="d-input" type="date" value={restDue} onChange={(e) => setRestDue(e.target.value)} />
+            </Field>
+          </>
         ) : null}
+        <Field label="Payé par" group>
+          <div className="d-filters">
+            {members.map((m) => (
+              <button key={m.id} type="button" className={`d-pill d-pill-person${payerId === m.id ? " is-on" : ""}`} aria-pressed={payerId === m.id} onClick={() => setPayerId(m.id)}>
+                <Avatar member={m} size={24} />
+                {m.display_name}
+              </button>
+            ))}
+          </div>
+        </Field>
         <button type="submit" hidden />
       </form>
     </Modal>

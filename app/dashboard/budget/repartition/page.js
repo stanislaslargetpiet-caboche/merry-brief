@@ -7,9 +7,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { paidByPayer } from "@/lib/dash/model";
+import { paidByPayer, posteName, unassignedPayments } from "@/lib/dash/model";
 import { MODES, ruleOf, ruleSummary, settle, targetsOf } from "@/lib/dash/partage";
-import { euros, pctLabel } from "@/lib/dash/format";
+import { euros, pctLabel, shortDate } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
 import { Avatar, Btn, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
@@ -24,6 +24,10 @@ export default function Repartition() {
   const total = byPayer.reduce((a, x) => a + x.amount, 0);
   const rule = ruleOf(data);
   const targets = targetsOf(rule, data, byPayer);
+  // Payé sans payeur indiqué (anciennes lignes ajoutées dans un poste, échéances marquées payées…) :
+  // hors du partage tant qu'on n'a pas dit qui a payé
+  const unassigned = unassignedPayments(data);
+  const itemById = new Map(data.items.map((i) => [i.id, i]));
   const transfers = settle(byPayer.map((x) => ({ member: x.member, diff: x.amount - (targets[x.member.id] || 0) })));
 
   return (
@@ -61,6 +65,40 @@ export default function Repartition() {
               </div>
             ))}
           </div>
+
+          {unassigned.length ? (
+            <>
+              <Section title="Qui a payé ?" count={unassigned.length} />
+              <div className="d-card d-unassigned">
+                <p className="d-small d-muted" style={{ margin: 0 }}>
+                  {euros(unassigned.reduce((a, p) => a + Number(p.amount || 0), 0))} payés sans payeur indiqué ne comptent pas encore dans la répartition.
+                </p>
+                <ul className="d-pay-list">
+                  {unassigned.map((p) => (
+                    <li key={p.id}>
+                      <span className="d-pay-text">
+                        <strong>
+                          {posteName(itemById.get(p.budget_item_id))} · {euros(p.amount)}
+                        </strong>
+                        <small>
+                          {p.label}
+                          {p.paid_at ? ` · le ${shortDate(p.paid_at)}` : ""}
+                        </small>
+                      </span>
+                      <span className="d-filters">
+                        {data.members.map((m) => (
+                          <button key={m.id} type="button" className="d-pill d-pill-person" onClick={() => dash.update("payments", p.id, { payer_id: m.id })}>
+                            <Avatar member={m} size={22} />
+                            {m.display_name}
+                          </button>
+                        ))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          ) : null}
         </div>
 
         <div className="d-col" style={{ gap: 12 }}>
