@@ -15966,3 +15966,82 @@ body.d-noscroll {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Formulaire invités : l'ordre des questions (poignée à gauche, trait là où la ligne va se poser) */
+.d-fm-help {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}
+
+.d-fm-help code {
+  font-size: 12px;
+}
+
+.d-fm-row {
+  position: relative;
+}
+
+.d-fm-grip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 36px;
+  margin: -6px 0 -6px -8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #b4b3aa;
+  cursor: grab;
+  touch-action: none;
+}
+
+.d-fm-grip:hover,
+.d-fm-row.is-moving .d-fm-grip {
+  color: var(--d-ink);
+  background: #f1f0eb;
+}
+
+.d-fm-list.is-dragging,
+.d-fm-list.is-dragging .d-fm-row {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.d-fm-row.is-moving {
+  opacity: 0.45;
+}
+
+.d-fm-row.is-drop-before::before,
+.d-fm-row.is-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--d-ink);
+  z-index: 1;
+}
+
+.d-fm-row.is-drop-before::before {
+  top: -2px;
+}
+
+.d-fm-row.is-drop-after::after {
+  bottom: -2px;
+}
+
+.d-fm-move {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.d-fm-move > span {
+  margin-right: auto;
+}
