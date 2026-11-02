@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { completeness, dateLong, firstName, guestsText, monthName, since, todayIsoLocal, todayLabel, weddingWhen } from "@/lib/pro/format";
+import { completeness, creditsRoi, dateLong, firstName, guestsText, monthName, responseStats, since, todayIsoLocal, todayLabel, weddingWhen } from "@/lib/pro/format";
 import { dayMonth, shortDate, today } from "@/lib/dash/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
@@ -25,6 +25,8 @@ export default function ProHome() {
     .slice(0, 3);
   const plan = (d.offer?.plans || []).find((p) => p.key === d.pro?.plan);
   const credits = d.pro?.credits ?? 0;
+  const resp = responseStats(d);
+  const roi = creditsRoi(d);
 
   return (
     <>
@@ -164,6 +166,26 @@ export default function ProHome() {
               <div>
                 <span className="p-stat">{d.stats?.requests ?? 0}</span>
                 <span className="p-stat-label">Demandes de devis</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="p-block is-tight">
+            <div className="p-month-head">
+              <h2>Vos performances</h2>
+            </div>
+            <div className="p-stats">
+              <div>
+                <span className="p-stat">{resp ? `${resp.avgHours} h` : "—"}</span>
+                <span className="p-stat-label">Temps de réponse moyen</span>
+              </div>
+              <div>
+                <span className="p-stat">{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</span>
+                <span className="p-stat-label">Coût moyen par réservation</span>
+              </div>
+              <div>
+                <span className="p-stat">{v.google_rating ? v.google_rating.toLocaleString("fr-FR") : "—"}</span>
+                <span className="p-stat-label">Note Google{v.google_review_count ? ` · ${v.google_review_count} avis` : ""}</span>
               </div>
             </div>
           </section>

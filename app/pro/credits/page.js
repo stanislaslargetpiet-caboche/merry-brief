@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
+import { creditsRoi } from "@/lib/pro/format";
 import { dayMonth, euros, shortDate } from "@/lib/dash/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Sheet } from "@/components/pro/ui";
@@ -31,6 +32,7 @@ export default function Credits() {
   const [buying, setBuying] = useState(null);
   const credits = d.pro?.credits ?? 0;
   const packs = offer.packs?.length ? offer.packs : [];
+  const roi = creditsRoi(d);
 
   return (
     <div className="p-credits">
@@ -44,6 +46,26 @@ export default function Credits() {
           {d.pro?.renews_on ? ` · Renouvellement le ${dayMonth(d.pro.renews_on)}` : ""}
         </p>
       </div>
+
+      <section className="p-block is-tight">
+        <div className="p-month-head">
+          <h2>Ce que vos crédits ont rapporté</h2>
+        </div>
+        <div className="p-stats">
+          <div>
+            <span className="p-stat">{roi.used}</span>
+            <span className="p-stat-label">Crédits dépensés</span>
+          </div>
+          <div>
+            <span className="p-stat">{roi.answered}</span>
+            <span className="p-stat-label">Demandes répondues</span>
+          </div>
+          <div>
+            <span className="p-stat">{roi.bookings}</span>
+            <span className="p-stat-label">Réservations{roi.perBooking !== null ? ` · ${roi.perBooking} crédits en moyenne` : ""}</span>
+          </div>
+        </div>
+      </section>
 
       <section className="p-block is-16">
         <h2 className="p-h2 is-20">Abonnement</h2>
