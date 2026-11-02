@@ -24,6 +24,20 @@ function logDemoVisit(raw, data) {
   }
 }
 
+function visitorId() {
+  try {
+    const key = "merry-visitor";
+    let id = window.localStorage.getItem(key);
+    if (!id) {
+      id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+      window.localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 function readDemoSite(slug) {
   try {
     const raw = window.localStorage.getItem("merry-demo-v1");
@@ -61,6 +75,9 @@ export default function WeddingSitePage() {
       const { data, error } = await supabase.rpc("merry_site_public", { site_slug: String(slug) });
       if (error) console.error("[merry] site de mariage", error);
       if (live) setState({ loading: false, site: data || null });
+      // Une visite par personne et par heure (jeton anonyme gardé dans ce navigateur), comptée à part de la
+      // lecture : l'aperçu de lien du serveur et les robots des messageries ne gonflent pas le compteur
+      if (data && !data.closed) supabase.rpc("merry_site_visit", { site_slug: String(slug), visitor_id: visitorId() }).then(() => {}, () => {});
     })();
     return () => {
       live = false;

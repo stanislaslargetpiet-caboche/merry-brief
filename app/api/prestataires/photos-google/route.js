@@ -3,9 +3,11 @@
 // catalogue (bucket catalog-photos, table catalog.vendor_photos), comme scripts/catalog/13-photos-
 // google-places.mjs le fait en lot, et on renvoie leurs liens signés pour la fiche et la sélection.
 // Nécessite GOOGLE_PLACES_API_KEY et SUPABASE_SERVICE_ROLE_KEY côté serveur. Réservée aux
-// organisateurs connectés ; ne touche qu'une fiche encore sans photo.
+// organisateurs du mariage qui a créé la fiche (catalog.vendors.created_by_wedding) ; ne touche qu'une
+// fiche encore sans photo ; 40 fiches par jour et par personne.
 
 import { createClient } from "@supabase/supabase-js";
+import { allowUser } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -58,8 +60,15 @@ export async function POST(req) {
   if (!/^[0-9a-f-]{36}$/i.test(vendorId) || !/^[A-Za-z0-9_-]{5,300}$/.test(placeId)) return Response.json({ error: "bad_request" }, { status: 400 });
 
   const admin = createClient(url, service, { auth: { persistSession: false } });
-  const { data: vendor } = await admin.schema("catalog").from("vendors").select("id, photos_count").eq("id", vendorId).maybeSingle();
+  const { data: vendor } = await admin.schema("catalog").from("vendors").select("id, photos_count, created_by_wedding").eq("id", vendorId).maybeSingle();
   if (!vendor) return Response.json({ error: "not_found" }, { status: 404 });
+  // Seule l'équipe du mariage qui a créé la fiche peut y rattacher des photos Google : une fiche du
+  // catalogue ne doit pas recevoir les photos d'un autre établissement choisi par n'importe quel compte
+  if (!vendor.created_by_wedding) return Response.json({ error: "forbidden", photos: [] }, { status: 403 });
+  const { data: member } = await sb.from("wedding_members").select("id").eq("wedding_id", vendor.created_by_wedding).eq("user_id", user.user.id).maybeSingle();
+  if (!member) return Response.json({ error: "forbidden", photos: [] }, { status: 403 });
+  // Chaque appel coûte des photos Google : 40 fiches par jour et par personne
+  if (!(await allowUser(sb, "google_photos", 40, 86400))) return Response.json({ error: "quota", photos: [] }, { status: 429 });
 
   // Déjà des photos (fiche du catalogue retrouvée plutôt que créée) : on renvoie sa couverture
   if (vendor.photos_count > 0) {

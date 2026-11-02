@@ -213,6 +213,7 @@ create table if not exists public.vendor_messages (
   foreign key (wedding_id, vendor_id) references public.vendors (wedding_id, id) on delete cascade,
   foreign key (wedding_id, author_id) references public.wedding_members (wedding_id, id) on delete set null (author_id)
 );
+create index if not exists vendor_messages_thread_idx on public.vendor_messages (wedding_id, vendor_id, sent_at);
 
 -- ---------------------------------------------------------------------------
 -- Indicateurs choisis par chaque organisateur (barre de KPIs)

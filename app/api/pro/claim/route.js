@@ -14,6 +14,8 @@
 // Le mail « Magic Link » de Supabase doit contenir {{ .Token }} pour que le code y figure (README).
 
 import { createClient } from "@supabase/supabase-js";
+import { clientIp } from "@/lib/server/origin";
+import { allowKey } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 
@@ -64,6 +66,19 @@ async function geocode(f) {
 
 const WELCOME_CREDITS = Math.max(0, Number(process.env.MERRY_PRO_WELCOME_CREDITS ?? 100) || 0);
 
+// Un code par mail coûte un envoi et peut servir à importuner un établissement : par adresse IP
+// (20 par heure), par fiche (5 par heure) et par adresse mail (5 par heure). Renvoie la réponse à
+// rendre quand la limite est atteinte, sinon null.
+async function throttled(admin, req, keys) {
+  const all = [`claim-ip:${clientIp(req)}`, ...keys];
+  const limits = { "claim-ip": [20, 3600], "claim-vendor": [5, 3600], "claim-email": [5, 3600] };
+  for (const key of all) {
+    const [max, seconds] = limits[key.split(":")[0]] || [5, 3600];
+    if (!(await allowKey(admin, key, max, seconds))) return Response.json({ error: "wait" }, { status: 429 });
+  }
+  return null;
+}
+
 // Mail et téléphone masqués, comme pro_search
 const emailHint = (email) => (/@/.test(String(email || "")) ? `${email[0]}•••${email.slice(email.indexOf("@"))}` : null);
 const phoneHint = (phone) => {
@@ -102,6 +117,7 @@ export async function POST(req) {
 
   // 0. search : « Retrouvez votre établissement », avec la photo de couverture (stockage privé)
   if (body.action === "search") {
+    if (!(await allowKey(admin, `claim-search:${clientIp(req)}`, 120, 600))) return Response.json({ error: "wait", results: [] }, { status: 429 });
     const q = String(body.q || "").slice(0, 120);
     const { data, error } = await admin.rpc("pro_search", { q });
     if (error) return Response.json({ error: /PGRST202|Could not find/i.test(error.message) ? "setup" : "search_failed" }, { status: 500 });
@@ -111,8 +127,8 @@ export async function POST(req) {
     return Response.json({ results: (data || []).map((r) => ({ ...r, photo: r.photo ? byPath.get(r.photo) || null : null })) });
   }
 
-  if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon);
-  if (body.action === "login_send" || body.action === "login_verify") return login(body, url, anon);
+  if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon, req);
+  if (body.action === "login_send" || body.action === "login_verify") return login(body, admin, url, anon, req);
 
   // lookup : une fiche par son identifiant, pour ouvrir l'écran directement dessus (/pro?fiche=…)
   if (body.action === "lookup") {
@@ -160,6 +176,8 @@ export async function POST(req) {
   const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
 
   if (body.action === "send") {
+    const limited = await throttled(admin, req, [`claim-vendor:${vendorId}`, `claim-email:${email}`]);
+    if (limited) return limited;
     const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
     if (error) {
       const wait = /rate|seconds|too many/i.test(error.message);
@@ -189,13 +207,15 @@ function linked(error, session) {
   return Response.json({ ok: true, session: { access_token: session.access_token, refresh_token: session.refresh_token } });
 }
 
-async function create(body, admin, url, anon) {
+async function create(body, admin, url, anon, req) {
   const email = String(body.email || "").trim().toLowerCase();
   const fields = newVendor(body.fields);
   if (!EMAIL_RE.test(email) || email.length > 160 || !fields) return Response.json({ error: "bad_request" }, { status: 400 });
   const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
 
   if (body.action === "create_send") {
+    const limited = await throttled(admin, req, [`claim-email:${email}`]);
+    if (limited) return limited;
     // L'adresse est vérifiée avant d'envoyer le code : une adresse introuvable se corrige sans consommer de code
     if (!(await geocode(fields))) return Response.json({ error: "address" }, { status: 422 });
     const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
@@ -250,11 +270,13 @@ async function create(body, admin, url, anon) {
 }
 
 // Se connecter avec son adresse : un code, puis l'écran retrouve les fiches du compte
-async function login(body, url, anon) {
+async function login(body, admin, url, anon, req) {
   const email = String(body.email || "").trim().toLowerCase();
   if (!EMAIL_RE.test(email) || email.length > 160) return Response.json({ error: "bad_request" }, { status: 400 });
   const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
   if (body.action === "login_send") {
+    const limited = await throttled(admin, req, [`claim-email:${email}`]);
+    if (limited) return limited;
     // Pas de compte à cette adresse : on ne crée rien, l'écran propose de retrouver ou créer sa fiche
     const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     if (error) {

@@ -6,7 +6,7 @@
 // Créer sa fiche (maquettes V0c et V0cm) : l'établissement n'est pas dans le catalogue, le prestataire donne
 // son nom, son activité, son adresse et son adresse mail ; le code reçu à cette adresse crée la fiche.
 // Se connecter : un prestataire qui revient tape son adresse mail, reçoit un code, et retrouve ses fiches.
-// /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement la fiche, code envoyé ;
+// /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement la fiche, code sur un clic ;
 // /pro?etablissement=<nom> (recherche du site vitrine) préremplit la recherche.
 
 import { useEffect, useRef, useState } from "react";
@@ -119,7 +119,7 @@ export default function Claim() {
     (async () => {
       const res = await call({ action: "lookup", vendorId: fiche });
       if (!live) return;
-      if (res.result) choose(res.result);
+      if (res.result) choose(res.result, { send: false });
       else setNotice(ERRORS[res.error] || ERRORS.not_found);
     })();
     return () => {
@@ -178,14 +178,16 @@ export default function Claim() {
     } else setError(ERRORS[res.error] || ERRORS.send_failed);
   }
 
-  function choose(found) {
+  // Depuis la recherche (« C'est moi »), le code part tout de suite ; depuis un lien (/pro?fiche=…), la fiche
+  // s'ouvre et le code part sur un clic : un lien reçu ou forgé ne doit pas envoyer un mail à lui seul
+  function choose(found, { send = true } = {}) {
     const r = demo && !found.email_hint ? { ...found, email_hint: "c•••@exemple.fr" } : found;
     setPicked(r);
     setStep(2);
     setSent(false);
     setError("");
     setFixNote(false);
-    if (r.email_hint) sendCode(r);
+    if (r.email_hint && send) sendCode(r);
   }
 
   function startCreate() {

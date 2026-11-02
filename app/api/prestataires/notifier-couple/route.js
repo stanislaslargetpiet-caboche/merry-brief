@@ -1,10 +1,12 @@
 // Prévient le couple par mail quand un prestataire leur répond via /pro/demandes (pro_send).
-// Nécessite RESEND_API_KEY côté serveur (Vercel > Settings > Environment Variables) et
-// supabase/prestataires-notifier-couple.sql (pro_notify_couple_payload) collé dans Supabase.
+// Nécessite RESEND_API_KEY et SUPABASE_SERVICE_ROLE_KEY côté serveur (Vercel > Settings > Environment
+// Variables) et supabase/prestataires-notifier-couple.sql (pro_notify_couple_payload) collé dans Supabase.
 // Sans clé, sans RPC ou sans mail connu pour les organisateurs, la route répond sans rien
 // envoyer : la réponse reste de toute façon enregistrée dans Merry, seul le mail est facultatif.
 
 import { createClient } from "@supabase/supabase-js";
+import { publicOrigin } from "@/lib/server/origin";
+import { allowUser } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 
@@ -34,15 +36,22 @@ export async function POST(req) {
   const clientId = String(body.clientId || "");
   if (!clientId) return Response.json({ error: "bad_request" }, { status: 400 });
 
-  // security definer : vérifie que c'est bien le prestataire du client avant de rendre quoi que ce soit
-  const { data: rows, error } = await sb.rpc("pro_notify_couple_payload", { c: clientId });
+  // Les adresses des organisateurs ne sont lues que par le serveur (clé service_role), après avoir
+  // vérifié avec le jeton du prestataire que ce client est bien l'un des siens (is_pro_member, RLS)
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!service) return Response.json({ error: "no_mail" }, { status: 501 });
+  const { data: client } = await sb.from("pro_clients").select("id, vendor_id").eq("id", clientId).maybeSingle();
+  if (!client) return Response.json({ error: "not_found" }, { status: 404 });
+  const { data: mine } = await sb.rpc("is_pro_member", { v: client.vendor_id });
+  if (mine !== true) return Response.json({ error: "forbidden" }, { status: 403 });
+  if (!(await allowUser(sb, "couple_mail", 60, 86400))) return Response.json({ error: "quota" }, { status: 429 });
+  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: rows, error } = await admin.rpc("pro_notify_couple_payload", { c: clientId });
   if (error) return Response.json({ error: "no_mail" }, { status: 501 });
   const recipients = (rows || []).filter((r) => EMAIL_RE.test(String(r.to_email || "").trim()));
   if (!recipients.length) return Response.json({ error: "no_email" }, { status: 422 });
 
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  const link = `${proto}://${host}/dashboard/prestataires/messagerie`;
+  const link = `${publicOrigin(req)}/dashboard/prestataires/messagerie`;
   const vendorName = recipients[0].vendor_name || "Un prestataire";
 
   const subject = `${vendorName} vous a répondu`;

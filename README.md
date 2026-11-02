@@ -252,6 +252,22 @@ Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navi
 
 **Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours).
 
+## Mise à jour du 2 novembre 2026 (sécurité, quotas, données)
+
+À coller dans Supabase > SQL Editor, dans cet ordre (tous relançables) : `supabase/quotas.sql` (nouveau : table `rate_limits`, fonctions `merry_rate` et `merry_throttle`), puis `dashboard.sql`, `sync-et-historique.sql`, `plan-de-table.sql`, `formulaire.sql`, `invites-recherche.sql`, `site-visites.sql`, `prestataires.sql`, `prestataires-ajout-manuel-fix-ambiguite.sql`, `espace-prestataire.sql`, `prestataires-notifier-couple.sql`. Ensuite `refresh materialized view catalog.place_centers` (si `lieux-rapides.sql` est installé).
+
+Ce que ça change :
+
+- **Plan de table** : les placements se rechargeaient vides (tri sur une colonne `id` que la table n'a pas) ; corrigé côté appli.
+- **Recherche de la fête** (site vitrine) : comparaison exacte des prénoms, deux indices exigés (deux prénoms, ou un prénom et la date) ; un « % » ne liste plus les sites.
+- **Formulaire invités** : 200 réponses par heure et par formulaire ; un nom reconnu ne voit ses coordonnées remplacées que si le mail envoyé est celui de sa fiche ; la réponse ne dit plus si le nom était sur la liste.
+- **Direct entre organisateurs** : `replica identity full` sur les tables partagées (les suppressions arrivent), relecture au retour du canal, et toute écriture refusée remet l'écran dans l'état d'avant.
+- **Quotas** (`quotas.sql`) : recherche Google (300 par jour et par personne), villes (600), photos Google (40), mails aux prestataires (40), aux organisateurs (60), invitations (20), fiches ajoutées à la main (30) ; codes de l'espace prestataire : 20 par heure et par adresse IP, 5 par fiche, 5 par adresse mail. Sans le fichier, les routes laissent passer et le disent dans les journaux Vercel.
+- **Espace prestataire** : la fonction qui donne les adresses des organisateurs n'est plus appelable par un prestataire connecté (réservée au serveur) ; une proposition ne crée plus une nouvelle fiche chez le couple à chaque envoi (dix minutes entre deux) ; réordonner ses photos garde leurs métadonnées ; index trigramme sur le nom des fiches pour la recherche publique ; un lien `/pro?fiche=…` ouvre la fiche, le code part sur un clic.
+- **Catalogue** : une fiche ajoutée à la main porte `created_by_wedding` ; les pages publiques `/mariage/…` ne la listent pas tant qu'elle n'a pas été relue, et seule l'équipe de ce mariage peut y rattacher des photos Google ; site web et téléphone vérifiés.
+- **Visites du site de mariage** : comptées par la page (une par visiteur et par heure, 5 000 par jour au plus), plus par l'aperçu de lien ni les robots.
+- **Liens dans les mails** : toujours `NEXT_PUBLIC_APP_URL` (ou app.withmerry.com), plus l'en-tête Host de la requête.
+
 ## 15. Site de mariage (`/s/…`)
 
 Le lien que les couples donnent à leurs invités : le programme, le lieu et tout le pratique du week-end. Maquettes du canvas « Merry · Carte brief », page *Site de mariage · invités* : les huit modèles (1 à 8, ordinateur et téléphone) et les réglages du tableau de bord (9, ordinateur et téléphone).

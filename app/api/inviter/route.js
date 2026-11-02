@@ -4,6 +4,8 @@
 // Sans clé, la route répond 501 et le tableau de bord retombe sur l'ouverture de la messagerie.
 
 import { createClient } from "@supabase/supabase-js";
+import { publicOrigin } from "@/lib/server/origin";
+import { allowUser } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 
@@ -48,9 +50,9 @@ export async function POST(req) {
   const { data: me } = await sb.from("wedding_members").select("display_name").eq("wedding_id", member.wedding_id).eq("user_id", user.user.id).maybeSingle();
   const sender = String(me?.display_name || user.user.user_metadata?.first_name || "").trim();
 
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  const link = `${proto}://${host}/connexion?invitation=${member.invite_token}`;
+  // 20 invitations par jour et par personne : de quoi inviter toute une équipe, pas de quoi spammer
+  if (!(await allowUser(sb, "invite_mail", 20, 86400))) return Response.json({ error: "quota" }, { status: 429 });
+  const link = `${publicOrigin(req)}/connexion?invitation=${member.invite_token}`;
 
   const subject = sender ? `${sender} t'invite à rejoindre Merry` : "Tu es invité(e) à rejoindre Merry";
   const text = `Hello !\n\nJe t'invite à rejoindre Merry pour organiser notre événement.\n\n${link}${sender ? `\n\n${sender}` : ""}`;

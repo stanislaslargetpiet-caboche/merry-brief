@@ -3,7 +3,14 @@
 -- catalog.vendors.city, et Postgres ne sait plus lequel on vise dans la requête de doublon. Même
 -- correctif qu'ici : on alias la table (v) et on qualifie ses colonnes, sans changer la signature de
 -- la fonction (le nom city reste celui attendu par l'appli).
--- À coller dans Supabase > SQL Editor > New query, puis Run, APRÈS prestataires-ajout-manuel-google.sql.
+-- À coller dans Supabase > SQL Editor > New query, puis Run, APRÈS prestataires-ajout-manuel-google.sql
+-- (et quotas.sql pour la limite par jour ; sans lui, pas de limite).
+
+-- D'où vient une fiche créée à la main : le mariage qui l'a ajoutée. Les pages publiques (/mariage/…)
+-- ne listent pas ces fiches tant qu'elles n'ont pas été relues, et seule l'équipe de ce mariage peut y
+-- rattacher des photos Google (/api/prestataires/photos-google).
+alter table catalog.vendors add column if not exists created_by_wedding uuid;
+create index if not exists vendors_created_by_wedding_idx on catalog.vendors (created_by_wedding) where created_by_wedding is not null;
 
 create or replace function public.merry_add_vendor_manual(
   w uuid, vname text, category text, city text,
@@ -36,6 +43,17 @@ begin
   if clean_website is not null and clean_website !~* '^https?://' then
     clean_website := 'https://' || clean_website;
   end if;
+  if clean_website is not null and clean_website !~* '^https?://[a-z0-9-]+(\.[a-z0-9-]+)+(/|$)' then
+    raise exception 'invalid website';
+  end if;
+  if clean_phone is not null and clean_phone !~ '^[0-9+][0-9 .()/-]{5,}$' then
+    raise exception 'invalid phone';
+  end if;
+  -- Au plus 30 fiches ajoutées par jour et par personne : le catalogue est partagé par tous les couples
+  if to_regprocedure('public.merry_rate(text, integer, integer)') is not null
+     and not public.merry_rate('vendor_manual', 30, 86400) then
+    raise exception 'too many vendors today';
+  end if;
 
   select v.id into new_id from catalog.vendors v
     where v.status = 'active' and v.primary_category = category and public.merry_norm(v.name) = public.merry_norm(clean_name)
@@ -49,8 +67,8 @@ begin
     select p.lat, p.lng into v_lat, v_lng from public.merry_place(clean_city) p limit 1;
   end if;
 
-  insert into catalog.vendors (name, primary_category, status, city, categories, lat, lng, phone, website)
-  values (clean_name, category, 'active', clean_city, array[category], v_lat, v_lng, clean_phone, clean_website)
+  insert into catalog.vendors (name, primary_category, status, city, categories, lat, lng, phone, website, created_by_wedding)
+  values (clean_name, category, 'active', clean_city, array[category], v_lat, v_lng, clean_phone, clean_website, w)
   returning id into new_id;
 
   return new_id;

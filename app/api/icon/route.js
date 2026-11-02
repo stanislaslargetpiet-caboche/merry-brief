@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const maxDuration = 20;
 
 const DAILY_LIMIT = 200;
-const MODEL = process.env.MERRY_AI_FAST_MODEL || "claude-haiku-5-5";
+const MODEL = process.env.MERRY_AI_MODEL_FAST || "claude-haiku-5-5";
 const API = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
 
 const ICONS = {
