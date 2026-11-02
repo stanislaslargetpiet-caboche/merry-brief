@@ -7931,7 +7931,7 @@ body.d-noscroll {
   padding: 7px 13px;
   box-shadow: 0 6px 18px rgba(28, 28, 26, 0.1);
   opacity: 0;
-  animation: d-create-pc 6s cubic-bezier(0.4, 0, 0.3, 1) infinite;
+  animation: d-create-pc 4.5s cubic-bezier(0.4, 0, 0.3, 1) infinite;
   animation-delay: calc(var(--i) * 0.22s);
 }
 
@@ -7952,7 +7952,7 @@ body.d-noscroll {
   border-radius: 999px;
   background: var(--d-lime);
   opacity: 0;
-  animation: d-create-core 6s ease infinite;
+  animation: d-create-core 4.5s ease infinite;
 }
 
 @keyframes d-create-core {
@@ -7978,9 +7978,9 @@ body.d-noscroll {
   font-weight: 600;
 }
 
-.d-create-ln.is-0 { animation: d-create-l0 6s ease infinite; }
-.d-create-ln.is-1 { animation: d-create-l1 6s ease infinite; }
-.d-create-ln.is-2 { animation: d-create-l2 6s ease infinite; }
+.d-create-ln.is-0 { animation: d-create-l0 4.5s ease infinite; }
+.d-create-ln.is-1 { animation: d-create-l1 4.5s ease infinite; }
+.d-create-ln.is-2 { animation: d-create-l2 4.5s ease infinite; }
 
 @keyframes d-create-l0 {
   0% { opacity: 0; }

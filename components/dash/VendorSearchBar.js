@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { CATALOG_CATEGORIES, CATEGORIES, catOf, searchCatalogByName, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { CloseBtn, DevisDialog, FichePanel, Layer, Thumb, usePicks } from "./Prestataires";
-import { SearchingScene, useCreateFiche } from "./CreateFiche";
+import { SEARCH_SCENE_MS, SearchingScene, useCreateFiche } from "./CreateFiche";
 import { Btn, BusyDots } from "./ui";
 
 const IDLE = { q: "", loading: false, results: [] };
@@ -178,8 +178,6 @@ export default function VendorSearchBar() {
   );
 }
 
-const MIN_SEARCH_MS = 1700;
-
 function CategorySelect({ value, onChange, autoFocus }) {
   return (
     <select className="d-input" value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} required aria-label="Catégorie">
@@ -247,7 +245,7 @@ function AddVendorDialog({ query, onClose, onCreated }) {
     (async () => {
       const start = Date.now();
       const results = await searchGoogleVendor(dash.mode, searchKey, await tokenOf(dash));
-      const wait = MIN_SEARCH_MS - (Date.now() - start);
+      const wait = SEARCH_SCENE_MS - (Date.now() - start);
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
       if (!live) return;
       if (results.length) {
@@ -271,10 +269,13 @@ function AddVendorDialog({ query, onClose, onCreated }) {
     setCategory(step.results[i]?.category || "");
   }
 
+  // Pendant la création (fiche, puis ses photos Google), la scène de recherche reprend
   async function confirmChosen() {
     if (!chosen || !category || busy) return;
+    setStep((s) => ({ ...s, phase: "saving" }));
     const v = await createNow(chosen.name, category, chosen.city || "", { match: chosen, quiet: true });
     if (v) onCreated(v);
+    else setStep((s) => ({ ...s, phase: "pick" }));
   }
 
   function goManual() {
@@ -309,6 +310,11 @@ function AddVendorDialog({ query, onClose, onCreated }) {
       {step.phase === "search" ? (
         <div className="d-pr-panel-body d-pr-create">
           <SearchingScene name={step.q} />
+        </div>
+      ) : null}
+      {step.phase === "saving" && chosen ? (
+        <div className="d-pr-panel-body d-pr-create">
+          <SearchingScene name={chosen.name} title={`On prépare la fiche de « ${chosen.name} »…`} />
         </div>
       ) : null}
       {step.phase === "pick" && chosen ? (

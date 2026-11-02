@@ -8,10 +8,13 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { catFromCatalog, customVendorId, searchGoogleVendor } from "@/lib/dash/catalog";
+import { catFromCatalog, customVendorId, fetchGooglePhotos, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { CloseBtn, Layer, Thumb, usePicks } from "./Prestataires";
 import { Btn } from "./ui";
+
+// Durée minimale de la scène de recherche : le temps qu'elle se joue en entier (chips, halo, trois lignes)
+export const SEARCH_SCENE_MS = 3200;
 
 // Message lisible pour une erreur de merry_add_vendor_manual : une base pas à jour se répare en
 // collant le dernier fichier SQL, le reste est dit tel quel.
@@ -64,7 +67,9 @@ export function useCreateFiche() {
         });
         if (error) throw error;
         if (!newId) throw new Error("aucune fiche renvoyée");
-        v = { id: `catalog:${newId}`, catalogId: newId, category: catFromCatalog(category), name, area: city || undefined, ...details };
+        // Ses photos Google, avant d'enregistrer la sélection : la première sert de couverture
+        const photos = match?.placeId ? await fetchGooglePhotos(newId, match.placeId, (await supabase.auth.getSession()).data?.session?.access_token) : [];
+        v = { id: `catalog:${newId}`, catalogId: newId, category: catFromCatalog(category), name, area: city || undefined, ...details, ...(photos.length ? { photos } : {}) };
       } else {
         const norm = (x) => String(x || "").trim().toLocaleLowerCase("fr");
         const same = picks.find((p) => p.category === catFromCatalog(category) && norm(p.data?.name) === norm(name));
@@ -97,7 +102,7 @@ export function useCreateFiche() {
       match = results[0] || null;
     }
     const elapsed = Date.now() - start;
-    const minDelay = 1700;
+    const minDelay = SEARCH_SCENE_MS;
     if (elapsed < minDelay) await new Promise((r) => setTimeout(r, minDelay - elapsed));
     setCreating((c) => (c ? { ...c, phase: "confirm", match } : c));
   }
@@ -121,12 +126,10 @@ export function useCreateFiche() {
 
 // L'animation de recherche (chips qui gravitent, lignes qui défilent) : partagée avec la fenêtre
 // « Ajouter un prestataire » de la barre de recherche.
-export function SearchingScene({ name, area }) {
+export function SearchingScene({ name, area, title }) {
   return (
     <>
-      <h3>
-        On cherche « {name} »{area ? ` à ${area}` : ""}…
-      </h3>
+      <h3>{title || `On cherche « ${name} »${area ? ` à ${area}` : ""}…`}</h3>
       <div className="d-create-chips" aria-hidden="true">
         <span className="d-create-chip" style={{ "--i": 0, "--x": "-130px", "--y": "-60px", "--r": "-6deg" }}>
           Recherche internet
