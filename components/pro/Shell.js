@@ -8,6 +8,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
+import { Icon } from "@/components/dash/icons";
+import { SITE_URL } from "@/lib/site";
 import { ProIcon } from "./icons";
 import Claim from "./Claim";
 import FeatureDialog from "./FeatureDialog";
@@ -84,8 +86,6 @@ function Frame({ children }) {
   const pathname = usePathname();
   const [feature, setFeature] = useState(false);
   const [menu, setMenu] = useState(false);
-  const v = pro.data.vendor;
-  const cover = pro.data.photos?.[0]?.url;
   const credits = pro.data.pro?.credits ?? 0;
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Accueil";
   const navRef = useRef(null);
@@ -101,8 +101,6 @@ function Frame({ children }) {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [pathname]);
 
-  const avatar = (size) => <span className="p-face" role="img" aria-label={v.name} style={{ width: size, height: size, backgroundImage: cover ? `url("${cover}")` : undefined }} />;
-
   return (
     <div className="d-root p-root">
       {/* Téléphone : bandeau lime, puis onglets texte */}
@@ -117,8 +115,8 @@ function Frame({ children }) {
             {credits} crédit{credits > 1 ? "s" : ""}
           </Link>
           <span className="d-anchor">
-            <button type="button" className="p-top-face" onClick={() => setMenu((o) => !o)} aria-label={`Votre compte, ${v.name}`} aria-expanded={menu}>
-              {avatar(36)}
+            <button type="button" className="d-topbar-menu" onClick={() => setMenu((o) => !o)} aria-label="Menu" aria-expanded={menu}>
+              <Icon name="dots" size={18} sw={2.2} />
             </button>
             <Popover open={menu} onClose={() => setMenu(false)} align="right">
               <AccountMenu close={() => setMenu(false)} />
@@ -161,18 +159,12 @@ function Frame({ children }) {
           <button type="button" className="p-outline-pill" onClick={() => setFeature(true)}>
             Proposer une fonctionnalité
           </button>
-          <span className="d-anchor p-account-wrap">
-            <button type="button" className="p-account" onClick={() => setMenu((o) => !o)} aria-expanded={menu}>
-              {avatar(36)}
-              <span className="p-account-text">
-                <span className="p-account-name">{v.name}</span>
-                <span className="p-account-sub">Votre compte</span>
-              </span>
+          <div className="d-nav-links">
+            <a href={SITE_URL}>Retour au site</a>
+            <button type="button" onClick={pro.signOut}>
+              Se déconnecter
             </button>
-            <Popover open={menu} onClose={() => setMenu(false)} className="p-account-pop">
-              <AccountMenu close={() => setMenu(false)} />
-            </Popover>
-          </span>
+          </div>
         </div>
       </nav>
 
@@ -208,10 +200,9 @@ function AccountMenu({ close }) {
   const pro = usePro();
   return (
     <>
-      <Link className="d-pop-item" href="/pro/fiche" onClick={close}>
-        Ma fiche
-      </Link>
-      <span className="d-pop-item p-pop-mail">{pro.data.user?.email}</span>
+      <a className="d-pop-item" href={SITE_URL}>
+        Retour au site
+      </a>
       <button
         type="button"
         className="d-pop-item"
