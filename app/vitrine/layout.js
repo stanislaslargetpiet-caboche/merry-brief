@@ -17,6 +17,7 @@ export const metadata = {
 export default function VitrineLayout({ children }) {
   return (
     <>
+      <link rel="preload" href="/fonts/alan-sans.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" precedence="default" />
       {children}
       <Script src="https://cdn.weglot.com/weglot.min.js" strategy="afterInteractive" />

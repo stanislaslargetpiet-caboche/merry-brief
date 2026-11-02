@@ -93,7 +93,7 @@ export default function InvitesFinder() {
           ← Retour
         </button>
         <h1 className="wv-h2">
-          On a trouvé <span className="wv-flow-hl">la fête</span>.
+          On a trouvé la fête.
         </h1>
         <div className="wv-flow-panel">
           <div className="wv-flow-match">
@@ -192,7 +192,7 @@ export default function InvitesFinder() {
           ← Retour
         </button>
         <h1 className="wv-h2">
-          Ton <span className="wv-flow-hl">code d’invitation</span>.
+          Ton code d’invitation.
         </h1>
         <form
           className="wv-flow-panel"
@@ -235,7 +235,7 @@ export default function InvitesFinder() {
           ← Retour
         </button>
         <h1 className="wv-h2">
-          Qui <span className="wv-flow-hl">se marie</span> ?
+          Qui se marie ?
         </h1>
         <form
           className="wv-flow-panel"
