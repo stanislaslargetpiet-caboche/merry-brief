@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName, searchGoogleVendor } from "@/lib/dash/catalog";
+import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { Thumb, usePicks } from "./Prestataires";
 import { Btn, BusyDots } from "./ui";
@@ -26,7 +26,8 @@ export default function VendorSearchBar() {
   const [google, setGoogle] = useState({ searching: false, done: false, results: [] });
   const [manual, setManual] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [refine, setRefine] = useState({ searching: false, results: [] });
+  const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
+  const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
   const searched = q.trim().length >= 2;
   const noMatch = searched && !searching && !results.length;
@@ -79,21 +80,41 @@ export default function VendorSearchBar() {
 
   useEffect(() => {
     if (!manual || refineArea.length < 2 || !form.name.trim()) {
-      setRefine({ searching: false, results: [] });
+      setRefine({ searching: false, results: [], attempted: false });
       return undefined;
     }
     let live = true;
-    setRefine((r) => ({ ...r, searching: true }));
+    setRefine((r) => ({ ...r, searching: true, attempted: false }));
     const t = setTimeout(async () => {
       const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
       const r = await searchGoogleVendor(dash.mode, `${form.name.trim()} ${refineArea}`, token);
-      if (live) setRefine({ searching: false, results: r });
+      if (live) setRefine({ searching: false, results: r, attempted: true });
     }, 400);
     return () => {
       live = false;
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manual, refineArea, dash.mode]);
+
+  // Suggestions de villes pendant la saisie (aide, pas une liste fermée) : on ne les propose que
+  // si le prestataire n'est pas déjà raccroché à un résultat Google (pickGoogle a déjà sa ville).
+  useEffect(() => {
+    if (!manual || refineArea.length < 2) {
+      setCities({ open: false, searching: false, results: [] });
+      return undefined;
+    }
+    let live = true;
+    setCities((c) => ({ ...c, searching: true }));
+    const t = setTimeout(async () => {
+      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
+      const r = await searchCities(dash.mode, refineArea, token);
+      if (live) setCities({ open: true, searching: false, results: r });
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
   }, [manual, refineArea, dash.mode]);
 
   function reset() {
@@ -103,7 +124,8 @@ export default function VendorSearchBar() {
     setForm(EMPTY_FORM);
     setResults([]);
     setGoogle({ searching: false, done: false, results: [] });
-    setRefine({ searching: false, results: [] });
+    setRefine({ searching: false, results: [], attempted: false });
+    setCities({ open: false, searching: false, results: [] });
   }
 
   async function pick(v) {
@@ -258,27 +280,63 @@ export default function VendorSearchBar() {
               </div>
               <div className="d-field">
                 <span className="d-field-label">Ville ou région · facultatif</span>
-                <input className="d-input" value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} placeholder="Luberon" maxLength={80} />
-              </div>
-              {refine.searching || refine.results.length ? (
-                <div className="d-field is-full">
-                  {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
-                  {!refine.searching && refine.results.length ? (
-                    <ul className="d-pr-to">
-                      {refine.results.map((g, i) => (
-                        <li key={i}>
-                          <Thumb v={{ name: g.name }} size={44} />
-                          <div className="d-pr-to-main">
-                            <span className="d-pr-to-name">{g.name}</span>
-                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
-                          </div>
-                          <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
-                            Utiliser
-                          </Btn>
+                <div className="d-pr-townfield">
+                  <div className="d-pr-townsearch">
+                    <Icon name="search" size={16} sw={2} />
+                    <input
+                      className="d-input"
+                      value={form.area}
+                      placeholder="Luberon"
+                      maxLength={80}
+                      autoComplete="off"
+                      onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
+                      onFocus={() => setCities((c) => ({ ...c, open: c.results.length > 0 }))}
+                      onBlur={() => setTimeout(() => setCities((c) => ({ ...c, open: false })), 150)}
+                    />
+                  </div>
+                  {cities.open && cities.results.length ? (
+                    <ul className="d-pr-townlist">
+                      {cities.results.map((c) => (
+                        <li
+                          key={c}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setForm((f) => ({ ...f, area: c }));
+                            setCities((s) => ({ ...s, open: false }));
+                          }}
+                        >
+                          <Icon name="map" size={16} sw={1.8} />
+                          <span>{c}</span>
                         </li>
                       ))}
                     </ul>
                   ) : null}
+                </div>
+                <span className="d-small-muted">Pour que Merry cherche la bonne fiche sur Google avec le nom.</span>
+              </div>
+              {refine.searching || refine.results.length || refine.attempted ? (
+                <div className="d-field is-full">
+                  {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
+                  {!refine.searching && refine.results.length ? (
+                    <>
+                      <span className="d-small-muted">Est-ce l’un de ces résultats&nbsp;? Choisissez-le pour reprendre son adresse et son téléphone.</span>
+                      <ul className="d-pr-to">
+                        {refine.results.map((g, i) => (
+                          <li key={i}>
+                            <Thumb v={{ name: g.name }} size={44} />
+                            <div className="d-pr-to-main">
+                              <span className="d-pr-to-name">{g.name}</span>
+                              <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
+                            </div>
+                            <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
+                              Utiliser
+                            </Btn>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {!refine.searching && refine.attempted && !refine.results.length ? <span className="d-small-muted">Aucun résultat sur Google pour « {form.name.trim()} » à {refineArea}.</span> : null}
                 </div>
               ) : null}
               <span className="d-field is-full d-small-muted">Rejoint le catalogue Merry : les autres couples pourront aussi le trouver.</span>
