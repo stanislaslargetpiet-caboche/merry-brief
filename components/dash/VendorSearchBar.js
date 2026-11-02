@@ -8,9 +8,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, cityPostalCode, customVendorId, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
+import { CATALOG_CATEGORIES, CATEGORIES, catOf, cityPostalCode, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
-import { CloseBtn, Layer, Thumb, usePicks } from "./Prestataires";
+import { Thumb, usePicks } from "./Prestataires";
+import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
 import { Btn, BusyDots } from "./ui";
 
 const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null };
@@ -30,7 +31,7 @@ export default function VendorSearchBar() {
   const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « Utiliser »
   const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
-  const [creating, setCreating] = useState(null); // null | { phase: "search"|"confirm", name, category, area, match }
+  const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
   const searched = q.trim().length >= 2;
   const noMatch = searched && !searching && !results.length;
 
@@ -155,68 +156,16 @@ export default function VendorSearchBar() {
   function submitManual(e) {
     e.preventDefault();
     const name = form.name.trim();
-    if (!name || !form.category || busy) return;
-    runCreate(name, form.category, form.area.trim());
+    if (!name || !form.category || creatingBusy) return;
+    runCreate(name, form.category, form.area.trim(), {
+      match: appliedMatch,
+      fallback: { phone: form.phone, website: form.website, lat: form.lat, lng: form.lng },
+    });
   }
 
-  // Avant de créer la fiche : on recherche sur Google (animation pendant ce temps, même sans
-  // résultat à montrer) puis on demande confirmation, plutôt que de créer directement. Si le couple
-  // a déjà choisi un résultat Google (« Utiliser »), on le reprend tel quel : relancer une recherche
-  // à l'aveugle avec le même nom + ville peut tomber sur un tout autre établissement.
-  async function runCreate(name, category, area) {
-    setCreating({ phase: "search", name, category, area, match: null });
-    const start = Date.now();
-    let match = appliedMatch;
-    if (!match && dash.mode === "live" && supabase) {
-      const token = (await supabase.auth.getSession()).data?.session?.access_token || null;
-      const results = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, token);
-      match = results[0] || null;
-    }
-    const elapsed = Date.now() - start;
-    const minDelay = 1700;
-    if (elapsed < minDelay) await new Promise((r) => setTimeout(r, minDelay - elapsed));
-    setCreating({ phase: "confirm", name, category, area, match });
-  }
-
-  function cancelCreate() {
-    if (busy) return;
-    setCreating(null);
-  }
-
-  async function confirmCreate() {
-    if (!creating || creating.phase !== "confirm" || busy) return;
-    const { name, category, area, match } = creating;
-    const city = match?.city || area;
-    setBusy(true);
-    try {
-      let v;
-      if (dash.mode === "live" && supabase) {
-        const { data: newId, error } = await supabase.rpc("merry_add_vendor_manual", {
-          w: dash.data.wedding.id,
-          vname: name,
-          category,
-          city: city || null,
-          phone: match?.phone || form.phone || null,
-          website: match?.website || form.website || null,
-          vlat: match?.lat ?? form.lat,
-          vlng: match?.lng ?? form.lng,
-        });
-        if (error) throw error;
-        v = { id: `catalog:${newId}`, category: catFromCatalog(category), name, area: city || undefined };
-      } else {
-        v = { id: customVendorId(), category: catFromCatalog(category), name, area: city || undefined };
-      }
-      await add(v);
-      dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
-      setCreating(null);
-      reset();
-    } catch (e) {
-      console.error("[merry] merry_add_vendor_manual", e);
-      dash.setToast({ kind: "error", text: `Ce prestataire n'a pas pu être créé${e?.message ? ` : ${e.message}` : " : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)."}` });
-      setCreating(null);
-    } finally {
-      setBusy(false);
-    }
+  async function handleConfirmCreate() {
+    const v = await confirmCreate();
+    if (v) reset();
   }
 
   const showDrop = open && (searched || manual);
@@ -412,7 +361,7 @@ export default function VendorSearchBar() {
                 <Btn kind="ghost" onClick={() => setManual(false)}>
                   Annuler
                 </Btn>
-                <Btn type="submit" disabled={busy || !form.name.trim() || !form.category}>
+                <Btn type="submit" disabled={busy || !!creating || !form.name.trim() || !form.category}>
                   Ajouter à mes prestataires
                 </Btn>
               </div>
@@ -420,88 +369,7 @@ export default function VendorSearchBar() {
           )}
         </div>
       ) : null}
-      {creating ? (
-        <Layer kind="dialog" labelledBy="creer-titre" onClose={cancelCreate}>
-          <div className="d-pr-panel-head is-dialog">
-            <h2 id="creer-titre">Création de la fiche</h2>
-            <CloseBtn onClose={cancelCreate} />
-          </div>
-          <div className="d-pr-panel-body d-pr-create">
-            {creating.phase === "search" ? (
-              <>
-                <h3>
-                  On cherche « {creating.name} »{creating.area ? ` à ${creating.area}` : ""}…
-                </h3>
-                <div className="d-create-chips" aria-hidden="true">
-                  <span className="d-create-chip" style={{ "--i": 0, "--x": "-130px", "--y": "-60px", "--r": "-6deg" }}>
-                    Recherche internet
-                  </span>
-                  <span className="d-create-chip" style={{ "--i": 1, "--x": "125px", "--y": "-65px", "--r": "5deg" }}>
-                    Photos
-                  </span>
-                  <span className="d-create-chip" style={{ "--i": 2, "--x": "-135px", "--y": "55px", "--r": "4deg" }}>
-                    Carte
-                  </span>
-                  <span className="d-create-chip" style={{ "--i": 3, "--x": "120px", "--y": "60px", "--r": "-5deg" }}>
-                    Téléphone
-                  </span>
-                  <div className="d-create-core" />
-                </div>
-                <div className="d-create-lines">
-                  <p className="d-create-ln is-0">On cherche sur internet…</p>
-                  <p className="d-create-ln is-1">On récupère ses photos et sa position…</p>
-                  <p className="d-create-ln is-2">On repère son téléphone ou son e-mail…</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3>Est-ce bien ce prestataire&nbsp;?</h3>
-                {creating.match ? (
-                  <div className="d-create-card">
-                    <div className="d-create-card-head">
-                      <Thumb v={{ name: creating.match.name }} size={52} />
-                      <div>
-                        <span className="d-create-card-name">{creating.match.name}</span>
-                        <span className="d-create-card-addr">{creating.match.address || creating.area || ""}</span>
-                      </div>
-                    </div>
-                    {creating.match.phone || creating.match.website ? (
-                      <div className="d-create-card-contact">
-                        {creating.match.phone ? (
-                          <span>
-                            <Icon name="phone" size={15} sw={2} />
-                            {creating.match.phone}
-                          </span>
-                        ) : null}
-                        {creating.match.website ? (
-                          <span>
-                            <Icon name="globe" size={15} sw={2} />
-                            {creating.match.website}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <span className="d-small-muted">
-                    Aucune fiche trouvée sur Google pour « {creating.name} »{creating.area ? ` à ${creating.area}` : ""}. On peut quand même créer la fiche telle quelle.
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-          {creating.phase === "confirm" ? (
-            <div className="d-pr-panel-foot is-devis">
-              <Btn kind="ghost" onClick={cancelCreate} disabled={busy}>
-                Non, ce n'est pas ça
-              </Btn>
-              <Btn onClick={confirmCreate} disabled={busy}>
-                {creating.match ? "Oui, c'est elle" : "Créer quand même"}
-              </Btn>
-            </div>
-          ) : null}
-        </Layer>
-      ) : null}
+      <CreateFicheDialog creating={creating} busy={creatingBusy} onCancel={cancelCreate} onConfirm={handleConfirmCreate} />
     </div>
   );
 }
