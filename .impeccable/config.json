@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "app/api/prestataires/notifier-vendor/route.js"
+        ],
+        "createdAt": "2026-11-02T11:05:22.835Z",
+        "reason": "transactional email HTML (Resend), not app UI — web-safe font required for mail-client rendering, matches app/api/inviter/route.js's existing pattern"
+      }
+    ]
+  }
+}
