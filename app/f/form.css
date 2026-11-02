@@ -4,7 +4,8 @@
   min-height: 100dvh;
   background: var(--gf-bg);
   color: #1c1c1a;
-  font-family: Inter, Helvetica, Arial, sans-serif;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  font-weight: 500;
   padding-bottom: 72px;
 }
 
@@ -35,7 +36,8 @@
 /* Formulaire intégré dans une rubrique du site de mariage (GuestFormInline), pas de pleine hauteur ni de couverture */
 .gf-embed {
   color: #1c1c1a;
-  font-family: Inter, Helvetica, Arial, sans-serif;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  font-weight: 500;
   text-align: left;
 }
 
@@ -63,8 +65,8 @@
 
 .gf-hero h1 {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
-  font-weight: 400;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  font-weight: 600;
   font-size: clamp(30px, 7vw, 46px);
   line-height: 1.05;
 }
