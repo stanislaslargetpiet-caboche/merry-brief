@@ -4869,3 +4869,37 @@ select.p-input {
     padding: 8px 16px 18px;
   }
 }
+
+/* Revendiquer sa fiche : un seul canal (le mail), un mot au-dessus de la recherche, la connexion par adresse */
+.p-claim-channel.is-single {
+  flex: none;
+  cursor: default;
+}
+
+.p-claim-help.is-notice {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--d-limetint, #fffdb8);
+  color: #1c1c1a;
+}
+
+.p-claim-claimed {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.p-claim-login {
+  margin-top: 4px;
+}
+
+/* Plusieurs fiches sur un compte : le menu pour en changer, dans la barre latérale */
+.p-vendor-switch {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.p-vendor-switch .p-input {
+  width: 100%;
+  min-height: 38px;
+  font-size: 13px;
+}

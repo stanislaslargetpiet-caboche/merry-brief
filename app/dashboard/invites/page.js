@@ -9,7 +9,7 @@ import { columnValues } from "@/lib/dash/codes";
 import { RSVP, pastel } from "@/lib/dash/theme";
 import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
-import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
+import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
@@ -19,7 +19,6 @@ import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
-import GuestTarget from "@/components/dash/GuestTarget";
 import RelanceModal from "@/components/dash/RelanceModal";
 import HouseholdsModal from "@/components/dash/HouseholdsModal";
 import { agoDays, pendingGuests } from "@/lib/dash/relance";
@@ -477,6 +476,31 @@ export default function Invites() {
   const [relanceFilter, setRelanceFilter] = useState(null); // "0" jamais relancé | "1" déjà relancé
   const [relancing, setRelancing] = useState(null); // null | "all" | "sel"
   const [managingHouseholds, setManagingHouseholds] = useState(false);
+  // Nouvelles réponses reçues par le formulaire depuis la dernière visite de cet organisateur sur la liste
+  const seenKey = `merry-invites-seen:${wedding.id}:${data.meId || "me"}`;
+  const [seen, setSeen] = useState(null);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(seenKey);
+      if (v) setSeen(v);
+      else window.localStorage.setItem(seenKey, new Date().toISOString());
+    } catch {
+      /* stockage indisponible */
+    }
+  }, [seenKey]);
+  const markSeen = () => {
+    const now = new Date().toISOString();
+    try {
+      window.localStorage.setItem(seenKey, now);
+    } catch {
+      /* stockage indisponible */
+    }
+    setSeen(now);
+  };
+  const fresh = seen ? (data.log || []).filter((l) => l.source === "formulaire" && l.created_at > seen && (l.status === "oui" || l.status === "non")) : [];
+  const freshGuests = [...new Set(fresh.map((l) => l.guest_id))];
+  // Les autres organisateurs sur la liste en ce moment
+  const here = (dash.presence || []).filter((x) => String(x.page || "").startsWith("/dashboard/invites"));
 
   // Une colonne supprimée ne reste pas filtrée
   const activeFieldFilter = fieldFilter && fields.some((f) => f.id === fieldFilter.fieldId) ? fieldFilter : null;
@@ -1220,7 +1244,6 @@ export default function Invites() {
       <div className="d-desk-only">
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
       </div>
-      <GuestTarget data={statsData} filtered={filterActive} />
       <div className="d-mob-only">
         {/* Les mêmes indicateurs que sur ordinateur (choisis dans Indicateurs), pas trois chiffres figés */}
         <div className="d-mstats-scroll">
@@ -1239,6 +1262,32 @@ export default function Invites() {
       <div className="d-desk-only">
         <GuestsNote />
       </div>
+
+      {freshGuests.length ? (
+        <div className="d-fresh" role="status">
+          <Icon name="sparkle" size={15} sw={2.2} />
+          <span>
+            <b>
+              {freshGuests.length} {freshGuests.length > 1 ? "nouvelles réponses" : "nouvelle réponse"}
+            </b>{" "}
+            par le formulaire depuis votre dernière visite :{" "}
+            {freshGuests
+              .slice(0, 4)
+              .map((id) => {
+                const g = byId.get(id);
+                const last = fresh.filter((l) => l.guest_id === id).at(-1);
+                const ev = events.find((e) => e.id === last.event_id);
+                return g ? `${guestLabel(g, byId)} (${last.status === "oui" ? "vient" : "ne vient pas"}${ev ? ` · ${ev.short_name}` : ""})` : null;
+              })
+              .filter(Boolean)
+              .join(", ")}
+            {freshGuests.length > 4 ? "…" : ""}
+          </span>
+          <button type="button" className="d-pill" onClick={markSeen}>
+            C'est noté
+          </button>
+        </div>
+      ) : null}
 
       {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter / plein écran /
           colonnes à droite. Quand des invités sont cochés, la barre d'actions groupées prend sa place,
@@ -1276,6 +1325,16 @@ export default function Invites() {
                 <Icon name="home" size={14} sw={2.2} />
                 Foyers
               </button>
+            ) : null}
+            {here.length ? (
+              <span className="d-presence" title="Sur la liste en ce moment, comme vous">
+                {here.slice(0, 3).map((x) => (
+                  <Avatar key={x.member_id} member={{ display_name: x.name, initial: x.initial, color: x.color }} size={22} />
+                ))}
+                <span>
+                  {here.length === 1 ? `${here[0].name || "Quelqu'un"} est aussi sur la liste` : `${here.map((x) => x.name || "quelqu'un").slice(0, 2).join(" et ")}${here.length > 2 ? ` et ${here.length - 2} autre${here.length > 3 ? "s" : ""}` : ""} sont aussi sur la liste`}
+                </span>
+              </span>
             ) : null}
           </div>
           {guests.length ? (

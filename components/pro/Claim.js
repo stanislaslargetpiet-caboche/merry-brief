@@ -5,6 +5,9 @@
 // un prestataire qui revient refait ces deux étapes et retrouve son espace.
 // Créer sa fiche (maquettes V0c et V0cm) : l'établissement n'est pas dans le catalogue, le prestataire donne
 // son nom, son activité, son adresse et son adresse mail ; le code reçu à cette adresse crée la fiche.
+// Se connecter : un prestataire qui revient tape son adresse mail, reçoit un code, et retrouve ses fiches.
+// /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement la fiche, code envoyé ;
+// /pro?etablissement=<nom> (recherche du site vitrine) préremplit la recherche.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -73,6 +76,8 @@ const ERRORS = {
   bad_code: "Ce code ne correspond pas, ou il a expiré. Vérifiez-le, ou demandez-en un nouveau.",
   setup: "L’espace prestataire n’est pas encore installé sur la base de données (supabase/espace-prestataire.sql).",
   link_failed: "Le code est bon, mais la fiche n’a pas pu être rattachée à votre compte. Réessayez.",
+  no_account: "Aucun compte Merry à cette adresse. Retrouvez votre fiche par son nom, ou créez-la : le code arrive à l’adresse de la fiche.",
+  not_found: "Cette fiche n’existe plus, ou n’est pas encore publiée. Retrouvez votre établissement par son nom.",
   address: "Nous ne trouvons pas cette adresse. Vérifiez le code postal et la ville, puis validez de nouveau le code.",
   create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
   network: "La connexion a échoué. Vérifiez votre réseau, puis réessayez.",
@@ -86,16 +91,48 @@ export default function Claim() {
   const [searching, setSearching] = useState(false);
   const [setupMissing, setSetupMissing] = useState(false);
   const [picked, setPicked] = useState(null);
-  const [channel, setChannel] = useState("mail");
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [fixNote, setFixNote] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
+  const [loginEmail, setLoginEmail] = useState("");
+  const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, email: pro.data?.user?.email || "" }));
   const boxes = useRef([]);
   const demo = pro.mode === "demo";
+  const signedIn = Boolean(pro.data?.user?.email);
+  const myFiches = pro.data?.vendors || []; // connecté à un espace, venu chercher une autre fiche
+
+  // Arrivée par un lien : la fiche est ouverte et le code part tout de suite ; ou le nom du site est repris
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fiche = params.get("fiche");
+    const name = params.get("etablissement");
+    if (name && name.trim()) setQ(name.trim().slice(0, 120));
+    // « Connexion » du site : l'adresse mail puis le code, sans passer par la recherche
+    if (params.get("connexion") === "1" && !signedIn) startLogin();
+    if (!fiche || demo) return;
+    let live = true;
+    (async () => {
+      const res = await call({ action: "lookup", vendorId: fiche });
+      if (!live) return;
+      if (res.result) choose(res.result);
+      else setNotice(ERRORS[res.error] || ERRORS.not_found);
+    })();
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Connecté, mais aucune fiche rattachée à ce compte : on le dit au-dessus de la recherche
+  useEffect(() => {
+    if (signedIn && !myFiches.length && !logging && !creating && step === 1 && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
 
   // Recherche au fil de la frappe
   useEffect(() => {
@@ -161,8 +198,45 @@ export default function Claim() {
 
   function backToSearch() {
     setCreating(false);
+    setLogging(false);
     setStep(1);
+    setSent(false);
     setError("");
+  }
+
+  function startLogin() {
+    setLogging(true);
+    setCreating(false);
+    setStep(1);
+    setSent(false);
+    setError("");
+    setNotice("");
+  }
+
+  async function sendLoginCode() {
+    const mail = loginEmail.trim();
+    if (!EMAIL_RE.test(mail)) {
+      setError("Indiquez l’adresse mail de votre compte Merry.");
+      return;
+    }
+    setError("");
+    if (demo) {
+      setStep(2);
+      setSent(true);
+      setTimeout(() => boxes.current[0]?.focus(), 50);
+      return;
+    }
+    setBusy(true);
+    const res = await call({ action: "login_send", email: mail });
+    setBusy(false);
+    if (!res.ok) {
+      setError(ERRORS[res.error] || ERRORS.send_failed);
+      return;
+    }
+    setStep(2);
+    setSent(true);
+    setCode(["", "", "", "", "", ""]);
+    setTimeout(() => boxes.current[0]?.focus(), 50);
   }
 
   const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
@@ -207,14 +281,36 @@ export default function Claim() {
     }
     const res = creating
       ? await call({ action: "create_verify", email: form.email.trim(), code: c, fields: formFields() })
-      : await call({ action: "verify", vendorId: picked.id, code: c });
+      : logging
+        ? await call({ action: "login_verify", email: loginEmail.trim(), code: c })
+        : await call({ action: "verify", vendorId: picked.id, code: c });
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.bad_code);
       return;
     }
     await supabase.auth.setSession(res.session);
-    pro.reload();
+    // Une fiche qui vient d'être créée s'ouvre dans Ma fiche : photos, prix et capacités à compléter
+    if (creating) {
+      window.location.assign("/pro/fiche");
+      return;
+    }
+    // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte) ; l'adresse repart sans
+    // ses paramètres, sinon l'écran de recherche reviendrait
+    if (!logging) {
+      pro.rememberVendor(picked.id);
+      window.location.assign("/pro");
+      return;
+    }
+    await pro.reload();
+    // Toujours là après la connexion : ce compte n'a pas encore de fiche
+    if (logging) {
+      setBusy(false);
+      setLogging(false);
+      setStep(1);
+      setSent(false);
+      setNotice(`Connecté avec ${loginEmail.trim()}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    }
   }
 
   function typeDigit(i, raw) {
@@ -236,9 +332,9 @@ export default function Claim() {
     if (digits && i < 5) boxes.current[i + 1]?.focus();
   }
 
-  const cardTitle = step === 2 ? (creating ? form.name.trim() : picked?.name) : creating ? "Créez votre fiche" : "Retrouvez votre établissement";
-  const eyebrow = step === 2 ? "Votre fiche" : creating ? "Nouvelle fiche" : "Espace prestataire";
-  const goBack = step === 2 ? () => setStep(1) : creating ? backToSearch : null;
+  const cardTitle = logging ? "Connectez-vous" : step === 2 ? (creating ? form.name.trim() : picked?.name) : creating ? "Créez votre fiche" : "Retrouvez votre établissement";
+  const eyebrow = logging ? "Espace prestataire" : step === 2 ? "Votre fiche" : creating ? "Nouvelle fiche" : "Espace prestataire";
+  const goBack = logging ? (step === 2 ? () => setStep(1) : backToSearch) : step === 2 ? () => setStep(1) : creating ? backToSearch : null;
 
   const codeBlock = (label, resend) => (
     <div className="p-claim-code">
@@ -309,7 +405,43 @@ export default function Claim() {
           <div className="p-claim-eyebrow p-desk-only">{eyebrow}</div>
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
 
-          {creating && step === 1 ? (
+          {logging ? (
+            <>
+              <p className="p-claim-help">{step === 1 ? "L’adresse mail de votre compte Merry : nous y envoyons un code à 6 chiffres." : `Le code à 6 chiffres envoyé à ${loginEmail.trim()}.`}</p>
+              {step === 1 ? (
+                <div className="p-claim-field">
+                  <label htmlFor="pro-login">Adresse mail</label>
+                  <input
+                    id="pro-login"
+                    className="p-claim-input"
+                    type="email"
+                    autoComplete="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && sendLoginCode()}
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                codeBlock("Le code reçu par mail", sendLoginCode)
+              )}
+              {errorBox}
+              <div className="p-claim-actions is-split">
+                <button type="button" className="p-claim-link" onClick={backToSearch}>
+                  Retrouver ma fiche par son nom
+                </button>
+                {step === 1 ? (
+                  <button type="button" className="p-claim-submit" onClick={sendLoginCode} disabled={busy}>
+                    Recevoir mon code
+                  </button>
+                ) : (
+                  <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
+                    Me connecter
+                  </button>
+                )}
+              </div>
+            </>
+          ) : creating && step === 1 ? (
             <>
               <p className="p-claim-help">Quelques informations pour commencer. Photos, prix et capacités se complètent ensuite dans Ma fiche.</p>
               <div className="p-claim-field">
@@ -406,6 +538,15 @@ export default function Claim() {
           ) : step === 1 ? (
             <>
               <p className="p-claim-help">Merry a peut-être déjà une fiche pour vous. Retrouvez-la pour en prendre la main.</p>
+              {myFiches.length ? (
+                <p className="p-claim-help is-notice">
+                  Vous êtes connecté à {myFiches.map((v) => v.name).join(", ")}. <a href="/pro">Aller à mon espace</a> · Pour une autre fiche, cherchez-la ci-dessous ; le code arrive à l’adresse de cette fiche.{" "}
+                  <button type="button" className="p-claim-link" onClick={() => pro.signOut(`/pro${window.location.search}`)}>
+                    Changer de compte
+                  </button>
+                </p>
+              ) : null}
+              {notice ? <p className="p-claim-help is-notice">{notice}</p> : null}
               {setupMissing ? <p className="p-claim-error">{ERRORS.setup}</p> : null}
               <div className="p-claim-field">
                 <label htmlFor="pro-q">Nom ou numéro SIRET</label>
@@ -422,7 +563,10 @@ export default function Claim() {
                         {r.photo ? null : <span>Photo</span>}
                       </span>
                       <span className="p-claim-result">
-                        <span className="p-claim-name">{r.name}</span>
+                        <span className="p-claim-name">
+                          {r.name}
+                          {r.claimed ? <span className="p-chip is-small p-claim-claimed">Déjà gérée sur Merry</span> : null}
+                        </span>
                         <span className="p-claim-meta">{[r.city, r.category].filter(Boolean).join(" · ")}</span>
                       </span>
                       <button type="button" className="p-btn p-btn-ghost is-40" onClick={() => choose(r)}>
@@ -443,6 +587,14 @@ export default function Claim() {
                   Créer ma fiche
                 </button>
               </div>
+              {!signedIn ? (
+                <p className="p-claim-help is-small p-claim-login">
+                  Vous avez déjà un compte ?{" "}
+                  <button type="button" className="p-claim-link" onClick={startLogin}>
+                    Me connecter avec mon adresse mail
+                  </button>
+                </p>
+              ) : null}
             </>
           ) : (
             <>
@@ -480,31 +632,18 @@ export default function Claim() {
               </div>
               <p className="p-claim-intro">Merry a préparé votre fiche à partir d’informations publiques. Vérifiez-la, complétez-la, elle est à vous.</p>
               <div className="p-claim-rule" />
-              <fieldset className="p-claim-channels">
-                <legend>Vérifions que c’est bien vous</legend>
-                <div>
-                  <label className={`p-claim-channel${channel === "mail" ? " is-on" : ""}`}>
-                    <input type="radio" name="canal" checked={channel === "mail"} onChange={() => setChannel("mail")} />
-                    <ProIcon name="mail" size={20} />
-                    <span>
-                      <span className="p-claim-ctitle">Recevoir un code par mail</span>
-                      <span className="p-claim-chint">{picked.email_hint || "Pas d’adresse sur la fiche"}</span>
-                    </span>
-                  </label>
-                  <label className={`p-claim-channel is-off${channel === "sms" ? " is-on" : ""}`}>
-                    <input type="radio" name="canal" checked={channel === "sms"} onChange={() => setChannel("sms")} />
-                    <ProIcon name="mobile" size={20} />
-                    <span>
-                      <span className="p-claim-ctitle">Recevoir un code par SMS</span>
-                      <span className="p-claim-chint">{channel === "sms" ? "Bientôt disponible, choisissez le mail" : picked.phone_hint || "Pas de numéro sur la fiche"}</span>
-                    </span>
-                  </label>
-                </div>
-              </fieldset>
-              {channel === "mail" && picked.email_hint ? codeBlock(sent ? "Le code à 6 chiffres reçu par mail" : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode()) : null}
+              <div className="p-claim-legend">Vérifions que c’est bien vous</div>
+              <div className="p-claim-channel is-on is-single">
+                <ProIcon name="mail" size={20} />
+                <span>
+                  <span className="p-claim-ctitle">{picked.email_hint ? "Un code par mail, à l’adresse de la fiche" : "Pas d’adresse mail sur cette fiche"}</span>
+                  <span className="p-claim-chint">{picked.email_hint || "Écrivez-nous depuis l’adresse de votre établissement : nous vous ouvrons l’accès."}</span>
+                </span>
+              </div>
+              {picked.email_hint ? codeBlock(sent ? "Le code à 6 chiffres reçu par mail" : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode()) : null}
               {errorBox}
               <div className="p-claim-actions">
-                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || channel !== "mail" || !picked.email_hint}>
+                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || !picked.email_hint}>
                   Valider
                 </button>
               </div>

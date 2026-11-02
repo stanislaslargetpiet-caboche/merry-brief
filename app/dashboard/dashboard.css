@@ -15815,108 +15815,6 @@ body.d-noscroll {
   resize: vertical;
 }
 
-/* Cible et projection, sous les indicateurs de la liste des invités */
-.d-target {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: var(--d-panel);
-  font-size: 13px;
-}
-
-.d-target.is-filtered {
-  outline: 1.5px dashed #b9b7ae;
-}
-
-.d-target-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-}
-
-.d-target-main b {
-  font-weight: 700;
-}
-
-.d-target-right {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-}
-
-.d-target-proj {
-  font-weight: 600;
-}
-
-.d-target-proj.is-over {
-  color: #9b2c2c;
-}
-
-.d-target-proj.is-under {
-  color: #8a4b0f;
-}
-
-.d-target-proj.is-ok {
-  color: #1f6b30;
-}
-
-.d-target-pick {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--d-border);
-  background: #ffffff;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.d-target-bar {
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: #e4e2dc;
-  overflow: visible;
-}
-
-.d-target-bar > span {
-  position: absolute;
-  top: 0;
-  height: 100%;
-}
-
-.d-target-oui {
-  left: 0;
-  border-radius: 999px 0 0 999px;
-  background: #4f9a5e;
-}
-
-.d-target-proj-seg {
-  background: repeating-linear-gradient(135deg, #e8a85c 0 4px, #f4cf9a 4px 8px);
-}
-
-.d-target-attente {
-  background: #f4e3cf;
-}
-
-.d-target-range {
-  top: -4px;
-  height: 18px;
-  border-left: 2px solid var(--d-ink);
-  border-right: 2px solid var(--d-ink);
-  box-sizing: border-box;
-  pointer-events: auto;
-}
-
 /* Pastille de foyer, sous le nom */
 .d-house {
   display: inline-flex;
@@ -16044,4 +15942,239 @@ body.d-noscroll {
 
 .d-fm-move > span {
   margin-right: auto;
+}
+
+/* Nouvelles réponses reçues par le formulaire depuis la dernière visite */
+.d-fresh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--d-limetint, #f4f8d6);
+  font-size: 13.5px;
+}
+
+.d-fresh > span {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+/* Les autres organisateurs sur la liste en ce moment */
+.d-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-presence .d-avatar + .d-avatar {
+  margin-left: -8px;
+}
+
+/* Plan de table */
+.d-seat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 13.5px;
+  color: var(--d-muted);
+}
+
+.d-seat-summary b {
+  color: var(--d-ink);
+}
+
+.d-seat-warn {
+  color: #9b2c2c;
+  font-weight: 600;
+}
+
+.d-seat-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.d-seat-side {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--d-panel);
+  max-height: calc(100vh - 32px);
+}
+
+.d-seat-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.d-seat-side .d-seat-list {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.d-seat-selbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.d-seat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.d-seat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--d-line);
+  cursor: grab;
+}
+
+.d-seat-row.is-on {
+  border-color: var(--d-ink);
+}
+
+.d-seat-row:active {
+  cursor: grabbing;
+}
+
+.d-seat-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.d-seat-name small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 11px;
+  color: var(--d-muted);
+  font-weight: 400;
+}
+
+.d-seat-diet {
+  color: #8a4b0f;
+}
+
+.d-house.is-split {
+  background: #fde0de;
+  color: #9b2c2c;
+}
+
+.d-seat-x {
+  width: 26px;
+  height: 26px;
+  background: none;
+}
+
+.d-seat-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.d-seat-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1.5px solid var(--d-line);
+  background: #ffffff;
+  min-height: 160px;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.d-seat-table.is-over {
+  border-color: var(--d-ink);
+  background: var(--d-limetint);
+}
+
+.d-seat-table.is-full {
+  border-color: #e3a3a0;
+}
+
+.d-seat-table .d-seat-row {
+  background: var(--d-panel);
+  border-color: transparent;
+}
+
+.d-seat-table-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-seat-table-head > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.d-seat-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--d-muted);
+}
+
+.d-seat-count.is-exact {
+  color: #1f6b30;
+}
+
+.d-seat-count.is-over {
+  color: #9b2c2c;
+  font-weight: 700;
+}
+
+.d-seat-empty {
+  padding: 14px;
+  text-align: center;
+  border: 1.5px dashed var(--d-border);
+  border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .d-seat-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .d-seat-side {
+    position: static;
+    max-height: none;
+  }
+
+  .d-seat-side .d-seat-list {
+    max-height: 320px;
+  }
 }

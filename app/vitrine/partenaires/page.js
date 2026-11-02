@@ -1,5 +1,5 @@
 import Frame, { Block } from "@/components/vitrine/Frame";
-import { DEMO, PRO } from "@/lib/vitrine/routes";
+import { DEMO, PRO, PRO_LOGIN } from "@/lib/vitrine/routes";
 import avantApres from "@/lib/vitrine/blocks/pro-avant-apres";
 import criteres from "@/lib/vitrine/blocks/pro-criteres";
 import credits from "@/lib/vitrine/blocks/pro-credits";
@@ -12,7 +12,8 @@ export const metadata = {
 };
 
 // Planche « Site-Prestataires » du canvas « 9 - Site vitrine » (30 oct. 2026)
-const FICHE = `${PRO}/fiche`;
+// Le nom tapé ici arrive dans la recherche de « Retrouvez votre établissement » (/pro?etablissement=…)
+const FICHE = PRO;
 
 const COMPARATIF = [
   ["Votre budget", "Un abonnement, avec ou sans demandes", "Des crédits, seulement quand vous répondez"],
@@ -51,7 +52,9 @@ export default async function VitrinePrestataires() {
             Retrouver ma fiche
           </button>
         </form>
-        <p className="wv-find-note">Près de 15 000 prestataires sont déjà référencés sur Merry (octobre 2026). Votre fiche existe peut-être déjà.</p>
+        <p className="wv-find-note">
+          Près de 15 000 prestataires sont déjà référencés sur Merry (octobre 2026). Votre fiche existe peut-être déjà. Déjà inscrit ? <a href={PRO_LOGIN}>Connectez-vous</a>.
+        </p>
         <Block html={avantApres} className="wv-media wv-media-wide" />
         <p className="wv-lead" style={{ maxWidth: 620 }}>
           Pas encore sur Merry ? Créez votre fiche, ça prend 3 minutes.

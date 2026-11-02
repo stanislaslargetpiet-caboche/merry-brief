@@ -69,7 +69,7 @@ export default function FicheInvite() {
   const { id } = useParams();
   const router = useRouter();
   const dash = useDash();
-  const { guests, groups, events, responses, fields, form } = dash.data;
+  const { guests, groups, events, responses, fields, form, members, log } = dash.data;
   // Retour à la liste telle qu'on l'a laissée (recherche, filtres, tri)
   const [back, setBack] = useState(LIST_PATH);
   useEffect(() => setBack(listHref()), []);
@@ -92,6 +92,14 @@ export default function FicheInvite() {
   const relSubject = reminderSubject(dash.data);
   const remindedDays = agoDays(guest.reminded_at);
   const answerOf = (evId) => responses.find((x) => x.guest_id === guest.id && x.event_id === evId);
+  // Dernière trace de l'historique pour ce moment : « par le formulaire, 8 oct. » ou « par Léa, 12 nov. »
+  const traceOf = (evId) => {
+    const entries = (log || []).filter((l) => l.guest_id === guest.id && l.event_id === evId);
+    const last = entries[entries.length - 1];
+    if (!last) return null;
+    const who = last.source === "formulaire" ? "par le formulaire" : `par ${members.find((m) => m.id === last.member_id)?.display_name || "un organisateur"}`;
+    return `${who}, ${shortDate(last.created_at.slice(0, 10))}`;
+  };
 
   async function removeGuest() {
     const extra = plusOnes.length ? ` et ${plusOnes.length > 1 ? `ses ${plusOnes.length} accompagnants` : "son accompagnant"}` : "";
@@ -153,7 +161,7 @@ export default function FicheInvite() {
                     <div key={ev.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, borderTop: "1px solid var(--d-line)" }}>
                       <span style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                         <span style={{ fontSize: 14.5, fontWeight: 500 }}>{ev.name}</span>
-                        {(st === "oui" || st === "non") && a?.updated_at ? <small className="d-muted">Mis à jour le {shortDate(a.updated_at.slice(0, 10))}</small> : null}
+                        {st !== "non_invite" && traceOf(ev.id) ? <small className="d-muted">{traceOf(ev.id)}</small> : (st === "oui" || st === "non") && a?.updated_at ? <small className="d-muted">Mis à jour le {shortDate(a.updated_at.slice(0, 10))}</small> : null}
                       </span>
                       <RsvpMenu status={st} onPick={(k) => dash.setResponse(guest.id, ev.id, k)} title={`${ev.name} : modifier le statut`} />
                     </div>
