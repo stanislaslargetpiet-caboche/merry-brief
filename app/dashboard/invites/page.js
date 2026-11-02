@@ -397,9 +397,11 @@ function AddGuests({ onClose, defaultGroupId = "" }) {
   );
 }
 
-// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a),
-// et dessous sa réponse à chaque moment, modifiable sans ouvrir la fiche
+// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a).
+// Un appui sur le statut déplie la réponse à chaque moment, modifiable sans ouvrir la fiche ;
+// replié par défaut pour que la liste reste aérée.
 function GuestCard({ guest: g, events, idx, byId, groupById, onPick }) {
+  const [open, setOpen] = useState(false);
   const r = idx.get(g.id) || {};
   const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
   const status = guestStatus(r, events);
@@ -419,15 +421,24 @@ function GuestCard({ guest: g, events, idx, byId, groupById, onPick }) {
           {sub ? <span>{sub}</span> : null}
         </span>
       </span>
-      <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
     </>
   );
   return (
     <div className="d-gcard">
-      <Link href={`/dashboard/invites/${g.id}`} className="d-gcard-row">
-        {inner}
-      </Link>
-      {events.length ? (
+      <div className="d-gcard-top">
+        <Link href={`/dashboard/invites/${g.id}`} className="d-gcard-row">
+          {inner}
+        </Link>
+        {events.length ? (
+          <button type="button" className={`d-gcard-status is-${status}${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={`${GUEST_STATUS_LABEL[status]} : voir ou modifier la réponse à chaque moment`}>
+            {GUEST_STATUS_LABEL[status]}
+            <Icon name="chevDown" size={11} sw={2.4} />
+          </button>
+        ) : (
+          <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
+        )}
+      </div>
+      {open && events.length ? (
         <div className="d-gcard-moments">
           {events.map((ev) => (
             <span key={ev.id} className="d-gcard-moment">
