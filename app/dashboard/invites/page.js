@@ -1345,6 +1345,9 @@ export default function Invites() {
               <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
                 Plein écran
               </Btn>
+              <Btn kind="ghost" icon="seat" href="/dashboard/invites/plan-de-table" title="Qui s'assoit où">
+                Plan de table
+              </Btn>
               <span className="d-anchor">
                 <button type="button" className="d-pill" onClick={() => setRestoring((o) => !o)} aria-haspopup="menu" aria-expanded={restoring}>
                   Colonnes
