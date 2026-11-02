@@ -2,6 +2,8 @@
 // du formulaire « Ajouter un prestataire » : on aide à taper une ville reconnue par Google, pour que la
 // recherche qui suit (nom + ville, /api/prestataires/recherche-google) retrouve la bonne fiche. La saisie
 // reste libre : les suggestions sont une aide, pas une obligation de sélectionner l'une d'elles.
+// Avec placeId (au lieu de q) : renvoie le code postal de cette suggestion une fois choisie (un seul
+// appel Détails par sélection, pas un par lettre tapée).
 // Nécessite GOOGLE_PLACES_API_KEY côté serveur (Vercel > Settings > Environment Variables).
 // Réservée aux organisateurs connectés.
 
@@ -28,6 +30,18 @@ export async function POST(req) {
   } catch {
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
+
+  const placeId = String(body.placeId || "").trim();
+  if (placeId) {
+    const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "addressComponents" },
+    });
+    if (!res.ok) return Response.json({ postalCode: null });
+    const out = await res.json();
+    const postalCode = (out.addressComponents || []).find((c) => (c.types || []).includes("postal_code"))?.longText || null;
+    return Response.json({ postalCode });
+  }
+
   const q = String(body.q || "").trim().slice(0, 80);
   if (q.length < 2) return Response.json({ results: [] });
 
@@ -42,8 +56,12 @@ export async function POST(req) {
   }
   const out = await res.json();
   const results = (out.suggestions || [])
-    .map((s) => s.placePrediction?.structuredFormat?.mainText?.text || s.placePrediction?.text?.text || "")
-    .filter(Boolean)
+    .map((s) => ({
+      label: s.placePrediction?.structuredFormat?.mainText?.text || s.placePrediction?.text?.text || "",
+      secondary: s.placePrediction?.structuredFormat?.secondaryText?.text || "",
+      placeId: s.placePrediction?.placeId || "",
+    }))
+    .filter((r) => r.label)
     .slice(0, 5);
   return Response.json({ results });
 }
