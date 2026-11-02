@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { CATALOG_CATEGORIES, CATEGORIES, catOf, cityPostalCode, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { Thumb, usePicks } from "./Prestataires";
-import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
+import { useCreateFiche } from "./CreateFiche";
 import { Btn, BusyDots } from "./ui";
 
 const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null };
@@ -31,7 +31,7 @@ export default function VendorSearchBar() {
   const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « C'est lui »
   const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
-  const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
+  const { busy: creatingBusy, createNow } = useCreateFiche();
   const searched = q.trim().length >= 2;
   const noMatch = searched && !searching && !results.length;
 
@@ -96,9 +96,12 @@ export default function VendorSearchBar() {
 
   // Suggestions de villes pendant la saisie (aide, pas une liste fermée) : on ne les propose que
   // si le prestataire n'est pas déjà raccroché à un résultat Google (pickGoogle a déjà sa ville).
+  // pickedAreaRef retient la ville choisie dans la liste (avant puis après le code postal) : sans ça,
+  // la resélectionne et rouvre la liste juste après qu'on l'ait fermée en cliquant dessus.
+  const pickedAreaRef = useRef(null);
   useEffect(() => {
-    if (!manual || refineArea.length < 2) {
-      setCities({ open: false, searching: false, results: [] });
+    if (!manual || refineArea.length < 2 || refineArea === pickedAreaRef.current) {
+      setCities((c) => (c.open || c.searching ? { open: false, searching: false, results: [] } : c));
       return undefined;
     }
     let live = true;
@@ -140,12 +143,14 @@ export default function VendorSearchBar() {
   }
 
   function pickGoogle(g) {
+    pickedAreaRef.current = g.city || "";
     setForm({ name: g.name, category: "", area: g.city || "", phone: g.phone || "", website: g.website || "", lat: g.lat, lng: g.lng });
     setManual(true);
     setAppliedMatch(g);
   }
 
   function applyRefine(g) {
+    if (g.city) pickedAreaRef.current = g.city;
     setForm((f) => ({ ...f, name: g.name, area: g.city || f.area, phone: g.phone || f.phone, website: g.website || f.website, lat: g.lat, lng: g.lng }));
     setRefine({ searching: false, results: [], attempted: false });
     // Pour que la confirmation de création reprenne exactement ce résultat au lieu de relancer
@@ -153,18 +158,14 @@ export default function VendorSearchBar() {
     setAppliedMatch(g);
   }
 
-  function submitManual(e) {
+  async function submitManual(e) {
     e.preventDefault();
     const name = form.name.trim();
     if (!name || !form.category || creatingBusy) return;
-    runCreate(name, form.category, form.area.trim(), {
+    const v = await createNow(name, form.category, form.area.trim(), {
       match: appliedMatch,
       fallback: { phone: form.phone, website: form.website, lat: form.lat, lng: form.lng },
     });
-  }
-
-  async function handleConfirmCreate() {
-    const v = await confirmCreate();
     if (v) reset();
   }
 
@@ -287,6 +288,7 @@ export default function VendorSearchBar() {
                       maxLength={80}
                       autoComplete="off"
                       onChange={(e) => {
+                        pickedAreaRef.current = null;
                         setForm((f) => ({ ...f, area: e.target.value }));
                         setRefine({ searching: false, results: [], attempted: false });
                         setAppliedMatch(null);
@@ -302,14 +304,19 @@ export default function VendorSearchBar() {
                           key={c.placeId || c.label}
                           onMouseDown={async (e) => {
                             e.preventDefault();
+                            e.stopPropagation();
+                            pickedAreaRef.current = c.label;
                             setForm((f) => ({ ...f, area: c.label }));
-                            setCities((s) => ({ ...s, open: false }));
+                            setCities({ open: false, searching: false, results: [] });
                             setRefine({ searching: false, results: [], attempted: false });
                             setAppliedMatch(null);
                             if (c.placeId) {
                               const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
                               const postal = await cityPostalCode(dash.mode, c.placeId, token);
-                              if (postal) setForm((f) => (f.area === c.label ? { ...f, area: `${c.label} ${postal}` } : f));
+                              if (postal) {
+                                pickedAreaRef.current = `${c.label} ${postal}`;
+                                setForm((f) => (f.area === c.label ? { ...f, area: `${c.label} ${postal}` } : f));
+                              }
                             }
                           }}
                         >
@@ -377,7 +384,7 @@ export default function VendorSearchBar() {
                 <Btn kind="ghost" onClick={() => setManual(false)}>
                   Annuler
                 </Btn>
-                <Btn type="submit" disabled={busy || !!creating || !form.name.trim() || !form.category}>
+                <Btn type="submit" disabled={busy || creatingBusy || !form.name.trim() || !form.category}>
                   Ajouter à mes prestataires
                 </Btn>
               </div>
@@ -385,7 +392,6 @@ export default function VendorSearchBar() {
           )}
         </div>
       ) : null}
-      <CreateFicheDialog creating={creating} busy={creatingBusy} onCancel={cancelCreate} onConfirm={handleConfirmCreate} />
     </div>
   );
 }
