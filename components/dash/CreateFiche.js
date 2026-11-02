@@ -119,6 +119,38 @@ export function useCreateFiche() {
   return { creating, busy, runCreate, cancelCreate, confirmCreate, createNow };
 }
 
+// L'animation de recherche (chips qui gravitent, lignes qui défilent) : partagée avec la fenêtre
+// « Ajouter un prestataire » de la barre de recherche.
+export function SearchingScene({ name, area }) {
+  return (
+    <>
+      <h3>
+        On cherche « {name} »{area ? ` à ${area}` : ""}…
+      </h3>
+      <div className="d-create-chips" aria-hidden="true">
+        <span className="d-create-chip" style={{ "--i": 0, "--x": "-130px", "--y": "-60px", "--r": "-6deg" }}>
+          Recherche internet
+        </span>
+        <span className="d-create-chip" style={{ "--i": 1, "--x": "125px", "--y": "-65px", "--r": "5deg" }}>
+          Photos
+        </span>
+        <span className="d-create-chip" style={{ "--i": 2, "--x": "-135px", "--y": "55px", "--r": "4deg" }}>
+          Carte
+        </span>
+        <span className="d-create-chip" style={{ "--i": 3, "--x": "120px", "--y": "60px", "--r": "-5deg" }}>
+          Téléphone
+        </span>
+        <div className="d-create-core" />
+      </div>
+      <div className="d-create-lines">
+        <p className="d-create-ln is-0">On cherche sur internet…</p>
+        <p className="d-create-ln is-1">On récupère ses photos et sa position…</p>
+        <p className="d-create-ln is-2">On repère son téléphone ou son e-mail…</p>
+      </div>
+    </>
+  );
+}
+
 export function CreateFicheDialog({ creating, busy, onCancel, onConfirm }) {
   if (!creating) return null;
   return (
@@ -129,31 +161,7 @@ export function CreateFicheDialog({ creating, busy, onCancel, onConfirm }) {
       </div>
       <div className="d-pr-panel-body d-pr-create">
         {creating.phase === "search" ? (
-          <>
-            <h3>
-              On cherche « {creating.name} »{creating.area ? ` à ${creating.area}` : ""}…
-            </h3>
-            <div className="d-create-chips" aria-hidden="true">
-              <span className="d-create-chip" style={{ "--i": 0, "--x": "-130px", "--y": "-60px", "--r": "-6deg" }}>
-                Recherche internet
-              </span>
-              <span className="d-create-chip" style={{ "--i": 1, "--x": "125px", "--y": "-65px", "--r": "5deg" }}>
-                Photos
-              </span>
-              <span className="d-create-chip" style={{ "--i": 2, "--x": "-135px", "--y": "55px", "--r": "4deg" }}>
-                Carte
-              </span>
-              <span className="d-create-chip" style={{ "--i": 3, "--x": "120px", "--y": "60px", "--r": "-5deg" }}>
-                Téléphone
-              </span>
-              <div className="d-create-core" />
-            </div>
-            <div className="d-create-lines">
-              <p className="d-create-ln is-0">On cherche sur internet…</p>
-              <p className="d-create-ln is-1">On récupère ses photos et sa position…</p>
-              <p className="d-create-ln is-2">On repère son téléphone ou son e-mail…</p>
-            </div>
-          </>
+          <SearchingScene name={creating.name} area={creating.area} />
         ) : (
           <>
             <h3>Est-ce bien ce prestataire&nbsp;?</h3>
