@@ -12,7 +12,8 @@ export const metadata = {
 };
 
 // Planche « Site-Prestataires » du canvas « 9 - Site vitrine » (30 oct. 2026)
-const FICHE = `${PRO}/fiche`;
+// Le nom tapé ici arrive dans la recherche de « Retrouvez votre établissement » (/pro?etablissement=…)
+const FICHE = PRO;
 
 const COMPARATIF = [
   ["Votre budget", "Un abonnement, avec ou sans demandes", "Des crédits, seulement quand vous répondez"],

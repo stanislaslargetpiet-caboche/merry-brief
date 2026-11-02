@@ -152,6 +152,7 @@ function Frame({ children }) {
           })}
         </div>
         <div className="p-nav-bottom">
+          <VendorSwitch />
           <Link href="/pro/credits" className="p-credits-pill">
             <ProIcon name="credits" size={15} sw={2} />
             {credits} crédit{credits > 1 ? "s" : ""}
@@ -196,10 +197,40 @@ function Frame({ children }) {
   );
 }
 
+// Plusieurs fiches sur le même compte : un menu pour passer de l'une à l'autre
+function VendorSwitch({ item }) {
+  const pro = usePro();
+  const list = pro.data.vendors || [];
+  if (list.length < 2) return null;
+  const current = pro.data.vendor?.id;
+  if (item) {
+    return list
+      .filter((v) => v.id !== current)
+      .map((v) => (
+        <button key={v.id} type="button" className="d-pop-item" onClick={() => pro.switchVendor(v.id)}>
+          Passer à {v.name}
+        </button>
+      ));
+  }
+  return (
+    <label className="p-vendor-switch">
+      <span className="p-sr">Fiche affichée</span>
+      <select className="p-input" value={current} onChange={(e) => pro.switchVendor(e.target.value)}>
+        {list.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function AccountMenu({ close }) {
   const pro = usePro();
   return (
     <>
+      <VendorSwitch item />
       <a className="d-pop-item" href={SITE_URL}>
         Retour au site
       </a>

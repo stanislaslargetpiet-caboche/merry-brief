@@ -146,7 +146,8 @@ function Detail({ r, c, onBack }) {
   const [formulaId, setFormulaId] = useState(formulas[0]?.id || null);
   const [optionIds, setOptionIds] = useState([]);
   const [file, setFile] = useState(null);
-  const [hold, setHold] = useState(!!dayIso && !booked && !flexible);
+  // Poser une option reste un choix : rien n'est bloqué dans l'agenda sans que le prestataire l'ait décidé
+  const [hold, setHold] = useState(false);
   const [busy, setBusy] = useState(false);
   const [thread, setThread] = useState([]);
   const fileRef = useRef(null);
@@ -245,7 +246,7 @@ function Detail({ r, c, onBack }) {
         <div className="p-dem-block">
           <span className="p-dem-label">Vos échanges</span>
           <ul className="p-thread">
-            {thread.slice(1).map((m) => (
+            {thread.filter((m, i) => !(i === 0 && !m.from_vendor && m.body === r.message)).map((m) => (
               <li key={m.id} className={m.from_vendor ? "is-me" : ""}>
                 <span className="p-thread-who">
                   {m.from_vendor ? "Vous" : firstName(r.names)} · {dateShortYear(String(m.sent_at).slice(0, 10)).replace(/ \d{4}$/, "")}

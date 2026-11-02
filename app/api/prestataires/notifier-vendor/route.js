@@ -54,7 +54,10 @@ export async function POST(req) {
 
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") || "https";
-  const link = `${proto}://${host}/pro/fiche`;
+  // Le lien ouvre directement la fiche du catalogue à revendiquer (code envoyé tout de suite), quand on la connaît
+  const { data: pick } = await sb.from("vendor_picks").select("catalog_ref").eq("wedding_id", vendor.wedding_id).eq("vendor_id", vendorId).maybeSingle();
+  const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
+  const link = `${proto}://${host}/pro${catalogId ? `?fiche=${catalogId}` : ""}`;
 
   const subject = isRequest ? `${couple} vous a écrit` : `${couple} vous a écrit sur Merry`;
   const plainParts = [`Bonjour,`, message || `${couple} vous a envoyé un message sur Merry.`];
