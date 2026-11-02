@@ -128,8 +128,9 @@ export default function VendorSearchBar() {
       await add(v);
       dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
       reset();
-    } catch {
-      dash.setToast({ kind: "error", text: "Ce prestataire n'a pas pu être créé : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)." });
+    } catch (e) {
+      console.error("[merry] merry_add_vendor_manual", e);
+      dash.setToast({ kind: "error", text: `Ce prestataire n'a pas pu être créé${e?.message ? ` : ${e.message}` : " : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)."}` });
     } finally {
       setBusy(false);
     }
