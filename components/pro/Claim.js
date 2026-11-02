@@ -104,6 +104,7 @@ export default function Claim() {
   const boxes = useRef([]);
   const demo = pro.mode === "demo";
   const signedIn = Boolean(pro.data?.user?.email);
+  const myFiches = pro.data?.vendors || []; // connecté à un espace, venu chercher une autre fiche
 
   // Arrivée par un lien : la fiche est ouverte et le code part tout de suite ; ou le nom du site est repris
   useEffect(() => {
@@ -111,6 +112,8 @@ export default function Claim() {
     const fiche = params.get("fiche");
     const name = params.get("etablissement");
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
+    // « Connexion » du site : l'adresse mail puis le code, sans passer par la recherche
+    if (params.get("connexion") === "1" && !signedIn) startLogin();
     if (!fiche || demo) return;
     let live = true;
     (async () => {
@@ -127,7 +130,7 @@ export default function Claim() {
 
   // Connecté, mais aucune fiche rattachée à ce compte : on le dit au-dessus de la recherche
   useEffect(() => {
-    if (signedIn && !logging && !creating && step === 1 && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    if (signedIn && !myFiches.length && !logging && !creating && step === 1 && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
@@ -290,6 +293,13 @@ export default function Claim() {
     // Une fiche qui vient d'être créée s'ouvre dans Ma fiche : photos, prix et capacités à compléter
     if (creating) {
       window.location.assign("/pro/fiche");
+      return;
+    }
+    // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte) ; l'adresse repart sans
+    // ses paramètres, sinon l'écran de recherche reviendrait
+    if (!logging) {
+      pro.rememberVendor(picked.id);
+      window.location.assign("/pro");
       return;
     }
     await pro.reload();
@@ -528,6 +538,14 @@ export default function Claim() {
           ) : step === 1 ? (
             <>
               <p className="p-claim-help">Merry a peut-être déjà une fiche pour vous. Retrouvez-la pour en prendre la main.</p>
+              {myFiches.length ? (
+                <p className="p-claim-help is-notice">
+                  Vous êtes connecté à {myFiches.map((v) => v.name).join(", ")}. <a href="/pro">Aller à mon espace</a> · Pour une autre fiche, cherchez-la ci-dessous ; le code arrive à l’adresse de cette fiche.{" "}
+                  <button type="button" className="p-claim-link" onClick={() => pro.signOut(`/pro${window.location.search}`)}>
+                    Changer de compte
+                  </button>
+                </p>
+              ) : null}
               {notice ? <p className="p-claim-help is-notice">{notice}</p> : null}
               {setupMissing ? <p className="p-claim-error">{ERRORS.setup}</p> : null}
               <div className="p-claim-field">

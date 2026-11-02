@@ -1,7 +1,7 @@
 // En-tête et pied de page du site vitrine (canvas « 9 - Site vitrine »)
 
 import { headers } from "next/headers";
-import { LOGIN, SIGNUP, linksFor } from "@/lib/vitrine/routes";
+import { LOGIN, PRO_LOGIN, SIGNUP, linksFor } from "@/lib/vitrine/routes";
 import LangSwitch from "./LangSwitch";
 import { PUBLIC_URL, getStats, hasPage, hrefOf } from "@/lib/seo/data";
 import { FRANCE, regionZone } from "@/lib/seo/geo";
@@ -64,6 +64,8 @@ async function SeoLinks() {
 
 export default async function Frame({ current, children }) {
   const links = await getLinks();
+  // Sur la page Prestataires, « Connexion » ouvre l'espace prestataire (adresse mail puis code)
+  const login = current === "pro" ? PRO_LOGIN : LOGIN;
   const item = (key, href, label) => (
     <a href={href} className={current === key ? "on" : undefined} aria-current={current === key ? "page" : undefined}>
       {label}
@@ -78,7 +80,7 @@ export default async function Frame({ current, children }) {
         <nav className="wv-nav" aria-label="Menu">
           {item("home", links.home, "Home")}
           {item("pro", links.pro, "Prestataires")}
-          <a href={LOGIN}>Connexion</a>
+          <a href={login}>Connexion</a>
         </nav>
         <div className="wv-right">
           <LangSwitch />
@@ -95,7 +97,7 @@ export default async function Frame({ current, children }) {
               <a href={links.home}>Home</a>
               <a href={links.pro}>Prestataires</a>
               <a href={links.about}>À propos</a>
-              <a href={LOGIN}>Connexion</a>
+              <a href={login}>Connexion</a>
               <LangSwitch className="wv-lang-menu" />
             </nav>
           </details>

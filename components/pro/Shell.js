@@ -161,6 +161,7 @@ function Frame({ children }) {
             Proposer une fonctionnalité
           </button>
           <div className="d-nav-links">
+            <a href="/pro?revendiquer=1">Une autre fiche</a>
             <a href={SITE_URL}>Retour au site</a>
             <button type="button" onClick={pro.signOut}>
               Se déconnecter
@@ -231,6 +232,9 @@ function AccountMenu({ close }) {
   return (
     <>
       <VendorSwitch item />
+      <a className="d-pop-item" href="/pro?revendiquer=1">
+        Revendiquer une autre fiche
+      </a>
       <a className="d-pop-item" href={SITE_URL}>
         Retour au site
       </a>
