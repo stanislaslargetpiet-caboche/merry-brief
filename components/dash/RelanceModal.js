@@ -50,7 +50,7 @@ export default function RelanceModal({ guests, onClose, onMarked }) {
       onClose={onClose}
       footer={
         <>
-          <span className="d-small d-muted">{setup ? "Une fois les messages partis :" : "Pour garder la date des relances, lancez supabase/relances-et-foyers.sql."}</span>
+          <span className="d-small d-muted">{setup ? "Une fois les messages partis :" : "Pour garder la date des relances, lancez supabase/relances.sql."}</span>
           <span className="d-spacer" />
           <Btn kind="ghost" onClick={onClose}>
             Fermer
