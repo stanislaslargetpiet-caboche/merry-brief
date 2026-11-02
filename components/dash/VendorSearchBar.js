@@ -27,6 +27,7 @@ export default function VendorSearchBar() {
   const [manual, setManual] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
+  const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « Utiliser »
   const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(null); // null | { phase: "search"|"confirm", name, category, area, match }
@@ -86,6 +87,7 @@ export default function VendorSearchBar() {
     const name = form.name.trim();
     if (!name || busy) return;
     setRefine({ searching: true, results: [], attempted: false });
+    setAppliedMatch(null);
     const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
     const r = await searchGoogleVendor(dash.mode, refineArea ? `${name} ${refineArea}` : name, token);
     setRefine({ searching: false, results: r, attempted: true });
@@ -119,6 +121,7 @@ export default function VendorSearchBar() {
     setResults([]);
     setGoogle({ searching: false, done: false, results: [] });
     setRefine({ searching: false, results: [], attempted: false });
+    setAppliedMatch(null);
     setCities({ open: false, searching: false, results: [] });
   }
 
@@ -138,11 +141,15 @@ export default function VendorSearchBar() {
   function pickGoogle(g) {
     setForm({ name: g.name, category: "", area: g.city || "", phone: g.phone || "", website: g.website || "", lat: g.lat, lng: g.lng });
     setManual(true);
+    setAppliedMatch(g);
   }
 
   function applyRefine(g) {
     setForm((f) => ({ ...f, name: g.name, area: g.city || f.area, phone: g.phone || f.phone, website: g.website || f.website, lat: g.lat, lng: g.lng }));
-    setRefine({ searching: false, results: [] });
+    setRefine({ searching: false, results: [], attempted: false });
+    // Pour que la confirmation de création reprenne exactement ce résultat au lieu de relancer
+    // une recherche à l'aveugle, qui pourrait tomber sur un autre établissement.
+    setAppliedMatch(g);
   }
 
   function submitManual(e) {
@@ -153,12 +160,14 @@ export default function VendorSearchBar() {
   }
 
   // Avant de créer la fiche : on recherche sur Google (animation pendant ce temps, même sans
-  // résultat à montrer) puis on demande confirmation, plutôt que de créer directement.
+  // résultat à montrer) puis on demande confirmation, plutôt que de créer directement. Si le couple
+  // a déjà choisi un résultat Google (« Utiliser »), on le reprend tel quel : relancer une recherche
+  // à l'aveugle avec le même nom + ville peut tomber sur un tout autre établissement.
   async function runCreate(name, category, area) {
     setCreating({ phase: "search", name, category, area, match: null });
     const start = Date.now();
-    let match = null;
-    if (dash.mode === "live" && supabase) {
+    let match = appliedMatch;
+    if (!match && dash.mode === "live" && supabase) {
       const token = (await supabase.auth.getSession()).data?.session?.access_token || null;
       const results = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, token);
       match = results[0] || null;
@@ -289,6 +298,7 @@ export default function VendorSearchBar() {
                   onChange={(e) => {
                     setForm((f) => ({ ...f, name: e.target.value }));
                     setRefine({ searching: false, results: [], attempted: false });
+                    setAppliedMatch(null);
                   }}
                   placeholder="Maison Lemoine"
                   maxLength={120}
@@ -327,6 +337,7 @@ export default function VendorSearchBar() {
                       onChange={(e) => {
                         setForm((f) => ({ ...f, area: e.target.value }));
                         setRefine({ searching: false, results: [], attempted: false });
+                        setAppliedMatch(null);
                       }}
                       onFocus={() => setCities((c) => ({ ...c, open: c.results.length > 0 }))}
                       onBlur={() => setTimeout(() => setCities((c) => ({ ...c, open: false })), 150)}
@@ -342,6 +353,7 @@ export default function VendorSearchBar() {
                             setForm((f) => ({ ...f, area: c.label }));
                             setCities((s) => ({ ...s, open: false }));
                             setRefine({ searching: false, results: [], attempted: false });
+                            setAppliedMatch(null);
                             if (c.placeId) {
                               const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
                               const postal = await cityPostalCode(dash.mode, c.placeId, token);

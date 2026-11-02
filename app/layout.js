@@ -22,6 +22,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <head>
+        {/* Sans ça, Alan Sans n'est découverte qu'après le CSS : un texte en police de repli
+            s'affiche puis « saute » visiblement au chargement de la police. */}
+        <link rel="preload" href="/fonts/alan-sans.ttf" as="font" type="font/ttf" crossOrigin="" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
