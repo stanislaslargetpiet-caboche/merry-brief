@@ -1,8 +1,10 @@
-// Source une photo de couverture via Google Places (New) pour les lieux actifs sans aucune photo
-// (photos_count = 0) — le scraping du site n'a rien trouvé pour eux. Une seule photo par lieu pour l'instant.
+// Source une photo de couverture via Google Places (New) pour les prestataires actifs, toutes catégories,
+// sans aucune photo (photos_count = 0) — le scraping du site n'a rien trouvé pour eux. Le libellé du métier
+// est ajouté à la recherche (ex. « Nom Ville Photographe ») pour limiter les faux positifs sur les noms
+// courants, fréquents chez les indépendants (DJ, vidéaste, wedding planner). Une seule photo pour l'instant.
 // Lancer : GOOGLE_PLACES_API_KEY=... node scripts/catalog/13-photos-google-places.mjs
 // Nécessite "Places API (New)" activée et facturée sur le projet Google Cloud de la clé.
-// Relançable sans risque : ne reprend que les lieux dont photos_count est encore 0.
+// Relançable sans risque : ne reprend que les prestataires dont photos_count est encore 0.
 // Après ce script, relancer scripts/catalog/12-photos-qualite.mjs pour classer les nouvelles photos
 // (la position en couverture reste la seule de toute façon, mais ça les marque comme vraies photos).
 
@@ -34,9 +36,9 @@ async function withRetry(call) {
   return res;
 }
 
-// Cherche le lieu sur Google Places et renvoie sa meilleure photo (nom de ressource + dimensions), ou null.
-async function findCoverPhoto(vendor) {
-  const query = [vendor.name, vendor.city, vendor.postal_code].filter(Boolean).join(" ");
+// Cherche le prestataire sur Google Places et renvoie sa meilleure photo (nom de ressource), ou une erreur.
+async function findCoverPhoto(vendor, categoryLabel) {
+  const query = [vendor.name, vendor.city, vendor.postal_code, categoryLabel].filter(Boolean).join(" ");
   const res = await withRetry(() =>
     fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
@@ -65,8 +67,8 @@ async function downloadPhoto(photoName) {
   return { bytes: Buffer.from(await res.arrayBuffer()), contentType, ext };
 }
 
-async function processVendor(vendor) {
-  const found = await findCoverPhoto(vendor);
+async function processVendor(vendor, categoryLabel) {
+  const found = await findCoverPhoto(vendor, categoryLabel);
   if (found.error) return { ok: false, reason: found.error };
   const dl = await downloadPhoto(found.name);
   if (dl.error) return { ok: false, reason: dl.error };
@@ -85,17 +87,16 @@ async function processVendor(vendor) {
 }
 
 // Les échecs (rien trouvé côté Google) laissent photos_count à 0 : une relecture filtrée sur ce critère
-// les reprendrait à l'infini dans la même exécution. On charge donc une fois tous les lieux à traiter,
-// en page, puis on les traite en mémoire ; relancer le script plus tard reprend naturellement les échecs.
+// les reprendrait à l'infini dans la même exécution. On charge donc une fois tous les prestataires à
+// traiter, en page, puis on les traite en mémoire ; relancer le script plus tard reprend les échecs.
 async function loadAll() {
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .schema("catalog")
       .from("vendors")
-      .select("id, name, city, postal_code")
+      .select("id, name, city, postal_code, primary_category")
       .eq("status", "active")
-      .eq("primary_category", "lieu")
       .eq("photos_count", 0)
       .range(from, from + 999);
     if (error) {
@@ -109,16 +110,25 @@ async function loadAll() {
   return rows;
 }
 
+async function loadCategoryLabels() {
+  const { data, error } = await supabase.schema("catalog").from("categories").select("slug, label");
+  if (error) {
+    console.error("[photos-google] lecture catégories :", error.message);
+    process.exit(1);
+  }
+  return new Map((data || []).map((c) => [c.slug, c.label]));
+}
+
 async function main() {
-  const rows = await loadAll();
-  console.log(`[photos-google] ${rows.length} lieux sans photo à traiter.`);
+  const [rows, labelOf] = await Promise.all([loadAll(), loadCategoryLabels()]);
+  console.log(`[photos-google] ${rows.length} prestataires sans photo à traiter.`);
   let totalOk = 0;
   let totalFail = 0;
   let i = 0;
   async function worker() {
     while (i < rows.length) {
       const vendor = rows[i++];
-      const result = await processVendor(vendor);
+      const result = await processVendor(vendor, labelOf.get(vendor.primary_category));
       if (result.ok) {
         totalOk++;
         console.log(`[photos-google] (${i}/${rows.length}) ${vendor.name} ← "${result.matched}"`);
@@ -129,7 +139,7 @@ async function main() {
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  console.log(`[photos-google] terminé : ${totalOk} photos ajoutées, ${totalFail} lieux sans résultat exploitable.`);
+  console.log(`[photos-google] terminé : ${totalOk} photos ajoutées, ${totalFail} prestataires sans résultat exploitable.`);
 }
 
 main();
