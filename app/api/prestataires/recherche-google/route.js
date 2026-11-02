@@ -9,11 +9,32 @@ import { createClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 export const maxDuration = 20;
 
-const FIELD_MASK = "places.id,places.displayName,places.formattedAddress,places.addressComponents,places.internationalPhoneNumber,places.websiteUri,places.location";
+const FIELD_MASK = "places.id,places.displayName,places.formattedAddress,places.addressComponents,places.internationalPhoneNumber,places.websiteUri,places.location,places.types,places.primaryType";
 
 function cityOf(components) {
   const byType = (t) => (components || []).find((c) => (c.types || []).includes(t))?.longText;
   return byType("locality") || byType("postal_town") || byType("administrative_area_level_2") || null;
+}
+
+// Types Google (Places API (New)) → catégorie du catalogue Merry, pour pré-remplir le formulaire.
+// Une suggestion seulement : le couple peut toujours la changer.
+const TYPE_TO_CATEGORY = [
+  [["wedding_venue", "event_venue", "banquet_hall", "castle", "historical_place", "farmstay", "winery", "resort_hotel", "bed_and_breakfast", "hotel", "guest_house", "cottage"], "lieu"],
+  [["catering_service", "caterer", "restaurant", "meal_delivery"], "traiteur"],
+  [["florist"], "fleuriste"],
+  [["photographer", "photography_studio"], "photographe"],
+  [["bakery", "pastry_shop", "confectionery", "cake_shop", "dessert_shop"], "patisserie"],
+  [["beauty_salon", "hair_salon", "hair_care", "makeup_artist", "nail_salon", "spa", "barber_shop"], "beaute"],
+  [["bridal_shop", "wedding_store", "clothing_store", "womens_clothing_store", "mens_clothing_store"], "robe"],
+  [["car_rental", "limousine_service", "taxi_service", "bus_company", "transportation_service"], "transport"],
+  [["dj", "night_club"], "dj"],
+  [["event_planner", "wedding_planner"], "wedding_planner"],
+];
+
+function categoryOf(p) {
+  const types = [p.primaryType, ...(p.types || [])].filter(Boolean);
+  for (const t of types) for (const [list, cat] of TYPE_TO_CATEGORY) if (list.includes(t)) return cat;
+  return null;
 }
 
 // En-têtes HTTP : ASCII seulement. Si la clé a été copiée avec un caractère invisible ou une puce
@@ -62,6 +83,7 @@ export async function POST(req) {
     website: p.websiteUri || null,
     lat: p.location?.latitude ?? null,
     lng: p.location?.longitude ?? null,
+    category: categoryOf(p),
   }));
   return Response.json({ results });
 }

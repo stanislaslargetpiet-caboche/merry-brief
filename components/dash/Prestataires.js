@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadCatalogVendor, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
@@ -651,12 +651,13 @@ export function Layer({ kind, label, labelledBy, onClose, children }) {
     const onKey = (e) => e.key === "Escape" && closeRef.current();
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
-    ref.current?.querySelector("button")?.focus();
+    // Sans faire défiler la page, et sans voler le focus d'un champ déjà en autoFocus
+    if (!ref.current?.contains(document.activeElement)) ref.current?.querySelector("button")?.focus({ preventScroll: true });
     document.body.classList.add("d-noscroll");
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.classList.remove("d-noscroll");
-      prev?.focus?.();
+      prev?.focus?.({ preventScroll: true });
     };
   }, [host]);
   if (!host) return null;
@@ -1038,14 +1039,47 @@ function factsOf(v) {
   return out;
 }
 
-export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, onMap }) {
+// Un prestataire ouvert depuis la sélection n'a que son résumé (vendor_picks.data) : on recharge sa
+// fiche du catalogue (photos, description, prix…) ; le résumé s'affiche en attendant.
+function useFullVendor(base) {
   const dash = useDash();
+  const [full, setFull] = useState(null);
+  const catalogId = base.catalogId ? null : /^catalog:(.+)$/.exec(base.id || "")?.[1] || null;
+  useEffect(() => {
+    setFull(null);
+    if (!catalogId) return undefined;
+    let live = true;
+    loadCatalogVendor(dash.mode, catalogId).then((r) => live && setFull(r));
+    return () => {
+      live = false;
+    };
+  }, [catalogId, dash.mode]);
+  if (!full) return base;
+  const out = { ...base };
+  for (const [k, val] of Object.entries(full)) if (val !== undefined && val !== null && val !== "") out[k] = val;
+  if (!full.photos?.some(Boolean)) out.photos = base.photos;
+  out.id = base.id;
+  return out;
+}
+
+function telHref(phone) {
+  return `tel:${String(phone).replace(/[^\d+]/g, "")}`;
+}
+
+function webHref(site) {
+  return /^https?:\/\//i.test(site) ? site : `https://${site}`;
+}
+
+export function FichePanel({ v: base, index, total, list, onClose, onRequest, onMes, onMap, notice }) {
+  const dash = useDash();
+  const v = useFullVendor(base);
   const { isPicked, toggle } = usePicks();
   const picked = isPicked(v);
   const c = catOf(v.category);
-  const photos = v.photos?.length ? v.photos : [null];
+  const real = (v.photos || []).filter(Boolean);
+  const photos = real.length ? real : [null];
   const [i, setI] = useState(0);
-  const n = Math.max(photos.length, 5);
+  const n = real.length ? Math.max(real.length, 5) : 1;
   const cur = photos[i] || null;
   // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
   const vf = venueFacts(v, dash.data, { all: true });
@@ -1071,19 +1105,32 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
         <CloseBtn onClose={onClose} label="Fermer la fiche" />
       </div>
       <div className="d-pr-panel-body d-pr-fiche">
-        <div className="d-pr-gallery">
-          <div role="img" aria-label={`${v.name}, photo ${i + 1} sur ${n}`} className="d-pr-gallery-main" style={{ backgroundImage: cur ? `url("${cur}")` : undefined }}>
-            {cur ? null : <span className="d-pr-gallery-empty">Photo à venir</span>}
+        {notice ? (
+          <div className="d-pr-fiche-notice" role="status">
+            <Icon name="check" size={15} sw={2.4} />
+            {notice}
+          </div>
+        ) : null}
+        <div className={`d-pr-gallery${real.length ? "" : " is-empty"}`}>
+          <div role="img" aria-label={real.length ? `${v.name}, photo ${i + 1} sur ${n}` : `${v.name}, pas encore de photo`} className="d-pr-gallery-main" style={{ backgroundImage: cur ? `url("${cur}")` : undefined }}>
+            {cur ? null : <span className="d-pr-gallery-empty">{real.length ? "Photo à venir" : initialsOf(v.name)}</span>}
+            {real.length > 1 ? (
+            <>
             <button type="button" className="d-pr-garrow is-prev d-desk-only" aria-label="Photo précédente" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)}>
               <Icon name="prev" size={16} sw={2.2} stroke="#1c1c1a" />
             </button>
             <button type="button" className="d-pr-garrow is-next d-desk-only" aria-label="Photo suivante" onClick={() => setI((x) => (x + 1) % photos.length)}>
               <Icon name="next" size={16} sw={2.2} stroke="#1c1c1a" />
             </button>
-            <span className="d-pr-gcount">
-              {i + 1} / {n}
-            </span>
+            </>
+            ) : null}
+            {real.length ? (
+              <span className="d-pr-gcount">
+                {i + 1} / {n}
+              </span>
+            ) : null}
           </div>
+          {real.length ? (
           <div className="d-pr-gthumbs">
             {Array.from({ length: n - 1 }, (_, k) => {
               const ph = photos[k + 1] || null;
@@ -1094,20 +1141,46 @@ export function FichePanel({ v, index, total, list, onClose, onRequest, onMes, o
               );
             })}
           </div>
+          ) : null}
         </div>
         <div className="d-pr-fiche-title">
           <div>
             {v.best ? <BestMatch /> : null}
             <h1 id="fiche-titre">{v.name}</h1>
-            {v.place || v.area ? (
+            {v.place || v.area || v.category !== "lieu" ? (
               <div className="d-pr-fiche-place d-pr-area is-hl">
-                <span>{v.place || v.area}</span>
+                <span>{v.place || [v.category !== "lieu" ? c.label : null, v.area].filter(Boolean).join(" · ")}</span>
               </div>
             ) : null}
           </div>
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
         <Specs v={v} />
+        {v.phone || v.website || v.email ? (
+          <section className="d-pr-fsec">
+            <h2>Coordonnées</h2>
+            <div className="d-pr-contacts">
+              {v.phone ? (
+                <a href={telHref(v.phone)}>
+                  <Icon name="phone" size={15} sw={2} />
+                  {v.phone}
+                </a>
+              ) : null}
+              {v.email ? (
+                <a href={`mailto:${v.email}`}>
+                  <Icon name="mail" size={15} sw={2} />
+                  {v.email}
+                </a>
+              ) : null}
+              {v.website ? (
+                <a href={webHref(v.website)} target="_blank" rel="noopener noreferrer">
+                  <Icon name="globe" size={15} sw={2} />
+                  {String(v.website).replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "")}
+                </a>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         {facts.length ? (
           // Le détail des faits, replié : la liste « Pourquoi ce lieu » dit déjà l'essentiel
           <details className="d-pr-fdetails">
@@ -1536,35 +1609,26 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
   );
 }
 
-// Liens d'une ligne de Mes prestataires et de Vos demandes de devis, selon où en est la demande
+// Liens d'une ligne de Mes prestataires et de Vos demandes de devis, selon où en est la demande.
+// La fiche reste toujours accessible ; la demande, la réponse ou le devis s'y ajoutent une fois envoyée.
 export function RowActions({ p, status, onFiche, onCompare }) {
-  const fiche = p.vendor_id ? `/dashboard/budget/prestataires/${p.vendor_id}` : null;
-  if (status.key === "todo")
-    return (
-      <button type="button" className="d-pr-act" onClick={onFiche}>
-        Voir la fiche
-      </button>
-    );
-  if (status.key === "envoyee")
-    return fiche ? (
-      <Link href={fiche} className="d-pr-act is-muted">
-        Voir la demande
-      </Link>
-    ) : null;
-  if (status.key === "reponse")
-    return fiche ? (
-      <Link href={fiche} className="d-pr-act">
-        Lire la réponse
-      </Link>
-    ) : null;
+  const link = p.vendor_id ? `/dashboard/budget/prestataires/${p.vendor_id}` : null;
+  const ficheBtn = onFiche ? (
+    <button type="button" className={`d-pr-act${status.key === "todo" ? "" : " is-muted"}`} onClick={onFiche}>
+      Voir la fiche
+    </button>
+  ) : null;
+  if (status.key === "todo") return ficheBtn;
+  const label = { envoyee: "Voir la demande", reponse: "Lire la réponse", devis: "Voir le devis" }[status.key];
   return (
     <>
-      {fiche ? (
-        <Link href={fiche} className="d-pr-act">
-          Voir le devis
+      {ficheBtn}
+      {link && label ? (
+        <Link href={link} className={`d-pr-act${status.key === "envoyee" ? " is-muted" : ""}`}>
+          {label}
         </Link>
       ) : null}
-      {onCompare ? (
+      {status.key === "devis" && onCompare ? (
         <button type="button" className="d-pr-sage" onClick={onCompare}>
           Comparer les devis
         </button>

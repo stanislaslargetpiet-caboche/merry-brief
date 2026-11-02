@@ -15413,6 +15413,149 @@ body.d-noscroll {
   }
 }
 
+/* Ajouter un prestataire : résultats stables (les précédents restent, atténués, pendant la recherche) */
+.d-pr-search-field .d-dots {
+  flex: none;
+}
+
+.d-pr-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity 0.15s ease;
+}
+
+.d-pr-search-results.is-stale {
+  opacity: 0.55;
+}
+
+.d-pr-search-sec {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--d-muted);
+}
+
+.d-pr-search-manual {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--d-line);
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-pr-addvendor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-pr-addvendor .d-pr-panel-body {
+  gap: 18px;
+}
+
+.d-pr-addvendor-google {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.d-pr-addvendor-google .d-pr-to {
+  align-self: stretch;
+}
+
+/* Suggestions de ville par-dessus le formulaire : il ne se décale plus quand elles apparaissent */
+.d-pr-townfield.is-float {
+  position: relative;
+}
+
+.d-pr-townlist.is-float {
+  position: absolute;
+  z-index: 4;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.d-pr-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.d-pr-contacts a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  font-size: 14.5px;
+  color: var(--d-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.d-pr-contacts a svg {
+  flex: none;
+  color: var(--d-muted);
+}
+
+.d-pr-line-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-pr-line-open.is-name {
+  font-weight: 600;
+}
+
+.d-pr-line-open.is-name:hover {
+  text-decoration: underline;
+}
+
+/* Fiche sans photo (prestataire ajouté à la main) : un bandeau à ses initiales, pas cinq cases vides */
+.d-pr-gallery.is-empty .d-pr-gallery-main {
+  height: 140px;
+}
+
+.d-pr-gallery.is-empty .d-pr-gallery-empty {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.d-pr-fiche-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--d-ok-bg, #eef6e8);
+  color: var(--d-ok-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* Budget : les paiements d'un poste (marquer payé, modifier, supprimer) */
 .d-pay-summary {
   display: grid;

@@ -134,10 +134,14 @@ function MesRow({ p, status, onCheck, onRemove, onFiche }) {
         ) : (
           <span aria-hidden="true" className="d-pr-check-space" />
         )}
-        <Thumb v={v} size={56} className="d-pr-line-thumb" />
+        <button type="button" className="d-pr-line-open" onClick={onFiche} aria-label={`Voir la fiche de ${v.name}`}>
+          <Thumb v={v} size={56} className="d-pr-line-thumb" />
+        </button>
         <div className="d-pr-line-main">
           <div className="d-pr-line-name">
-            <span>{v.name}</span>
+            <button type="button" className="d-pr-line-open is-name" onClick={onFiche}>
+              {v.name}
+            </button>
             <span className="d-desk-only-inline">
               <StatusChip k={status.key} />
             </span>
