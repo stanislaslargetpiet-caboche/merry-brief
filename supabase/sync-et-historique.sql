@@ -28,6 +28,19 @@ exception when undefined_object then
   raise notice 'publication supabase_realtime absente : activez Realtime dans le projet';
 end $$;
 
+-- Ajout du 2 novembre 2026 : les suppressions ne voyagent qu'avec la ligne entière. Sans « replica identity
+-- full », l'événement DELETE ne porte que la clé primaire, le filtre wedding_id du canal ne le reconnaît pas,
+-- et l'invité retiré par un organisateur reste affiché chez les autres jusqu'au rechargement.
+do $$
+declare t text;
+begin
+  foreach t in array array['guests', 'guest_responses', 'guest_groups', 'events', 'guest_fields', 'guest_response_log'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('alter table public.%I replica identity full', t);
+    end if;
+  end loop;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- 2. Historique des réponses
 -- ---------------------------------------------------------------------------

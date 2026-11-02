@@ -43,13 +43,25 @@ export default function FormulaireInvites() {
   const latest = useRef(form);
   const fileInput = useRef(null);
 
+  const dirty = useRef(false);
+
   const save = useCallback(
     async (next, retry = true) => {
       setStatus("saving");
+      dirty.current = false;
       const res = await dash.saveForm(next);
       if (res.ok) {
-        setStatus("saved");
+        setStatus(dirty.current ? "pending" : "saved");
         return true;
+      }
+      // Un autre organisateur (ou un autre onglet) a enregistré entre-temps : on reprend sa version
+      if (res.conflict) {
+        const theirs = withPresets(res.row);
+        latest.current = theirs;
+        setForm(theirs);
+        setStatus("saved");
+        dash.setToast({ kind: "error", text: "Le formulaire a été modifié ailleurs entre-temps : cette page montre la dernière version enregistrée." });
+        return false;
       }
       // Adresse déjà prise par un autre mariage : on en tire une nouvelle
       if (retry && res.error?.code === "23505") {
@@ -67,17 +79,44 @@ export default function FormulaireInvites() {
   // Le formulaire existe en base dès la première visite, pour que le lien marche tout de suite
   useEffect(() => {
     if (!data.form && data.formSetup !== false) save(latest.current);
-    return () => clearTimeout(timer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Une modification encore en attente part tout de suite quand on quitte la page ou l'onglet
+  // (flush ne change jamais : l'effet qui l'installe ne se rejoue pas à chaque rendu, sinon son nettoyage
+  // enverrait la modification à chaque frappe, sans le délai)
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const flush = useCallback(() => {
+    if (!timer.current) return;
+    clearTimeout(timer.current);
+    timer.current = null;
+    if (dirty.current) saveRef.current(latest.current);
+  }, []);
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", hide);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
 
   const change = (patch) => {
     const next = { ...latest.current, ...(typeof patch === "function" ? patch(latest.current) : patch) };
     latest.current = next;
     setForm(next);
     setStatus("pending");
+    dirty.current = true;
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => save(latest.current), 700);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      save(latest.current);
+    }, 700);
   };
 
   if (dash.mode === "live" && data.formSetup === false) {

@@ -1500,8 +1500,16 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       return;
     }
     setBusy(true);
-    await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {}, sign });
-    setBusy(false);
+    let ok = false;
+    try {
+      ok = await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {}, sign });
+    } finally {
+      setBusy(false);
+    }
+    if (!ok) {
+      dash.setToast({ kind: "error", text: "La demande n'a pas pu être enregistrée en entier. Vérifiez votre connexion et réessayez : le brouillon est gardé." });
+      return;
+    }
     writeDraft(weddingId, null);
     dash.setToast({ kind: "ok", text: `${list.length > 1 ? `${list.length} demandes enregistrées` : "Demande enregistrée"}, sur la fiche de chaque prestataire dans Budget.` });
     onSent?.();
