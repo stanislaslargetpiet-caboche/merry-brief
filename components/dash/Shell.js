@@ -93,6 +93,11 @@ function Frame({ children }) {
     if (dash.status === "mustreset") window.location.replace("/connexion?reset=1");
   }, [dash.status, pathname, router]);
 
+  // Les autres organisateurs voient sur quelle page on est
+  useEffect(() => {
+    dash.trackPage?.(pathname);
+  }, [pathname, dash.trackPage]);
+
   useEffect(() => {
     if (!dash.toast) return undefined;
     // Un toast avec « Annuler » reste un peu plus longtemps, le temps de se raviser
