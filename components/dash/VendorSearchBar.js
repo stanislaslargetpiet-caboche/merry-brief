@@ -8,9 +8,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
+import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, cityPostalCode, customVendorId, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
-import { Thumb, usePicks } from "./Prestataires";
+import { CloseBtn, Layer, Thumb, usePicks } from "./Prestataires";
 import { Btn, BusyDots } from "./ui";
 
 const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null };
@@ -29,6 +29,7 @@ export default function VendorSearchBar() {
   const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
   const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(null); // null | { phase: "search"|"confirm", name, category, area, match }
   const searched = q.trim().length >= 2;
   const noMatch = searched && !searching && !results.length;
 
@@ -151,11 +152,39 @@ export default function VendorSearchBar() {
     setRefine({ searching: false, results: [] });
   }
 
-  async function submitManual(e) {
+  function submitManual(e) {
     e.preventDefault();
     const name = form.name.trim();
     if (!name || !form.category || busy) return;
-    const area = form.area.trim();
+    runCreate(name, form.category, form.area.trim());
+  }
+
+  // Avant de créer la fiche : on recherche sur Google (animation pendant ce temps, même sans
+  // résultat à montrer) puis on demande confirmation, plutôt que de créer directement.
+  async function runCreate(name, category, area) {
+    setCreating({ phase: "search", name, category, area, match: null });
+    const start = Date.now();
+    let match = null;
+    if (dash.mode === "live" && supabase) {
+      const token = (await supabase.auth.getSession()).data?.session?.access_token || null;
+      const results = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, token);
+      match = results[0] || null;
+    }
+    const elapsed = Date.now() - start;
+    const minDelay = 1700;
+    if (elapsed < minDelay) await new Promise((r) => setTimeout(r, minDelay - elapsed));
+    setCreating({ phase: "confirm", name, category, area, match });
+  }
+
+  function cancelCreate() {
+    if (busy) return;
+    setCreating(null);
+  }
+
+  async function confirmCreate() {
+    if (!creating || creating.phase !== "confirm" || busy) return;
+    const { name, category, area, match } = creating;
+    const city = match?.city || area;
     setBusy(true);
     try {
       let v;
@@ -163,24 +192,26 @@ export default function VendorSearchBar() {
         const { data: newId, error } = await supabase.rpc("merry_add_vendor_manual", {
           w: dash.data.wedding.id,
           vname: name,
-          category: form.category,
-          city: area || null,
-          phone: form.phone || null,
-          website: form.website || null,
-          vlat: form.lat,
-          vlng: form.lng,
+          category,
+          city: city || null,
+          phone: match?.phone || form.phone || null,
+          website: match?.website || form.website || null,
+          vlat: match?.lat ?? form.lat,
+          vlng: match?.lng ?? form.lng,
         });
         if (error) throw error;
-        v = { id: `catalog:${newId}`, category: catFromCatalog(form.category), name, area: area || undefined };
+        v = { id: `catalog:${newId}`, category: catFromCatalog(category), name, area: city || undefined };
       } else {
-        v = { id: customVendorId(), category: catFromCatalog(form.category), name, area: area || undefined };
+        v = { id: customVendorId(), category: catFromCatalog(category), name, area: city || undefined };
       }
       await add(v);
       dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
+      setCreating(null);
       reset();
     } catch (e) {
       console.error("[merry] merry_add_vendor_manual", e);
       dash.setToast({ kind: "error", text: `Ce prestataire n'a pas pu être créé${e?.message ? ` : ${e.message}` : " : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)."}` });
+      setCreating(null);
     } finally {
       setBusy(false);
     }
@@ -298,15 +329,23 @@ export default function VendorSearchBar() {
                     <ul className="d-pr-townlist">
                       {cities.results.map((c) => (
                         <li
-                          key={c}
-                          onMouseDown={(e) => {
+                          key={c.placeId || c.label}
+                          onMouseDown={async (e) => {
                             e.preventDefault();
-                            setForm((f) => ({ ...f, area: c }));
+                            setForm((f) => ({ ...f, area: c.label }));
                             setCities((s) => ({ ...s, open: false }));
+                            if (c.placeId) {
+                              const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
+                              const postal = await cityPostalCode(dash.mode, c.placeId, token);
+                              if (postal) setForm((f) => (f.area === c.label ? { ...f, area: `${c.label} ${postal}` } : f));
+                            }
                           }}
                         >
                           <Icon name="map" size={16} sw={1.8} />
-                          <span>{c}</span>
+                          <span>
+                            <strong>{c.label}</strong>
+                            {c.secondary ? <small>{c.secondary}</small> : null}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -351,6 +390,88 @@ export default function VendorSearchBar() {
             </form>
           )}
         </div>
+      ) : null}
+      {creating ? (
+        <Layer kind="dialog" labelledBy="creer-titre" onClose={cancelCreate}>
+          <div className="d-pr-panel-head is-dialog">
+            <h2 id="creer-titre">Création de la fiche</h2>
+            <CloseBtn onClose={cancelCreate} />
+          </div>
+          <div className="d-pr-panel-body d-pr-create">
+            {creating.phase === "search" ? (
+              <>
+                <h3>
+                  On cherche « {creating.name} »{creating.area ? ` à ${creating.area}` : ""}…
+                </h3>
+                <div className="d-create-chips" aria-hidden="true">
+                  <span className="d-create-chip" style={{ "--i": 0, "--x": "-130px", "--y": "-60px", "--r": "-6deg" }}>
+                    Recherche internet
+                  </span>
+                  <span className="d-create-chip" style={{ "--i": 1, "--x": "125px", "--y": "-65px", "--r": "5deg" }}>
+                    Photos
+                  </span>
+                  <span className="d-create-chip" style={{ "--i": 2, "--x": "-135px", "--y": "55px", "--r": "4deg" }}>
+                    Carte
+                  </span>
+                  <span className="d-create-chip" style={{ "--i": 3, "--x": "120px", "--y": "60px", "--r": "-5deg" }}>
+                    Téléphone
+                  </span>
+                  <div className="d-create-core" />
+                </div>
+                <div className="d-create-lines">
+                  <p className="d-create-ln is-0">On cherche sur internet…</p>
+                  <p className="d-create-ln is-1">On récupère ses photos et sa position…</p>
+                  <p className="d-create-ln is-2">On repère son téléphone ou son e-mail…</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Est-ce bien ce prestataire&nbsp;?</h3>
+                {creating.match ? (
+                  <div className="d-create-card">
+                    <div className="d-create-card-head">
+                      <Thumb v={{ name: creating.match.name }} size={52} />
+                      <div>
+                        <span className="d-create-card-name">{creating.match.name}</span>
+                        <span className="d-create-card-addr">{creating.match.address || creating.area || ""}</span>
+                      </div>
+                    </div>
+                    {creating.match.phone || creating.match.website ? (
+                      <div className="d-create-card-contact">
+                        {creating.match.phone ? (
+                          <span>
+                            <Icon name="phone" size={15} sw={2} />
+                            {creating.match.phone}
+                          </span>
+                        ) : null}
+                        {creating.match.website ? (
+                          <span>
+                            <Icon name="globe" size={15} sw={2} />
+                            {creating.match.website}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <span className="d-small-muted">
+                    Aucune fiche trouvée sur Google pour « {creating.name} »{creating.area ? ` à ${creating.area}` : ""}. On peut quand même créer la fiche telle quelle.
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          {creating.phase === "confirm" ? (
+            <div className="d-pr-panel-foot is-devis">
+              <Btn kind="ghost" onClick={cancelCreate} disabled={busy}>
+                Non, ce n'est pas ça
+              </Btn>
+              <Btn onClick={confirmCreate} disabled={busy}>
+                {creating.match ? "Oui, c'est elle" : "Créer quand même"}
+              </Btn>
+            </div>
+          ) : null}
+        </Layer>
       ) : null}
     </div>
   );
