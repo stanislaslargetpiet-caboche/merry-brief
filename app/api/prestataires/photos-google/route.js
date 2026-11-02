@@ -36,7 +36,10 @@ export async function POST(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key || !url || !anon || !service) return Response.json({ error: "indisponible", photos: [] }, { status: 501 });
+  if (!key || !url || !anon || !service) {
+    const missing = [!key && "GOOGLE_PLACES_API_KEY", !service && "SUPABASE_SERVICE_ROLE_KEY"].filter(Boolean).join(", ");
+    return Response.json({ error: "indisponible", reason: `clé manquante côté serveur : ${missing || "Supabase"}`, photos: [] }, { status: 501 });
+  }
 
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return Response.json({ error: "auth" }, { status: 401 });
@@ -68,12 +71,13 @@ export async function POST(req) {
     headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "photos" },
   });
   if (!res.ok) {
-    console.error("[merry] photos google prestataire", res.status, await res.text().catch(() => ""));
-    return Response.json({ photos: [] });
+    const text = await res.text().catch(() => "");
+    console.error("[merry] photos google prestataire", res.status, text);
+    return Response.json({ photos: [], reason: `Google ${res.status} : ${text.slice(0, 200)}` });
   }
   const place = await res.json();
   const wanted = (place.photos || []).slice(0, MAX_PHOTOS);
-  if (!wanted.length) return Response.json({ photos: [] });
+  if (!wanted.length) return Response.json({ photos: [], reason: "aucune photo sur Google pour ce lieu" });
 
   const files = await Promise.all(wanted.map((p) => download(p.name, key).catch(() => null)));
   const rows = [];
@@ -88,12 +92,16 @@ export async function POST(req) {
     }
     rows.push({ vendor_id: vendorId, position: rows.length, storage_path: path, width: wanted[i].widthPx || null, height: wanted[i].heightPx || null });
   }
-  if (!rows.length) return Response.json({ photos: [] });
+  if (!rows.length) return Response.json({ photos: [], reason: "téléchargement ou stockage impossible" });
 
-  const { error: insError } = await admin.schema("catalog").from("vendor_photos").insert(rows);
+  let { error: insError } = await admin.schema("catalog").from("vendor_photos").insert(rows);
+  // Colonnes width/height absentes (supabase/qualite-photos.sql pas encore passé) : on écrit sans
+  if (insError && /column|42703/i.test(`${insError.code} ${insError.message}`)) {
+    ({ error: insError } = await admin.schema("catalog").from("vendor_photos").insert(rows.map(({ vendor_id, position, storage_path }) => ({ vendor_id, position, storage_path }))));
+  }
   if (insError) {
     console.error("[merry] photos google écriture", insError.message);
-    return Response.json({ photos: [] });
+    return Response.json({ photos: [], reason: `écriture catalogue : ${insError.message}` });
   }
   await admin.schema("catalog").from("vendors").update({ photos_count: rows.length }).eq("id", vendorId);
   return Response.json({ photos: await signed(admin, rows.map((r) => r.storage_path)) });

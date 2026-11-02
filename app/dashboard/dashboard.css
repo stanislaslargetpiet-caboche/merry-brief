@@ -15814,3 +15814,83 @@ body.d-noscroll {
   min-height: 84px;
   resize: vertical;
 }
+
+/* Pastille de foyer, sous le nom */
+.d-house {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #efeeea;
+  color: #4a4944;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-relance-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Fiche : modifier les coordonnées (nom, ville, téléphone, e-mail, site) */
+.d-pr-fsec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.d-pr-fsec-head .d-pr-linkbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.d-pr-edit {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--d-panel);
+}
+
+.d-pr-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Nouvelles réponses reçues par le formulaire depuis la dernière visite */
+.d-fresh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--d-limetint, #f4f8d6);
+  font-size: 13.5px;
+}
+
+.d-fresh > span {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+/* Les autres organisateurs sur la liste en ce moment */
+.d-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-presence .d-avatar + .d-avatar {
+  margin-left: -8px;
+}

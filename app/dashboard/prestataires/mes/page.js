@@ -80,9 +80,8 @@ export default function Mes() {
         <div role="region" aria-label="Prochaine demande" className="d-pr-nextbar">
           <div className="d-pr-nextbar-text">
             <strong>
-              {next.length} prestataire{next.length > 1 ? "s" : ""} coché{next.length > 1 ? "s" : ""}
+              {next.length} prestataire{next.length > 1 ? "s" : ""} sélectionné{next.length > 1 ? "s" : ""}
             </strong>
-            <span>{next.map((p) => p.data?.name).join(", ")}</span>
           </div>
           <button type="button" className="d-btn d-btn-primary d-pr-big" onClick={() => setDevis(next)}>
             Demander les devis ({next.length})

@@ -1070,11 +1070,58 @@ function webHref(site) {
   return /^https?:\/\//i.test(site) ? site : `https://${site}`;
 }
 
+const EDITABLE = ["name", "area", "phone", "email", "website"];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Coordonnées corrigées par le couple (vendor_picks.data, clés listées dans data.edited) : elles
+// priment sur la fiche du catalogue, pour la fiche comme pour les demandes de devis.
+function withEdits(v, pick) {
+  const edited = pick?.data?.edited;
+  if (!edited?.length) return v;
+  const out = { ...v };
+  for (const k of edited) out[k] = pick.data[k] ?? undefined;
+  return out;
+}
+
 export function FichePanel({ v: base, index, total, list, onClose, onRequest, onMes, onMap, notice }) {
   const dash = useDash();
-  const v = useFullVendor(base);
-  const { isPicked, toggle } = usePicks();
+  const { isPicked, toggle, pickOf } = usePicks();
+  const pick = pickOf(base);
+  const v = withEdits(useFullVendor(base), pick);
   const picked = isPicked(v);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  function startEdit() {
+    setDraft(Object.fromEntries(EDITABLE.map((k) => [k, v[k] || ""])));
+    setEditing(true);
+  }
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!pick || saving) return;
+    const clean = Object.fromEntries(EDITABLE.map((k) => [k, String(draft[k] || "").trim()]));
+    if (!clean.name) return;
+    if (clean.email && !EMAIL_RE.test(clean.email)) {
+      dash.setToast({ kind: "error", text: "Cette adresse e-mail n'a pas l'air valide." });
+      return;
+    }
+    const data = { ...(pick.data || {}) };
+    const edited = new Set(data.edited || []);
+    for (const k of EDITABLE) {
+      if (clean[k] === (v[k] || "")) continue;
+      edited.add(k);
+      if (clean[k]) data[k] = clean[k];
+      else delete data[k];
+    }
+    data.edited = [...edited];
+    setSaving(true);
+    await dash.update("vendor_picks", pick.id, { data });
+    // La fiche du budget, si la demande de devis est déjà partie : c'est elle qui reçoit les messages
+    if (pick.vendor_id) await dash.update("vendors", pick.vendor_id, { name: clean.name, phone: clean.phone || null, email: clean.email || null, website: clean.website || null });
+    setSaving(false);
+    setEditing(false);
+    dash.setToast({ kind: "ok", text: "Fiche mise à jour." });
+  }
   const c = catOf(v.category);
   const real = (v.photos || []).filter(Boolean);
   const photos = real.length ? real : [null];
@@ -1167,9 +1214,53 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
             </div>
           </section>
         ) : null}
-        {v.phone || v.website || v.email ? (
+        {editing ? (
+          <form className="d-pr-fsec d-pr-edit" onSubmit={saveEdit}>
+            <h2>Modifier la fiche</h2>
+            <div className="d-form-grid">
+              <label className="d-field is-full">
+                <span className="d-field-label">Nom</span>
+                <input className="d-input" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} maxLength={120} required autoFocus />
+              </label>
+              <label className="d-field">
+                <span className="d-field-label">Ville</span>
+                <input className="d-input" value={draft.area} onChange={(e) => setDraft((d) => ({ ...d, area: e.target.value }))} maxLength={80} />
+              </label>
+              <label className="d-field">
+                <span className="d-field-label">Téléphone</span>
+                <input className="d-input" type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} maxLength={40} />
+              </label>
+              <label className="d-field">
+                <span className="d-field-label">E-mail</span>
+                <input className="d-input" type="email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} maxLength={160} />
+              </label>
+              <label className="d-field">
+                <span className="d-field-label">Site internet</span>
+                <input className="d-input" value={draft.website} onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))} maxLength={300} placeholder="maison-lemoine.fr" />
+              </label>
+            </div>
+            <div className="d-pr-edit-actions">
+              <button type="button" className="d-btn d-btn-ghost d-btn-small" onClick={() => setEditing(false)} disabled={saving}>
+                Annuler
+              </button>
+              <button type="submit" className="d-btn d-btn-primary d-btn-small" disabled={saving || !String(draft.name || "").trim()}>
+                {saving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        ) : null}
+        {!editing && (pick || v.phone || v.website || v.email) ? (
           <section className="d-pr-fsec">
-            <h2>Coordonnées</h2>
+            <div className="d-pr-fsec-head">
+              <h2>Coordonnées</h2>
+              {pick ? (
+                <button type="button" className="d-pr-linkbtn" onClick={startEdit}>
+                  <Icon name="pencil" size={14} sw={2} />
+                  Modifier
+                </button>
+              ) : null}
+            </div>
+            {!v.phone && !v.website && !v.email ? <span className="d-small-muted">Pas encore de téléphone ni d'e-mail : ajoutez-les pour lui écrire depuis Merry.</span> : null}
             <div className="d-pr-contacts">
               {v.phone ? (
                 <a href={telHref(v.phone)}>
