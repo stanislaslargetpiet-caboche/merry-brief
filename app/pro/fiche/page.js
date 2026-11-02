@@ -92,6 +92,10 @@ function MaFiche() {
           <span>Style</span>
           <StylePills value={v.style_tags || []} onChange={(tags) => save({ style_tags: tags })} />
         </div>
+        <div className="p-field is-8">
+          <label htmlFor="site">Site internet (facultatif)</label>
+          <TextInput id="site" placeholder="https://" value={v.website || ""} onSave={(t) => save({ website: t || null })} />
+        </div>
       </section>
 
       {isLieu ? (

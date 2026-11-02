@@ -191,6 +191,7 @@ begin
   end loop;
   update catalog.vendors set
     description       = case when patch ? 'description' then nullif(left(patch ->> 'description', 3000), '') else description end,
+    website            = case when patch ? 'website' then nullif(left(patch ->> 'website', 200), '') else website end,
     style_tags        = case when patch ? 'style_tags' then array(select jsonb_array_elements_text(patch -> 'style_tags')) else style_tags end,
     capacity_seated   = case when patch ? 'capacity_seated' then (patch ->> 'capacity_seated')::int else capacity_seated end,
     capacity_standing = case when patch ? 'capacity_standing' then (patch ->> 'capacity_standing')::int else capacity_standing end,
