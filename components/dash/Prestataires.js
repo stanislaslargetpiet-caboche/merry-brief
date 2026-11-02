@@ -1156,6 +1156,17 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
           <Heart on={picked} onClick={() => toggle(v)} size={20} className="d-pr-heart is-outline" />
         </div>
         <Specs v={v} />
+        {v.video ? (
+          <section className="d-pr-fsec">
+            <h2>Vidéo et visite virtuelle</h2>
+            <div className="d-pr-contacts">
+              <a href={v.video} target="_blank" rel="noopener noreferrer">
+                <Icon name="globe" size={15} sw={2} />
+                {/matterport|3d|visite/i.test(v.video) ? "Visite virtuelle" : "Voir la vidéo"}
+              </a>
+            </div>
+          </section>
+        ) : null}
         {v.phone || v.website || v.email ? (
           <section className="d-pr-fsec">
             <h2>Coordonnées</h2>

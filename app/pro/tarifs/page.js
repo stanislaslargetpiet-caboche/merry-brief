@@ -24,9 +24,10 @@ export default function Tarifs() {
   const formulas = [...d.formulas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const options = [...d.options].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const [editing, setEditing] = useState(null);
+  // Même règle que la base (pro_sync_price) : un forfait d'abord, sinon le prix par invité le plus bas
   const lowest = formulas
     .flatMap((f) => [f.price_high, f.price_low].filter((x) => x !== null && x !== undefined).map((p) => ({ p, unit: f.unit })))
-    .sort((a, b) => a.p - b.p)[0];
+    .sort((a, b) => Number(a.unit === "par_invite") - Number(b.unit === "par_invite") || a.p - b.p)[0];
 
   async function addFormula() {
     const row = await pro.insertRow("pro_formulas", "formulas", { name: "Nouvelle formule", unit: "forfait", includes: [], price_high: null, price_low: null, position: formulas.length });
@@ -163,6 +164,12 @@ const toPrice = (s) => {
 
 function FormulaEditor({ f, onDone }) {
   const pro = usePro();
+  // « Nouvelle formule » jamais remplie : annuler la retire, au lieu de laisser une formule vide
+  const untouched = f.name === "Nouvelle formule" && f.price_high === null && f.price_low === null && !(f.includes || []).length;
+  const cancel = async () => {
+    if (untouched) await pro.deleteRow("pro_formulas", "formulas", f.id);
+    onDone();
+  };
   const [name, setName] = useState(f.name);
   const [unit, setUnit] = useState(f.unit);
   const [includes, setIncludes] = useState((f.includes || []).join("\n"));
@@ -225,7 +232,7 @@ function FormulaEditor({ f, onDone }) {
           Supprimer la formule
         </button>
         <span>
-          <button type="button" className="p-btn p-btn-ghost is-40" onClick={onDone}>
+          <button type="button" className="p-btn p-btn-ghost is-40" onClick={cancel}>
             Annuler
           </button>
           <button type="button" className="p-btn p-btn-primary is-40" onClick={save}>
@@ -239,6 +246,11 @@ function FormulaEditor({ f, onDone }) {
 
 function OptionEditor({ o, onDone }) {
   const pro = usePro();
+  const untouched = o.name === "Nouvelle option" && o.price === null;
+  const cancel = async () => {
+    if (untouched) await pro.deleteRow("pro_options", "options", o.id);
+    onDone();
+  };
   const [name, setName] = useState(o.name);
   const [unit, setUnit] = useState(o.unit);
   const [value, setValue] = useState(o.price ?? "");
@@ -282,7 +294,7 @@ function OptionEditor({ o, onDone }) {
           Supprimer l’option
         </button>
         <span>
-          <button type="button" className="p-btn p-btn-ghost is-40" onClick={onDone}>
+          <button type="button" className="p-btn p-btn-ghost is-40" onClick={cancel}>
             Annuler
           </button>
           <button type="button" className="p-btn p-btn-primary is-40" onClick={save}>

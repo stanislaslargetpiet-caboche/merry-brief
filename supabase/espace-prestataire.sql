@@ -320,19 +320,19 @@ declare
   best_price integer;
   best_unit text;
 begin
+  -- Un forfait d'abord (le « À partir de » d'un lieu reste un prix de location), sinon le prix par invité le plus bas
   select least(coalesce(f.price_low, f.price_high), coalesce(f.price_high, f.price_low)), f.unit
     into best_price, best_unit
     from public.pro_formulas f
     where f.vendor_id = v and coalesce(f.price_low, f.price_high) is not null
-    order by 1 asc
+    order by (f.unit = 'par_invite') asc, 1 asc
     limit 1;
-  if best_price is not null then
-    update catalog.vendors set
-      price_min = best_price,
-      price_unit = case when best_unit = 'par_invite' then 'par_personne' when primary_category = 'lieu' then 'location' else 'forfait' end,
-      updated_at = now()
-    where id = v;
-  end if;
+  -- Plus aucun prix (formules retirées) : le prix affiché aux couples s'efface aussi
+  update catalog.vendors set
+    price_min = best_price,
+    price_unit = case when best_price is null then price_unit when best_unit = 'par_invite' then 'par_personne' when primary_category = 'lieu' then 'location' else 'forfait' end,
+    updated_at = now()
+  where id = v and price_min is distinct from best_price;
   return null;
 end;
 $$;
