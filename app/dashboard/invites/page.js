@@ -12,7 +12,7 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
-import GroupEdit from "@/components/dash/GroupEdit";
+import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
@@ -510,7 +510,8 @@ export default function Invites() {
   const data = dash.data;
   const { guests, groups, events, fields, wedding } = data;
   const [moments, setMoments] = useState(false);
-  const [groupFilter, setGroupFilter] = useState(null);
+  const [managingGroups, setManagingGroups] = useState(false);
+  const [groupFilters, setGroupFilters] = useState([]); // plusieurs groupes à la fois (artboard 1a3)
   const [fieldFilter, setFieldFilter] = useState(null);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -532,7 +533,7 @@ export default function Invites() {
   const q = normalize(query);
   const inStatus = (g) => !statusFilter || guestStatus(idx.get(g.id) || {}, events) === statusFilter;
   const inMoments = (g) => Object.entries(momentFilter).every(([evId, st]) => !events.some((e) => e.id === evId) || ((idx.get(g.id) || {})[evId] || "non_invite") === st);
-  const matches = (g) => (!groupFilter || g.group_id === groupFilter) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q));
+  const matches = (g) => (!groupFilters.length || groupFilters.includes(g.group_id)) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q));
   // Texte d'une cellule, tel qu'on le copie ou qu'on le trie
   const statusOf = (g, evId) => (idx.get(g.id) || {})[evId] || "non_invite";
   const cellText = (key, g) => {
@@ -555,9 +556,9 @@ export default function Invites() {
       })
     : filtered;
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
-  const filterCount = (groupFilter ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
+  const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
-    setGroupFilter(null);
+    setGroupFilters([]);
     setStatusFilter(null);
     setMomentFilter({});
     setFieldFilter(null);
@@ -791,7 +792,7 @@ export default function Invites() {
     const v = newName.trim();
     if (!v) return;
     setNewName("");
-    const created = await dash.insert("guests", [{ ...splitName(v), group_id: groupFilter || null, custom: {}, position: guests.length }]);
+    const created = await dash.insert("guests", [{ ...splitName(v), group_id: groupFilters.length === 1 ? groupFilters[0] : null, custom: {}, position: guests.length }]);
     const now = new Date().toISOString();
     const responses = created.flatMap((g) => events.map((ev) => ({ guest_id: g.id, event_id: ev.id, status: "attente", updated_at: now })));
     if (responses.length) await dash.insert("guest_responses", responses);
@@ -934,8 +935,12 @@ export default function Invites() {
     writeCells(list).then((n) => ok(n ? `${n} cellule${n > 1 ? "s" : ""} collée${n > 1 ? "s" : ""}.` : "Rien à coller ici."));
   };
 
-  const stats = kpiItems(data, "invites");
-  const g = guestStats(data);
+  // Un filtre actif (menu Filtres ou recherche) : les indicateurs portent alors sur ce qui est affiché,
+  // pas sur l'ensemble des invités, pour rester cohérents avec la liste.
+  const filterActive = filterCount > 0 || q.length > 0;
+  const statsData = filterActive ? { ...data, guests: filtered } : data;
+  const stats = kpiItems(statsData, "invites");
+  const g = guestStats(statsData);
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
@@ -1112,7 +1117,7 @@ export default function Invites() {
       </div>
       <div className="d-mob-only">
         <div className="d-mstats-scroll">
-          <span><strong>{guests.length}</strong><small>Invités</small></span>
+          <span><strong>{g.total}</strong><small>Invités</small></span>
           <span><strong>{g.answered} <i>({pctLabel(g.answered, g.total)})</i></strong><small>Réponses</small></span>
           <span><strong>{g.oui} <i>({pctLabel(g.oui, g.total)})</i></strong><small>Participants</small></span>
         </div>
@@ -1408,6 +1413,7 @@ export default function Invites() {
       {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
+      {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
       {filtering ? (
         <Modal
           title="Filtres"
@@ -1424,23 +1430,27 @@ export default function Invites() {
         >
           <div className="d-gfilter">
             <div className="d-gfilter-head">
-              <strong>Groupe</strong>
+              <strong>Groupes</strong>
+              <button
+                type="button"
+                className="d-link d-desk-only-inline"
+                onClick={() => {
+                  setFiltering(false);
+                  setManagingGroups(true);
+                }}
+              >
+                Gérer les groupes
+              </button>
             </div>
             <div className="d-filters">
               {groups.map((gr) => {
                 const p = pastel(gr.color);
-                const on = groupFilter === gr.id;
+                const on = groupFilters.includes(gr.id);
                 return (
-                  <span key={gr.id} className="d-group-filter">
-                    <button type="button" className={`d-gfilter-chip${on ? " is-on" : ""}`} style={on ? undefined : { background: p.bg, borderColor: p.bg }} aria-pressed={on} onClick={() => setGroupFilter(on ? null : gr.id)}>
-                      {on ? <Icon name="check" size={12} sw={3} /> : null}
-                      {gr.name}
-                    </button>
-                    {/* Modifier un groupe (artboard 1f2) : réservé à l'ordinateur */}
-                    <span className="d-desk-only-inline">
-                      <GroupEdit group={gr} count={guests.filter((x) => x.group_id === gr.id).length} />
-                    </span>
-                  </span>
+                  <button key={gr.id} type="button" className={`d-gfilter-chip${on ? " is-on" : ""}`} style={on ? undefined : { background: p.bg, borderColor: p.bg }} aria-pressed={on} onClick={() => setGroupFilters((x) => (on ? x.filter((id) => id !== gr.id) : [...x, gr.id]))}>
+                    {on ? <Icon name="check" size={12} sw={3} /> : null}
+                    {gr.name}
+                  </button>
                 );
               })}
             </div>
