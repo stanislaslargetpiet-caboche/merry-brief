@@ -76,6 +76,7 @@ export async function POST(req) {
   }
   const out = await res.json();
   const results = (out.places || []).slice(0, 5).map((p) => ({
+    placeId: p.id || null,
     name: p.displayName?.text || "",
     address: p.formattedAddress || null,
     city: cityOf(p.addressComponents),
