@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
+import { notifyVendor } from "@/lib/dash/vendorMail";
 import { ago } from "@/components/dash/VendorComments";
 import { Thumb, PrHead } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
@@ -43,6 +44,7 @@ export default function Messagerie() {
     if (!body || !current || busy) return;
     setBusy(true);
     await dash.insert("vendor_messages", { vendor_id: current.vendor.id, from_vendor: false, author_id: data.meId || null, body, sent_at: new Date().toISOString() });
+    if (dash.mode === "live") notifyVendor(current.vendor.id);
     setText("");
     setBusy(false);
   }
