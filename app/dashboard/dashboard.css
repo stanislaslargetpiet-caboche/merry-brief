@@ -7093,8 +7093,8 @@ body.d-noscroll {
 
 .d-pr-seg a.is-on,
 .d-pr-seg button.is-on {
-  background: #ffffff;
-  border-color: var(--d-border);
+  background: var(--d-lime);
+  border-color: var(--d-lime);
   font-weight: 600;
 }
 
