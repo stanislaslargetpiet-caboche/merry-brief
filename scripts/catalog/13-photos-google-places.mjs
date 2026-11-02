@@ -36,6 +36,26 @@ async function withRetry(call) {
   return res;
 }
 
+// Un nom de prestataire très différent du nom trouvé n'a souvent rien à voir (indépendants au nom générique,
+// Google renvoie alors le commerce le plus proche plutôt que « pas de résultat ») : repéré après coup sur un
+// premier passage (130 faux positifs sur 5 343, ex. « Maison LANDRIN » → la mairie du village). On exige donc
+// au moins un mot de trois lettres ou plus en commun, accents et casse ignorés.
+function sameBusiness(vendorName, matchedName) {
+  const words = (s) =>
+    new Set(
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 2),
+    );
+  const a = words(vendorName);
+  const b = words(matchedName || "");
+  return [...a].some((w) => b.has(w));
+}
+
 // Cherche le prestataire sur Google Places et renvoie sa meilleure photo (nom de ressource), ou une erreur.
 async function findCoverPhoto(vendor, categoryLabel) {
   const query = [vendor.name, vendor.city, vendor.postal_code, categoryLabel].filter(Boolean).join(" ");
@@ -55,6 +75,7 @@ async function findCoverPhoto(vendor, categoryLabel) {
   const place = (out.places || [])[0];
   const photo = place?.photos?.[0];
   if (!photo) return { error: "pas de résultat Google ou pas de photo" };
+  if (!sameBusiness(vendor.name, place.displayName?.text)) return { error: `résultat trop différent, rejeté : "${place.displayName?.text}"` };
   return { name: photo.name, matched: place.displayName?.text };
 }
 
