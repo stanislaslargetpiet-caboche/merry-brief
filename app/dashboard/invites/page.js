@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
-import { GUEST_STATUS_LABEL, guestStats, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize, pctLabel, uid } from "@/lib/dash/format";
+import { GUEST_STATUS_LABEL, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
+import { fullName, normalize, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
-import { PASTEL_KEYS, RSVP, pastel } from "@/lib/dash/theme";
+import { RSVP, pastel } from "@/lib/dash/theme";
 import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
@@ -14,9 +14,11 @@ import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
+import GroupCell from "@/components/dash/GroupCell";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
+import ViewsMenu from "@/components/dash/ViewsMenu";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -240,83 +242,6 @@ function RowMenu({ guest, label, onRemove }) {
   );
 }
 
-function GroupCell({ guest, group, groups, label }) {
-  const dash = useDash();
-  const [open, setOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const close = () => {
-    setOpen(false);
-    setCreating(false);
-    setName("");
-  };
-  const create = async (e) => {
-    e.preventDefault();
-    const n = name.trim();
-    if (!n) return;
-    const exists = groups.find((g) => normalize(g.name) === normalize(n));
-    let id = exists?.id;
-    if (!id) {
-      id = uid();
-      const color = PASTEL_KEYS[groups.length % PASTEL_KEYS.length];
-      await dash.insert("guest_groups", { id, name: n, color, position: groups.length });
-    }
-    dash.update("guests", guest.id, { group_id: id });
-    close();
-  };
-  return (
-    <span className="d-anchor">
-      <GroupChip group={group} onClick={() => (open ? close() : setOpen(true))} />
-      <Popover open={open} onClose={close}>
-        <span className="d-pop-label d-small d-muted" style={{ padding: "4px 8px" }}>
-          Groupe de {label}
-        </span>
-        {groups.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            className={`d-pop-item${g.id === guest.group_id ? " is-on" : ""}`}
-            onClick={() => {
-              dash.update("guests", guest.id, { group_id: g.id });
-              close();
-            }}
-          >
-            <GroupChip group={g} />
-            {g.id === guest.group_id ? <Icon name="check" size={14} sw={2.2} /> : null}
-          </button>
-        ))}
-        {guest.group_id ? (
-          <button
-            type="button"
-            className="d-pop-item"
-            onClick={() => {
-              dash.update("guests", guest.id, { group_id: null });
-              close();
-            }}
-          >
-            <span className="d-pop-label">Sans groupe</span>
-          </button>
-        ) : null}
-        {creating ? (
-          <form onSubmit={create} style={{ display: "flex", gap: 6, padding: "4px 2px" }}>
-            <input className="d-input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du groupe" maxLength={60} aria-label="Nom du nouveau groupe" style={{ minWidth: 150 }} />
-            <Btn type="submit" small disabled={!name.trim()}>
-              Créer
-            </Btn>
-          </form>
-        ) : (
-          <button type="button" className="d-pop-item" onClick={() => setCreating(true)}>
-            <span className="d-pop-label">
-              <Icon name="plus" size={14} sw={2.2} />
-              Nouveau groupe
-            </span>
-          </button>
-        )}
-      </Popover>
-    </span>
-  );
-}
-
 // En-tête d'une colonne du tableau : un clic ouvre « Renommer » et « Supprimer » (sur toutes les colonnes, pas seulement les ajoutées)
 function ColumnHead({ col, onRename, onRemove, removeLabel, extraItems }) {
   const [open, setOpen] = useState(false);
@@ -463,8 +388,9 @@ function AddGuests({ onClose, defaultGroupId = "" }) {
   );
 }
 
-// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a)
-function GuestCard({ guest: g, events, idx, byId, groupById }) {
+// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a),
+// et dessous sa réponse à chaque moment, modifiable sans ouvrir la fiche
+function GuestCard({ guest: g, events, idx, byId, groupById, onPick }) {
   const r = idx.get(g.id) || {};
   const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
   const status = guestStatus(r, events);
@@ -488,9 +414,21 @@ function GuestCard({ guest: g, events, idx, byId, groupById }) {
     </>
   );
   return (
-    <Link href={`/dashboard/invites/${g.id}`} className="d-gcard d-gcard-row">
-      {inner}
-    </Link>
+    <div className="d-gcard">
+      <Link href={`/dashboard/invites/${g.id}`} className="d-gcard-row">
+        {inner}
+      </Link>
+      {events.length ? (
+        <div className="d-gcard-moments">
+          {events.map((ev) => (
+            <span key={ev.id} className="d-gcard-moment">
+              <small>{ev.short_name}</small>
+              <RsvpMenu status={r[ev.id] || "non_invite"} onPick={(k) => onPick(g, ev, k)} title={`${ev.name} : modifier le statut`} />
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -553,13 +491,7 @@ export default function Invites() {
   // Vue dans l'adresse (lib/dash/guestView) : lue une fois à l'ouverture, réécrite à chaque changement
   const [viewReady, setViewReady] = useState(false);
   useEffect(() => {
-    const v = readView(window.location.search);
-    setQuery(v.query);
-    setGroupFilters(v.groups.filter((id) => groups.some((gr) => gr.id === id)));
-    setStatusFilter(v.status);
-    setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
-    setFieldFilter(v.field);
-    setSort(v.sort);
+    applyView(readView(window.location.search));
     setViewReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -571,6 +503,15 @@ export default function Invites() {
     if (url !== `${pathname}${search}`) window.history.replaceState(null, "", url);
     rememberView(viewQs);
   }, [viewQs, viewReady]);
+  // Appliquer une vue (enregistrée, ou vide pour tout remettre à zéro)
+  const applyView = (v) => {
+    setQuery(v.query);
+    setGroupFilters(v.groups.filter((id) => groups.some((gr) => gr.id === id)));
+    setStatusFilter(v.status);
+    setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
+    setFieldFilter(v.field);
+    setSort(v.sort);
+  };
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
   const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
@@ -999,7 +940,6 @@ export default function Invites() {
   const filterActive = filterCount > 0 || q.length > 0;
   const statsData = filterActive ? { ...data, guests: filtered } : data;
   const stats = kpiItems(statsData, "invites");
-  const g = guestStats(statsData);
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
@@ -1155,6 +1095,41 @@ export default function Invites() {
     );
   }
 
+  // Barre d'actions groupées : largeur fixe, jamais de retour à la ligne (une sélection ne doit pas déplacer
+  // le tableau sous la souris) ; affichée à la place de la barre d'outils, et rejouée en plein écran
+  // (la normale est cachée derrière l'overlay)
+  const selBar = (
+    <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
+      <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
+      <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
+        {!allSelected ? (
+          <button type="button" onClick={selectAll}>
+            Tout sélectionner ({shown.length})
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            setModField(null);
+            setModGroupTarget(undefined);
+            setModMomentId(null);
+            setModifying(true);
+          }}
+        >
+          Modifier
+        </button>
+        <BulkColumnMenu fields={fields} onApply={bulkField} />
+        <button type="button" onClick={clearSel}>
+          Tout désélectionner
+        </button>
+        <button type="button" className="is-danger" onClick={bulkRemove}>
+          <Icon name="trash" size={14} sw={2} />
+          {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
+        </button>
+      </span>
+    </div>
+  );
+
   return (
     <>
       <InvitesHeader
@@ -1175,10 +1150,17 @@ export default function Invites() {
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
       </div>
       <div className="d-mob-only">
+        {/* Les mêmes indicateurs que sur ordinateur (choisis dans Indicateurs), pas trois chiffres figés */}
         <div className="d-mstats-scroll">
-          <span><strong>{g.total}</strong><small>Invités</small></span>
-          <span><strong>{g.answered} <i>({pctLabel(g.answered, g.total)})</i></strong><small>Réponses</small></span>
-          <span><strong>{g.oui} <i>({pctLabel(g.oui, g.total)})</i></strong><small>Participants</small></span>
+          {stats.map((it) => (
+            <span key={it.id}>
+              <strong>
+                {it.value}
+                {it.sub ? <i> {it.sub}</i> : null}
+              </strong>
+              <small>{it.label}</small>
+            </span>
+          ))}
         </div>
       </div>
 
@@ -1186,8 +1168,11 @@ export default function Invites() {
         <GuestsNote />
       </div>
 
-      <div className="d-col" style={{ gap: 14 }}>
-        <div className="d-filters d-ifilters" style={{ justifyContent: "space-between" }}>
+      {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter / plein écran /
+          colonnes à droite. Quand des invités sont cochés, la barre d'actions groupées prend sa place,
+          à la même hauteur : le tableau ne bouge pas sous la souris. */}
+      {selIds.length ? <div className="d-desk-only">{selBar}</div> : (
+        <div className="d-filters d-ifilters d-itoolbar" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-ifilters-left">
             <label className="d-search">
               <Icon name="search" size={15} />
@@ -1198,19 +1183,44 @@ export default function Invites() {
               Filtres
               {filterCount ? <span className="d-filter-count">{filterCount}</span> : null}
             </button>
+            <ViewsMenu
+              views={wedding.guest_views || []}
+              currentQs={viewQs}
+              onApply={(qs) => applyView(readView(qs))}
+              onReset={() => applyView(readView(""))}
+              onSave={(name) => dash.saveGuestViews([...(wedding.guest_views || []), { id: uid(), name, qs: viewQs, created_by: data.meId || null }])}
+              onDelete={(id) => dash.saveGuestViews((wedding.guest_views || []).filter((v) => v.id !== id))}
+              shared={data.viewsSetup !== false}
+            />
           </div>
-          <span className="d-filters d-desk-only">
-            {cols.customised ? (
-              <button type="button" className="d-pill" onClick={cols.reset} title="Remettre l'ordre et la largeur des colonnes par défaut">
-                Colonnes par défaut
-              </button>
-            ) : null}
-            {cols.hiddenColumns.length ? (
+          {guests.length ? (
+            <span className="d-filters d-desk-only">
+              <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
+                Ajouter des invités
+              </Btn>
+              <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
+                Plein écran
+              </Btn>
               <span className="d-anchor">
                 <button type="button" className="d-pill" onClick={() => setRestoring((o) => !o)} aria-haspopup="menu" aria-expanded={restoring}>
-                  Colonnes supprimées · {cols.hiddenColumns.length}
+                  Colonnes
+                  {cols.hiddenColumns.length ? <span className="d-filter-count">{cols.hiddenColumns.length}</span> : null}
+                  <Icon name="chevDown" size={12} sw={2.2} />
                 </button>
                 <Popover open={restoring} onClose={() => setRestoring(false)} align="right">
+                  <button
+                    type="button"
+                    className="d-pop-item"
+                    onClick={() => {
+                      setRestoring(false);
+                      setAddingCol(true);
+                    }}
+                  >
+                    <span className="d-pop-label">
+                      <Icon name="plus" size={14} sw={2.2} />
+                      Ajouter une colonne
+                    </span>
+                  </button>
                   {cols.hiddenColumns.map((c) => (
                     <button
                       key={c.key}
@@ -1222,91 +1232,37 @@ export default function Invites() {
                       }}
                     >
                       <span className="d-pop-label">
-                        <Icon name="plus" size={14} sw={2.2} />
+                        <Icon name="eye" size={14} sw={2} />
                         Réafficher « {c.label} »
                       </span>
                     </button>
                   ))}
-                </Popover>
-              </span>
-            ) : null}
-            <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
-              <Icon name="plus" size={14} sw={2} />
-              Ajouter une colonne
-            </button>
-          </span>
-        </div>
-      </div>
-
-      {guests.length ? (
-        <div className="d-desk-only">
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
-              Ajouter des invités
-            </Btn>
-            <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
-              Plein écran
-            </Btn>
-          </div>
-        </div>
-      ) : null}
-
-      {guests.length ? (
-        selIds.length ? (
-          <>
-            <div className="d-desk-only">
-              {/* Largeur fixe, jamais de retour à la ligne : une sélection ne doit pas déplacer le tableau sous la souris */}
-              <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-                <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
-                <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
-                  {!allSelected ? (
-                    <button type="button" onClick={selectAll}>
-                      Tout sélectionner ({shown.length})
+                  {cols.customised ? (
+                    <button
+                      type="button"
+                      className="d-pop-item"
+                      onClick={() => {
+                        cols.reset();
+                        setRestoring(false);
+                      }}
+                    >
+                      <span className="d-pop-label">
+                        <Icon name="back" size={14} sw={2} />
+                        Colonnes par défaut
+                      </span>
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModField(null);
-                      setModGroupTarget(undefined);
-                      setModMomentId(null);
-                      setModifying(true);
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  <BulkColumnMenu fields={fields} onApply={bulkField} />
-                  <button type="button" onClick={clearSel}>
-                    Tout désélectionner
-                  </button>
-                  <button type="button" className="is-danger" onClick={bulkRemove}>
-                    <Icon name="trash" size={14} sw={2} />
-                    {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
-                  </button>
-                </span>
-              </div>
-            </div>
-
-          </>
-        ) : (
-          <>
-            <div className="d-desk-only">
-              {/* Même hauteur que la barre d'actions groupées ci-dessus : sélectionner un premier invité ne doit pas pousser le tableau */}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", minHeight: 56, alignItems: "center" }}>
-                <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
-                  <Icon name="check" size={14} sw={2.2} />
-                  Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
-                </button>
-              </div>
-            </div>
-          </>
-        )
-      ) : null}
+                </Popover>
+              </span>
+            </span>
+          ) : null}
+        </div>
+      )}
 
       {guests.length ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} />
+            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} onPick={(guest, ev, k) => applyValues([{ id: guest.id, key: `ev:${ev.id}`, value: k }])} />
           ))}
           {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
         </div>
@@ -1329,39 +1285,7 @@ export default function Invites() {
             </Btn>
           </div>
         ) : null}
-        {full && selIds.length ? (
-          // La barre d'actions groupées normale est cachée derrière l'overlay plein écran (z-index) :
-          // on la rejoue ici pour pouvoir modifier/supprimer sans quitter le plein écran.
-          <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-            <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
-            <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
-              {!allSelected ? (
-                <button type="button" onClick={selectAll}>
-                  Tout sélectionner ({shown.length})
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  setModField(null);
-                  setModGroupTarget(undefined);
-                  setModMomentId(null);
-                  setModifying(true);
-                }}
-              >
-                Modifier
-              </button>
-              <BulkColumnMenu fields={fields} onApply={bulkField} />
-              <button type="button" onClick={clearSel}>
-                Tout désélectionner
-              </button>
-              <button type="button" className="is-danger" onClick={bulkRemove}>
-                <Icon name="trash" size={14} sw={2} />
-                {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
-              </button>
-            </span>
-          </div>
-        ) : null}
+        {full && selIds.length ? selBar : null}
         <div className="d-table-wrap d-sheet" ref={sheetRef}>
           <table className="d-table d-guests d-cols" onKeyDown={onSheetKey} onCopy={onSheetCopy} onPaste={onSheetPaste}>
             <thead>

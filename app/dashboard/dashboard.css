@@ -15430,3 +15430,70 @@ body.d-noscroll {
     width: 100%;
   }
 }
+
+/* Liste des invités : une seule barre d'outils, à la hauteur de la barre d'actions groupées */
+.d-itoolbar {
+  min-height: 56px;
+  align-items: center;
+}
+
+/* Vues enregistrées : la ligne du menu porte le nom (appliquer) et une croix (supprimer) */
+.d-view-item {
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.d-view-item .d-view-apply {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.d-view-item .d-view-del {
+  flex: none;
+  opacity: 0.55;
+}
+
+.d-view-item:hover .d-view-del,
+.d-view-item .d-view-del:focus-visible {
+  opacity: 1;
+}
+
+.d-pop-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Téléphone : la réponse à chaque moment, sous la ligne de l'invité */
+.d-gcard-moments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-left: 46px;
+}
+
+.d-gcard-moment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.d-gcard-moment small {
+  font-size: 11.5px;
+  color: var(--d-muted);
+}
+
+/* Fiche invité : note des organisateurs et colonnes ajoutées */
+.d-guest-note {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+}
