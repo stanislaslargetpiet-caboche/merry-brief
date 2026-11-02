@@ -49,6 +49,83 @@
   border: 1px solid rgba(28, 28, 26, 0.08);
 }
 
+/* Dans le site, le formulaire prend les couleurs et la police du site (variables --s-* et --f-* de lib/site/model.js) */
+.s-root .gf-embed {
+  --gf-bg: var(--s-tint);
+  --gf-deep: var(--s-band);
+  --gf-accent: var(--s-accent);
+  color: var(--s-ink);
+  font-family: var(--f-sans), Helvetica, Arial, sans-serif;
+}
+
+.s-root .gf-embed .gf-card {
+  background: var(--s-panel);
+  border-color: var(--s-line);
+}
+
+.s-root .gf-embed .gf-head p,
+.s-root .gf-embed .gf-hint,
+.s-root .gf-embed .gf-done span {
+  color: var(--s-soft);
+}
+
+.s-root .gf-embed .gf-input {
+  border-color: var(--s-line);
+  color: var(--s-ink);
+}
+
+.s-root .gf-embed .gf-input.is-missing,
+.s-root .gf-embed .gf-row.is-missing {
+  border-color: #b42318;
+}
+
+/* « .s-root button » (site.css) retire fond, bordure et marges de tous les boutons : on les redonne ici */
+.s-root .gf-embed .gf-pill {
+  padding: 0 16px;
+  border: 1px solid var(--s-line);
+  background: var(--s-panel);
+  color: var(--s-ink);
+}
+
+.s-root .gf-embed .gf-pill.is-on {
+  background: var(--gf-accent);
+  border-color: var(--gf-accent);
+  color: var(--s-on-accent);
+}
+
+.s-root .gf-embed .gf-send {
+  background: var(--gf-accent);
+  color: var(--s-on-accent);
+}
+
+.s-root .gf-embed .gf-check {
+  padding: 0;
+}
+
+.s-root .gf-embed .gf-check > span {
+  border: 1.5px solid var(--gf-accent);
+  background: var(--s-panel);
+}
+
+.s-root .gf-embed .gf-check.is-on > span {
+  background: var(--gf-accent);
+}
+
+.s-root .gf-embed .gf-check > span {
+  color: var(--s-on-accent);
+}
+
+.s-root .gf-embed .gf-row,
+.s-root .gf-embed .gf-box,
+.s-root .gf-embed .gf-done {
+  border: 1px solid var(--s-line);
+}
+
+.s-root .gf-embed .gf-pills.is-missing .gf-pill,
+.s-root .gf-embed .gf-row.is-missing {
+  border-color: #b42318;
+}
+
 .gf-hero {
   align-items: center;
   text-align: center;
@@ -187,11 +264,16 @@ textarea.gf-input {
   min-width: 0;
 }
 
-.gf-set legend {
+.gf-set legend,
+.gf-legend {
   padding: 0;
   margin-bottom: 10px;
   font-size: 14px;
   font-weight: 600;
+}
+
+.gf-legend {
+  margin-bottom: 0;
 }
 
 .gf-row {
@@ -276,6 +358,7 @@ textarea.gf-input {
   border-radius: 7px;
   border: 1.5px solid var(--gf-accent);
   background: #ffffff;
+  color: #ffffff;
 }
 
 .gf-check.is-on > span {
