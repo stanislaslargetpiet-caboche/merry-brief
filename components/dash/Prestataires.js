@@ -249,21 +249,40 @@ export function MoreButton({ rec, category, className = "" }) {
 
 export function PrHead({ on }) {
   return (
-    <div className="d-pr-head">
-      <h1 className="d-title">Prestataires.</h1>
+    <div className="d-itabs-head">
+      <div className="d-pr-head">
+        <h1 className="d-title">Prestataires.</h1>
+      </div>
       <Segment on={on} />
     </div>
   );
 }
 
+// Réponse reçue mais pas encore relue (pickStatus la classe "reponse" tant que le couple n'a pas
+// signé de devis ni renvoyé de message) : sert de pastille sur l'onglet Messagerie, faute d'un vrai
+// suivi de lecture par message.
+function useUnreadCount() {
+  const dash = useDash();
+  const { picks = [] } = dash.data;
+  return picks.filter((p) => pickStatus(p, dash.data).key === "reponse").length;
+}
+
 export function Segment({ on }) {
+  const unread = useUnreadCount();
   return (
-    <nav aria-label="Prestataires" className="d-pr-seg">
-      <Link href="/dashboard/prestataires" className={on === "trouver" ? "is-on" : ""} aria-current={on === "trouver" ? "page" : undefined}>
-        Trouver des prestataires
+    <nav aria-label="Prestataires" className="d-itabs">
+      <Link href="/dashboard/prestataires" className={`d-itab${on === "trouver" ? " is-on" : ""}`} aria-current={on === "trouver" ? "page" : undefined}>
+        <span className="d-itab-long">Trouver des prestataires</span>
+        <span className="d-itab-short">Trouver</span>
       </Link>
-      <Link href="/dashboard/prestataires/mes" className={on === "mes" ? "is-on" : ""} aria-current={on === "mes" ? "page" : undefined}>
-        Mes prestataires
+      <Link href="/dashboard/prestataires/mes" className={`d-itab${on === "mes" ? " is-on" : ""}`} aria-current={on === "mes" ? "page" : undefined}>
+        <span className="d-itab-long">Mes prestataires</span>
+        <span className="d-itab-short">Mes</span>
+      </Link>
+      <Link href="/dashboard/prestataires/messagerie" className={`d-itab${on === "messagerie" ? " is-on" : ""}`} aria-current={on === "messagerie" ? "page" : undefined}>
+        <span className="d-itab-long">Messagerie</span>
+        <span className="d-itab-short">Messagerie</span>
+        {unread ? <span className="d-itab-badge">{unread}</span> : null}
       </Link>
     </nav>
   );
