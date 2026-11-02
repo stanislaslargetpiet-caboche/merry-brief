@@ -38,7 +38,7 @@ function VendorCard({ v, trade }) {
   return (
     <article className="sm-card">
       <div className="sm-photo">
-        {v.photo ? <img src={v.photo} alt={v.name} loading="lazy" /> : <span>{trade.key === "lieu" ? "Photo du lieu à venir" : "Photo à venir"}</span>}
+        {v.photo ? <img src={v.photo} alt={v.name} loading="lazy" decoding="async" width={640} height={420} /> : <span>{trade.key === "lieu" ? "Photo du lieu à venir" : "Photo à venir"}</span>}
         <a href={SIGNUP} className="sm-heart" aria-label={`Ajouter ${v.name} à ma sélection`}>
           <Heart />
         </a>

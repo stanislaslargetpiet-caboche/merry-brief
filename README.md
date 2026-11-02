@@ -267,6 +267,9 @@ Ce que ça change :
 - **Catalogue** : une fiche ajoutée à la main porte `created_by_wedding` ; les pages publiques `/mariage/…` ne la listent pas tant qu'elle n'a pas été relue, et seule l'équipe de ce mariage peut y rattacher des photos Google ; site web et téléphone vérifiés.
 - **Visites du site de mariage** : comptées par la page (une par visiteur et par heure, 5 000 par jour au plus), plus par l'aperçu de lien ni les robots.
 - **Liens dans les mails** : toujours `NEXT_PUBLIC_APP_URL` (ou app.withmerry.com), plus l'en-tête Host de la requête.
+- **Pages juridiques** : `/confidentialite` et `/cgu` existent désormais sur withmerry.com (le bandeau cookies et l'inscription y renvoyaient vers des pages absentes). Les mentions entre crochets dans `app/vitrine/confidentialite/page.js` et `app/vitrine/cgu/page.js` (raison sociale, adresse du siège, adresse de contact) sont à compléter avant la mise en ligne.
+- **Site de mariage et formulaire invités** : rendus côté serveur dès la première image (plus d'écran vide), la visite est comptée par la page. `robots.txt` ne les interdit plus (ils portent `noindex`, qu'un robot doit pouvoir lire).
+- **Site vitrine** : les images intégrées en base64 dans les blocs (840 Ko de HTML) sont devenues des fichiers WebP dans `public/vitrine/blocks/`, les photos sont redimensionnées, Alan Sans est servie en WOFF2 (80 Ko au lieu de 190), et seules les polices utilisées sont chargées.
 
 ## 15. Site de mariage (`/s/…`)
 

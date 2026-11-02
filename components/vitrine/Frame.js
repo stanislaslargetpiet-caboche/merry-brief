@@ -34,11 +34,13 @@ async function SeoLinks() {
   const stats = await getStats().catch(() => null);
   // Sans les chiffres du catalogue (base injoignable, ou en local sans clé), on liste toutes les régions
   const known = Object.keys(stats?.stats || {}).length > 0;
+  // Chiffres indisponibles : aucun lien plutôt qu'une liste de pages qui répondraient 404
+  if (!known) return null;
   const columns = SEO_TRADES.map(([slug, label]) => {
     const trade = tradeOf(slug);
-    const regions = SEO_REGIONS.map(regionZone).filter((zone) => zone && (!known || hasPage(stats, trade, zone)));
+    const regions = SEO_REGIONS.map(regionZone).filter((zone) => zone && hasPage(stats, trade, zone));
     return { trade, label, regions };
-  });
+  }).filter((c) => hasPage(stats, c.trade, FRANCE));
   return (
     <nav className="wv-seo" aria-label="Prestataires de mariage par région">
       <p className="wv-seo-t">Prestataires de mariage par région</p>
@@ -114,7 +116,7 @@ export default async function Frame({ current, children }) {
           <p className="wv-quote">“Never miss a party… good for the nerves - like celery.”</p>
           <p className="wv-quote">F. Scott Fitzgerald</p>
           <p className="wv-quote wv-foot-links">
-            <a href={links.about}>À propos</a> · <a href={links.pro}>Prestataires</a>
+            <a href={links.about}>À propos</a> · <a href={links.pro}>Prestataires</a> · <a href={links.privacy}>Confidentialité</a> · <a href={links.terms}>Conditions d'utilisation</a>
           </p>
         </div>
       </footer>
