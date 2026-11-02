@@ -86,6 +86,7 @@ export default function FicheInvite() {
   const idx = useMemo(() => responseIndex(responses), [responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+  const addingPlus = useRef(false);
 
   if (!guest) return <PageHeader back={{ href: back, label: "Invités" }} title="Invité introuvable." />;
 
@@ -116,7 +117,6 @@ export default function FicheInvite() {
   }
 
   // Un accompagnant de plus : même groupe, invité aux mêmes moments que l'invité, à nommer ensuite
-  const addingPlus = useRef(false);
   async function addPlusOne() {
     if (addingPlus.current) return;
     addingPlus.current = true;

@@ -112,7 +112,6 @@ export default function WeddingSitePage({ slug: slugProp, initial = null }) {
   }
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link rel="stylesheet" precedence="default" href={fontsHref([fonts])} />
       <main className="s-public">
         <SiteView site={site} wedding={{ partner1: site.partner1, partner2: site.partner2, wedding_date: site.wedding_date, venue: site.venue, region: site.region }} events={site.events || []} formSlug={site.form_slug || null} />

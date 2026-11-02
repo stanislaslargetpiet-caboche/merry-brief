@@ -28,6 +28,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* Climate Crisis ne sert qu'au logo ; les sites de mariage chargent leurs propres polices (lib/site/model.js) */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font -- mise en page racine de l'App Router : charge pour toutes les pages */}
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" />
       </head>
       <body>

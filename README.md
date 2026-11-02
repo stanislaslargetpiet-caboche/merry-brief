@@ -21,6 +21,18 @@ npm run dev                  # http://localhost:3000
 
 Sans `.env.local`, le parcours tourne quand même et la création de compte est simulée (visible dans la console du navigateur).
 
+### Qualité : lint, tests, CI
+
+```bash
+npm run lint       # ESLint (règles Next.js et React Hooks) : la CI échoue sur une erreur
+npm test           # tests unitaires de la logique pure (tests/*.test.js, Vitest)
+npm run test:sql   # migrations Supabase sur un PostgreSQL vide + scénarios (scripts/sql, DATABASE_URL requise)
+```
+
+Le workflow `.github/workflows/ci.yml` lance lint, tests et build à chaque PR, et rejoue les fichiers `supabase/*.sql` dans l'ordre du README sur un PostgreSQL 16 (avec un substitut minimal des objets Supabase, `scripts/sql/00-supabase-shim.sql`), puis les scénarios `scripts/sql/test-*.sql` (recherche de fête, formulaire invités, quotas, visites). Les fichiers qui dépendent du schéma `catalog` ne sont pas rejoués : `catalog.sql` n'est pas dans le dépôt, c'est à corriger pour pouvoir reconstruire la base de zéro.
+
+Chaque page a son filet : `app/error.js` (erreur de rendu, bouton Réessayer), `app/global-error.js`, `app/not-found.js`. Les en-têtes de sécurité (HSTS, nosniff, frame, referrer, permissions) sont dans `next.config.mjs` ; une Content-Security-Policy reste à écrire avec un nonce (Next, Weglot, PostHog, Google Fonts).
+
 ## 3. Déployer sur Vercel (10 minutes)
 
 1. Pousse ce dossier sur un repo GitHub (privé).
