@@ -15814,3 +15814,127 @@ body.d-noscroll {
   min-height: 84px;
   resize: vertical;
 }
+
+/* Cible et projection, sous les indicateurs de la liste des invités */
+.d-target {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--d-panel);
+  font-size: 13px;
+}
+
+.d-target.is-filtered {
+  outline: 1.5px dashed #b9b7ae;
+}
+
+.d-target-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.d-target-main b {
+  font-weight: 700;
+}
+
+.d-target-right {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.d-target-proj {
+  font-weight: 600;
+}
+
+.d-target-proj.is-over {
+  color: #9b2c2c;
+}
+
+.d-target-proj.is-under {
+  color: #8a4b0f;
+}
+
+.d-target-proj.is-ok {
+  color: #1f6b30;
+}
+
+.d-target-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.d-target-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #e4e2dc;
+  overflow: visible;
+}
+
+.d-target-bar > span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.d-target-oui {
+  left: 0;
+  border-radius: 999px 0 0 999px;
+  background: #4f9a5e;
+}
+
+.d-target-proj-seg {
+  background: repeating-linear-gradient(135deg, #e8a85c 0 4px, #f4cf9a 4px 8px);
+}
+
+.d-target-attente {
+  background: #f4e3cf;
+}
+
+.d-target-range {
+  top: -4px;
+  height: 18px;
+  border-left: 2px solid var(--d-ink);
+  border-right: 2px solid var(--d-ink);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+/* Pastille de foyer, sous le nom */
+.d-house {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #efeeea;
+  color: #4a4944;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-relance-list {
+  max-height: 320px;
+  overflow-y: auto;
+}

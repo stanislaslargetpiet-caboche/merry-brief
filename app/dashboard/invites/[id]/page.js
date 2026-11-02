@@ -13,6 +13,8 @@ import { LIST_PATH, listHref } from "@/lib/dash/guestView";
 import { Icon } from "@/components/dash/icons";
 import { Btn, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
 import GroupCell from "@/components/dash/GroupCell";
+import { agoDays, inviteLink, mailHref, reminderSubject, reminderText, smsHref, waDigits, waHref } from "@/lib/dash/relance";
+import { householdKey, householdLabel, householdsOf } from "@/lib/dash/households";
 import { ChoiceCell } from "@/components/dash/ColumnModal";
 
 function splitName(s) {
@@ -83,6 +85,12 @@ export default function FicheInvite() {
   const r = idx.get(guest.id) || {};
   const host = guest.plus_one_of ? byId.get(guest.plus_one_of) : null;
   const plusOnes = guests.filter((g) => g.plus_one_of === guest.id);
+  const household = (householdsOf(guests, byId).get(householdKey(guest, byId)) || []).filter((m) => m.id !== guest.id);
+  const pending = events.some((ev) => (r[ev.id] || "non_invite") === "attente");
+  const link = inviteLink(dash.data);
+  const relText = reminderText(dash.data, link).replace(/^Bonjour !/, guest.first_name ? `Bonjour ${guest.first_name.trim()} !` : "Bonjour !");
+  const relSubject = reminderSubject(dash.data);
+  const remindedDays = agoDays(guest.reminded_at);
   const answerOf = (evId) => responses.find((x) => x.guest_id === guest.id && x.event_id === evId);
 
   async function removeGuest() {
@@ -188,6 +196,68 @@ export default function FicheInvite() {
               </div>
             ) : null}
           </section>
+
+          {pending && !host ? (
+            <section className="d-card">
+              <h2>Relancer</h2>
+              <p className="d-small d-muted" style={{ margin: 0 }}>
+                {remindedDays === null ? "Jamais relancé." : remindedDays === 0 ? "Relancé aujourd'hui." : remindedDays === 1 ? "Relancé hier." : `Relancé il y a ${remindedDays} jours.`}
+                {link ? " Le message reprend le lien pour répondre." : " Créez d'abord le formulaire invités pour avoir un lien à envoyer."}
+              </p>
+              <div className="d-filters">
+                {guest.email ? (
+                  <Btn small icon="mail" href={mailHref(guest.email, relSubject, relText)}>
+                    Mail
+                  </Btn>
+                ) : null}
+                {waDigits(guest.phone) ? (
+                  <Btn small kind="ghost" icon="bubble" href={waHref(guest.phone, relText)} target="_blank">
+                    WhatsApp
+                  </Btn>
+                ) : null}
+                {guest.phone ? (
+                  <Btn small kind="ghost" icon="phone" href={smsHref(guest.phone, relText)}>
+                    SMS
+                  </Btn>
+                ) : null}
+                {dash.data.relancesSetup !== false ? (
+                  <button type="button" className="d-pill" onClick={() => dash.update("guests", guest.id, { reminded_at: new Date().toISOString() })}>
+                    <Icon name="check" size={14} sw={2.2} />
+                    Marquer comme relancé
+                  </button>
+                ) : null}
+              </div>
+              {!guest.email && !guest.phone ? (
+                <p className="d-small d-muted" style={{ margin: 0 }}>
+                  Ni mail ni téléphone : ajoutez-en un dans Contact, ou passez par sa famille.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
+          {household.length ? (
+            <section className="d-card">
+              <h2>Foyer</h2>
+              <p className="d-small d-muted" style={{ margin: 0 }}>
+                Un faire-part, une adresse : {householdLabel([guest, ...household])}.
+              </p>
+              <div className="d-col" style={{ gap: 2 }}>
+                {household.map((m) => (
+                  <a key={m.id} href={`/dashboard/invites/${m.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
+                    <span>{fullName(m) || "Accompagnant à nommer"}</span>
+                    <Icon name="chev" size={14} sw={2.2} />
+                  </a>
+                ))}
+              </div>
+              {guest.household_id ? (
+                <div>
+                  <Btn kind="ghost" small onClick={() => dash.update("guests", guest.id, { household_id: null })}>
+                    Sortir du foyer
+                  </Btn>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="d-card">
             <h2>Note pour les organisateurs</h2>
