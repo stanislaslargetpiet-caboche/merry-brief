@@ -68,7 +68,7 @@ export default function InvitesSite() {
 
   return (
     <>
-      <link rel="stylesheet" href={fontsHref([fonts])} />
+      <link rel="stylesheet" precedence="default" href={fontsHref([fonts])} />
       <InvitesHeader
         tab="site"
         actions={

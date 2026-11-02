@@ -4,7 +4,7 @@
 // On place en glissant un invité sur une table, ou en cochant plusieurs puis « Placer ici ».
 // Les foyers restent ensemble (placement automatique, et avertissement quand ils sont séparés).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useDash } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, normalize, uid } from "@/lib/dash/format";
@@ -73,9 +73,16 @@ export default function PlanDeTable() {
   async function unseat(ids) {
     if (await dash.seatGuests(ids, eventId, null)) ok(`${n(ids.length, "invité retiré", "invités retirés")} du plan.`);
   }
+  const addingTable = useRef(false);
   async function addTable() {
-    const name = `Table ${plan.tables.length + 1}`;
-    await dash.insert("seating_tables", { id: uid(), event_id: eventId, name, capacity: DEFAULT_CAPACITY, position: plan.tables.length });
+    if (addingTable.current) return;
+    addingTable.current = true;
+    try {
+      const name = `Table ${plan.tables.length + 1}`;
+      await dash.insert("seating_tables", { id: uid(), event_id: eventId, name, capacity: DEFAULT_CAPACITY, position: plan.tables.length });
+    } finally {
+      addingTable.current = false;
+    }
   }
   async function removeTable(t) {
     const seated = (plan.perTable.get(t.id) || []).length;

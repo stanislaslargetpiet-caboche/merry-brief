@@ -629,7 +629,7 @@ export default function Budget() {
       {lining ? <LigneModal category={lining} onClose={() => setLining(null)} /> : null}
       {editing ? (
         <PosteModal
-          item={editing === "new" ? null : editing}
+          item={editing === "new" ? null : items.find((i) => i.id === editing.id) || editing}
           onClose={() => {
             // Un poste ajouté sans devis ni paiement se range sous « À prévoir » : on le montre
             if (editing === "new") setShowPlanned(true);

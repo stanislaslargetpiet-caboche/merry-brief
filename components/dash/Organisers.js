@@ -26,9 +26,18 @@ export default function Organisers({ onClose }) {
   const meName = (members.find((x) => x.id === meId)?.display_name || "").trim();
   const couple = [wedding.partner1, wedding.partner2].filter(Boolean).join(" et ");
 
+  const [adding, setAdding] = useState(false);
   async function add(e) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || adding) return;
+    setAdding(true);
+    try {
+      await addMember();
+    } finally {
+      setAdding(false);
+    }
+  }
+  async function addMember() {
     const used = new Set(members.map((m) => m.color));
     const color = PASTEL_KEYS.find((k) => !used.has(k)) || "gris";
     const id = uid();

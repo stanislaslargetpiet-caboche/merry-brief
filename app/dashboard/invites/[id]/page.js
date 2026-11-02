@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
+
 // Fiche d'un invité : tout ce que le tableau sait de lui (réponses par moment, groupe, âge, contact,
 // régime, adresse, colonnes ajoutées), ses accompagnants, et une note pour les organisateurs.
 // Chaque champ se modifie en cliquant dessus, comme dans le tableau.
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useDash } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, shortDate } from "@/lib/dash/format";
@@ -36,8 +38,13 @@ function parseAge(v) {
 function GuestNote({ guest }) {
   const dash = useDash();
   const [draft, setDraft] = useState(guest.note || "");
-  useEffect(() => setDraft(guest.note || ""), [guest.id, guest.note]);
+  const [editing, setEditing] = useState(false);
+  // Une note qui arrive d'ailleurs (autre organisateur, écho) ne remplace pas celle qu'on est en train d'écrire
+  useEffect(() => {
+    if (!editing) setDraft(guest.note || "");
+  }, [guest.id, guest.note, editing]);
   const commit = () => {
+    setEditing(false);
     const text = draft.trim();
     if (text === (guest.note || "")) return;
     dash.update("guests", guest.id, { note: text || null });
@@ -53,6 +60,7 @@ function GuestNote({ guest }) {
     <textarea
       className="d-textarea d-guest-note"
       value={draft}
+      onFocus={() => setEditing(true)}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
@@ -98,7 +106,7 @@ export default function FicheInvite() {
     const last = entries[entries.length - 1];
     if (!last) return null;
     const who = last.source === "formulaire" ? "par le formulaire" : `par ${members.find((m) => m.id === last.member_id)?.display_name || "un organisateur"}`;
-    return `${who}, ${shortDate(last.created_at.slice(0, 10))}`;
+    return `${who}, ${shortDate(new Date(last.created_at))}`;
   };
 
   async function removeGuest() {
@@ -108,8 +116,19 @@ export default function FicheInvite() {
   }
 
   // Un accompagnant de plus : même groupe, invité aux mêmes moments que l'invité, à nommer ensuite
+  const addingPlus = useRef(false);
   async function addPlusOne() {
+    if (addingPlus.current) return;
+    addingPlus.current = true;
+    try {
+      await createPlusOne();
+    } finally {
+      addingPlus.current = false;
+    }
+  }
+  async function createPlusOne() {
     const created = await dash.insert("guests", [{ first_name: "", last_name: "", group_id: guest.group_id || null, plus_one_of: guest.id, custom: {}, position: guests.length }]);
+    if (!created.ok) return;
     const now = new Date().toISOString();
     const rows = created.flatMap((p) => events.map((ev) => ({ guest_id: p.id, event_id: ev.id, status: (r[ev.id] || "non_invite") === "non_invite" ? "non_invite" : "attente", updated_at: now })));
     if (rows.length) await dash.insert("guest_responses", rows);
@@ -161,7 +180,7 @@ export default function FicheInvite() {
                     <div key={ev.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, borderTop: "1px solid var(--d-line)" }}>
                       <span style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                         <span style={{ fontSize: 14.5, fontWeight: 500 }}>{ev.name}</span>
-                        {st !== "non_invite" && traceOf(ev.id) ? <small className="d-muted">{traceOf(ev.id)}</small> : (st === "oui" || st === "non") && a?.updated_at ? <small className="d-muted">Mis à jour le {shortDate(a.updated_at.slice(0, 10))}</small> : null}
+                        {st !== "non_invite" && traceOf(ev.id) ? <small className="d-muted">{traceOf(ev.id)}</small> : (st === "oui" || st === "non") && a?.updated_at ? <small className="d-muted">Mis à jour le {shortDate(new Date(a.updated_at))}</small> : null}
                       </span>
                       <RsvpMenu status={st} onPick={(k) => dash.setResponse(guest.id, ev.id, k)} title={`${ev.name} : modifier le statut`} />
                     </div>
@@ -179,16 +198,16 @@ export default function FicheInvite() {
             <h2>Accompagnant{plusOnes.length > 1 ? "s" : ""}</h2>
             <div className="d-col" style={{ gap: 2 }}>
               {host ? (
-                <a href={`/dashboard/invites/${host.id}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
+                <Link href={`/dashboard/invites/${host.id}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
                   <Icon name="chev" size={14} sw={2.2} style={{ transform: "rotate(180deg)" }} />
                   Accompagne {fullName(host) || "un invité sans nom"}
-                </a>
+                </Link>
               ) : null}
               {plusOnes.map((p) => (
-                <a key={p.id} href={`/dashboard/invites/${p.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
+                <Link key={p.id} href={`/dashboard/invites/${p.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
                   <span>{fullName(p) || "Accompagnant à nommer"} (+1)</span>
                   <Icon name="chev" size={14} sw={2.2} />
-                </a>
+                </Link>
               ))}
               {!host && !plusOnes.length ? (
                 <p className="d-small d-muted" style={{ margin: "0 0 8px" }}>
@@ -251,10 +270,10 @@ export default function FicheInvite() {
               </p>
               <div className="d-col" style={{ gap: 2 }}>
                 {household.map((m) => (
-                  <a key={m.id} href={`/dashboard/invites/${m.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
+                  <Link key={m.id} href={`/dashboard/invites/${m.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
                     <span>{fullName(m) || "Accompagnant à nommer"}</span>
                     <Icon name="chev" size={14} sw={2.2} />
-                  </a>
+                  </Link>
                 ))}
               </div>
               {guest.household_id ? (

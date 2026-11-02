@@ -9,7 +9,7 @@ import { columnValues } from "@/lib/dash/codes";
 import { RSVP, pastel } from "@/lib/dash/theme";
 import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
-import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
+import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu, useIsPhone } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
@@ -348,15 +348,22 @@ function AddGuests({ onClose, defaultGroupId = "" }) {
     .map((l) => l.trim())
     .filter(Boolean);
 
+  const [saving, setSaving] = useState(false);
   async function save(e) {
     e.preventDefault();
-    if (!lines.length) return;
-    const rows = lines.map((l, i) => ({ ...splitName(l), group_id: groupId || null, custom: {}, position: guests.length + i }));
-    const created = await dash.insert("guests", rows);
-    const responses = [];
-    for (const g of created) for (const ev of events) responses.push({ guest_id: g.id, event_id: ev.id, status: invitedTo.includes(ev.id) ? "attente" : "non_invite", updated_at: new Date().toISOString() });
-    if (responses.length) await dash.insert("guest_responses", responses);
-    onClose();
+    if (!lines.length || saving) return;
+    setSaving(true);
+    try {
+      const rows = lines.map((l, i) => ({ ...splitName(l), group_id: groupId || null, custom: {}, position: guests.length + i }));
+      const created = await dash.insert("guests", rows);
+      if (!created.ok) return;
+      const responses = [];
+      for (const g of created) for (const ev of events) responses.push({ guest_id: g.id, event_id: ev.id, status: invitedTo.includes(ev.id) ? "attente" : "non_invite", updated_at: new Date().toISOString() });
+      if (responses.length) await dash.insert("guest_responses", responses);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -508,6 +515,19 @@ export default function Invites() {
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
   const households = useMemo(() => householdsOf(guests, byId), [guests, byId]);
+  // Un seul agencement rendu : les cartes sur téléphone, le tableau ailleurs (les deux à la fois
+  // doublaient des milliers de cellules)
+  const phone = useIsPhone();
+  // Invités conviés par moment (en-têtes de colonnes) et valeurs de chaque colonne ajoutée (filtres) :
+  // calculés une fois par changement, pas à chaque rendu ni à chaque en-tête
+  const invitedCount = useMemo(() => {
+    const m = new Map();
+    for (const r of data.responses || []) if (r.status !== "non_invite") m.set(r.event_id, (m.get(r.event_id) || 0) + 1);
+    return m;
+  }, [data.responses]);
+  const fieldValues = useMemo(() => new Map(fields.map((f) => [f.id, fieldFilterValues(f, guests)])), [fields, guests]);
+  // Tri par colonne (menu de l'en-tête) : les cellules vides passent à la fin
+  const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
 
   const inFieldFilter = (g) => !activeFieldFilter || normalize((g.custom || {})[activeFieldFilter.fieldId] || "") === activeFieldFilter.key;
   const base = guests;
@@ -525,18 +545,24 @@ export default function Invites() {
     if (TEXT_KEYS.includes(key)) return g[key] || "";
     return "";
   };
-  // Tri par colonne (menu de l'en-tête) : les cellules vides passent à la fin
-  const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
-  const filtered = base.filter((g) => matches(g));
-  const shown = sort
-    ? [...filtered].sort((a, b) => {
-        if (sort.key.startsWith("ev:")) return (RSVP_RANK[statusOf(a, sort.key.slice(3))] - RSVP_RANK[statusOf(b, sort.key.slice(3))]) * sort.dir;
-        const x = cellText(sort.key, a).trim();
-        const y = cellText(sort.key, b).trim();
-        if (!x !== !y) return x ? -1 : 1;
-        return collator.compare(x, y) * sort.dir;
-      })
-    : filtered;
+  // Filtre et tri mémorisés : la liste n'est recalculée que quand les invités, les réponses ou les
+  // filtres changent (pas à chaque frappe ailleurs, ni à chaque signal de présence)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const filtered = useMemo(() => base.filter((g) => matches(g)), [base, groupFilters, activeFieldFilter, statusFilter, momentFilter, relanceFilter, q, idx, byId, groupById, events]);
+  const shown = useMemo(
+    () =>
+      sort
+        ? [...filtered].sort((a, b) => {
+            if (sort.key.startsWith("ev:")) return (RSVP_RANK[statusOf(a, sort.key.slice(3))] - RSVP_RANK[statusOf(b, sort.key.slice(3))]) * sort.dir;
+            const x = cellText(sort.key, a).trim();
+            const y = cellText(sort.key, b).trim();
+            if (!x !== !y) return x ? -1 : 1;
+            return collator.compare(x, y) * sort.dir;
+          })
+        : filtered,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, sort, idx, byId],
+  );
   // Vue dans l'adresse (lib/dash/guestView) : lue une fois à l'ouverture, réécrite à chaque changement
   const [viewReady, setViewReady] = useState(false);
   useEffect(() => {
@@ -1069,23 +1095,26 @@ export default function Invites() {
       key: "name",
       label: "Invités",
       fixed: true,
-      render: (g, r, host) => (
+      render: (g, r, host) => {
+        const house = households.get(householdKey(g, byId)) || [];
+        return (
         <div className="d-guest-name">
           <InlineEdit value={fullName(g)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" width={170} onSave={(v) => applyValues([{ id: g.id, key: "name", value: splitName(v) }])} />
           <span className="d-guest-sub">
             {g.age ? <span>{g.age} ans</span> : null}
             {host && !fullName(g) ? <span>À nommer</span> : null}
             <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
-            {(households.get(householdKey(g, byId)) || []).length > 1 && g.household_id ? (
-              <span className="d-house" title={`Foyer : ${households.get(householdKey(g, byId)).map((m) => fullName(m) || "+1").join(", ")}`}>
+            {house.length > 1 && g.household_id ? (
+              <span className="d-house" title={`Foyer : ${house.map((m) => fullName(m) || "+1").join(", ")}`}>
                 <Icon name="home" size={11} sw={2.2} />
-                {householdLabel(households.get(householdKey(g, byId)))}
+                {householdLabel(house)}
               </span>
             ) : null}
             {g.reminded_at ? <span title={`Relancé le ${new Date(g.reminded_at).toLocaleDateString("fr-FR")}`}>{agoDays(g.reminded_at) === 0 ? "relancé aujourd'hui" : agoDays(g.reminded_at) === 1 ? "relancé hier" : `relancé il y a ${agoDays(g.reminded_at)} j`}</span> : null}
           </span>
         </div>
-      ),
+        );
+      },
     },
     ...events.map((ev) => ({
       key: `ev:${ev.id}`,
@@ -1136,7 +1165,7 @@ export default function Invites() {
     }
     if (c.event) {
       const ev = c.event;
-      const n = (data.responses || []).filter((r) => r.event_id === ev.id && r.status !== "non_invite").length;
+      const n = invitedCount.get(ev.id) || 0;
       return (
         <ColumnHead
           col={c}
@@ -1403,7 +1432,7 @@ export default function Invites() {
         </div>
       )}
 
-      {guests.length ? (
+      {guests.length && phone ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
             <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} onPick={(guest, ev, k) => applyValues([{ id: guest.id, key: `ev:${ev.id}`, value: k }])} />
@@ -1412,7 +1441,7 @@ export default function Invites() {
         </div>
       ) : null}
 
-      {guests.length ? (
+      {guests.length && !phone ? (
         <div className={`d-sheet-shell d-desk-only${full ? " is-full" : ""}`} role={full ? "dialog" : undefined} aria-modal={full || undefined} aria-label={full ? "Liste des invités en plein écran" : undefined}>
         {full ? (
           <div className="d-sheet-head">
@@ -1445,7 +1474,7 @@ export default function Invites() {
                           <Icon name={sort.dir === 1 ? "arrowDown" : "arrowUp"} size={12} sw={2.4} />
                         </button>
                       ) : null}
-                      {c.noResize ? null : <ResizeHandle label={c.label} onMouseDown={(e) => cols.startResize(c.key, e, e.currentTarget.parentElement)} />}
+                      {c.noResize ? null : <ResizeHandle label={c.label} onMouseDown={(e) => cols.startResize(c.key, e, e.currentTarget.parentElement)} onResize={(delta, th) => cols.resizeBy(c.key, delta, th)} />}
                     </th>
                   );
                 })}
@@ -1652,13 +1681,13 @@ export default function Invites() {
               ))}
             </div>
           ) : null}
-          {fields.some((f) => fieldFilterValues(f, guests).length) ? (
+          {fields.some((f) => (fieldValues.get(f.id) || []).length) ? (
             <div className="d-gfilter">
               <div className="d-gfilter-head">
                 <strong>Vos colonnes</strong>
               </div>
               {fields
-                .map((f) => [f, fieldFilterValues(f, guests)])
+                .map((f) => [f, fieldValues.get(f.id) || []])
                 .filter(([, vals]) => vals.length)
                 .map(([f, vals]) => (
                   <div key={f.id} className="d-gfilter-moment">

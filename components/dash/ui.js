@@ -6,6 +6,41 @@ import { createPortal } from "react-dom";
 import { Icon } from "./icons";
 import { pastel, RSVP, RSVP_ORDER } from "@/lib/dash/theme";
 
+// Téléphone (ou paysage bas) : un seul des deux agencements est rendu, pas les deux cachés par le CSS
+export function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 700px), (max-height: 500px) and (orientation: landscape)");
+    const on = () => setPhone(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return phone;
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Tab et Maj+Tab restent dans la fenêtre (modale, tiroir) : sans ça, le focus file derrière le voile
+export function trapTab(container, e) {
+  if (e.key !== "Tab" || !container) return;
+  const items = Array.from(container.querySelectorAll(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement);
+  if (!items.length) {
+    e.preventDefault();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement;
+  if (e.shiftKey && (active === first || !container.contains(active))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || !container.contains(active))) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function Btn({ kind = "primary", icon, href, small, onClick, children, type = "button", disabled, className = "", title, target }) {
   const cls = `d-btn d-btn-${kind}${small ? " d-btn-small" : ""} ${className}`;
   const inner = (
@@ -14,6 +49,14 @@ export function Btn({ kind = "primary", icon, href, small, onClick, children, ty
       {children}
     </>
   );
+  // Un lien « désactivé » n'est pas un lien : il ne mène nulle part et le dit aux lecteurs d'écran
+  if (href && disabled) {
+    return (
+      <span className={`${cls} is-disabled`} aria-disabled="true" title={title}>
+        {inner}
+      </span>
+    );
+  }
   if (href) {
     if (/^(https?:|mailto:|tel:)/.test(href)) {
       return (
@@ -241,6 +284,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
     if (!host) return undefined;
     const onKey = (e) => {
       if (e.key === "Escape") closeRef.current();
+      else trapTab(ref.current, e);
     };
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
@@ -283,6 +327,19 @@ export function Field({ label, children, hint, full, group }) {
 // Menu déroulant ancré sous un élément ; se ferme au clic extérieur ou sur Échap
 // Menu flottant ancré à son parent. Il est affiché hors du tableau (position fixe dans .d-root) :
 // les cellules du tableau coupent ce qui dépasse, et le menu restait invisible ou inaccessible.
+// Flèches, Début et Fin dans un menu : le focus passe d'un bouton à l'autre comme dans un vrai menu
+function menuKeys(e) {
+  const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+  if (!keys.includes(e.key)) return;
+  const items = Array.from(e.currentTarget.querySelectorAll('button:not([disabled]), a[href], [role="menuitem"]')).filter((el) => el.offsetParent !== null);
+  if (!items.length) return;
+  e.preventDefault();
+  const at = items.indexOf(document.activeElement);
+  let next = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : e.key === "ArrowDown" ? at + 1 : at - 1;
+  next = (next + items.length) % items.length;
+  items[next].focus();
+}
+
 export function Popover({ open, onClose, children, align = "left", className = "" }) {
   const anchorRef = useRef(null);
   const ref = useRef(null);
@@ -332,7 +389,7 @@ export function Popover({ open, onClose, children, align = "left", className = "
     <>
       {marker}
       {createPortal(
-        <div ref={ref} className={`d-pop d-pop-fixed ${className}`} role="menu" style={{ top: pos ? pos.top : 0, left: pos ? pos.left : 0, visibility: pos ? "visible" : "hidden" }}>
+        <div ref={ref} className={`d-pop d-pop-fixed ${className}`} role="menu" onKeyDown={menuKeys} style={{ top: pos ? pos.top : 0, left: pos ? pos.left : 0, visibility: pos ? "visible" : "hidden" }}>
           {children}
         </div>,
         host,

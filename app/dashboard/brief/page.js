@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
 import { useData } from "@/lib/dash/store";
 import { euros, longDate } from "@/lib/dash/format";
@@ -90,9 +92,9 @@ export default function BriefPage() {
       ) : (
         <div className="d-empty">
           <p>Pas de brief pour ce mariage. Dix minutes de questions suffisent pour que Merry prépare tout.</p>
-          <a className="d-btn d-btn-primary" href="/">
+          <Link className="d-btn d-btn-primary" href="/">
             Remplir le brief
-          </a>
+          </Link>
         </div>
       )}
       {edit ? <WeddingModal onClose={() => setEdit(false)} /> : null}

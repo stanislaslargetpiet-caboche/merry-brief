@@ -232,6 +232,12 @@ export default function Importer() {
     }
   }
 
+  // Les lectures lancées depuis cette page s'arrêtent quand on la quitte (leur résultat n'aurait plus d'écran)
+  const abortRef = useRef(null);
+  useEffect(() => {
+    abortRef.current = new AbortController();
+    return () => abortRef.current?.abort();
+  }, []);
   async function readWithAi(entry) {
     if (dash.mode !== "live" || !supabase || aiOffRef.current) return fallbackLocal(entry);
     const { data: sess } = await supabase.auth.getSession();
@@ -251,6 +257,7 @@ export default function Importer() {
         try {
           const res = await fetch("/api/import-invites", {
             method: "POST",
+            signal: abortRef.current?.signal,
             headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
             body: JSON.stringify({
               source: { name: entry.name, ...units[i] },
@@ -282,7 +289,11 @@ export default function Importer() {
           done += 1;
           patchFile(entry.id, { parts: { done, total: units.length } });
           return;
-        } catch {
+        } catch (e) {
+          if (e?.name === "AbortError") {
+            stop = "left";
+            return;
+          }
           if (attempt === 1) results[i] = { failed: true };
         }
       }
@@ -297,6 +308,7 @@ export default function Importer() {
       }),
     );
 
+    if (stop === "left") return;
     if (stop === "off") {
       aiOffRef.current = true;
       setAiOff(true);
@@ -527,7 +539,15 @@ export default function Importer() {
   };
 
   async function commit() {
+    if (saving) return;
     setSaving(true);
+    try {
+      await commitAll();
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function commitAll() {
     // Colonnes nouvelles retenues
     const fieldIdByName = new Map(fields.map((f) => [normalize(f.name), f.id]));
     // Le nom choisi par l'organisateur ; deux colonnes au même nom, ou un nom déjà pris, n'en font qu'une
@@ -585,7 +605,8 @@ export default function Importer() {
       delete c._row;
     }
     if (created.length) {
-      await dash.insert("guests", created);
+      const saved = await dash.insert("guests", created);
+      if (!saved.ok) return; // l'écran est revenu à l'état d'avant, le toast d'erreur est affiché
       const responses = [];
       const now = new Date().toISOString();
       const presenceById = new Map(news.map((r) => [idByRow.get(r.id), r.presence || {}]));
@@ -599,15 +620,17 @@ export default function Importer() {
       if (responses.length) await dash.insert("guest_responses", responses);
     }
     // Doublons : on complète seulement ce qui manque
+    const patches = [];
     for (const r of dups) {
       const patch = {};
       for (const k of ["address", "email", "phone", "diet"]) if (r[k] && !r.dup[k]) patch[k] = r[k];
       if (r.age && !r.dup.age) patch.age = Number(r.age) || null;
       const custom = { ...toCustom(r.extra), ...(r.dup.custom || {}) };
       if (Object.keys(custom).length !== Object.keys(r.dup.custom || {}).length) patch.custom = custom;
-      if (Object.keys(patch).length) await dash.update("guests", r.dup.id, patch);
+      if (Object.keys(patch).length) patches.push({ id: r.dup.id, patch });
     }
-    setSaving(false);
+    // Une seule passe (six requêtes à la fois) plutôt qu'une requête après l'autre par doublon
+    if (patches.length) await dash.patchGuests(patches);
     dash.setToast({ kind: "ok", text: `${plural(created.length, "invité ajouté", "invités ajoutés")}${dups.length ? `, ${plural(dups.length, "fusionné", "fusionnés")}` : ""}.` });
     imports.remove(files.filter((f) => f.job).map((f) => f.id));
     router.push("/dashboard/invites");

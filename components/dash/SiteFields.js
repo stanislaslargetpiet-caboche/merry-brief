@@ -1,5 +1,7 @@
 "use client";
 
+import { uid } from "@/lib/dash/format";
+
 // Réglages du site de mariage : le formulaire de chaque rubrique (artboard « 9 · Réglages du site »).
 // Chaque champ enregistre au fil de la frappe (la page attend 0,7 s avant d'écrire dans Supabase).
 
@@ -153,7 +155,7 @@ function ListEditor({ items, onChange, empty, add, addLabel, max = 12, render, l
   return (
     <div className="d-col" style={{ gap: 10 }}>
       {items.map((it, i) => (
-        <div key={i} className="d-site-item">
+        <div key={it.id ?? i} className="d-site-item">
           <div className="d-site-item-head">
             <strong>
               {label} {i + 1}
@@ -294,7 +296,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
           <span className="d-field-hint">Les couleurs que vous suggérez à vos invités, six au plus.</span>
           <div className="d-site-colors">
             {c.dress.colors.map((x, i) => (
-              <div key={i} className="d-site-color">
+              <div key={x.id ?? i} className="d-site-color">
                 <input type="color" value={x.color} aria-label={`Couleur ${i + 1}`} onChange={(e) => set("dress")({ colors: c.dress.colors.map((y, j) => (j === i ? { ...y, color: e.target.value } : y)) })} />
                 <input className="d-input" value={x.name} maxLength={20} aria-label={`Nom de la couleur ${i + 1}`} onChange={(e) => set("dress")({ colors: c.dress.colors.map((y, j) => (j === i ? { ...y, name: e.target.value } : y)) })} />
                 <button type="button" className="d-icon-btn is-flat is-danger" aria-label={`Retirer la couleur ${i + 1}`} onClick={() => set("dress")({ colors: c.dress.colors.filter((_, j) => j !== i) })}>
@@ -303,7 +305,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
               </div>
             ))}
             {c.dress.colors.length < 6 ? (
-              <button type="button" className="d-fq-add" onClick={() => set("dress")({ colors: [...c.dress.colors, { name: "", color: "#d3c5ad" }] })}>
+              <button type="button" className="d-fq-add" onClick={() => set("dress")({ colors: [...c.dress.colors, { id: uid(), name: "", color: "#d3c5ad" }] })}>
                 <Icon name="plus" size={16} sw={2} />
                 Ajouter une couleur
               </button>
@@ -325,7 +327,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
           items={c.travel}
           onChange={(travel) => setContent({ travel })}
           addLabel="Ajouter un trajet"
-          add={() => ({ kind: "train", text: "", place: "", duration: "" })}
+          add={() => ({ id: uid(), kind: "train", text: "", place: "", duration: "" })}
           render={(t, up) => (
             <>
               <div className="d-filters">
@@ -352,7 +354,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
           items={c.stays}
           onChange={(stays) => setContent({ stays })}
           addLabel="Ajouter un hébergement"
-          add={() => ({ name: "", distance: "", note: "" })}
+          add={() => ({ id: uid(), name: "", distance: "", note: "" })}
           render={(s, up) => (
             <>
               <TextField label="Nom" value={s.name} max={80} placeholder="Hôtel des Restanques" onChange={(name) => up({ name })} />
@@ -427,7 +429,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
           max={20}
           onChange={(faq) => setContent({ faq })}
           addLabel="Ajouter une question"
-          add={() => ({ group: c.faq[c.faq.length - 1]?.group || "", q: "", a: "" })}
+          add={() => ({ id: uid(), group: c.faq[c.faq.length - 1]?.group || "", q: "", a: "" })}
           render={(q, up) => (
             <>
               <TextField label="Thème" value={q.group} max={40} placeholder="Le jour J" onChange={(group) => up({ group })} />
@@ -446,7 +448,7 @@ export function SectionFields({ k, site, setContent, setPhoto, data, dash }) {
           max={6}
           onChange={(contacts) => setContent({ contacts })}
           addLabel="Ajouter un témoin"
-          add={() => ({ name: "", role: "", reach: "" })}
+          add={() => ({ id: uid(), name: "", role: "", reach: "" })}
           render={(x, up) => (
             <>
               <div className="d-site-g2">

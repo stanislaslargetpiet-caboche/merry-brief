@@ -24,8 +24,18 @@ export default function WeddingModal({ onClose }) {
   const [shift, setShift] = useState(true);
   const plan = useMemo(() => shiftPlan(dash.data, w.wedding_date || null, form.wedding_date || null), [dash.data, w.wedding_date, form.wedding_date]);
 
+  const [saving, setSaving] = useState(false);
   async function save(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await persistAll();
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function persistAll() {
     const budget = parseAmount(form.budget_total);
     const names = { partner1: form.partner1.trim() || w.partner1, partner2: form.partner2.trim() || null };
     await dash.updateWedding({
