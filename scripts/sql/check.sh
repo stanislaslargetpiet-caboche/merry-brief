@@ -10,7 +10,7 @@ FILES=(
   scripts/sql/00-supabase-shim.sql
   supabase/schema.sql supabase/onboarding-simplifie.sql supabase/onboarding-v2.sql supabase/dashboard.sql
   supabase/quotas.sql supabase/merry-brief-sans-help.sql supabase/colonnes.sql supabase/plan-de-table.sql
-  supabase/sync-et-historique.sql supabase/relances-et-foyers.sql supabase/fiche-et-vues-invites.sql
+  supabase/sync-et-historique.sql supabase/relances.sql supabase/fiche-et-vues-invites.sql
   supabase/reponses-et-lignes.sql supabase/imports.sql supabase/formulaire.sql supabase/documents.sql
   supabase/pense-bete.sql supabase/prestataires.sql supabase/catalog.sql supabase/catalog-filtres.sql
   supabase/lieux-rapides.sql supabase/qualite-photos.sql supabase/commentaires-prestataires.sql

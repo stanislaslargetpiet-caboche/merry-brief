@@ -2,15 +2,14 @@
 
 // Plan de table : à gauche ceux qui viennent et n'ont pas encore de place, à droite les tables.
 // On place en glissant un invité sur une table, ou en cochant plusieurs puis « Placer ici ».
-// Les foyers restent ensemble (placement automatique, et avertissement quand ils sont séparés).
+// Un invité et ses accompagnants restent ensemble (placement automatique, et avertissement sinon).
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useDash } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize, uid } from "@/lib/dash/format";
+import { normalize, uid } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
-import { householdKey, householdLabel, householdsOf } from "@/lib/dash/households";
-import { DEFAULT_CAPACITY, autoSeat, defaultSeatingEvent, eligibleGuests, planFor, splitHouseholds } from "@/lib/dash/seating";
+import { DEFAULT_CAPACITY, autoSeat, defaultSeatingEvent, eligibleGuests, planFor, splitUnits, unitKey } from "@/lib/dash/seating";
 import { Icon } from "@/components/dash/icons";
 import { Btn, InlineEdit, Popover } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
@@ -29,7 +28,6 @@ export default function PlanDeTable() {
   const idx = useMemo(() => responseIndex(data.responses), [data.responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
-  const households = useMemo(() => householdsOf(guests, byId), [guests, byId]);
   const [eventId, setEventId] = useState(() => defaultSeatingEvent(events)?.id || null);
   useEffect(() => {
     if (!events.some((e) => e.id === eventId)) setEventId(defaultSeatingEvent(events)?.id || null);
@@ -38,10 +36,10 @@ export default function PlanDeTable() {
   const plan = useMemo(() => planFor(data, eventId), [data, eventId]);
   const eligible = useMemo(() => (eventId ? eligibleGuests(data, idx, eventId) : []), [data, idx, eventId]);
   const unseated = eligible.filter((g) => !plan.tableOf.has(g.id));
-  const split = useMemo(() => splitHouseholds(eligible, plan.tableOf, byId), [eligible, plan.tableOf, byId]);
+  const split = useMemo(() => splitUnits(eligible, plan.tableOf), [eligible, plan.tableOf]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState({});
-  const [keepHouseholds, setKeepHouseholds] = useState(true);
+  const [keepTogether, setKeepTogether] = useState(true);
   const [over, setOver] = useState(null); // table survolée pendant un glisser
   const [menu, setMenu] = useState(null); // id de la table dont le menu est ouvert
   const q = normalize(query);
@@ -49,20 +47,20 @@ export default function PlanDeTable() {
   const selIds = unseated.filter((g) => selected[g.id]).map((g) => g.id);
   const ok = (text) => dash.setToast({ kind: "ok", text });
 
-  // Les membres du foyer encore à placer suivent (option « garder les foyers ensemble »)
-  const withHousehold = (ids) => {
-    if (!keepHouseholds) return ids;
+  // L'hôte et ses accompagnants encore à placer suivent (option « garder les accompagnants ensemble »)
+  const withUnit = (ids) => {
+    if (!keepTogether) return ids;
     const set = new Set(ids);
     for (const id of ids) {
       const g = byId.get(id);
       if (!g) continue;
-      for (const m of households.get(householdKey(g, byId)) || []) if (unseated.some((u) => u.id === m.id)) set.add(m.id);
+      for (const m of unseated) if (unitKey(m) === unitKey(g)) set.add(m.id);
     }
     return [...set];
   };
 
   async function place(ids, tableId) {
-    const all = withHousehold(ids).filter((id) => plan.tableOf.get(id) !== tableId);
+    const all = withUnit(ids).filter((id) => plan.tableOf.get(id) !== tableId);
     if (!all.length) return;
     setSelected({});
     if (await dash.seatGuests(all, eventId, tableId)) {
@@ -101,7 +99,7 @@ export default function PlanDeTable() {
       );
       tables = [...tables, ...added];
     }
-    const seats = autoSeat(unseated, tables, plan.perTable, byId, groups.map((g) => g.id));
+    const seats = autoSeat(unseated, tables, plan.perTable, groups.map((g) => g.id));
     const byTable = new Map();
     for (const s of seats) byTable.set(s.table_id, [...(byTable.get(s.table_id) || []), s.guest_id]);
     let placed = 0;
@@ -153,9 +151,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
   const full = plan.tables.filter((t) => (plan.perTable.get(t.id) || []).length >= (t.capacity || DEFAULT_CAPACITY)).length;
   const overCap = plan.tables.filter((t) => (plan.perTable.get(t.id) || []).length > (t.capacity || DEFAULT_CAPACITY)).length;
   const guestRow = (g, seatedAt) => {
-    const hk = householdKey(g, byId);
-    const members = households.get(hk) || [];
-    const isSplit = split.has(hk);
+    const isSplit = split.has(unitKey(g));
     const group = groupById.get(g.group_id);
     const p = group ? pastel(group.color) : null;
     return (
@@ -168,10 +164,10 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
                 {group.name}
               </span>
             ) : null}
-            {members.length > 1 ? (
-              <span className={`d-house${isSplit ? " is-split" : ""}`} title={isSplit ? "Ce foyer est réparti sur plusieurs tables" : `Foyer : ${members.map((m) => fullName(m) || "+1").join(", ")}`}>
-                <Icon name="home" size={10} sw={2.2} />
-                {isSplit ? "foyer séparé" : householdLabel(members)}
+            {isSplit ? (
+              <span className="d-seat-split" title="Séparé de la personne qu'il accompagne (ou de ses accompagnants)">
+                <Icon name="users" size={10} sw={2.2} />
+                séparés
               </span>
             ) : null}
             {g.diet ? <span className="d-seat-diet">{g.diet}</span> : null}
@@ -230,7 +226,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
             {unseated.length ? <span>· {n(unseated.length, "à placer", "à placer")}</span> : <span>· tout le monde a sa place</span>}
             {full ? <span>· {n(full, "table pleine", "tables pleines")}</span> : null}
             {overCap ? <span className="d-seat-warn">· {n(overCap, "table au-dessus de sa capacité", "tables au-dessus de leur capacité")}</span> : null}
-            {split.size ? <span className="d-seat-warn">· {n(split.size, "foyer séparé", "foyers séparés")}</span> : null}
+            {split.size ? <span className="d-seat-warn">· {split.size > 1 ? `${split.size} invités séparés de leurs accompagnants` : "1 invité séparé de son accompagnant"}</span> : null}
           </div>
 
           <div className="d-seat-layout">
@@ -238,7 +234,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
               <div className="d-seat-side-head">
                 <strong>À placer · {unseated.length}</strong>
                 {unseated.length ? (
-                  <Btn small kind="ghost" icon="sparkle" onClick={autoPlace} disabled={!setup} title="Les foyers ensemble, puis par groupe, dans les tables qui ont de la place">
+                  <Btn small kind="ghost" icon="sparkle" onClick={autoPlace} disabled={!setup} title="Chacun avec ses accompagnants, par groupe, dans les tables qui ont de la place">
                     Placer automatiquement
                   </Btn>
                 ) : null}
@@ -250,8 +246,8 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
                     <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher" aria-label="Chercher un invité à placer" style={{ width: "100%" }} />
                   </label>
                   <label className="d-small" style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                    <input type="checkbox" className="d-check" checked={keepHouseholds} onChange={(e) => setKeepHouseholds(e.target.checked)} />
-                    Garder les foyers ensemble
+                    <input type="checkbox" className="d-check" checked={keepTogether} onChange={(e) => setKeepTogether(e.target.checked)} />
+                    Garder les accompagnants avec leur hôte
                   </label>
                   {selIds.length ? (
                     <div className="d-seat-selbar">
@@ -347,7 +343,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
                     </ul>
                     {selIds.length ? (
                       <Btn small className="d-btn-block" onClick={() => place(selIds, t.id)}>
-                        Placer ici ({withHousehold(selIds).length})
+                        Placer ici ({withUnit(selIds).length})
                       </Btn>
                     ) : null}
                   </section>

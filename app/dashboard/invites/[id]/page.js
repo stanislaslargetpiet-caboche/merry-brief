@@ -16,7 +16,6 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
 import GroupCell from "@/components/dash/GroupCell";
 import { agoDays, inviteLink, mailHref, reminderSubject, reminderText, smsHref, waDigits, waHref } from "@/lib/dash/relance";
-import { householdKey, householdLabel, householdsOf } from "@/lib/dash/households";
 import { ChoiceCell } from "@/components/dash/ColumnModal";
 
 function splitName(s) {
@@ -94,7 +93,6 @@ export default function FicheInvite() {
   const r = idx.get(guest.id) || {};
   const host = guest.plus_one_of ? byId.get(guest.plus_one_of) : null;
   const plusOnes = guests.filter((g) => g.plus_one_of === guest.id);
-  const household = (householdsOf(guests, byId).get(householdKey(guest, byId)) || []).filter((m) => m.id !== guest.id);
   const pending = events.some((ev) => (r[ev.id] || "non_invite") === "attente");
   const link = inviteLink(dash.data);
   const relText = reminderText(dash.data, link).replace(/^Bonjour !/, guest.first_name ? `Bonjour ${guest.first_name.trim()} !` : "Bonjour !");
@@ -258,30 +256,6 @@ export default function FicheInvite() {
                 <p className="d-small d-muted" style={{ margin: 0 }}>
                   Ni mail ni téléphone : ajoutez-en un dans Contact, ou passez par sa famille.
                 </p>
-              ) : null}
-            </section>
-          ) : null}
-
-          {household.length ? (
-            <section className="d-card">
-              <h2>Foyer</h2>
-              <p className="d-small d-muted" style={{ margin: 0 }}>
-                Un faire-part, une adresse : {householdLabel([guest, ...household])}.
-              </p>
-              <div className="d-col" style={{ gap: 2 }}>
-                {household.map((m) => (
-                  <Link key={m.id} href={`/dashboard/invites/${m.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
-                    <span>{fullName(m) || "Accompagnant à nommer"}</span>
-                    <Icon name="chev" size={14} sw={2.2} />
-                  </Link>
-                ))}
-              </div>
-              {guest.household_id ? (
-                <div>
-                  <Btn kind="ghost" small onClick={() => dash.update("guests", guest.id, { household_id: null })}>
-                    Sortir du foyer
-                  </Btn>
-                </div>
               ) : null}
             </section>
           ) : null}

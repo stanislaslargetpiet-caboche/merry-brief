@@ -823,7 +823,7 @@ create trigger merry_log_response
 -- Le fichier peut être relancé sans risque : il ne supprime aucune donnée.
 --
 -- Un plan par moment du mariage (le dîner, le plus souvent) : des tables avec un nom et un nombre de
--- places, et qui s'assoit où. Les foyers (relances-et-foyers.sql) sont gardés ensemble par le placement
+-- places, et qui s'assoit où. Un invité et ses accompagnants sont gardés ensemble par le placement
 -- automatique, et signalés quand ils sont séparés.
 
 create table if not exists public.seating_tables (
@@ -916,6 +916,10 @@ create table if not exists public.guest_forms (
 alter table public.guest_forms add column if not exists title text check (title is null or length(title) <= 60);
 alter table public.guest_forms add column if not exists cover_position smallint not null default 50 check (cover_position between 0 and 100);
 alter table public.guest_forms add column if not exists presence_mode text not null default 'moments' check (presence_mode in ('moments', 'global'));
+-- Ajout du 2 novembre 2026 : l'ordre des questions choisi par le couple
+-- (« ident » pour prénom, nom et mail, la clé d'une question proposée, l'identifiant d'une question ajoutée).
+-- Vide : l'ordre par défaut (la présence d'abord), voir lib/dash/form.js.
+alter table public.guest_forms add column if not exists question_order jsonb not null default '[]'::jsonb;
 
 -- Ajout du 2 novembre 2026 : limite de réponses par formulaire et par heure (le formulaire est public)
 alter table public.guest_forms add column if not exists rate_window_start timestamptz;
@@ -930,9 +934,9 @@ create policy "organisateurs: tout" on public.guest_forms for all to authenticat
 
 -- Le compteur de réponses ne s'écrit que par merry_form_submit.
 revoke insert, update on public.guest_forms from authenticated, anon;
-grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
+grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
   on public.guest_forms to authenticated;
-grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, updated_at)
+grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
   on public.guest_forms to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -996,6 +1000,7 @@ as $$
            'cover_url', f.cover_url,
            'cover_position', f.cover_position,
            'deadline', f.deadline,
+           'question_order', coalesce(f.question_order, '[]'::jsonb),
            'fields', coalesce((select jsonb_agg(e - 'field_id' order by ord) from jsonb_array_elements(f.fields) with ordinality as t(e, ord)), '[]'::jsonb),
            'custom', coalesce((select jsonb_agg(e - 'field_id' order by ord) from jsonb_array_elements(f.custom) with ordinality as t(e, ord)), '[]'::jsonb),
            'events', coalesce((
@@ -1192,6 +1197,10 @@ begin
     raise exception 'Formulaire introuvable';
   end if;
   w := f.wedding_id;
+  -- Date limite dépassée (le jour même, on répond encore) : la page le dit avant, la base le garantit
+  if f.deadline is not null and f.deadline < current_date then
+    raise exception 'Date limite dépassée';
+  end if;
   if pg_column_size(payload) > 20000 then
     raise exception 'Réponse trop longue';
   end if;

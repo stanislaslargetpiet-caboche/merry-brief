@@ -15823,23 +15823,6 @@ body.d-noscroll {
   resize: vertical;
 }
 
-/* Pastille de foyer, sous le nom */
-.d-house {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: #efeeea;
-  color: #4a4944;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .d-relance-list {
   max-height: 320px;
   overflow-y: auto;
@@ -15871,6 +15854,85 @@ body.d-noscroll {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Formulaire invités : l'ordre des questions (poignée à gauche, trait là où la ligne va se poser) */
+.d-fm-help {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--d-muted);
+}
+
+.d-fm-help code {
+  font-size: 12px;
+}
+
+.d-fm-row {
+  position: relative;
+}
+
+.d-fm-grip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 36px;
+  margin: -6px 0 -6px -8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #b4b3aa;
+  cursor: grab;
+  touch-action: none;
+}
+
+.d-fm-grip:hover,
+.d-fm-row.is-moving .d-fm-grip {
+  color: var(--d-ink);
+  background: #f1f0eb;
+}
+
+.d-fm-list.is-dragging,
+.d-fm-list.is-dragging .d-fm-row {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.d-fm-row.is-moving {
+  opacity: 0.45;
+}
+
+.d-fm-row.is-drop-before::before,
+.d-fm-row.is-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--d-ink);
+  z-index: 1;
+}
+
+.d-fm-row.is-drop-before::before {
+  top: -2px;
+}
+
+.d-fm-row.is-drop-after::after {
+  bottom: -2px;
+}
+
+.d-fm-move {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.d-fm-move > span {
+  margin-right: auto;
 }
 
 /* Nouvelles réponses reçues par le formulaire depuis la dernière visite */
@@ -16012,9 +16074,16 @@ body.d-noscroll {
   color: #8a4b0f;
 }
 
-.d-house.is-split {
+.d-seat-split {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
   background: #fde0de;
   color: #9b2c2c;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .d-seat-x {

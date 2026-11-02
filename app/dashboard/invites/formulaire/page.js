@@ -4,9 +4,10 @@
 // la liste des questions posées, une fenêtre pour chacune, l'aperçu invité et l'apparence sur ordinateur, Partager sur téléphone.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { dayMonth } from "@/lib/dash/format";
 import { useDash } from "@/lib/dash/store";
 import { longDate } from "@/lib/dash/format";
-import { CUSTOM_MAX, CUSTOM_TYPES, FORM_THEMES, MESSAGE_MAX, TITLE_MAX, PRESET_FIELDS, defaultForm, formTheme, formUrl, makeSlug, shrinkImage, withPresets } from "@/lib/dash/form";
+import { CUSTOM_MAX, CUSTOM_TYPES, FORM_THEMES, IDENT, IDENT_LABEL, MESSAGE_MAX, TITLE_MAX, PRESET_FIELDS, defaultForm, formTheme, formUrl, makeSlug, moveQuestion, questionOrder, shrinkImage, withPresets } from "@/lib/dash/form";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Modal, BusyDots } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
@@ -17,6 +18,12 @@ const ANSWER_TYPES = [
   { id: "yesno", label: "Oui ou non" },
   { id: "choice", label: "Un choix" },
 ];
+
+const Grip = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    {[6, 12, 18].map((y) => [9, 15].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.7" />))}
+  </svg>
+);
 
 function ReqTag({ req, children }) {
   return (
@@ -39,9 +46,14 @@ export default function FormulaireInvites() {
   const [uploading, setUploading] = useState(false);
   // Fenêtre ouverte : { kind: "edit", row, label, req, presence_mode, event_ids }, { kind: "add" } ou { kind: "look" }
   const [sheet, setSheet] = useState(null);
+  // Glisser une question : { id, target: { before, after } | null }
+  const [drag, setDrag] = useState(null);
+  // false : la colonne question_order manque en base (formulaire.sql pas relancé) ; l'ordre reste sur cet appareil
+  const [orderSetup, setOrderSetup] = useState(true);
   const timer = useRef(null);
   const latest = useRef(form);
   const fileInput = useRef(null);
+  const rowRefs = useRef(new Map());
 
   const dirty = useRef(false);
 
@@ -69,6 +81,12 @@ export default function FormulaireInvites() {
         latest.current = again;
         setForm(again);
         return save(again, false);
+      }
+      // Colonne de l'ordre absente (formulaire.sql pas relancé) : on enregistre le reste, l'ordre reste ici
+      if (retry && res.error?.code === "42703" && /question_order/.test(res.error?.message || "")) {
+        setOrderSetup(false);
+        const { question_order: _, ...rest } = next;
+        return save(rest, false);
       }
       setStatus("error");
       return false;
@@ -146,24 +164,6 @@ export default function FormulaireInvites() {
   const labelOf = (key) => form.fields.find((f) => f.key === key)?.label || key;
   const replies = data.form?.submissions || 0;
 
-  // Même ordre que la page invité
-  const previewItems = [
-    { id: "ident", label: "Prénom, nom et mail", req: true },
-    modeOf("tel") !== "off" ? { id: "tel", label: labelOf("tel"), req: modeOf("tel") === "req" } : null,
-    modeOf("adresse") !== "off" ? { id: "adresse", label: labelOf("adresse"), req: modeOf("adresse") === "req" } : null,
-    ...(modeOf("presence") === "off"
-      ? []
-      : form.presence_mode === "global"
-        ? [{ id: "presence", label: "Serez-vous des nôtres ?", req: modeOf("presence") === "req", pills: ["Oui", "Non"] }]
-        : inForm.map((e) => ({ id: `ev-${e.id}`, label: e.name, req: modeOf("presence") === "req", pills: ["Oui", "Non"] }))),
-    modeOf("plusun") !== "off" ? { id: "plusun", label: "Venez-vous accompagné(e) ?", req: modeOf("plusun") === "req", pills: ["Oui", "Non"] } : null,
-    modeOf("regime") !== "off" ? { id: "regime", label: labelOf("regime"), req: modeOf("regime") === "req", pills: PILLS.regime } : null,
-    modeOf("enfants") !== "off" ? { id: "enfants", label: labelOf("enfants"), req: modeOf("enfants") === "req" } : null,
-    modeOf("hebergement") !== "off" ? { id: "hebergement", label: labelOf("hebergement"), req: modeOf("hebergement") === "req", pills: ["Oui", "Non"] } : null,
-    ...form.custom.map((c) => ({ id: c.id, label: c.label, req: !!c.req, pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 3) : null })),
-    modeOf("mot") !== "off" ? { id: "mot", label: labelOf("mot"), req: modeOf("mot") === "req", tall: true } : null,
-  ].filter(Boolean);
-
   // Seulement les questions posées ; les autres reviennent par « Ajouter une question »
   const momentsText = (mode, ids) => (mode === "global" ? "une seule question" : events.filter((e) => ids.includes(e.id)).map((e) => e.name.toLowerCase()).join(", ") || "aucun moment");
   const presetRow = (f) => ({
@@ -175,19 +175,63 @@ export default function FormulaireInvites() {
     tall: f.key === "mot",
     detail: f.key === "presence" ? momentsText(form.presence_mode, form.event_ids) : null,
   });
-  const shown = form.fields.filter((f) => f.mode !== "off");
-  const rows = [
-    ...shown.filter((f) => f.key !== "mot").map(presetRow),
-    ...form.custom.map((c) => ({
-      id: c.id,
-      customId: c.id,
-      label: c.label,
-      req: !!c.req,
-      pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 4) : null,
-      detail: CUSTOM_TYPES.find((t) => t.id === c.type)?.label.toLowerCase(),
-    })),
-    ...shown.filter((f) => f.key === "mot").map(presetRow),
-  ];
+  const customRow = (c) => ({
+    id: c.id,
+    customId: c.id,
+    label: c.label,
+    req: !!c.req,
+    pills: c.type === "yesno" ? ["Oui", "Non"] : c.type === "choice" ? (c.options || []).slice(0, 4) : null,
+    detail: CUSTOM_TYPES.find((t) => t.id === c.type)?.label.toLowerCase(),
+  });
+  // Les questions dans l'ordre du couple : la même liste pour les réglages et l'aperçu
+  const order = questionOrder(form);
+  const rows = order
+    .map((id) => {
+      if (id === IDENT) return { id, ident: true, label: IDENT_LABEL, req: true };
+      const c = form.custom.find((x) => x.id === id);
+      if (c) return customRow(c);
+      const f = form.fields.find((x) => x.key === id);
+      return f && f.mode !== "off" ? presetRow(f) : null;
+    })
+    .filter(Boolean);
+
+  // Même ordre que la page invité
+  const previewItems = rows.flatMap((r) => {
+    if (r.key === "presence") {
+      return form.presence_mode === "global" ? [{ id: "presence", label: "Serez-vous des nôtres ?", req: r.req, pills: ["Oui", "Non"] }] : inForm.map((e) => ({ id: `ev-${e.id}`, label: e.name, req: r.req, pills: ["Oui", "Non"] }));
+    }
+    if (r.key === "plusun") return [{ ...r, label: "Venez-vous accompagné(e) ?" }];
+    if (r.customId) return [{ ...r, pills: r.pills ? r.pills.slice(0, 3) : null }];
+    return [r];
+  });
+
+  // Glisser-déposer des questions (poignée à gauche de chaque ligne)
+  const reorder = (id, to) => change((f) => ({ question_order: moveQuestion(questionOrder(f), id, to) }));
+  const dropTarget = (y) => {
+    let best = null;
+    for (const [id, el] of rowRefs.current) {
+      if (!el || id === drag?.id) continue;
+      const r = el.getBoundingClientRect();
+      const d = Math.abs(y - (r.top + r.height / 2));
+      if (!best || d < best.d) best = { d, before: id, after: y > r.top + r.height / 2 };
+    }
+    return best ? { before: best.before, after: best.after } : null;
+  };
+  const startDrag = (id, e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDrag({ id, target: null });
+  };
+  const moveDrag = (e) => {
+    if (!drag) return;
+    setDrag({ id: drag.id, target: dropTarget(e.clientY) });
+  };
+  const endDrag = () => {
+    if (drag?.target) reorder(drag.id, drag.target);
+    setDrag(null);
+  };
+  const dropClass = (id) => (drag?.target?.before === id ? (drag.target.after ? " is-drop-after" : " is-drop-before") : "");
+
   const suggestions = PRESET_FIELDS.filter((p) => modeOf(p.key) === "off");
 
   const openEdit = (row) => setSheet({ kind: "edit", row, label: row.label, req: row.req, presence_mode: form.presence_mode, event_ids: form.event_ids });
@@ -316,23 +360,43 @@ export default function FormulaireInvites() {
           </div>
 
           <h2 className="d-fm-h d-desk-only">Les questions</h2>
-          <section className="d-fm-list" aria-label="Les questions du formulaire">
-            <div className="d-fm-row is-locked">
-              <Icon name="lock" size={16} />
-              <span className="d-fm-text">
-                <strong>Prénom, nom et mail</strong>
-                <ReqTag req="always" />
-              </span>
-            </div>
+          <p className="d-fm-help">Vos invités répondent dans cet ordre. Glissez la poignée d'une ligne pour la déplacer.</p>
+          <section className={`d-fm-list${drag ? " is-dragging" : ""}`} aria-label="Les questions du formulaire">
             {rows.map((r) => (
-              <button key={r.id} type="button" className="d-fm-row" onClick={() => openEdit(r)}>
+              <div
+                key={r.id}
+                ref={(el) => (el ? rowRefs.current.set(r.id, el) : rowRefs.current.delete(r.id))}
+                className={`d-fm-row${r.ident ? " is-locked" : ""}${drag?.id === r.id ? " is-moving" : ""}${dropClass(r.id)}`}
+                onClick={r.ident ? undefined : () => openEdit(r)}
+                role={r.ident ? undefined : "button"}
+                tabIndex={r.ident ? undefined : 0}
+                onKeyDown={r.ident ? undefined : (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), openEdit(r))}
+              >
+                <button
+                  type="button"
+                  className="d-fm-grip"
+                  aria-label={`Déplacer : ${r.label}`}
+                  title="Maintenir et glisser pour déplacer"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => startDrag(r.id, e)}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={() => setDrag(null)}
+                >
+                  <Grip />
+                </button>
+                {r.ident ? <Icon name="lock" size={16} /> : null}
                 <span className="d-fm-text">
                   <strong>{r.label}</strong>
-                  <ReqTag req={r.req}>{r.detail}</ReqTag>
+                  <ReqTag req={r.ident ? "always" : r.req}>{r.detail}</ReqTag>
                 </span>
-                <span className="d-fm-edit d-desk-only">Modifier</span>
-                <Icon name="chev" size={16} sw={2.2} />
-              </button>
+                {r.ident ? null : (
+                  <>
+                    <span className="d-fm-edit d-desk-only">Modifier</span>
+                    <Icon name="chev" size={16} sw={2.2} />
+                  </>
+                )}
+              </div>
             ))}
             <button type="button" className="d-fm-row is-add" onClick={() => setSheet({ kind: "add" })}>
               <span className="d-fm-plus">
@@ -341,6 +405,11 @@ export default function FormulaireInvites() {
               Ajouter une question
             </button>
           </section>
+          {!orderSetup ? (
+            <p className="d-fm-help" role="status">
+              L'ordre des questions n'est pas encore enregistré côté Supabase : relancez <code>supabase/formulaire.sql</code> (SQL Editor), puis rechargez cette page.
+            </p>
+          ) : null}
           <div className="d-mob-only">
             <Btn kind="ghost" icon="pencil" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
               Modifier l'apparence
@@ -420,6 +489,20 @@ export default function FormulaireInvites() {
             <strong>Réponse obligatoire</strong>
             <span className={`d-fm-switch${sheet.req ? " is-on" : ""}`} aria-hidden="true" />
           </button>
+          <div className="d-field">
+            <span className="d-field-label">Place dans le formulaire</span>
+            <div className="d-fm-move">
+              <span className="d-small d-muted">
+                {rows.findIndex((r) => r.id === sheet.row.id) + 1} sur {rows.length}
+              </span>
+              <Btn kind="ghost" small icon="arrowUp" disabled={rows.findIndex((r) => r.id === sheet.row.id) === 0} onClick={() => reorder(sheet.row.id, "up")}>
+                Monter
+              </Btn>
+              <Btn kind="ghost" small icon="arrowDown" disabled={rows.findIndex((r) => r.id === sheet.row.id) === rows.length - 1} onClick={() => reorder(sheet.row.id, "down")}>
+                Descendre
+              </Btn>
+            </div>
+          </div>
           {sheet.row.key === "presence" ? (
             <div className="d-field">
               <span className="d-field-label">Vos invités répondent</span>
@@ -593,6 +676,7 @@ export default function FormulaireInvites() {
             <label className="d-field">
               <span className="d-field-label">Répondre avant le</span>
               <input className="d-input" type="date" value={form.deadline || ""} onChange={(e) => change({ deadline: e.target.value || null })} />
+              <span className="d-field-hint">{form.deadline ? `La date est rappelée aux invités ; à partir du lendemain du ${dayMonth(form.deadline)}, le formulaire se ferme.` : "Rappelée aux invités ; passée, le formulaire se ferme (vous pouvez la repousser ici)."}</span>
             </label>
             <div className="d-field">
               <span className="d-field-label">Thème</span>

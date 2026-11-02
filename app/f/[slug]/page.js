@@ -1,10 +1,63 @@
-import { fetchPublicForm } from "@/lib/formServer";
-import FormPage from "@/components/site/FormPage";
+"use client";
 
-// Le formulaire est lu une fois côté serveur (le même appel que l'aperçu de lien, partagé dans la requête) :
-// il s'affiche déjà rempli, sans écran « Chargement… » ni second aller-retour depuis le navigateur.
-export default async function GuestFormRoute({ params }) {
-  const { slug } = await params;
-  const initial = await fetchPublicForm(slug);
-  return <FormPage slug={slug} initial={initial} />;
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
+import { longDate } from "@/lib/dash/format";
+import { formTheme } from "@/lib/dash/form";
+import GuestForm, { useGuestForm } from "@/components/site/GuestForm";
+
+/*
+ * Page publique du formulaire invités : le lien que le couple partage sur
+ * WhatsApp, Facebook ou par message. Aucune connexion : le formulaire est lu et
+ * envoyé par deux fonctions Supabase (merry_form_public, merry_form_submit).
+ * En démo (tableau de bord ?demo=1 ou sans Supabase), on lit le formulaire du navigateur.
+ * Le formulaire lui-même (questions, envoi) est dans components/site/GuestForm.js, partagé avec le site de mariage.
+ */
+
+export default function GuestFormPage() {
+  const { slug } = useParams();
+  const state = useGuestForm(slug);
+  const form = state.form;
+  const theme = formTheme(form?.theme);
+  const style = useMemo(() => ({ "--gf-bg": theme.bg, "--gf-deep": theme.deep, "--gf-accent": theme.accent }), [theme]);
+
+  if (state.status !== "ready") {
+    return (
+      <main className="gf" style={style}>
+        <p className="gf-state">{state.status === "loading" ? "Chargement du formulaire…" : "Ce formulaire n'existe pas ou n'est plus ouvert. Vérifiez le lien reçu des mariés."}</p>
+      </main>
+    );
+  }
+
+  const couple = (form.title || "").trim() || [form.partner1, form.partner2].filter(Boolean).join(" & ");
+
+  return (
+    <main className="gf" style={style}>
+      <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50}%` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />
+      <div className="gf-wrap">
+        <section className="gf-card gf-hero">
+          <div className="gf-kicker">Save the date</div>
+          <h1>{couple}</h1>
+          {form.wedding_date ? <div className="gf-date">{longDate(form.wedding_date)}</div> : null}
+          {form.venue ? <div className="gf-venue">{form.venue}</div> : null}
+          {form.message ? <p className="gf-message">{form.message}</p> : null}
+          {form.venue ? (
+            <a className="gf-maps" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.venue)}`} target="_blank" rel="noreferrer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z" />
+                <circle cx="12" cy="10" r="2.3" />
+              </svg>
+              Voir l'itinéraire
+            </a>
+          ) : null}
+        </section>
+
+        <GuestForm form={form} slug={String(slug)} />
+
+        <div className="gf-foot">
+          Formulaire créé avec <b>Merry</b>
+        </div>
+      </div>
+    </main>
+  );
 }

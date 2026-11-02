@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoSeat, defaultSeatingEvent, planFor, splitHouseholds } from "@/lib/dash/seating";
+import { autoSeat, defaultSeatingEvent, planFor, splitUnits } from "@/lib/dash/seating";
 
 const g = (id, group_id, extra = {}) => ({ id, first_name: id, last_name: "", group_id, ...extra });
 
@@ -27,13 +27,12 @@ describe("plan de table", () => {
     expect(plan.tableOf.get("a")).toBe("t0");
   });
 
-  it("garde les foyers ensemble et remplit table après table", () => {
-    const guests = [g("a", "g1", { household_id: "h" }), g("b", "g1", { household_id: "h" }), g("c", "g1", { household_id: "h" }), g("d", "g2"), g("e", "g2")];
-    const byId = new Map(guests.map((x) => [x.id, x]));
+  it("garde un invité avec ses accompagnants et remplit table après table", () => {
+    const guests = [g("a", "g1"), g("b", "g1", { plus_one_of: "a" }), g("c", "g1", { plus_one_of: "a" }), g("d", "g2"), g("e", "g2")];
     const tables = [{ id: "t1", capacity: 2 }, { id: "t2", capacity: 4 }];
-    const out = autoSeat(guests, tables, new Map(), byId, ["g1", "g2"]);
+    const out = autoSeat(guests, tables, new Map(), ["g1", "g2"]);
     const at = Object.fromEntries(out.map((x) => [x.guest_id, x.table_id]));
-    // le foyer de trois ne tient pas à la table de deux : il va à la suivante, entier
+    // l'unité de trois ne tient pas à la table de deux : elle va à la suivante, entière
     expect([at.a, at.b, at.c]).toEqual(["t2", "t2", "t2"]);
     // puis on finit de remplir cette table avant de passer à la suivante
     expect(at.d).toBe("t2");
@@ -41,10 +40,9 @@ describe("plan de table", () => {
     expect(out).toHaveLength(5);
   });
 
-  it("signale un foyer réparti sur deux tables", () => {
-    const guests = [g("a", "g", { household_id: "h" }), g("b", "g", { household_id: "h" }), g("c", "g")];
-    const byId = new Map(guests.map((x) => [x.id, x]));
+  it("signale un accompagnant séparé de son hôte", () => {
+    const guests = [g("a", "g"), g("b", "g", { plus_one_of: "a" }), g("c", "g")];
     const tableOf = new Map([["a", "t1"], ["b", "t2"], ["c", "t1"]]);
-    expect([...splitHouseholds(guests, tableOf, byId)]).toEqual(["h"]);
+    expect([...splitUnits(guests, tableOf)]).toEqual(["a"]);
   });
 });
