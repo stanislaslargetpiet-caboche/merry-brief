@@ -278,7 +278,7 @@ export default function Budget() {
           <strong>{posteName(it)}</strong>
           {sub ? <small>{sub}</small> : null}
         </span>
-        {f.paid > 0 || f.hasPlan || hasPayments(it) ? (
+        {f.paid > 0 || f.hasPlan || f.budgeted || hasPayments(it) ? (
           <button type="button" className="d-mrow-amount d-mrow-amount-btn" onClick={() => openPayments(it)} aria-label={`Paiements de ${posteName(it)}`}>
             {amountCell(f)}
           </button>
