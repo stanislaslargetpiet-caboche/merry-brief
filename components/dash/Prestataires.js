@@ -1279,6 +1279,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       months: when ? when.months || [] : weddingDay ? [weddingDay.getMonth()] : [],
       years: when ? when.years || [] : [firstYear],
       share: false,
+      sign: signature(data.wedding),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -1292,7 +1293,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
     }
     return { ...fresh, ...saved };
   });
-  const { message, questions, dates, flexible, months, years, share } = draft;
+  const { message, questions, dates, flexible, months, years, share, sign } = draft;
   const set = (patch) => setDraft((d) => ({ ...d, ...(typeof patch === "function" ? patch(d) : patch) }));
   const [list, setList] = useState(initial);
   const [adding, setAdding] = useState({});
@@ -1324,7 +1325,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       return;
     }
     setBusy(true);
-    await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {} });
+    await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {}, sign });
     setBusy(false);
     writeDraft(weddingId, null);
     dash.setToast({ kind: "ok", text: `${list.length > 1 ? `${list.length} demandes enregistrées` : "Demande enregistrée"}, sur la fiche de chaque prestataire dans Budget.` });
@@ -1369,6 +1370,12 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
             Votre message
           </label>
           <textarea id="devis-message" rows={8} className="d-textarea d-pr-field is-message" value={message} onChange={(e) => set({ message: e.target.value })} />
+        </section>
+        <section className="d-pr-dsec is-ruled">
+          <label htmlFor="devis-sign" className="d-pr-dtitle">
+            Votre formule de fin
+          </label>
+          <textarea id="devis-sign" rows={2} className="d-textarea d-pr-field" value={sign} onChange={(e) => set({ sign: e.target.value })} />
         </section>
         {cats.length ? (
           <section className="d-pr-dsec is-ruled">
@@ -1498,7 +1505,7 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
                   </div>
                 ) : null}
                 <div className="d-pr-preview-to">À {shown.data?.name}</div>
-                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null, sign: signature(data.wedding) })}</p>
+                <p className="d-pr-preview-body">{requestBody({ message, questions: finalQuestions()[shown.category] || [], dates: finalDates(), budget: share ? budget : null, sign: sign?.trim() || signature(data.wedding) })}</p>
               </div>
             ) : null}
           </section>

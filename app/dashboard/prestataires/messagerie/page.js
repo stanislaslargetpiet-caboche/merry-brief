@@ -44,7 +44,7 @@ export default function Messagerie() {
     if (!body || !current || busy) return;
     setBusy(true);
     await dash.insert("vendor_messages", { vendor_id: current.vendor.id, from_vendor: false, author_id: data.meId || null, body, sent_at: new Date().toISOString() });
-    if (dash.mode === "live") notifyVendor(current.vendor.id);
+    if (dash.mode === "live") notifyVendor(current.vendor.id, { message: body });
     setText("");
     setBusy(false);
   }
