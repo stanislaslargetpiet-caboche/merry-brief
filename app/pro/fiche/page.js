@@ -303,7 +303,7 @@ function VideoSection() {
           <label htmlFor="lien">Lien Matterport, YouTube ou Vimeo</label>
           <TextInput id="lien" placeholder="https://" value={isFile ? "" : url} onSave={(t) => pro.saveFiche({ video_url: t || null })} />
         </div>
-        <span className="p-hint">{isFile ? `ou, déjà importée : ${url.split("/").pop()}` : "ou"}</span>
+        <span className="p-hint">{isFile ? `ou, déjà importée : ${url.split("/").pop()}. Les vidéos importées ne sont pas encore montrées aux couples : collez un lien YouTube, Vimeo ou Matterport pour qu'ils la voient.` : "ou"}</span>
         <input
           ref={fileRef}
           type="file"

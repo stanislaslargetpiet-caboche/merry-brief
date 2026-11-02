@@ -6,6 +6,9 @@
 // 2. create_verify : le code ouvre la session, l'adresse est géocodée (Géoplateforme de l'IGN), la fiche est
 //    créée dans catalog.vendors, active tout de suite, et rattachée au compte. Si une fiche active porte déjà
 //    cette adresse mail, c'est elle qui est rattachée : pas de doublon.
+// Se connecter (un prestataire qui revient) : login_send envoie le code à l'adresse tapée, login_verify ouvre la session ;
+// l'écran retrouve ensuite ses fiches (pro_me). lookup : une fiche par son identifiant (lien d'un mail : /pro?fiche=…).
+// Première fiche rattachée à un compte : les crédits de bienvenue (MERRY_PRO_WELCOME_CREDITS, 100 par défaut) sont versés.
 // Nécessite SUPABASE_SERVICE_ROLE_KEY côté serveur (Vercel > Settings > Environment Variables) pour lire
 // l'adresse de la fiche et la rattacher. Sans clé, la route répond 501 et l'écran le dit.
 // Le mail « Magic Link » de Supabase doit contenir {{ .Token }} pour que le code y figure (README).
@@ -59,6 +62,30 @@ async function geocode(f) {
   return { lat, lng, department: hit.properties.depcode || ctx[0] || null, region: ctx[2] || ctx[1] || null };
 }
 
+const WELCOME_CREDITS = Math.max(0, Number(process.env.MERRY_PRO_WELCOME_CREDITS ?? 100) || 0);
+
+// Mail et téléphone masqués, comme pro_search
+const emailHint = (email) => (/@/.test(String(email || "")) ? `${email[0]}•••${email.slice(email.indexOf("@"))}` : null);
+const phoneHint = (phone) => {
+  const d = String(phone || "").replace(/\D/g, "");
+  return d.length >= 8 ? `${d.slice(0, 2)} •• •• •• ${d.slice(-2)}` : null;
+};
+
+// Rattache la fiche au compte ; la première fois, les crédits de bienvenue sont versés (une seule fois par fiche)
+async function attach(admin, vendorId, user, email) {
+  const { data: existing, error: e0 } = await admin.from("pro_vendors").select("vendor_id").eq("vendor_id", vendorId).maybeSingle();
+  if (e0) return e0;
+  if (!existing) {
+    const { error: e1 } = await admin.from("pro_vendors").insert({ vendor_id: vendorId, credits: WELCOME_CREDITS });
+    if (e1 && !/23505/.test(String(e1.code))) return e1;
+    if (!e1 && WELCOME_CREDITS > 0) {
+      await admin.from("pro_ledger").insert({ vendor_id: vendorId, kind: "remboursement", label: `Bienvenue sur Merry : ${WELCOME_CREDITS} crédits offerts`, delta: WELCOME_CREDITS, balance: WELCOME_CREDITS });
+    }
+  }
+  const { error: e2 } = await admin.from("pro_members").upsert({ vendor_id: vendorId, user_id: user.id, email }, { onConflict: "vendor_id,user_id", ignoreDuplicates: true });
+  return e2 || null;
+}
+
 export async function POST(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -85,6 +112,43 @@ export async function POST(req) {
   }
 
   if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon);
+  if (body.action === "login_send" || body.action === "login_verify") return login(body, url, anon);
+
+  // lookup : une fiche par son identifiant, pour ouvrir l'écran directement dessus (/pro?fiche=…)
+  if (body.action === "lookup") {
+    const id = String(body.vendorId || "");
+    if (!UUID_RE.test(id)) return Response.json({ error: "bad_request" }, { status: 400 });
+    const { data: v } = await admin
+      .schema("catalog")
+      .from("vendors")
+      .select("id, name, city, address, postal_code, primary_category, email, phone, google_rating, google_review_count, status")
+      .eq("id", id)
+      .maybeSingle();
+    if (!v || v.status !== "active") return Response.json({ error: "not_found" }, { status: 404 });
+    const [{ data: cat }, { data: ph }, { data: claimed }] = await Promise.all([
+      admin.schema("catalog").from("categories").select("label").eq("slug", v.primary_category).maybeSingle(),
+      admin.schema("catalog").from("vendor_photos").select("storage_path").eq("vendor_id", id).order("position").limit(1),
+      admin.from("pro_vendors").select("vendor_id").eq("vendor_id", id).maybeSingle(),
+    ]);
+    const path = ph?.[0]?.storage_path || null;
+    const { data: signedUrl } = path ? await admin.storage.from("catalog-photos").createSignedUrl(path, 3600) : { data: null };
+    return Response.json({
+      result: {
+        id: v.id,
+        name: v.name,
+        city: v.city,
+        address: v.address,
+        postal_code: v.postal_code,
+        category: cat?.label || v.primary_category,
+        photo: signedUrl?.signedUrl || null,
+        email_hint: emailHint(String(v.email || "").trim().toLowerCase()),
+        phone_hint: phoneHint(v.phone),
+        rating: v.google_rating,
+        reviews: v.google_review_count,
+        claimed: !!claimed,
+      },
+    });
+  }
 
   const vendorId = String(body.vendorId || "");
   if (!UUID_RE.test(vendorId)) return Response.json({ error: "bad_request" }, { status: 400 });
@@ -111,9 +175,7 @@ export async function POST(req) {
     if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
 
     // La fiche est à cette adresse : on la rattache au compte (une fois suffit)
-    const { error: e1 } = await admin.from("pro_vendors").upsert({ vendor_id: vendorId }, { onConflict: "vendor_id", ignoreDuplicates: true });
-    const { error: e2 } = await admin.from("pro_members").upsert({ vendor_id: vendorId, user_id: data.user.id, email }, { onConflict: "vendor_id,user_id", ignoreDuplicates: true });
-    return linked(e1 || e2, data.session);
+    return linked(await attach(admin, vendorId, data.user, email), data.session);
   }
 
   return Response.json({ error: "bad_request" }, { status: 400 });
@@ -134,6 +196,8 @@ async function create(body, admin, url, anon) {
   const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
 
   if (body.action === "create_send") {
+    // L'adresse est vérifiée avant d'envoyer le code : une adresse introuvable se corrige sans consommer de code
+    if (!(await geocode(fields))) return Response.json({ error: "address" }, { status: 422 });
     const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
     if (error) {
       const wait = /rate|seconds|too many/i.test(error.message);
@@ -144,15 +208,18 @@ async function create(body, admin, url, anon) {
 
   const code = String(body.code || "").replace(/\D/g, "");
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+
+  // Une fiche active porte déjà cette adresse : on rattache celle-là, sinon l'adresse est placée sur la carte
+  // avant de consommer le code (un code ne sert qu'une fois)
+  const { data: same } = await admin.schema("catalog").from("vendors").select("id").eq("status", "active").ilike("email", email.replace(/[\\%_]/g, "\\$&")).limit(1);
+  let vendorId = same?.[0]?.id;
+  const place = vendorId ? null : await geocode(fields);
+  if (!vendorId && !place) return Response.json({ error: "address" }, { status: 422 });
+
   const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
   if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
 
-  // Une fiche active porte déjà cette adresse : on rattache celle-là
-  const { data: same } = await admin.schema("catalog").from("vendors").select("id").eq("status", "active").ilike("email", email.replace(/[\\%_]/g, "\\$&")).limit(1);
-  let vendorId = same?.[0]?.id;
   if (!vendorId) {
-    const place = await geocode(fields);
-    if (!place) return Response.json({ error: "address" }, { status: 422 });
     const { data: row, error: e0 } = await admin
       .schema("catalog")
       .from("vendors")
@@ -179,7 +246,27 @@ async function create(body, admin, url, anon) {
     if (e0 || !row) return Response.json({ error: "create_failed" }, { status: 500 });
     vendorId = row.id;
   }
-  const { error: e1 } = await admin.from("pro_vendors").upsert({ vendor_id: vendorId }, { onConflict: "vendor_id", ignoreDuplicates: true });
-  const { error: e2 } = await admin.from("pro_members").upsert({ vendor_id: vendorId, user_id: data.user.id, email }, { onConflict: "vendor_id,user_id", ignoreDuplicates: true });
-  return linked(e1 || e2, data.session);
+  return linked(await attach(admin, vendorId, data.user, email), data.session);
+}
+
+// Se connecter avec son adresse : un code, puis l'écran retrouve les fiches du compte
+async function login(body, url, anon) {
+  const email = String(body.email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 160) return Response.json({ error: "bad_request" }, { status: 400 });
+  const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (body.action === "login_send") {
+    // Pas de compte à cette adresse : on ne crée rien, l'écran propose de retrouver ou créer sa fiche
+    const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error) {
+      if (/signup|not allowed|not found/i.test(error.message)) return Response.json({ error: "no_account" }, { status: 404 });
+      const wait = /rate|seconds|too many/i.test(error.message);
+      return Response.json({ error: wait ? "wait" : "send_failed" }, { status: wait ? 429 : 502 });
+    }
+    return Response.json({ ok: true });
+  }
+  const code = String(body.code || "").replace(/\D/g, "");
+  if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+  const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
+  return linked(null, data.session);
 }
