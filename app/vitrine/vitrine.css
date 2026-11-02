@@ -101,7 +101,7 @@
 .wv-text { display: flex; flex-direction: column; gap: 20px; max-width: 620px; }
 .wv-block { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 
-.wv-invites { position: relative; background: #fff700; min-height: max(720px, 59vw); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 6vw 4vw; box-sizing: border-box; }
+.wv-invites { position: relative; background: #ffffff; min-height: max(720px, 59vw); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 6vw 4vw; box-sizing: border-box; }
 .wv-invites-in { position: relative; z-index: 2; max-width: 880px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .wv-ph { position: absolute; z-index: 1; object-fit: cover; display: block; }
 @media (max-width: 1180px) {
@@ -115,7 +115,7 @@
 .wv-flow-hint { margin: 0; font-size: 15px; }
 
 /* Flux « Tu es invité » : code / prénoms / trouvé / pas trouvé (canvas Site-Invites-*) */
-.wv-flow { background: #fffceb; min-height: 860px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5vw 4vw 7vw; box-sizing: border-box; gap: 28px; text-align: center; }
+.wv-flow { background: #ffffff; min-height: 860px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5vw 4vw 7vw; box-sizing: border-box; gap: 28px; text-align: center; }
 .wv-flow-back { align-self: flex-start; font-size: 15px; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .wv-flow-panel { width: min(560px, 100%); display: flex; flex-direction: column; gap: 16px; text-align: left; }
 .wv-flow-panel label { display: flex; flex-direction: column; gap: 8px; }
@@ -130,9 +130,8 @@
 .wv-flow-match b { display: block; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 700; font-size: 26px; line-height: 1.15; }
 .wv-flow-match p { margin: 6px 0 0; font-size: 16px; line-height: 1.45; }
 .wv-flow-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: min(900px, 100%); }
-.wv-flow-steps li { padding: 16px; border-radius: 18px; background: #fffdb8; font-size: 15px; text-align: left; }
+.wv-flow-steps li { padding: 16px; border-radius: 18px; background: #f6f5f1; font-size: 15px; text-align: left; }
 .wv-flow-steps b { display: block; margin-bottom: 4px; }
-.wv-flow-hl { background: #fff700; padding: 0 6px; }
 .wv-help { margin: 0; font-size: 15px; line-height: 1.5; color: #3d3c38; }
 @media (max-width: 760px) {
   .wv-flow-two { grid-template-columns: 1fr; }
@@ -161,9 +160,12 @@
 .wv-cmp-head > span:nth-child(3) { background: none; }
 .wv-guar { display: flex; flex-direction: column; gap: 24px; }
 .wv-guar .wv-h3 { max-width: 1000px; }
-.wv-guar .wv-lead { max-width: 760px; color: #ffffff; }
-.wv-guar-k { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.wv-guar .wv-lead { max-width: 760px; }
+.wv-guar-k { display: inline-flex; align-self: flex-start; margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; background: #000000; color: #fff700; padding: 7px 16px; border-radius: 999px; }
 .wv-end .wv-btn-line { color: #fff700; border-color: #fff700; }
+.wv-black .wv-steps p { color: #ffffff; }
+.wv-black .wv-steps p::before { background: #ffffff; }
+.wv-black .wv-btn-dark { background: #fff700; color: #000000; }
 
 .wv-foot { background: #e1dfd9; padding: 4vw; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4vw; }
 .wv-quote { margin: 0; font-size: 14.4px; line-height: 1.6; }

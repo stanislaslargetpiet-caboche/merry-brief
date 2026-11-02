@@ -38,7 +38,7 @@ const Cta = () => (
 export default async function VitrinePrestataires() {
   return (
     <Frame current="pro">
-      <section className="wv-sec wv-lime wv-center" aria-label="Prestataires" style={{ gap: 28 }}>
+      <section className="wv-sec wv-center" aria-label="Prestataires" style={{ gap: 28 }}>
         <h1 className="wv-h2" style={{ maxWidth: 1100 }}>
           Recevez beaucoup plus de demandes qualifiées.
         </h1>
@@ -60,7 +60,7 @@ export default async function VitrinePrestataires() {
           Pas encore sur Merry ? Créez votre fiche, ça prend 3 minutes.
         </p>
         <div className="wv-btns" style={{ justifyContent: "center" }}>
-          <a href={PRO} className="wv-btn wv-btn-line">
+          <a href={PRO} className="wv-btn wv-btn-dark">
             Compléter ma fiche
           </a>
           <a href={DEMO} className="wv-btn wv-btn-line">
@@ -98,7 +98,7 @@ export default async function VitrinePrestataires() {
         </div>
       </section>
 
-      <section className="wv-sec wv-split wv-split-big" aria-label="Les demandes">
+      <section className="wv-sec wv-black wv-split wv-split-big" aria-label="Les demandes">
         <Block html={criteres} className="wv-media" />
         <div className="wv-stack">
           <h2 className="wv-h3">Vous voyez tout avant de répondre.</h2>
@@ -113,7 +113,7 @@ export default async function VitrinePrestataires() {
         </div>
       </section>
 
-      <section className="wv-sec wv-black wv-guar" aria-label="Garantie Merry">
+      <section className="wv-sec wv-lime wv-guar" aria-label="Garantie Merry">
         <p className="wv-guar-k">Garantie Merry</p>
         <h2 className="wv-h3">Pas de réservation avec vos 100 crédits offerts ? On vous les recrédite.</h2>
         <p className="wv-lead">Vous essayez Merry sans rien risquer : si aucune de vos réponses ne débouche sur une réservation, vos crédits offerts reviennent sur votre compte.</p>
