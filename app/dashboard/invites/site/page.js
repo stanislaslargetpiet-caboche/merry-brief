@@ -115,8 +115,9 @@ export default function InvitesSite() {
       </section>
 
       <div className="d-isite-cards">
-        <Link href="/dashboard/invites" className="d-isite-card">
-          <strong>{g.total - g.answered}</strong>
+        {/* Sans réponse = invités en attente, pas la « liste B » des non invités ; le lien ouvre la liste filtrée */}
+        <Link href="/dashboard/invites?st=attente" className="d-isite-card">
+          <strong>{g.attente}</strong>
           <span>Invités sans réponse</span>
           <small>À relancer avec le lien du site</small>
         </Link>

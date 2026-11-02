@@ -14578,6 +14578,24 @@ body.d-noscroll {
   gap: 10px;
 }
 
+.d-toast-action {
+  flex: none;
+  margin-left: 4px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.d-toast-action:hover,
+.d-toast-action:focus-visible {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .d-toast-check {
   flex: none;
   display: inline-flex;

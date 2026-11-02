@@ -1,10 +1,11 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName } from "@/lib/dash/format";
+import { LIST_PATH, listHref } from "@/lib/dash/guestView";
 import { Icon } from "@/components/dash/icons";
 import { Btn, GroupChip, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
 
@@ -21,14 +22,17 @@ export default function FicheInvite() {
   const { id } = useParams();
   const router = useRouter();
   const dash = useDash();
-  const { guests, groups, events, responses } = dash.data;
+  const { guests, groups, events, responses, form } = dash.data;
+  // Retour à la liste telle qu'on l'a laissée (recherche, filtres, tri)
+  const [back, setBack] = useState(LIST_PATH);
+  useEffect(() => setBack(listHref()), []);
 
   const guest = guests.find((g) => g.id === id);
   const idx = useMemo(() => responseIndex(responses), [responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
-  if (!guest) return <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} title="Invité introuvable." />;
+  if (!guest) return <PageHeader back={{ href: back, label: "Invités" }} title="Invité introuvable." />;
 
   const label = guestLabel(guest, byId) || "Sans nom";
   const r = idx.get(guest.id) || {};
@@ -37,12 +41,12 @@ export default function FicheInvite() {
 
   async function removeGuest() {
     if (!window.confirm(`Retirer ${label} de la liste ?`)) return;
-    if (await dash.removeGuests([guest.id])) router.push("/dashboard/invites");
+    if (await dash.removeGuests([guest.id])) router.push(back);
   }
 
   return (
     <>
-      <PageHeader back={{ href: "/dashboard/invites", label: "Invités" }} />
+      <PageHeader back={{ href: back, label: "Invités" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: -14 }}>
         <span className="d-avatar" style={{ width: 56, height: 56, background: "#e4e2dc", fontSize: 20 }}>
           {label.charAt(0).toUpperCase()}
@@ -58,10 +62,13 @@ export default function FicheInvite() {
       <div className="d-grid-side" style={{ marginTop: 20 }}>
         <div className="d-col">
           <section className="d-card">
-            <span className="d-fm-tag is-opt d-autofill">
-              <Icon name="sparkle" size={12} sw={2.2} />
-              Auto-remplie par le formulaire
-            </span>
+            {/* Les réponses ne gardent pas leur origine : on dit seulement que le formulaire peut les remplir */}
+            {form ? (
+              <span className="d-fm-tag is-opt d-autofill">
+                <Icon name="sparkle" size={12} sw={2.2} />
+                Se remplit aussi par le formulaire
+              </span>
+            ) : null}
             <h2>Réponses par moment</h2>
             {events.length ? (
               <div className="d-col" style={{ gap: 2 }}>

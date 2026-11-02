@@ -16,6 +16,7 @@ import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
+import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -205,9 +206,8 @@ function SortItems({ dir, onSort, rsvp }) {
   );
 }
 
-// Menu de fin de ligne : retirer l'invité de la liste
-function RowMenu({ guest, label }) {
-  const dash = useDash();
+// Menu de fin de ligne : retirer l'invité de la liste (sans confirmation : le toast propose « Annuler »)
+function RowMenu({ guest, label, onRemove }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="d-anchor">
@@ -226,8 +226,9 @@ function RowMenu({ guest, label }) {
           className="d-pop-item is-danger"
           onClick={() => {
             setOpen(false);
-            if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
+            onRemove();
           }}
+          aria-label={`Retirer ${label} de la liste`}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Icon name="trash" size={14} />
@@ -311,20 +312,6 @@ function GroupCell({ guest, group, groups, label }) {
             </span>
           </button>
         )}
-        <span style={{ height: 1, background: "var(--d-line)", margin: "4px 2px" }} />
-        <button
-          type="button"
-          className="d-pop-item is-danger"
-          onClick={() => {
-            close();
-            if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
-          }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <Icon name="trash" size={14} />
-            Retirer de la liste
-          </span>
-        </button>
       </Popover>
     </span>
   );
@@ -404,11 +391,13 @@ function ColumnHead({ col, onRename, onRemove, removeLabel, extraItems }) {
   );
 }
 
-function AddGuests({ onClose }) {
+// Groupe proposé par défaut : celui qu'on filtre s'il n'y en a qu'un, sinon « Sans groupe »
+// (comme la ligne vide du tableau), jamais le premier groupe de la liste par hasard
+function AddGuests({ onClose, defaultGroupId = "" }) {
   const dash = useDash();
   const { groups, events, guests } = dash.data;
   const [names, setNames] = useState("");
-  const [groupId, setGroupId] = useState(groups[0]?.id || "");
+  const [groupId, setGroupId] = useState(groups.some((g) => g.id === defaultGroupId) ? defaultGroupId : "");
   const [invitedTo, setInvitedTo] = useState(events.map((e) => e.id));
   const lines = names
     .split(/\n|;/)
@@ -561,6 +550,27 @@ export default function Invites() {
         return collator.compare(x, y) * sort.dir;
       })
     : filtered;
+  // Vue dans l'adresse (lib/dash/guestView) : lue une fois à l'ouverture, réécrite à chaque changement
+  const [viewReady, setViewReady] = useState(false);
+  useEffect(() => {
+    const v = readView(window.location.search);
+    setQuery(v.query);
+    setGroupFilters(v.groups.filter((id) => groups.some((gr) => gr.id === id)));
+    setStatusFilter(v.status);
+    setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
+    setFieldFilter(v.field);
+    setSort(v.sort);
+    setViewReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, sort });
+  useEffect(() => {
+    if (!viewReady) return;
+    const { pathname, search } = window.location;
+    const url = viewQs ? `${pathname}?${viewQs}` : pathname;
+    if (url !== `${pathname}${search}`) window.history.replaceState(null, "", url);
+    rememberView(viewQs);
+  }, [viewQs, viewReady]);
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
   const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
@@ -654,42 +664,6 @@ export default function Invites() {
   const ok = (text) => dash.setToast({ kind: "ok", text });
   const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
 
-  async function bulkRemove() {
-    const everyone = selIds.length === guests.length;
-    const msg = everyone
-      ? `Supprimer toute la liste (${n(selIds.length, "invité", "invités")}) ? Leurs réponses seront effacées. Cette action est définitive.`
-      : `Retirer ${n(selIds.length, "invité", "invités")} de la liste ? Leurs réponses seront effacées.`;
-    if (!window.confirm(msg)) return;
-    const ids = selIds;
-    clearSel();
-    if (await dash.removeGuests(ids)) ok(`${n(ids.length, "invité retiré", "invités retirés")}.`);
-  }
-  async function bulkGroup(groupId) {
-    const ids = selIds;
-    const name = groupId ? groupById.get(groupId)?.name : null;
-    clearSel();
-    if (await dash.updateGuests(ids, { group_id: groupId })) ok(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`);
-  }
-  async function bulkMoment(ev, invite) {
-    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
-    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
-    clearSel();
-    if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
-  }
-  async function bulkField(field, value) {
-    const ids = selIds;
-    clearSel();
-    await Promise.all(
-      ids.map((id) => {
-        const custom = { ...(byId.get(id)?.custom || {}) };
-        if (value) custom[field.id] = value;
-        else delete custom[field.id];
-        return dash.update("guests", id, { custom });
-      }),
-    );
-    ok(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`);
-  }
-
   // Valeur brute d'une cellule, pour pouvoir la remettre telle quelle (annuler)
   const rawOf = (g, key) => {
     if (key === "name") return { first_name: g.first_name || "", last_name: g.last_name || "" };
@@ -697,22 +671,38 @@ export default function Invites() {
     if (key.startsWith("field:")) return (g.custom || {})[key.slice(6)] ?? null;
     return g[key] ?? null;
   };
-  // Annuler / rétablir : chaque geste (saisie, collage, effacement, statut) est un pas de l'historique
-  const undoRef = useRef([]); // [{ before: [{ id, key, value }], after: [...] }]
+  // Annuler / rétablir : chaque geste (saisie, collage, effacement, statut, action groupée, suppression)
+  // est un pas de l'historique { n, undo, redo, undoText?, redoText? }
+  const undoRef = useRef([]);
   const redoRef = useRef([]);
+  const applyRef = useRef(null); // toujours la dernière version d'applyValues (données à jour)
+  const pushStep = (step) => {
+    undoRef.current = [...undoRef.current.slice(-99), step];
+    redoRef.current = [];
+    return step;
+  };
+  // Toast de confirmation avec « Annuler », qui n'annule que ce geste-là (s'il est encore le dernier)
+  const okUndo = (text, step) =>
+    dash.setToast({
+      kind: "ok",
+      text,
+      action: step ? { label: "Annuler", onClick: () => undoRef.current.at(-1) === step && historyRef.current.undo() } : undefined,
+    });
 
-  // Écrit des valeurs brutes : une seule mise à jour par invité, les statuts groupés par moment
+  // Écrit des valeurs brutes : les invités qui reçoivent la même modification partent en une requête,
+  // les autres en une seule passe ; les statuts sont groupés par moment
   async function applyValues(list, record = true) {
     const patches = new Map();
     const statuses = new Map(); // "eventId|statut" -> ids
-    const step = { before: [], after: [] };
+    const before = [];
+    const after = [];
     for (const { id, key, value } of list) {
       const g = byId.get(id);
       if (!g) continue;
-      const before = rawOf(g, key);
-      if (JSON.stringify(before) === JSON.stringify(value)) continue;
-      step.before.push({ id, key, value: before });
-      step.after.push({ id, key, value });
+      const was = rawOf(g, key);
+      if (JSON.stringify(was) === JSON.stringify(value)) continue;
+      before.push({ id, key, value: was });
+      after.push({ id, key, value });
       if (key.startsWith("ev:")) {
         const k = `${key.slice(3)}|${value}`;
         statuses.set(k, [...(statuses.get(k) || []), id]);
@@ -728,21 +718,83 @@ export default function Invites() {
       } else p[key] = value;
       patches.set(id, p);
     }
-    if (!step.after.length) return 0;
-    if (record) {
-      undoRef.current = [...undoRef.current.slice(-99), step];
-      redoRef.current = [];
+    if (!after.length) return { n: 0, step: null };
+    const step = record ? pushStep({ n: after.length, undo: () => applyRef.current(before, false), redo: () => applyRef.current(after, false) }) : null;
+    const same = new Map(); // patch identique -> ids
+    for (const [id, p] of patches) {
+      const k = JSON.stringify(p);
+      same.set(k, { patch: p, ids: [...(same.get(k)?.ids || []), id] });
     }
-    await Promise.all([...patches].map(([id, p]) => dash.update("guests", id, p)));
+    const shared = [...same.values()].filter((x) => x.ids.length > 1);
+    const single = [...same.values()].filter((x) => x.ids.length === 1).map((x) => ({ id: x.ids[0], patch: x.patch }));
+    await Promise.all([...shared.map((x) => dash.updateGuests(x.ids, x.patch)), dash.patchGuests(single)]);
     for (const [k, ids] of statuses) {
       const [evId, st] = k.split("|");
       await dash.setResponses(ids, evId, st);
     }
-    return step.after.length;
+    return { n: after.length, step };
+  }
+  applyRef.current = applyValues;
+
+  // Retirer des invités (et leurs accompagnants, comme en base), avec « Annuler » : on garde de quoi
+  // les remettre tels quels, réponses comprises
+  async function removeWithUndo(ids) {
+    const gone = new Set(ids);
+    guests.forEach((x) => x.plus_one_of && gone.has(x.plus_one_of) && gone.add(x.id));
+    const rows = guests.filter((x) => gone.has(x.id));
+    const answers = data.responses.filter((r) => gone.has(r.guest_id));
+    if (!rows.length) return;
+    setSelected((x) => Object.fromEntries(Object.entries(x).filter(([id]) => !gone.has(id))));
+    if (!(await dash.removeGuests(rows.map((x) => x.id)))) return;
+    const one = rows.length === 1 ? guestLabel(rows[0], byId) : null;
+    // Un seul invité choisi, parti avec ses accompagnants : on le dit plutôt que « 2 invités retirés »
+    const extra = rows.length - ids.length;
+    const who = ids.length === 1 && extra > 0 ? `${guestLabel(byId.get(ids[0]), byId)} et ${extra > 1 ? `ses ${extra} accompagnants` : "son accompagnant"}` : null;
+    const goneText = one ? `${one} retiré de la liste.` : who ? `${who} retirés de la liste.` : `${n(rows.length, "invité retiré", "invités retirés")}.`;
+    const step = pushStep({
+      n: rows.length,
+      undo: () => dash.restoreGuests(rows, answers),
+      redo: () => dash.removeGuests(rows.map((x) => x.id)),
+      undoText: one ? `${one} est de retour dans la liste.` : who ? `${who} sont de retour dans la liste.` : `${rows.length} invités remis dans la liste.`,
+      redoText: goneText,
+    });
+    okUndo(goneText, step);
+  }
+
+  async function bulkRemove() {
+    const everyone = selIds.length === guests.length;
+    const msg = everyone
+      ? `Supprimer toute la liste (${n(selIds.length, "invité", "invités")}) ? Leurs réponses seront effacées.`
+      : `Retirer ${n(selIds.length, "invité", "invités")} de la liste ? Leurs réponses seront effacées.`;
+    if (!window.confirm(msg)) return;
+    const ids = selIds;
+    clearSel();
+    await removeWithUndo(ids);
+  }
+  async function bulkGroup(groupId) {
+    const ids = selIds;
+    const name = groupId ? groupById.get(groupId)?.name : null;
+    clearSel();
+    const { step } = await applyValues(ids.map((id) => ({ id, key: "group_id", value: groupId })));
+    okUndo(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`, step);
+  }
+  async function bulkMoment(ev, invite) {
+    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
+    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
+    clearSel();
+    if (!ids.length) return;
+    const { step } = await applyValues(ids.map((id) => ({ id, key: `ev:${ev.id}`, value: invite ? "attente" : "non_invite" })));
+    okUndo(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`, step);
+  }
+  async function bulkField(field, value) {
+    const ids = selIds;
+    clearSel();
+    const { step } = await applyValues(ids.map((id) => ({ id, key: `field:${field.id}`, value: value || null })));
+    okUndo(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`, step);
   }
 
   // Texte saisi ou collé → valeur brute ; les cellules qui n'acceptent pas le texte sont ignorées
-  function writeCells(list) {
+  async function writeCells(list) {
     const values = [];
     for (const { g, key, text } of list) {
       const v = String(text ?? "").trim();
@@ -760,21 +812,23 @@ export default function Invites() {
         values.push({ id: g.id, key, value: value || null });
       }
     }
-    return applyValues(values);
+    return (await applyValues(values)).n;
   }
 
-  const historyStep = async (from, to, word) => {
+  const historyStep = async (from, to, isUndo) => {
     const step = from.current.pop();
     if (!step) return;
     to.current = [...to.current, step];
-    await applyValues(from === undoRef ? step.before : step.after, false);
-    const n = step.after.length;
-    ok(`${n > 1 ? `${n} modifications` : "Modification"} ${word}.`);
+    await (isUndo ? step.undo() : step.redo());
+    const custom = isUndo ? step.undoText : step.redoText;
+    if (custom) ok(custom);
+    else if (isUndo) ok(`${step.n > 1 ? `${step.n} modifications annulées` : "Modification annulée"}.`);
+    else ok(`${step.n > 1 ? `${step.n} modifications rétablies` : "Modification rétablie"}.`);
   };
   const historyRef = useRef(null);
   historyRef.current = {
-    undo: () => historyStep(undoRef, redoRef, undoRef.current.at(-1)?.after.length > 1 ? "annulées" : "annulée"),
-    redo: () => historyStep(redoRef, undoRef, redoRef.current.at(-1)?.after.length > 1 ? "rétablies" : "rétablie"),
+    undo: () => historyStep(undoRef, redoRef, true),
+    redo: () => historyStep(redoRef, undoRef, false),
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -1034,7 +1088,7 @@ export default function Invites() {
         );
       },
     })),
-    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
+    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} onRemove={() => removeWithUndo([g.id])} /> },
   ];
   const cols = useColumnLayout("invites", columnDefs);
   const [restoring, setRestoring] = useState(false);
@@ -1384,8 +1438,9 @@ export default function Invites() {
                             addRow();
                           } else if (e.key === "Escape") setNewName("");
                         }}
-                        onBlur={addRow}
+                        // Pas d'ajout en quittant le champ : un nom à moitié tapé ne devient pas un invité par accident
                         placeholder="+ Ajouter un invité"
+                        title="Tapez un nom puis Entrée"
                         aria-label="Nom du nouvel invité"
                       />
                     ) : null}
@@ -1425,7 +1480,7 @@ export default function Invites() {
         <Icon name="plus" size={22} sw={2.4} />
       </button>
 
-      {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
+      {adding ? <AddGuests onClose={() => setAdding(false)} defaultGroupId={groupFilters.length === 1 ? groupFilters[0] : ""} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
