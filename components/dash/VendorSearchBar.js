@@ -79,24 +79,17 @@ export default function VendorSearchBar() {
 
   const refineArea = manual ? form.area.trim() : "";
 
-  useEffect(() => {
-    if (!manual || refineArea.length < 2 || !form.name.trim()) {
-      setRefine({ searching: false, results: [], attempted: false });
-      return undefined;
-    }
-    let live = true;
-    setRefine((r) => ({ ...r, searching: true, attempted: false }));
-    const t = setTimeout(async () => {
-      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
-      const r = await searchGoogleVendor(dash.mode, `${form.name.trim()} ${refineArea}`, token);
-      if (live) setRefine({ searching: false, results: r, attempted: true });
-    }, 400);
-    return () => {
-      live = false;
-      clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manual, refineArea, dash.mode]);
+  // Recherche Google (nom + ville) déclenchée par « Valider la recherche », pas pendant la frappe :
+  // cliquer une ville ne doit pas lancer une recherche surprise, et choisir parmi plusieurs résultats
+  // doit rester un geste volontaire.
+  async function runRefine() {
+    const name = form.name.trim();
+    if (!name || busy) return;
+    setRefine({ searching: true, results: [], attempted: false });
+    const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
+    const r = await searchGoogleVendor(dash.mode, refineArea ? `${name} ${refineArea}` : name, token);
+    setRefine({ searching: false, results: r, attempted: true });
+  }
 
   // Suggestions de villes pendant la saisie (aide, pas une liste fermée) : on ne les propose que
   // si le prestataire n'est pas déjà raccroché à un résultat Google (pickGoogle a déjà sa ville).
@@ -290,7 +283,18 @@ export default function VendorSearchBar() {
             <form className="d-form-grid d-pr-addvendor-form" onSubmit={submitManual}>
               <div className="d-field is-full">
                 <span className="d-field-label">Nom</span>
-                <input className="d-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Maison Lemoine" maxLength={120} autoFocus required />
+                <input
+                  className="d-input"
+                  value={form.name}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, name: e.target.value }));
+                    setRefine({ searching: false, results: [], attempted: false });
+                  }}
+                  placeholder="Maison Lemoine"
+                  maxLength={120}
+                  autoFocus
+                  required
+                />
               </div>
               <div className="d-field">
                 <span className="d-field-label">Catégorie</span>
@@ -320,7 +324,10 @@ export default function VendorSearchBar() {
                       placeholder="Luberon"
                       maxLength={80}
                       autoComplete="off"
-                      onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, area: e.target.value }));
+                        setRefine({ searching: false, results: [], attempted: false });
+                      }}
                       onFocus={() => setCities((c) => ({ ...c, open: c.results.length > 0 }))}
                       onBlur={() => setTimeout(() => setCities((c) => ({ ...c, open: false })), 150)}
                     />
@@ -334,6 +341,7 @@ export default function VendorSearchBar() {
                             e.preventDefault();
                             setForm((f) => ({ ...f, area: c.label }));
                             setCities((s) => ({ ...s, open: false }));
+                            setRefine({ searching: false, results: [], attempted: false });
                             if (c.placeId) {
                               const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
                               const postal = await cityPostalCode(dash.mode, c.placeId, token);
@@ -351,7 +359,12 @@ export default function VendorSearchBar() {
                     </ul>
                   ) : null}
                 </div>
-                <span className="d-small-muted">Pour que Merry cherche la bonne fiche sur Google avec le nom.</span>
+              </div>
+              <div className="d-field is-full">
+                <Btn kind="ghost" type="button" small onClick={runRefine} disabled={!form.name.trim() || refine.searching}>
+                  Valider la recherche
+                </Btn>
+                <span className="d-small-muted">Cherche « {form.name.trim() || "ce nom"} »{refineArea ? ` à ${refineArea}` : ""} sur Google.</span>
               </div>
               {refine.searching || refine.results.length || refine.attempted ? (
                 <div className="d-field is-full">
@@ -375,7 +388,11 @@ export default function VendorSearchBar() {
                       </ul>
                     </>
                   ) : null}
-                  {!refine.searching && refine.attempted && !refine.results.length ? <span className="d-small-muted">Aucun résultat sur Google pour « {form.name.trim()} » à {refineArea}.</span> : null}
+                  {!refine.searching && refine.attempted && !refine.results.length ? (
+                    <span className="d-small-muted">
+                      Aucun résultat sur Google pour « {form.name.trim()} »{refineArea ? ` à ${refineArea}` : ""}.
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               <span className="d-field is-full d-small-muted">Rejoint le catalogue Merry : les autres couples pourront aussi le trouver.</span>
