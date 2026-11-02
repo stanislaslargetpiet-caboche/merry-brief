@@ -26,6 +26,7 @@ export default function VendorSearchBar() {
   const [google, setGoogle] = useState({ searching: false, done: false, results: [] });
   const [manual, setManual] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [refine, setRefine] = useState({ searching: false, results: [] });
   const [busy, setBusy] = useState(false);
   const searched = q.trim().length >= 2;
   const noMatch = searched && !searching && !results.length;
@@ -74,6 +75,27 @@ export default function VendorSearchBar() {
     };
   }, [noMatch, google.searching, google.done, dash.mode, q]);
 
+  const refineArea = manual ? form.area.trim() : "";
+
+  useEffect(() => {
+    if (!manual || refineArea.length < 2 || !form.name.trim()) {
+      setRefine({ searching: false, results: [] });
+      return undefined;
+    }
+    let live = true;
+    setRefine((r) => ({ ...r, searching: true }));
+    const t = setTimeout(async () => {
+      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
+      const r = await searchGoogleVendor(dash.mode, `${form.name.trim()} ${refineArea}`, token);
+      if (live) setRefine({ searching: false, results: r });
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manual, refineArea, dash.mode]);
+
   function reset() {
     setQ("");
     setOpen(false);
@@ -81,6 +103,7 @@ export default function VendorSearchBar() {
     setForm(EMPTY_FORM);
     setResults([]);
     setGoogle({ searching: false, done: false, results: [] });
+    setRefine({ searching: false, results: [] });
   }
 
   async function pick(v) {
@@ -99,6 +122,11 @@ export default function VendorSearchBar() {
   function pickGoogle(g) {
     setForm({ name: g.name, category: "", area: g.city || "", phone: g.phone || "", website: g.website || "", lat: g.lat, lng: g.lng });
     setManual(true);
+  }
+
+  function applyRefine(g) {
+    setForm((f) => ({ ...f, name: g.name, area: g.city || f.area, phone: g.phone || f.phone, website: g.website || f.website, lat: g.lat, lng: g.lng }));
+    setRefine({ searching: false, results: [] });
   }
 
   async function submitManual(e) {
@@ -232,6 +260,27 @@ export default function VendorSearchBar() {
                 <span className="d-field-label">Ville ou région · facultatif</span>
                 <input className="d-input" value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} placeholder="Luberon" maxLength={80} />
               </div>
+              {refine.searching || refine.results.length ? (
+                <div className="d-field is-full">
+                  {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
+                  {!refine.searching && refine.results.length ? (
+                    <ul className="d-pr-to">
+                      {refine.results.map((g, i) => (
+                        <li key={i}>
+                          <Thumb v={{ name: g.name }} size={44} />
+                          <div className="d-pr-to-main">
+                            <span className="d-pr-to-name">{g.name}</span>
+                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
+                          </div>
+                          <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
+                            Utiliser
+                          </Btn>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
               <span className="d-field is-full d-small-muted">Rejoint le catalogue Merry : les autres couples pourront aussi le trouver.</span>
               <div className="d-pr-addvendor-actions">
                 <Btn kind="ghost" onClick={() => setManual(false)}>
