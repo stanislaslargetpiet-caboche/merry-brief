@@ -19,8 +19,8 @@
   --d-green-ink: #1f6b30;
   --d-orange-bg: #ffe6cc;
   --d-orange-ink: #8a4b0f;
-  --d-info-bg: #e3ebf3;
-  --d-info-ink: #30567a;
+  --d-info-bg: #ebe6fb;
+  --d-info-ink: #4a3d99;
   --d-purple-bg: #ece3f5;
   --d-purple-ink: #5b3a84;
   --d-display: "Alan Sans", Helvetica, Arial, sans-serif;
@@ -1480,7 +1480,7 @@ button.d-rsvp:hover {
 .d-modal-back {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 59;
   background: rgba(28, 28, 26, 0.32);
   display: flex;
   align-items: flex-start;
