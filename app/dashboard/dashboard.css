@@ -16176,3 +16176,98 @@ body.d-noscroll {
     max-height: 320px;
   }
 }
+
+/* Téléphone, liste des invités : rien de coupé, une ligne par chose */
+.d-gcard-status {
+  border: 0;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: default;
+}
+
+button.d-gcard-status {
+  cursor: pointer;
+  gap: 4px;
+}
+
+button.d-gcard-status svg {
+  transition: transform 0.15s;
+}
+
+button.d-gcard-status.is-open svg {
+  transform: rotate(180deg);
+}
+
+.d-gcard-top .d-gcard-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  /* Onglets : l'onglet « bientôt » n'a pas sa place sur un petit écran, les quatre autres tiennent sur la ligne */
+  .d-root .d-itab.is-soon {
+    display: none;
+  }
+
+  .d-itabs {
+    gap: 16px;
+  }
+
+  /* Indicateurs : deux par ligne, au lieu d'une bande qui défile et se coupe */
+  .d-mstats-scroll {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .d-mstats-scroll > span {
+    min-width: 0;
+    padding: 10px 14px;
+  }
+
+  /* Barre d'outils : la recherche sur sa ligne, en pleine largeur, puis les boutons */
+  .d-itoolbar,
+  .d-itoolbar .d-ifilters-left {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .d-itoolbar .d-search {
+    flex: 1 1 100%;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 40px;
+  }
+
+  .d-itoolbar .d-search input {
+    width: 100%;
+  }
+
+  .d-itoolbar .d-group-pick {
+    flex: 0 1 auto;
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .d-itoolbar .d-presence {
+    width: 100%;
+  }
+
+  /* Cartes : plus d'air, réponses par moment dépliées sur une ligne qui va à la ligne */
+  .d-gcard {
+    gap: 10px;
+    padding: 14px 14px;
+  }
+
+  .d-gcard-moments {
+    padding-left: 46px;
+    gap: 8px 12px;
+  }
+
+  .d-gcard-moments .d-rsvp {
+    font-size: 11.5px;
+    padding: 3px 8px;
+  }
+}

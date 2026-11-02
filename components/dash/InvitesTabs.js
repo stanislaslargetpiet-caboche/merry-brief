@@ -21,7 +21,7 @@ export default function InvitesHeader({ tab, actions }) {
       extra: data.site ? <span className={`d-itab-online${data.site.published ? "" : " is-off"}`}>{data.site.published ? "En ligne" : "Hors ligne"}</span> : null,
     },
     { id: "formulaire", href: "/dashboard/invites/formulaire", label: "Formulaire", short: "Formulaire", extra: replies ? <span className="d-itab-count">{replies} réponse{replies > 1 ? "s" : ""}</span> : null },
-    { id: "plan", href: "/dashboard/invites/plan-de-table", label: "Plan de table", short: "Plan de table" },
+    { id: "plan", href: "/dashboard/invites/plan-de-table", label: "Plan de table", short: "Plan" },
     { id: "liste-de-mariage", soon: true, label: "Liste de mariage", short: "Liste de mariage", extra: <span className="d-itab-soon">Bientôt !</span> },
   ];
   return (
