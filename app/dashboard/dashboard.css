@@ -15412,3 +15412,188 @@ body.d-noscroll {
     width: 100%;
   }
 }
+
+/* Budget : les paiements d'un poste (marquer payé, modifier, supprimer) */
+.d-pay-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.d-pay-summary span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--d-panel);
+}
+
+.d-pay-summary small {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-pay-summary strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-pay-head {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-muted);
+}
+
+.d-pay-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-pay-list > li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-pay-list > li:last-child {
+  border-bottom: 0;
+}
+
+.d-pay-list > li.is-editing {
+  display: block;
+}
+
+.d-pay-text {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-pay-text strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-pay-text small {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-pay-text small.is-late {
+  color: var(--d-red-ink);
+}
+
+.d-pay-amount {
+  flex: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.d-pay-tools {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.d-pay-tools .d-pill {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.d-pay-form {
+  padding: 4px 0;
+}
+
+.d-pay-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Le statut d'une ligne ouvre ses paiements */
+.d-status.is-btn {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.d-status.is-btn:hover {
+  filter: brightness(0.96);
+}
+
+.d-amount-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.25;
+}
+
+.d-amount-stack small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--d-muted);
+}
+
+.d-mrow-amount-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Postes sans devis ni paiement, repliés sous « À prévoir » */
+.d-planned-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px dashed var(--d-border);
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--d-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-planned-toggle strong {
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
+.d-planned-row > td {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Répartition : les paiements dont on n'a pas dit qui les a payés */
+.d-unassigned {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+}
+
+.d-unassigned .d-pill {
+  min-height: 30px;
+  font-size: 12px;
+}

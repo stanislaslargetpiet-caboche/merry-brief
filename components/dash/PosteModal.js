@@ -6,7 +6,7 @@ import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessCatalogCategory } from "@/lib/dash/catalog";
 import { guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
-import { groupItems, posteName } from "@/lib/dash/model";
+import { groupItems, posteName, removePosteMessage } from "@/lib/dash/model";
 import { CloseBtn, Layer } from "./Prestataires";
 import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
 import { Btn, Field, Modal } from "./ui";
@@ -117,7 +117,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
               kind="ghost"
               icon="trash"
               onClick={() => {
-                if (window.confirm(`Supprimer ${item.category ? "la ligne" : "le poste"} « ${posteName(item)} » et ses paiements ?`)) {
+                if (window.confirm(removePosteMessage(item, dash.data))) {
                   dash.remove("budget_items", item.id);
                   onClose();
                 }
