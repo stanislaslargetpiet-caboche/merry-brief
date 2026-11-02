@@ -20,7 +20,6 @@ export default async function Image({ params }) {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: theme.deep }}>
         {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="" width={1200} height={630} style={{ position: "absolute", inset: 0, width: 1200, height: 630, objectFit: "cover", objectPosition: `50% ${pos}%` }} />
         ) : null}
         <div style={{ position: "absolute", left: 48, bottom: 48, display: "flex", flexDirection: "column", gap: 8, padding: "22px 30px", borderRadius: 24, background: "#ffffff" }}>

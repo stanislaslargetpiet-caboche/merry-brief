@@ -653,9 +653,11 @@
   width: 100%;
 }
 
-.d-btn[disabled] {
+.d-btn[disabled],
+.d-btn.is-disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .d-icon-btn {
@@ -1775,6 +1777,12 @@ button.d-rsvp:hover {
   height: 100%;
   cursor: col-resize;
   z-index: 1;
+}
+
+.d-col-resize:focus-visible {
+  outline: 2px solid var(--d-ink, #111);
+  outline-offset: -2px;
+  border-radius: 3px;
 }
 
 .d-col-resize::after {

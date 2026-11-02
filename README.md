@@ -21,6 +21,18 @@ npm run dev                  # http://localhost:3000
 
 Sans `.env.local`, le parcours tourne quand même et la création de compte est simulée (visible dans la console du navigateur).
 
+### Qualité : lint, tests, CI
+
+```bash
+npm run lint       # ESLint (règles Next.js et React Hooks) : la CI échoue sur une erreur
+npm test           # tests unitaires de la logique pure (tests/*.test.js, Vitest)
+npm run test:sql   # migrations Supabase sur un PostgreSQL vide + scénarios (scripts/sql, DATABASE_URL requise)
+```
+
+Le workflow `.github/workflows/ci.yml` lance lint, tests et build à chaque PR, et rejoue les fichiers `supabase/*.sql` dans l'ordre du README sur un PostgreSQL 16 (avec un substitut minimal des objets Supabase, `scripts/sql/00-supabase-shim.sql`), puis les scénarios `scripts/sql/test-*.sql` (recherche de fête, formulaire invités, quotas, visites). Les 33 fichiers sont rejoués, `catalog.sql` compris : il manquait au dépôt et a été reconstitué le 2 novembre 2026 à partir de tout ce que l'appli et les autres fichiers lisent et écrivent dans le schéma (relançable sans effet sur une base qui a déjà le catalogue).
+
+Chaque page a son filet : `app/error.js` (erreur de rendu, bouton Réessayer), `app/global-error.js`, `app/not-found.js`. Les en-têtes de sécurité (HSTS, nosniff, frame, referrer, permissions) sont dans `next.config.mjs` ; une Content-Security-Policy reste à écrire avec un nonce (Next, Weglot, PostHog, Google Fonts).
+
 ## 3. Déployer sur Vercel (10 minutes)
 
 1. Pousse ce dossier sur un repo GitHub (privé).
@@ -77,7 +89,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard, valid�
 
 **Plan de table** : `supabase/plan-de-table.sql` (Supabase > SQL Editor, Run, après `dashboard.sql`, relançable). Il crée `seating_tables` (les tables d'un moment : nom, places) et `seating` (qui s'assoit où), et les ajoute au direct. Sans lui, la page explique quoi lancer.
 
-**Direct entre organisateurs et historique des réponses** : `supabase/sync-et-historique.sql` (Supabase > SQL Editor, Run, après `dashboard.sql` et `formulaire.sql`, relançable). Il ajoute les tables de la liste à la publication Realtime (les changements d'un organisateur arrivent chez les autres sans recharger, et chacun voit qui est sur la liste) et crée `guest_response_log`, rempli par un déclencheur : « par le formulaire, 8 oct. » ou « par Léa, 12 nov. » sous chaque moment de la fiche, et un bandeau « N nouvelles réponses par le formulaire depuis votre dernière visite » sur la liste. Sans lui, rien ne change : la page fonctionne comme avant.
+**Direct entre organisateurs et historique des réponses** : `supabase/sync-et-historique.sql` (Supabase > SQL Editor, Run, après `dashboard.sql` et `formulaire.sql`, relançable). Il ajoute les tables de la liste à la publication Realtime (les changements d'un organisateur arrivent chez les autres sans recharger, suppressions comprises grâce à `replica identity full`, et chacun voit qui est sur la liste ; après une coupure du canal, les tables sont relues) et crée `guest_response_log`, rempli par un déclencheur : « par le formulaire, 8 oct. » ou « par Léa, 12 nov. » sous chaque moment de la fiche, et un bandeau « N nouvelles réponses par le formulaire depuis votre dernière visite » sur la liste. Sans lui, rien ne change : la page fonctionne comme avant.
 
 **Relances** : `supabase/relances.sql` (Supabase > SQL Editor, Run, après `dashboard.sql`, relançable). Il ajoute `guests.reminded_at` (date de la dernière relance). Sans lui, « Relancer » explique quoi lancer ; le reste fonctionne.
 
@@ -116,7 +128,7 @@ Tout le contenu est en haut de `components/Brief.js` (listes `EVENTS`, `STAGES`,
 
 Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (2f et 2g), validés le 21 octobre 2026.
 
-**Installer** : Supabase > SQL Editor > New query, colle `supabase/formulaire.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `guest_forms`, le dossier de stockage public `merry-covers` pour les photos d'en-tête et deux fonctions ouvertes sans compte. Tant qu'il n'est pas lancé, le reste du tableau de bord fonctionne et la page de réglages explique quoi faire.
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/formulaire.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `guest_forms`, le dossier de stockage public `merry-covers` pour les photos d'en-tête et deux fonctions ouvertes sans compte. Les réponses sont limitées à 200 par heure et par formulaire, et un invité reconnu par son nom seul ne voit ses coordonnées remplacées que si l'adresse mail envoyée est celle de sa fiche (sinon seuls les champs vides sont complétés). Si `prestataires.sql` avait été collé avant ce fichier dans une version antérieure, recolle-le une fois après (les deux définissaient `merry_norm`), puis `refresh materialized view catalog.place_centers`. Tant qu'il n'est pas lancé, le reste du tableau de bord fonctionne et la page de réglages explique quoi faire.
 
 **Principe** : un formulaire par mariage, créé à la première visite de « Formulaire invités ». Le lien (`https://<ton domaine>/f/stanislas-et-margue-k7q2`) se colle dans un groupe WhatsApp ou Facebook. Les réglages s'enregistrent tout seuls.
 
@@ -172,7 +184,7 @@ Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (7 à 7
 
 **Dates d'une demande de devis** : une date souhaitée et deux dates de repli, ou « Nos dates sont flexibles » (artboards 7h et 7t, dates flexibles) : un ou plusieurs mois, une ou plusieurs années. La période part dans le message (« Dates flexibles : juin ou juillet 2027 ») et dans `quote_requests.dates`, sans changement de schéma. Le message par défaut suit les dates tant que le couple ne l'a pas réécrit.
 
-**D'où viennent les propositions** : du catalogue Merry (`supabase/catalog.sql`, schéma `catalog`), seulement les prestataires au statut `active`, à environ 100 km du lieu ou de la région du brief (`merry_place` ; sans elle, la région filtre par son nom), ceux avec photo d'abord, photos en liens signés. Le schéma doit être exposé : Supabase > Project Settings > API > Exposed schemas, ajouter `catalog`. Tant que le catalogue n'a aucun prestataire validé pour la catégorie, la page montre la sélection d'exemple du canvas (`lib/dash/catalog.js`) avec la mention « Sélection d'exemple ». Six lieux, ou huit prestataires, à la fois : « Voir plus » charge la page suivante (sous la grille, dans les listes de la carte, au bout de chaque rangée d'« Autour de votre lieu »). La carte s'ouvre sur les prestataires trouvés ; on la déplace en glissant, on zoome en pinçant (pavé tactile, deux doigts sur téléphone), avec Ctrl + molette ou les boutons, jusqu'à voir toute la France ; « Rechercher dans cette zone » cherche dans le catalogue la zone affichée. Fond de carte : départements (france-geojson, Licence Ouverte) et pays voisins (Natural Earth) dans `lib/dash/franceMap.js`, chargé seulement avec la carte.
+**D'où viennent les propositions** : du catalogue Merry (`supabase/catalog.sql`, schéma `catalog` : fiches, catégories, photos, stockage `catalog-photos` et règles d'accès ; à coller avant `catalog-filtres.sql`), seulement les prestataires au statut `active`, à environ 100 km du lieu ou de la région du brief (`merry_place` ; sans elle, la région filtre par son nom), ceux avec photo d'abord, photos en liens signés. Le schéma doit être exposé : Supabase > Project Settings > API > Exposed schemas, ajouter `catalog`. Tant que le catalogue n'a aucun prestataire validé pour la catégorie, la page montre la sélection d'exemple du canvas (`lib/dash/catalog.js`) avec la mention « Sélection d'exemple ». Six lieux, ou huit prestataires, à la fois : « Voir plus » charge la page suivante (sous la grille, dans les listes de la carte, au bout de chaque rangée d'« Autour de votre lieu »). La carte s'ouvre sur les prestataires trouvés ; on la déplace en glissant, on zoome en pinçant (pavé tactile, deux doigts sur téléphone), avec Ctrl + molette ou les boutons, jusqu'à voir toute la France ; « Rechercher dans cette zone » cherche dans le catalogue la zone affichée. Fond de carte : départements (france-geojson, Licence Ouverte) et pays voisins (Natural Earth) dans `lib/dash/franceMap.js`, chargé seulement avec la carte.
 
 **Principe** : le cœur garde un prestataire (avec un instantané de son nom, sa photo et son prix). Une demande de devis est un message, adapté à chacun (un mot personnel, les questions de sa catégorie, les dates, le budget si on le partage) : elle crée ou retrouve le prestataire dans le budget (`vendors`) et range le message sur sa fiche (`/dashboard/budget/prestataires/[id]`). Le statut se lit ensuite dans les données existantes : une réponse notée sur la fiche donne « Réponse reçue », un devis dans le budget (ou `vendor_picks.quote_amount`) « Devis reçu ». Le lieu retenu est celui du brief (`weddings.venue`), sinon le premier lieu dont on a le devis. Les critères de « Votre style » sont tirés de la description par mots-clés, sans IA.
 
@@ -255,6 +267,25 @@ Démo sans compte : `/pro?demo=1` (données des maquettes, gardées dans le navi
 **Comment c'est relié aux couples** : quand un couple envoie « Demander les devis » à un lieu du catalogue, la demande apparaît dans les Demandes de ce lieu dès qu'il a revendiqué sa fiche (`pro_sync`), et devient un client « Nouvelle demande ». La réponse du prestataire (`pro_send`) arrive dans le tableau de bord du couple, sur la fiche du prestataire dans Budget, et compte comme « Réponse reçue ». Ce que le prestataire change dans Ma fiche et Tarifs est écrit dans `catalog.vendors` et se voit tout de suite dans la page Prestataires des couples. Les vues de la fiche viennent de `merry_log_view`, appelée quand un couple ouvre la fiche. Si le catalogue est réimporté par les scripts, ne pas écraser les fiches présentes dans `pro_vendors`.
 
 **Pas encore fait** : le paiement (Stripe : abonnement et packs ; les champs de carte sont inactifs, rien n'est saisi), le code par SMS (il faut un fournisseur SMS, Twilio par exemple), l'écran où les couples acceptent d'être contactés (à dessiner dans le canvas ; d'ici là, Projets de mariage reste vide : colonnes `vendor_wishes.open_to_vendors` et `vendor_note`), l'ouverture côté couple des devis PDF (le message contient un lien valable 30 jours).
+
+## Mise à jour du 2 novembre 2026 (sécurité, quotas, données)
+
+Un seul copier-coller : `supabase/bundles/2026-11-02-mise-a-jour.sql` (assemblé par `scripts/sql/bundle.sh` à partir de `quotas.sql`, `dashboard.sql`, `sync-et-historique.sql`, `plan-de-table.sql`, `formulaire.sql`, `invites-recherche.sql`, `site-visites.sql`, `prestataires.sql`, `catalog.sql`, `prestataires-ajout-manuel-fix-ambiguite.sql`, `espace-prestataire.sql`, `prestataires-notifier-couple.sql`, puis le recalcul de `catalog.place_centers`). Relançable, vérifié sur une base vide et sur une base déjà migrée.
+
+Ce que ça change :
+
+- **Plan de table** : les placements se rechargeaient vides (tri sur une colonne `id` que la table n'a pas) ; corrigé côté appli.
+- **Recherche de la fête** (site vitrine) : comparaison exacte des prénoms, deux indices exigés (deux prénoms, ou un prénom et la date) ; un « % » ne liste plus les sites.
+- **Formulaire invités** : 200 réponses par heure et par formulaire ; un nom reconnu ne voit ses coordonnées remplacées que si le mail envoyé est celui de sa fiche ; la réponse ne dit plus si le nom était sur la liste.
+- **Direct entre organisateurs** : `replica identity full` sur les tables partagées (les suppressions arrivent), relecture au retour du canal, et toute écriture refusée remet l'écran dans l'état d'avant.
+- **Quotas** (`quotas.sql`) : recherche Google (300 par jour et par personne), villes (600), photos Google (40), mails aux prestataires (40), aux organisateurs (60), invitations (20), fiches ajoutées à la main (30) ; codes de l'espace prestataire : 20 par heure et par adresse IP, 5 par fiche, 5 par adresse mail. Sans le fichier, les routes laissent passer et le disent dans les journaux Vercel.
+- **Espace prestataire** : la fonction qui donne les adresses des organisateurs n'est plus appelable par un prestataire connecté (réservée au serveur) ; une proposition ne crée plus une nouvelle fiche chez le couple à chaque envoi (dix minutes entre deux) ; réordonner ses photos garde leurs métadonnées ; index trigramme sur le nom des fiches pour la recherche publique ; un lien `/pro?fiche=…` ouvre la fiche, le code part sur un clic.
+- **Catalogue** : une fiche ajoutée à la main porte `created_by_wedding` ; les pages publiques `/mariage/…` ne la listent pas tant qu'elle n'a pas été relue, et seule l'équipe de ce mariage peut y rattacher des photos Google ; site web et téléphone vérifiés.
+- **Visites du site de mariage** : comptées par la page (une par visiteur et par heure, 5 000 par jour au plus), plus par l'aperçu de lien ni les robots.
+- **Liens dans les mails** : toujours `NEXT_PUBLIC_APP_URL` (ou app.withmerry.com), plus l'en-tête Host de la requête.
+- **Pages juridiques** : `/confidentialite` et `/cgu` existent désormais sur withmerry.com (le bandeau cookies et l'inscription y renvoyaient vers des pages absentes). Éditeur : Stanislas Larget-Piet, contact bonjour@withmerry.com ; si une société porte le service, remplacer le nom de l'éditeur et ajouter son siège dans `app/vitrine/confidentialite/page.js` et `app/vitrine/cgu/page.js`.
+- **Site de mariage et formulaire invités** : rendus côté serveur dès la première image (plus d'écran vide), la visite est comptée par la page. `robots.txt` ne les interdit plus (ils portent `noindex`, qu'un robot doit pouvoir lire).
+- **Site vitrine** : les images intégrées en base64 dans les blocs (840 Ko de HTML) sont devenues des fichiers WebP dans `public/vitrine/blocks/`, les photos sont redimensionnées, Alan Sans est servie en WOFF2 (80 Ko au lieu de 190), et seules les polices utilisées sont chargées.
 
 ## 15. Site de mariage (`/s/…`)
 

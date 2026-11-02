@@ -138,6 +138,13 @@ $$;
 revoke all on function public.pro_search(text) from public;
 grant execute on function public.pro_search(text) to anon, authenticated;
 
+-- La recherche par nom parcourt tout le catalogue (« %mot% ») : un index trigramme la rend immédiate
+-- au lieu d'un balayage complet à chaque lettre tapée, par n'importe qui (la fonction est publique)
+create extension if not exists pg_trgm with schema extensions;
+create index if not exists vendors_name_trgm_idx on catalog.vendors using gin (name extensions.gin_trgm_ops) where status = 'active';
+-- pro_sync, pro_stats et pro_projects retrouvent les choix des couples par catalog_ref seul
+create index if not exists vendor_picks_ref_idx on public.vendor_picks (catalog_ref);
+
 -- ---------------------------------------------------------------------------
 -- C. Ma fiche : les modifications vont droit dans le catalogue que lisent les couples
 -- ---------------------------------------------------------------------------
@@ -249,9 +256,15 @@ begin
   if exists (select 1 from unnest(paths) p where p not like v::text || '/%') then
     raise exception 'photo hors de votre dossier' using errcode = '42501';
   end if;
-  delete from catalog.vendor_photos where vendor_id = v;
+  -- Les photos gardées conservent leurs métadonnées (dimensions, lecture « capture d'écran », classement) :
+  -- on retire seulement celles qui ne sont plus listées, on renumérote, on ajoute les nouvelles
+  delete from catalog.vendor_photos where vendor_id = v and not (storage_path = any (paths));
+  update catalog.vendor_photos ph set position = (t.o - 1)::smallint
+    from unnest(paths) with ordinality as t(p, o)
+    where ph.vendor_id = v and ph.storage_path = t.p;
   insert into catalog.vendor_photos (vendor_id, position, storage_path)
-    select v, (o - 1)::smallint, p from unnest(paths) with ordinality as t(p, o);
+    select v, (o - 1)::smallint, p from unnest(paths) with ordinality as t(p, o)
+    where not exists (select 1 from catalog.vendor_photos x where x.vendor_id = v and x.storage_path = p);
   update catalog.vendors set photos_count = coalesce(array_length(paths, 1), 0), updated_at = now() where id = v;
 end;
 $$;
@@ -735,14 +748,24 @@ begin
   if not exists (select 1 from public.pro_unlocks where vendor_id = v and wedding_id = w) then
     raise exception 'projet à débloquer d''abord' using errcode = '42501';
   end if;
+  -- Une proposition à la fois : pas deux envois au même couple en dix minutes
+  if exists (select 1 from public.pro_unlocks where vendor_id = v and wedding_id = w and proposed_at > now() - interval '10 minutes') then
+    raise exception 'proposition déjà envoyée, patientez quelques minutes' using errcode = '23505';
+  end if;
   if length(trim(coalesce(body, ''))) = 0 or length(body) > 8000 then
     raise exception 'message vide ou trop long' using errcode = '22023';
   end if;
   select x.name, x.primary_category, x.city, x.region, x.phone, x.email, x.website, c.label as category_label
     into cv from catalog.vendors x left join catalog.categories c on c.slug = x.primary_category where x.id = v;
-  insert into public.vendors (wedding_id, name, category, phone, email, website)
-    values (w, cv.name, coalesce(cv.category_label, 'Prestataire'), cv.phone, cv.email, cv.website)
-    returning id into couple_vendor;
+  -- La fiche du prestataire chez ce couple existe peut-être déjà (demande de devis, proposition précédente) :
+  -- on la réutilise au lieu d'en créer une nouvelle à chaque envoi
+  select p.vendor_id into couple_vendor from public.vendor_picks p
+    where p.wedding_id = w and p.catalog_ref = 'catalog:' || v::text and p.vendor_id is not null;
+  if couple_vendor is null then
+    insert into public.vendors (wedding_id, name, category, phone, email, website)
+      values (w, cv.name, coalesce(cv.category_label, 'Prestataire'), cv.phone, cv.email, cv.website)
+      returning id into couple_vendor;
+  end if;
   insert into public.vendor_messages (wedding_id, vendor_id, from_vendor, body) values (w, couple_vendor, true, trim(body));
   insert into public.vendor_picks (wedding_id, catalog_ref, category, data, checked, vendor_id)
     values (w, 'catalog:' || v::text,

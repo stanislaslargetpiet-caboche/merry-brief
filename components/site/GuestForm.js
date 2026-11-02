@@ -191,7 +191,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
     if (form.demo || !supabase) {
       console.info("[merry] démo : réponse simulée", payload);
       remember();
-      setDone({ known: false });
+      setDone({ ok: true });
       setSending(false);
       onAnswered?.();
       return;
@@ -202,11 +202,11 @@ export default function GuestForm({ form, slug, onAnswered }) {
       console.error("[merry] envoi du formulaire", error);
       setMissing([]);
       const msg = error.message || "";
-      setDone({ error: /Liste complète/.test(msg) ? "full" : /Date limite/.test(msg) ? "closed" : "failed" });
+      setDone({ error: /Liste complète/.test(msg) ? "full" : /Date limite/.test(msg) ? "closed" : /Trop de réponses/.test(msg) ? "busy" : "failed" });
       return;
     }
     remember();
-    setDone({ known: !!data?.known });
+    setDone({ ok: true });
     onAnswered?.();
   }
 
@@ -404,6 +404,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
   const errorText = {
     full: "La liste des mariés est complète : contactez-les directement.",
     closed: "La date limite de réponse est passée : contactez directement les mariés.",
+    busy: "Beaucoup de réponses arrivent en ce moment : réessayez dans une heure.",
     failed: "Votre réponse n'a pas pu être envoyée. Vérifiez votre connexion et réessayez.",
   };
 
@@ -421,7 +422,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
         <div className="gf-done" role="status">
           <strong>Merci, c'est noté.</strong>
           <span>
-            {done.known ? "Votre réponse a mis à jour votre ligne dans la liste des mariés." : "Votre réponse est arrivée chez les mariés."} Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
+            Votre réponse est arrivée chez les mariés. Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
           </span>
         </div>
       ) : closed ? (

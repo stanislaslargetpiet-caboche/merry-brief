@@ -218,8 +218,8 @@ function Detail({ r, c, onBack }) {
         </div>
       ) : null}
       <div className="p-dem-chips">
-        {chips.map((t) => (
-          <span key={t}>{t}</span>
+        {chips.map((t, i) => (
+                <span key={`${t}-${i}`}>{t}</span>
         ))}
       </div>
       {r.message ? (

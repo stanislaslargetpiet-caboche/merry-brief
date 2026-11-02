@@ -17,7 +17,9 @@ import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { BusyDots } from "./ui";
+import { BusyDots, trapTab, useIsPhone } from "./ui";
+
+export { useIsPhone };
 import VendorComments from "./VendorComments";
 
 // ---------------------------------------------------------------------------
@@ -56,11 +58,15 @@ export function usePicks() {
     return false;
   }, [dash, picksSetup]);
 
+  // Un ajout en cours par fiche : deux touches rapides sur le cœur ne créent pas deux lignes
+  const adding = useRef(new Map());
   const add = useCallback(
     async (v) => {
       if (!ready()) return null;
       const existing = byRef.get(v.id);
       if (existing) return existing;
+      if (adding.current.has(v.id)) return adding.current.get(v.id);
+      const job = (async () => {
       const [row] = await dash.insert("vendor_picks", {
         catalog_ref: v.id,
         category: v.category,
@@ -77,6 +83,13 @@ export function usePicks() {
         created_at: new Date().toISOString(),
       });
       return row;
+      })();
+      adding.current.set(v.id, job);
+      try {
+        return await job;
+      } finally {
+        adding.current.delete(v.id);
+      }
     },
     [ready, byRef, dash, meId, picks.length],
   );
@@ -101,18 +114,6 @@ export function usePicks() {
   );
 
   return { picks, isPicked: (v) => byRef.has(v.id), pickOf: (v) => byRef.get(v.id), add, toggle, removeMany, ready };
-}
-
-export function useIsPhone() {
-  const [phone, setPhone] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 700px), (max-height: 500px) and (orientation: landscape)");
-    const on = () => setPhone(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return phone;
 }
 
 // Fiche complète d'un prestataire gardé : catalogue d'exemple si on le connaît, sinon ce qui a été gardé
@@ -401,7 +402,9 @@ export function details(v, venueName) {
 
 export function Photos({ v, height, children, onOpen }) {
   const photos = v.photos?.length ? v.photos : [null];
-  const [i, setI] = useState(0);
+  const [rawI, setI] = useState(0);
+  // La liste peut raccourcir quand les vraies photos arrivent : l'index reste dans la liste
+  const i = rawI < photos.length ? rawI : 0;
   const start = useRef(null);
   const n = Math.max(photos.length, 5);
   const cur = photos[i] || null;
@@ -648,7 +651,10 @@ export function Layer({ kind, label, labelledBy, onClose, children }) {
   useEffect(() => setHost(document.querySelector(".d-root") || document.body), []);
   useEffect(() => {
     if (!host) return undefined;
-    const onKey = (e) => e.key === "Escape" && closeRef.current();
+    const onKey = (e) => {
+      if (e.key === "Escape") closeRef.current();
+      else trapTab(ref.current, e);
+    };
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
     // Sans faire défiler la page, et sans voler le focus d'un champ déjà en autoFocus
@@ -1138,7 +1144,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
   const weddingId = dash.data.wedding?.id;
   useEffect(() => {
     if (dash.mode !== "live" || !supabase || !v.catalogId || !weddingId) return;
-    supabase.rpc("merry_log_view", { v: v.catalogId, w: weddingId }).then(() => {});
+    supabase.rpc("merry_log_view", { v: v.catalogId, w: weddingId }).then(() => {}, () => {});
   }, [dash.mode, v.catalogId, weddingId]);
   return (
     <Layer kind="fiche" labelledBy="fiche-titre" onClose={onClose}>
@@ -1207,7 +1213,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
           <section className="d-pr-fsec">
             <h2>Vidéo et visite virtuelle</h2>
             <div className="d-pr-contacts">
-              <a href={v.video} target="_blank" rel="noopener noreferrer">
+              <a href={/^https?:\/\//i.test(String(v.video)) ? v.video : "#"} target="_blank" rel="noopener noreferrer">
                 <Icon name="globe" size={15} sw={2} />
                 {/matterport|3d|visite/i.test(v.video) ? "Visite virtuelle" : "Voir la vidéo"}
               </a>
@@ -1500,8 +1506,16 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
       return;
     }
     setBusy(true);
-    await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {}, sign });
-    setBusy(false);
+    let ok = false;
+    try {
+      ok = await dash.sendQuotes({ picks: list, message: message.trim(), questions: finalQuestions(), dates: finalDates(), budget: share ? budget : null, notes: {}, sign });
+    } finally {
+      setBusy(false);
+    }
+    if (!ok) {
+      dash.setToast({ kind: "error", text: "La demande n'a pas pu être enregistrée en entier. Vérifiez votre connexion et réessayez : le brouillon est gardé." });
+      return;
+    }
     writeDraft(weddingId, null);
     dash.setToast({ kind: "ok", text: `${list.length > 1 ? `${list.length} demandes enregistrées` : "Demande enregistrée"}, sur la fiche de chaque prestataire dans Budget.` });
     onSent?.();

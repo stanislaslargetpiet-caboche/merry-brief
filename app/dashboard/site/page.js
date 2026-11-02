@@ -235,13 +235,25 @@ export default function SiteMariage() {
   const photoInput = useRef(null);
   const photoPath = useRef(null);
 
+  const dirty = useRef(false);
+
   const save = useCallback(
     async (next, retry = true) => {
       setStatus("saving");
+      dirty.current = false;
       const res = await dash.saveSite({ slug: next.slug, published: next.published, template: next.template, palette: next.palette, fonts: next.fonts, sections: next.sections, content: next.content });
       if (res.ok) {
-        setStatus("saved");
+        setStatus(dirty.current ? "pending" : "saved");
         return true;
+      }
+      // Un autre organisateur (ou un autre onglet) a enregistré entre-temps : on reprend sa version
+      if (res.conflict) {
+        const theirs = startSite({ ...data, site: res.row }, false);
+        latest.current = theirs;
+        setSite(theirs);
+        setStatus("saved");
+        dash.setToast({ kind: "error", text: "Le site a été modifié ailleurs entre-temps : cette page montre la dernière version enregistrée." });
+        return false;
       }
       // Adresse déjà prise par un autre mariage : on en tire une nouvelle
       if (retry && res.error?.code === "23505") {
@@ -259,9 +271,33 @@ export default function SiteMariage() {
   // Le site existe en base dès la première visite, pour que le lien marche tout de suite
   useEffect(() => {
     if (!data.site && data.siteSetup !== false) save(latest.current);
-    return () => clearTimeout(timer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Une modification encore en attente part tout de suite quand on quitte la page ou l'onglet
+  // (sinon les 700 ms de délai la perdaient)
+  // (flush ne change jamais : l'effet qui l'installe ne se rejoue pas à chaque rendu, sinon son nettoyage
+  // enverrait la modification à chaque frappe, sans le délai)
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const flush = useCallback(() => {
+    if (!timer.current) return;
+    clearTimeout(timer.current);
+    timer.current = null;
+    if (dirty.current) saveRef.current(latest.current);
+  }, []);
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", hide);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
 
   // Toutes les polices proposées, pour les montrer chacune dans sa police
   useEffect(() => {
@@ -288,8 +324,12 @@ export default function SiteMariage() {
     latest.current = next;
     setSite(next);
     setStatus("pending");
+    dirty.current = true;
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => save(latest.current), 700);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      save(latest.current);
+    }, 700);
   };
   const setContent = (patch) => change((s) => ({ content: { ...s.content, ...patch } }));
   const setPhoto = (key, value) => change((s) => ({ content: { ...s.content, photos: { ...s.content.photos, [key]: value } } }));

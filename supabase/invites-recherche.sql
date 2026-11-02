@@ -1,5 +1,6 @@
 -- Merry · retrouver la fête (flux « J'ai un code » / « Je cherche par prénoms », site vitrine /onboarding)
--- À coller dans Supabase > SQL Editor > New query, puis Run, APRÈS site-mariage.sql.
+-- À coller dans Supabase > SQL Editor > New query, puis Run, APRÈS site-mariage.sql et formulaire.sql
+-- (merry_norm_compact y est définie).
 -- Le fichier peut être relancé sans risque : il ne supprime aucune donnée.
 --
 -- Le code donné aux invités est l'adresse du site (wedding_sites.slug) : pas de champ séparé à
@@ -17,8 +18,9 @@ as $$
 declare
   s public.wedding_sites%rowtype;
   w public.weddings%rowtype;
-  n1 text := nullif(trim(p_name1), '');
-  n2 text := nullif(trim(p_name2), '');
+  -- Prénoms comparés sans accent, majuscule ni tiret, jamais comme motif (« % » ne liste rien)
+  n1 text := nullif(public.merry_norm_compact(p_name1), '');
+  n2 text := nullif(public.merry_norm_compact(p_name2), '');
   hits uuid[];
 begin
   if p_code is not null and trim(p_code) <> '' then
@@ -27,13 +29,17 @@ begin
       return null;
     end if;
   elsif n1 is not null then
+    -- Un prénom seul ne suffit pas : il faut les deux prénoms, ou un prénom et la date
+    if n2 is null and p_date is null then
+      return null;
+    end if;
     select array_agg(ww.id) into hits
       from public.wedding_sites ws
       join public.weddings ww on ww.id = ws.wedding_id
      where ws.published
        and (
-             (ww.partner1 ilike n1 and (n2 is null or ww.partner2 ilike n2))
-          or (ww.partner2 ilike n1 and (n2 is null or ww.partner1 ilike n2))
+             (public.merry_norm_compact(ww.partner1) = n1 and (n2 is null or public.merry_norm_compact(ww.partner2) = n2))
+          or (public.merry_norm_compact(ww.partner2) = n1 and (n2 is null or public.merry_norm_compact(ww.partner1) = n2))
        )
        and (p_date is null or ww.wedding_date = p_date);
     -- Plus d'un couple porte ces prénoms : on ne montre rien plutôt qu'un mauvais mariage,

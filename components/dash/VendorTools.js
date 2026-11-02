@@ -191,7 +191,7 @@ export function VendorDocuments({ vendor, item, docs }) {
             <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <strong style={{ fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docTitle(d)}</strong>
               <span className="d-small-muted">
-                {KIND_LABEL[d.kind]} · {shortDate(String(d.created_at || "").slice(0, 10))}
+                {KIND_LABEL[d.kind]} · {shortDate(d.created_at ? new Date(d.created_at) : null)}
               </span>
             </span>
             <DocLink doc={d} className="d-small" style={{ fontWeight: 600 }}>

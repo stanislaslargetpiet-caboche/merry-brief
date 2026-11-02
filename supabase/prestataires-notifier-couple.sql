@@ -18,8 +18,9 @@ as $$
   join public.wedding_members m on m.wedding_id = w.id
   join catalog.vendors v on v.id = pc.vendor_id
   where pc.id = c
-    and public.is_pro_member(pc.vendor_id)
     and m.email is not null and m.email <> '';
 $$;
-revoke all on function public.pro_notify_couple_payload(uuid) from public, anon;
-grant execute on function public.pro_notify_couple_payload(uuid) to authenticated;
+-- Réservée au serveur (clé service_role) : un prestataire connecté ne doit pas pouvoir lire lui-même
+-- l'adresse de chaque organisateur. La route vérifie d'abord que c'est bien sa fiche (is_pro_member).
+revoke all on function public.pro_notify_couple_payload(uuid) from public, anon, authenticated;
+grant execute on function public.pro_notify_couple_payload(uuid) to service_role;

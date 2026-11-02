@@ -4,7 +4,6 @@
 // billets, tampons, QR code, questions, partage, réponse enregistrée, rubrique vide (aperçu seulement).
 
 import { useEffect, useId, useState } from "react";
-import QRCode from "qrcode";
 import { ICONS, ORN } from "@/lib/site/ornaments";
 import { downloadIcs, mapsUrl, RESPONSE_KEY } from "@/lib/site/model";
 import { isExample } from "@/lib/site/examples";
@@ -221,7 +220,9 @@ export function QR({ url, size = 72, className = "" }) {
   const [svg, setSvg] = useState("");
   useEffect(() => {
     let live = true;
-    QRCode.toString(url || "https://withmerry.com", { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#0000" } })
+    // La bibliothèque n'est chargée que si un QR code est affiché (aucun modèle ne l'utilise par défaut)
+    import("qrcode")
+      .then(({ default: QRCode }) => QRCode.toString(url || "https://withmerry.com", { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#0000" } }))
       .then((s) => live && setSvg(s.replace(/fill="#000000"/g, 'fill="currentColor"').replace(/stroke="#000000"/g, 'stroke="currentColor"')))
       .catch(() => {});
     return () => {
@@ -247,7 +248,7 @@ export function Faq({ items, titleClass = "", textClass = "", iconSize = 14, gro
         lastGroup = q.group || lastGroup;
         const on = open === i;
         return (
-          <div key={i}>
+          <div key={q.id ?? i}>
             {head ? <div className="s-faq-group">{head}</div> : null}
             <div className="s-faq-item">
               <button type="button" className="s-faq-q" aria-expanded={on} onClick={() => setOpen(on ? -1 : i)}>

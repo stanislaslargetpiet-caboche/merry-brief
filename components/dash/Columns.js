@@ -149,6 +149,16 @@ export function useColumnLayout(tableKey, columns) {
     [save],
   );
 
+  // Clavier : élargir ou rétrécir d'un cran
+  const resizeBy = useCallback(
+    (key, delta, th) => {
+      const startW = th?.getBoundingClientRect().width || layout.widths[key] || 120;
+      const w = Math.max(MIN, Math.min(MAX, Math.round(startW + delta)));
+      save((l) => ({ ...l, widths: { ...l.widths, [key]: w } }));
+    },
+    [layout.widths, save],
+  );
+
   // Poignée : glisser pour élargir ou rétrécir
   const startResize = useCallback(
     (key, e, th) => {
@@ -220,6 +230,7 @@ export function useColumnLayout(tableKey, columns) {
     headerProps,
     cellStyle,
     startResize,
+    resizeBy,
     move,
     reset,
     hide,
@@ -230,16 +241,24 @@ export function useColumnLayout(tableKey, columns) {
 }
 
 // Poignée de redimensionnement à poser dans un <th> (position: relative)
-export function ResizeHandle({ onMouseDown, label }) {
+// Au clavier : la poignée prend le focus (Tab), les flèches gauche et droite changent la largeur
+export function ResizeHandle({ onMouseDown, onResize, label }) {
   return (
     <span
       className="d-col-resize"
       role="separator"
       aria-orientation="vertical"
+      tabIndex={onResize ? 0 : undefined}
       aria-label={label ? `Largeur de la colonne ${label}` : "Largeur de la colonne"}
-      title="Glisser pour élargir"
+      title="Glisser pour élargir (ou flèches gauche et droite au clavier)"
       onMouseDown={onMouseDown}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (!onResize || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onResize(e.key === "ArrowRight" ? 16 : -16, e.currentTarget.parentElement);
+      }}
     />
   );
 }

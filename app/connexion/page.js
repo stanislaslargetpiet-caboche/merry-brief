@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
@@ -367,7 +369,7 @@ export default function Connexion() {
         {mode === "login" && !token ? (
           <p className="cx-foot">
             {s.footnoteLead}
-            <a href="/">{s.footnoteLink}</a>
+            <Link href="/">{s.footnoteLink}</Link>
           </p>
         ) : null}
       </main>

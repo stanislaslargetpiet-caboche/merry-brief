@@ -28,7 +28,7 @@ export default async function VitrineAPropos() {
   return (
     <Frame current="about">
       <main className="wv-about">
-        <img src="/vitrine/apropos.jpg" alt="" className="wv-photo" />
+        <img src="/vitrine/apropos.webp" alt="" className="wv-photo" width={1400} height={1944} decoding="async" />
         <div className="wv-text">
           <h1 className="wv-h2">On ne cessera jamais de se réunir.</h1>
           <p className="wv-lead">Un mariage, un anniversaire, une fête de famille : personne ne regrette ces moments. Les organiser, en revanche, tout le monde s’en passerait.</p>

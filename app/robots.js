@@ -4,7 +4,8 @@ import { PUBLIC_URL } from "@/lib/seo/data";
 // /vitrine est l'adresse interne du site vitrine, servi sur withmerry.com.
 export default function robots() {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/dashboard", "/pro", "/api", "/connexion", "/s/", "/f/", "/vitrine"] }],
+    // /s et /f portent déjà noindex : les interdire ici empêcherait les robots de le lire
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/dashboard", "/pro", "/api", "/connexion", "/vitrine"] }],
     sitemap: `${PUBLIC_URL}/sitemap.xml`,
   };
 }

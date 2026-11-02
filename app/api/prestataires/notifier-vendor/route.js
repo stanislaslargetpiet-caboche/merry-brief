@@ -5,6 +5,8 @@
 // de toute façon enregistré dans Merry, seul l'e-mail de relance est facultatif.
 
 import { createClient } from "@supabase/supabase-js";
+import { publicOrigin } from "@/lib/server/origin";
+import { allowUser } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 
@@ -52,12 +54,13 @@ export async function POST(req) {
   const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ") || "Un couple";
   const initials = [wedding?.partner1, wedding?.partner2].map((n) => String(n || "").trim()[0] || "").join("").toUpperCase() || "M";
 
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  // Le lien ouvre directement la fiche du catalogue à revendiquer (code envoyé tout de suite), quand on la connaît
+  // Le texte du mail vient du couple et l'adresse de sa fiche prestataire : 40 mails par jour et par
+  // personne, pour que l'expéditeur Merry ne serve pas à envoyer n'importe quoi à n'importe qui
+  if (!(await allowUser(sb, "vendor_mail", 40, 86400))) return Response.json({ error: "quota" }, { status: 429 });
+  // Le lien ouvre directement la fiche du catalogue à revendiquer, quand on la connaît
   const { data: pick } = await sb.from("vendor_picks").select("catalog_ref").eq("wedding_id", vendor.wedding_id).eq("vendor_id", vendorId).maybeSingle();
   const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
-  const link = `${proto}://${host}/pro${catalogId ? `?fiche=${catalogId}` : ""}`;
+  const link = `${publicOrigin(req)}/pro${catalogId ? `?fiche=${catalogId}` : ""}`;
 
   const subject = isRequest ? `${couple} vous a écrit` : `${couple} vous a écrit sur Merry`;
   const plainParts = [`Bonjour,`, message || `${couple} vous a envoyé un message sur Merry.`];

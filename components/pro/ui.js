@@ -29,9 +29,13 @@ export function ProSubnav({ items, label }) {
 
 export function Sheet({ labelledBy, onClose, children, className = "", wide = false }) {
   const box = useRef(null);
+  // onClose est le plus souvent une fonction fléchée recréée à chaque rendu : lue par une référence, sinon
+  // chaque changement d'état relançait l'effet (écouteurs réinstallés, focus renvoyé au premier bouton)
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
     };
     document.addEventListener("keydown", onKey);
     const before = document.activeElement;
@@ -43,7 +47,7 @@ export function Sheet({ labelledBy, onClose, children, className = "", wide = fa
       document.body.style.overflow = body;
       before?.focus?.({ preventScroll: true });
     };
-  }, [onClose]);
+  }, []);
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="d-root p-layer">

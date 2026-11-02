@@ -22,19 +22,25 @@ export function FolderModal({ folder, onClose, onCreated }) {
   const existing = new Set(folders.map((f) => f.name.toLowerCase()));
   const suggestions = FOLDER_SUGGESTIONS.filter((s) => !existing.has(s.toLowerCase()));
 
+  const [busy, setBusy] = useState(false);
   const save = async (e) => {
     e?.preventDefault();
     const label = name.trim().slice(0, 80);
-    if (!label) return;
-    if (folder) {
-      await dash.update("document_folders", folder.id, { name: label, color });
+    if (!label || busy) return;
+    setBusy(true);
+    try {
+      if (folder) {
+        await dash.update("document_folders", folder.id, { name: label, color });
+        onClose();
+        return;
+      }
+      const position = folders.reduce((a, f) => Math.max(a, f.position), -1) + 1;
+      const [row] = await dash.insert("document_folders", { name: label, color, position, created_by: dash.data.meId || null, created_at: new Date().toISOString() });
       onClose();
-      return;
+      onCreated?.(row);
+    } finally {
+      setBusy(false);
     }
-    const position = folders.reduce((a, f) => Math.max(a, f.position), -1) + 1;
-    const [row] = await dash.insert("document_folders", { name: label, color, position, created_by: dash.data.meId || null, created_at: new Date().toISOString() });
-    onClose();
-    onCreated?.(row);
   };
 
   return (
@@ -97,6 +103,7 @@ function LinkModal({ folderId, onClose, onDone }) {
   const clean = normalizeLink(url);
   const shownName = name || (clean ? linkName(clean) : "");
 
+  const [busy, setBusy] = useState(false);
   const save = async (e) => {
     e?.preventDefault();
     if (!clean) {
@@ -107,7 +114,9 @@ function LinkModal({ folderId, onClose, onDone }) {
       dash.setToast({ kind: "error", text: "Le stockage des documents n'est pas encore installé : lancez supabase/documents.sql dans Supabase." });
       return;
     }
-    await dash.insert("documents", {
+    if (busy) return;
+    setBusy(true);
+    const list = await dash.insert("documents", {
       folder_id: folderId,
       budget_item_id: null,
       vendor_id: null,
@@ -120,6 +129,8 @@ function LinkModal({ folderId, onClose, onDone }) {
       added_by: dash.data.meId || null,
       created_at: new Date().toISOString(),
     });
+    setBusy(false);
+    if (!list.ok) return;
     dash.setToast({ kind: "ok", text: "Lien ajouté." });
     onDone?.();
     onClose();
@@ -283,14 +294,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact, tint }) {
   const item = items.find((i) => i.id === doc.budget_item_id);
   const linked = vendor || item;
 
-  const openDoc = async () => {
-    const url = await dash.documentUrl(doc);
-    if (!url) {
-      dash.setToast({ kind: "error", text: "Ce document n'a pas pu être ouvert." });
-      return;
-    }
-    window.open(url, "_blank", "noopener");
-  };
+  const openDoc = () => openSigned(dash, doc);
 
   const rename = async (e) => {
     e?.preventDefault();
@@ -380,7 +384,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact, tint }) {
   ) : null;
 
   if (compact) {
-    const metaBits = [by?.display_name, doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : null].filter(Boolean);
+    const metaBits = [by?.display_name, doc.created_at ? shortDate(new Date(doc.created_at)) : null].filter(Boolean);
     return (
       <div className="d-docrow-m">
         <TypeBadge doc={doc} size={34} tint={tint} />
@@ -417,7 +421,7 @@ export function DocumentRow({ doc, showFolder, folderName, compact, tint }) {
           <span className="d-muted">–</span>
         )}
       </span>
-      <span className="d-docrow-date">{doc.created_at ? shortDate(doc.created_at.slice(0, 10)) : ""}</span>
+      <span className="d-docrow-date">{doc.created_at ? shortDate(new Date(doc.created_at)) : ""}</span>
       {menu}
       {movingModal}
     </div>
@@ -443,16 +447,27 @@ export function FolderCard({ folder, docs, color }) {
 }
 
 // Lien qui ouvre un document, fichier déposé (lien signé) ou lien externe
+// Ouvre un fichier déposé : la fenêtre s'ouvre pendant le clic (sinon Safari et Chrome la bloquent une fois
+// le lien signé revenu), puis reçoit l'adresse ; si le lien ne vient pas, elle se referme
+async function openSigned(dash, doc) {
+  const win = window.open("", "_blank", "noopener");
+  const url = await dash.documentUrl(doc);
+  if (!url) {
+    win?.close();
+    dash.setToast({ kind: "error", text: "Ce document n'a pas pu être ouvert." });
+    return;
+  }
+  if (win) win.location.href = url;
+  else window.open(url, "_blank", "noopener");
+}
+
 export function DocLink({ doc, className, style, children }) {
   const dash = useDash();
-  const open = async (e) => {
+  const open = (e) => {
+    // Un lien externe s'ouvre tel quel ; un fichier déposé a besoin d'un lien signé
+    if (doc.url) return;
     e.preventDefault();
-    const url = await dash.documentUrl(doc);
-    if (!url) {
-      dash.setToast({ kind: "error", text: "Ce document n'a pas pu être ouvert." });
-      return;
-    }
-    window.open(url, "_blank", "noopener");
+    openSigned(dash, doc);
   };
   return (
     <a href={doc.url || "#"} onClick={open} className={className} style={style} target="_blank" rel="noreferrer">

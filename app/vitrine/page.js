@@ -45,7 +45,7 @@ export default async function VitrineAccueil() {
       </section>
 
       <section className="wv-sec wv-split" aria-label="Modèle">
-        <img src="/vitrine/gratuit.jpg" alt="" className="wv-photo" />
+        <img src="/vitrine/gratuit.webp" alt="" className="wv-photo" width={1600} height={1061} loading="lazy" decoding="async" />
         <div className="wv-stack" style={{ gap: 24 }}>
           <h2 className="wv-h3">Tu ne paies rien (oui).</h2>
           <p className="wv-p">Merry est 100 % gratuite pour les organisateurs (pas 99 %). Tes demandes de devis (budget, lieu, questions…) arrivent chez les prestataires. Ils utilisent des crédits pour y répondre.</p>
@@ -74,7 +74,7 @@ export default async function VitrineAccueil() {
             ))}
           </div>
         </div>
-        <img src="/vitrine/faq.jpg" alt="" className="wv-photo" style={{ minHeight: 640 }} />
+        <img src="/vitrine/faq.webp" alt="" className="wv-photo" style={{ minHeight: 640 }} width={1400} height={1953} loading="lazy" decoding="async" />
       </section>
 
       <section className="wv-guest" aria-label="Invités">

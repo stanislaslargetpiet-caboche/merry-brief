@@ -5,6 +5,7 @@
 // Réservée aux organisateurs connectés.
 
 import { createClient } from "@supabase/supabase-js";
+import { allowUser } from "@/lib/server/rate";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
@@ -55,6 +56,8 @@ export async function POST(req) {
   const sb = createClient(url, anon, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   const { data: user, error: authError } = await sb.auth.getUser();
   if (authError || !user?.user) return Response.json({ error: "auth" }, { status: 401 });
+  // Chaque appel est facturé par Google : 300 par jour et par personne
+  if (!(await allowUser(sb, "google_search", 300, 86400))) return Response.json({ error: "quota", results: [] }, { status: 429 });
 
   let body;
   try {

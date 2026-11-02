@@ -57,3 +57,8 @@ begin
 exception when undefined_object then
   null;
 end $$;
+
+-- Les suppressions (table retirée, invité enlevé d'une table) voyagent avec la ligne entière, comme pour
+-- les autres tables de la liste (voir supabase/sync-et-historique.sql)
+alter table public.seating_tables replica identity full;
+alter table public.seating replica identity full;

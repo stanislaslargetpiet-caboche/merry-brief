@@ -17,7 +17,7 @@ function remindedLabel(g) {
   if (d === null) return null;
   if (d === 0) return "relancé aujourd'hui";
   if (d === 1) return "relancé hier";
-  return `relancé le ${shortDate(g.reminded_at.slice(0, 10))}`;
+  return `relancé le ${shortDate(new Date(g.reminded_at))}`;
 }
 
 export default function RelanceModal({ guests, onClose, onMarked }) {

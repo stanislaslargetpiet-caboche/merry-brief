@@ -98,12 +98,15 @@ function Frame({ children }) {
     dash.trackPage?.(pathname);
   }, [pathname, dash.trackPage]);
 
+  // Le compte à rebours ne repart qu'avec un nouveau toast, pas à chaque changement du tableau de bord
+  const setToastRef = useRef(dash.setToast);
+  setToastRef.current = dash.setToast;
   useEffect(() => {
     if (!dash.toast) return undefined;
     // Un toast avec « Annuler » reste un peu plus longtemps, le temps de se raviser
-    const t = setTimeout(() => dash.setToast(null), dash.toast.action ? 8000 : 5000);
+    const t = setTimeout(() => setToastRef.current(null), dash.toast.action ? 8000 : 5000);
     return () => clearTimeout(t);
-  }, [dash.toast, dash]);
+  }, [dash.toast]);
 
   // Ouvre la fenêtre des organisateurs depuis n'importe quelle page (lien #organisateurs)
   useEffect(() => {

@@ -47,7 +47,8 @@ export default function Comparer() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("cat");
-    setCat(p && CATEGORIES.some((c) => c.key === p) ? p : first);
+    // L'adresse décide une fois ; ensuite, un onglet choisi à la main n'est plus remplacé quand les devis bougent
+    setCat((c) => c ?? (p && CATEGORIES.some((x) => x.key === p) ? p : first));
   }, [first]);
 
   const key = cat || first;
