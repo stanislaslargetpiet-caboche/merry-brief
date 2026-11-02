@@ -41,9 +41,9 @@ begin
     clean_website := 'https://' || clean_website;
   end if;
 
-  select id into new_id from catalog.vendors
-    where status = 'active' and primary_category = category and public.merry_norm(name) = public.merry_norm(clean_name)
-      and (clean_city is null or city is null or public.merry_norm(city) = public.merry_norm(clean_city))
+  select v.id into new_id from catalog.vendors v
+    where v.status = 'active' and v.primary_category = category and public.merry_norm(v.name) = public.merry_norm(clean_name)
+      and (clean_city is null or v.city is null or public.merry_norm(v.city) = public.merry_norm(clean_city))
     limit 1;
   if new_id is not null then
     return new_id;
