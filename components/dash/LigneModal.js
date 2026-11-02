@@ -7,6 +7,9 @@ import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { groupItems } from "@/lib/dash/model";
 import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
+import { guessCatalogCategory } from "@/lib/dash/catalog";
+import { CloseBtn, Layer } from "./Prestataires";
+import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
 import { Btn, Field, Modal } from "./ui";
 
 // Types de dépense proposés d'un clic, selon le poste
@@ -34,6 +37,8 @@ export default function LigneModal({ category, onClose }) {
   const [full, setFull] = useState(true); // paiement intégral, sinon acompte avec un reste
   const [rest, setRest] = useState("");
   const [busy, setBusy] = useState(false);
+  const [merryPrompt, setMerryPrompt] = useState(null); // null | { name, vendorId, category }
+  const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
 
   const paidAmount = parseAmount(paid);
   const restAmount = full ? 0 : parseAmount(rest) || 0;
@@ -46,12 +51,14 @@ export default function LigneModal({ category, onClose }) {
     setBusy(true);
     let vendorId = null;
     const vName = vendorName.trim();
+    let newVendor = null;
     if (vName) {
       const existing = vendors.find((v) => normalize(v.name) === normalize(vName));
       if (existing) vendorId = existing.id;
       else {
         vendorId = uid();
         await dash.insert("vendors", { id: vendorId, name: vName, category: kind.trim() });
+        newVendor = { name: vName, vendorId, category: guessCatalogCategory(category) };
       }
     }
     const itemId = uid();
@@ -66,10 +73,36 @@ export default function LigneModal({ category, onClose }) {
     });
     await dash.insert("payments", { budget_item_id: itemId, label: vName || "Paiement", amount: paidAmount, paid_at: todayIso(), payer_id: null, due_date: null });
     dash.setToast({ kind: "ok", text: `Ligne « ${kind.trim()} » ajoutée dans ${category}.` });
+    setBusy(false);
+    // Un nouveau prestataire tapé à la main, dont on reconnaît le métier (via le poste) : propose de
+    // le faire rejoindre le catalogue Merry plutôt que de rester une fiche isolée à ce mariage.
+    if (newVendor && newVendor.category && dash.mode === "live") setMerryPrompt(newVendor);
+    else onClose();
+  }
+
+  async function confirmMerry() {
+    if (!merryPrompt) return;
+    await runCreate(merryPrompt.name, merryPrompt.category, null, { linkVendorId: merryPrompt.vendorId });
+    setMerryPrompt(null);
+  }
+
+  function dismissMerry() {
+    setMerryPrompt(null);
+    onClose();
+  }
+
+  async function handleConfirmCreate() {
+    await confirmCreate();
+    onClose();
+  }
+
+  function handleCancelCreate() {
+    cancelCreate();
     onClose();
   }
 
   return (
+    <>
     <Modal
       title={`Ajouter une ligne dans « ${category} »`}
       onClose={onClose}
@@ -125,5 +158,21 @@ export default function LigneModal({ category, onClose }) {
         <button type="submit" hidden />
       </form>
     </Modal>
+    {merryPrompt ? (
+      <Layer kind="dialog" labelledBy="merry-titre" onClose={dismissMerry}>
+        <div className="d-pr-panel-head is-dialog">
+          <h2 id="merry-titre">Ajouter {merryPrompt.name} au catalogue Merry&nbsp;?</h2>
+          <CloseBtn onClose={dismissMerry} />
+        </div>
+        <div className="d-pr-panel-foot is-devis">
+          <Btn kind="ghost" onClick={dismissMerry}>
+            Non merci
+          </Btn>
+          <Btn onClick={confirmMerry}>Oui, l'ajouter</Btn>
+        </div>
+      </Layer>
+    ) : null}
+    <CreateFicheDialog creating={creating} busy={creatingBusy} onCancel={handleCancelCreate} onConfirm={handleConfirmCreate} />
+    </>
   );
 }

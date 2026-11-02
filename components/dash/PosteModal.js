@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
+import { guessCatalogCategory } from "@/lib/dash/catalog";
 import { guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
 import { groupItems, posteName } from "@/lib/dash/model";
+import { CloseBtn, Layer } from "./Prestataires";
+import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
 import { Btn, Field, Modal } from "./ui";
 
 // Créer ou modifier un poste de budget : budget prévu, prestataire, devis signé et son lien.
@@ -29,6 +32,8 @@ export default function PosteModal({ item, onClose, focusQuote }) {
     quoteUrl: quoteDoc?.url || "",
   });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const [merryPrompt, setMerryPrompt] = useState(null); // null | { name, vendorId, category }
+  const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
 
   async function save(e) {
     e?.preventDefault();
@@ -36,6 +41,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
     const quote = parseAmount(form.quote);
     let vendorId = item?.vendor_id || null;
     const vName = form.vendorName.trim();
+    let newVendor = null;
     if (vName) {
       const existing = vendors.find((v) => v.name.toLowerCase() === vName.toLowerCase());
       if (existing) vendorId = existing.id;
@@ -43,6 +49,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       else {
         vendorId = uid();
         await dash.insert("vendors", { id: vendorId, name: vName, category: form.label.trim() });
+        newVendor = { name: vName, vendorId, category: guessCatalogCategory(form.label) };
       }
     } else vendorId = null;
     const patch = {
@@ -69,12 +76,37 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       if (quoteDoc) await dash.update("documents", quoteDoc.id, { url, vendor_id: vendorId });
       else await dash.insert("documents", { budget_item_id: itemId, vendor_id: vendorId, kind: "devis", name: "Devis signé", url });
     } else if (!url && quoteDoc) await dash.remove("documents", quoteDoc.id);
+    // Un nouveau prestataire tapé à la main, dont on reconnaît le métier : propose de le faire rejoindre
+    // le catalogue Merry plutôt que de rester une fiche isolée à ce mariage.
+    if (newVendor && newVendor.category && dash.mode === "live") setMerryPrompt(newVendor);
+    else onClose();
+  }
+
+  async function confirmMerry() {
+    if (!merryPrompt) return;
+    await runCreate(merryPrompt.name, merryPrompt.category, null, { linkVendorId: merryPrompt.vendorId });
+    setMerryPrompt(null);
+  }
+
+  function dismissMerry() {
+    setMerryPrompt(null);
+    onClose();
+  }
+
+  async function handleConfirmCreate() {
+    await confirmCreate();
+    onClose();
+  }
+
+  function handleCancelCreate() {
+    cancelCreate();
     onClose();
   }
 
   const badUrl = form.quoteUrl.trim() && !/^https?:\/\//i.test(form.quoteUrl.trim());
 
   return (
+    <>
     <Modal
       title={item ? posteName(item) : "Ajouter un poste"}
       onClose={onClose}
@@ -141,5 +173,21 @@ export default function PosteModal({ item, onClose, focusQuote }) {
         <button type="submit" hidden />
       </form>
     </Modal>
+    {merryPrompt ? (
+      <Layer kind="dialog" labelledBy="merry-titre" onClose={dismissMerry}>
+        <div className="d-pr-panel-head is-dialog">
+          <h2 id="merry-titre">Ajouter {merryPrompt.name} au catalogue Merry&nbsp;?</h2>
+          <CloseBtn onClose={dismissMerry} />
+        </div>
+        <div className="d-pr-panel-foot is-devis">
+          <Btn kind="ghost" onClick={dismissMerry}>
+            Non merci
+          </Btn>
+          <Btn onClick={confirmMerry}>Oui, l'ajouter</Btn>
+        </div>
+      </Layer>
+    ) : null}
+    <CreateFicheDialog creating={creating} busy={creatingBusy} onCancel={handleCancelCreate} onConfirm={handleConfirmCreate} />
+    </>
   );
 }
