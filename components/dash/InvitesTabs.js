@@ -1,7 +1,7 @@
 "use client";
 
-// Espace « Invités » (artboards « 10 · Invités, un seul espace », ordinateur et téléphone) : le titre et quatre onglets
-// dans l'ordre du parcours du couple : la liste, le site, le formulaire, puis la liste de mariage (bientôt).
+// Espace « Invités » (artboards « 10 · Invités, un seul espace », ordinateur et téléphone) : le titre et cinq onglets
+// dans l'ordre du parcours du couple : la liste, le site, le formulaire, le plan de table, puis la liste de mariage (bientôt).
 // Chaque page de l'espace commence par cet en-tête ; « actions » reste à droite du titre, comme PageHeader.
 
 import Link from "next/link";
@@ -21,6 +21,7 @@ export default function InvitesHeader({ tab, actions }) {
       extra: data.site ? <span className={`d-itab-online${data.site.published ? "" : " is-off"}`}>{data.site.published ? "En ligne" : "Hors ligne"}</span> : null,
     },
     { id: "formulaire", href: "/dashboard/invites/formulaire", label: "Formulaire", short: "Formulaire", extra: replies ? <span className="d-itab-count">{replies} réponse{replies > 1 ? "s" : ""}</span> : null },
+    { id: "plan", href: "/dashboard/invites/plan-de-table", label: "Plan de table", short: "Plan de table" },
     { id: "liste-de-mariage", soon: true, label: "Liste de mariage", short: "Liste de mariage", extra: <span className="d-itab-soon">Bientôt !</span> },
   ];
   return (
