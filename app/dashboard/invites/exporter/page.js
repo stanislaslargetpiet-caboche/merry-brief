@@ -6,6 +6,7 @@ import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { normalize } from "@/lib/dash/format";
 import { RSVP } from "@/lib/dash/theme";
 import { householdAddress, householdLabel, householdsOf } from "@/lib/dash/households";
+import { defaultSeatingEvent, planFor } from "@/lib/dash/seating";
 import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
 
@@ -39,10 +40,15 @@ export default function Exporter() {
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
+  // La table du plan (moment du dîner), quand un plan existe
+  const seatingEvent = useMemo(() => defaultSeatingEvent(events), [events]);
+  const plan = useMemo(() => (seatingEvent ? planFor(data, seatingEvent.id) : null), [data, seatingEvent]);
+  const tableNames = useMemo(() => new Map((plan?.tables || []).map((t) => [t.id, t.name])), [plan]);
   const columns = useMemo(
     () => [
       { id: "name", label: "Nom et prénom", get: (g) => guestLabel(g, byId) },
       { id: "group", label: "Groupe", get: (g) => groupById.get(g.group_id)?.name || "" },
+      ...(plan?.tables.length ? [{ id: "seat", label: `Table (${seatingEvent.name})`, get: (g) => tableNames.get(plan.tableOf.get(g.id)) || "" }] : []),
       ...events.map((ev) => ({ id: `ev:${ev.id}`, label: ev.name, ev, get: (g) => RSVP[(idx.get(g.id) || {})[ev.id] || "non_invite"].label })),
       { id: "diet", label: "Régime", get: (g) => g.diet || "" },
       { id: "address", label: "Adresse", get: (g) => g.address || "" },
@@ -51,7 +57,7 @@ export default function Exporter() {
       { id: "age", label: "Âge (enfants)", get: (g) => (g.age ? `${g.age} ans` : "") },
       ...fields.map((f) => ({ id: `f:${f.id}`, label: f.name, get: (g) => (g.custom || {})[f.id] || "" })),
     ],
-    [events, fields, idx, byId, groupById],
+    [events, fields, idx, byId, groupById, plan, seatingEvent, tableNames],
   );
 
   const evMatch = (re) => events.filter((e) => re.test(normalize(e.name))).map((e) => `ev:${e.id}`);
@@ -59,7 +65,7 @@ export default function Exporter() {
   const shortcuts = [
     { id: "traiteur", label: "Pour le traiteur", cols: ["name", ...(evMatch(/^(cocktail|diner|dejeuner)$/).length ? evMatch(/^(cocktail|diner|dejeuner)$/) : evMatch(/cocktail|diner|dejeuner|repas/)), "diet", "age"] },
     { id: "fairepart", label: "Pour les faire-part", cols: ["name", "address"] },
-    { id: "table", label: "Pour le plan de table", cols: ["name", "group", "diet", "age", ...tableField] },
+    { id: "table", label: "Pour le plan de table", cols: ["name", "group", ...(plan?.tables.length ? ["seat"] : []), "diet", "age", ...tableField] },
     { id: "tout", label: "Tout", cols: columns.map((c) => c.id) },
   ];
 
