@@ -2,38 +2,39 @@
 
 // Barre de recherche « Ajouter un prestataire » (Mes prestataires et Trouver des prestataires) : un
 // couple qui a déjà trouvé son traiteur ou son photographe ailleurs le cherche d'abord dans le
-// catalogue Merry, pour récupérer sa fiche ; s'il n'y est pas, Merry cherche sur Google et propose une
-// fiche déjà remplie (nom, adresse, téléphone, site) ; en dernier recours, la saisie à la main.
+// catalogue Merry ; s'il n'y est pas, Merry cherche sur Google et propose une fiche déjà remplie ;
+// sinon, la saisie à la main. La liste ne montre que des résultats ; le formulaire s'ouvre dans une
+// fenêtre à part (il ne disparaît plus au moindre clic à côté), et la fiche s'ouvre une fois ajouté.
 
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
 import { CATALOG_CATEGORIES, CATEGORIES, catOf, cityPostalCode, searchCatalogByName, searchCities, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
-import { Thumb, usePicks } from "./Prestataires";
+import { CloseBtn, DevisDialog, FichePanel, Layer, Thumb, usePicks } from "./Prestataires";
 import { useCreateFiche } from "./CreateFiche";
 import { Btn, BusyDots } from "./ui";
 
-const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null };
+const IDLE = { q: "", loading: false, catalog: [], google: [] };
+
+async function tokenOf(dash) {
+  if (dash.mode !== "live" || !supabase) return null;
+  return (await supabase.auth.getSession()).data?.session?.access_token || null;
+}
 
 export default function VendorSearchBar() {
   const dash = useDash();
-  const { add } = usePicks();
+  const { add, isPicked } = usePicks();
   const boxRef = useRef(null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [google, setGoogle] = useState({ searching: false, done: false, results: [] });
-  const [manual, setManual] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
-  const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « C'est lui »
-  const [cities, setCities] = useState({ open: false, searching: false, results: [] });
-  const [busy, setBusy] = useState(false);
-  const { busy: creatingBusy, createNow } = useCreateFiche();
-  const searched = q.trim().length >= 2;
-  const noMatch = searched && !searching && !results.length;
+  const [found, setFound] = useState(IDLE);
+  const [busyId, setBusyId] = useState(null);
+  const [dialog, setDialog] = useState(null); // valeurs de départ du formulaire
+  const [shown, setShown] = useState(null); // { v, notice } : fiche ouverte après l'ajout
+  const [devis, setDevis] = useState(null);
+  const text = q.trim();
+  const searched = text.length >= 2;
 
   useEffect(() => {
     function onDocClick(e) {
@@ -43,133 +44,64 @@ export default function VendorSearchBar() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  // Une seule recherche par pause de frappe : le catalogue d'abord, Google seulement s'il ne donne
+  // rien. Les résultats précédents restent affichés (atténués) jusqu'aux suivants : la liste ne
+  // clignote plus et ne change de taille qu'une fois par recherche.
   useEffect(() => {
     if (!searched) {
-      setResults([]);
-      setSearching(false);
+      setFound(IDLE);
       return undefined;
     }
     let live = true;
-    setSearching(true);
-    setGoogle({ searching: false, done: false, results: [] });
+    setFound((f) => ({ ...f, loading: true }));
     const t = setTimeout(async () => {
-      const r = await searchCatalogByName(dash.mode, q);
-      if (live) {
-        setResults(r);
-        setSearching(false);
-      }
-    }, 250);
+      const catalog = await searchCatalogByName(dash.mode, text);
+      let google = [];
+      if (live && !catalog.length && text.length >= 3) google = await searchGoogleVendor(dash.mode, text, await tokenOf(dash));
+      if (live) setFound({ q: text, loading: false, catalog, google });
+    }, 300);
     return () => {
       live = false;
       clearTimeout(t);
     };
-  }, [q, dash.mode, searched]);
-
-  useEffect(() => {
-    if (!noMatch || google.searching || google.done) return undefined;
-    let live = true;
-    setGoogle((g) => ({ ...g, searching: true }));
-    (async () => {
-      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
-      const r = await searchGoogleVendor(dash.mode, q, token);
-      if (live) setGoogle({ searching: false, done: true, results: r });
-    })();
-    return () => {
-      live = false;
-    };
-  }, [noMatch, google.searching, google.done, dash.mode, q]);
-
-  const refineArea = manual ? form.area.trim() : "";
-
-  // Recherche Google (nom + ville) déclenchée par « Valider la recherche », pas pendant la frappe :
-  // cliquer une ville ne doit pas lancer une recherche surprise, et choisir parmi plusieurs résultats
-  // doit rester un geste volontaire.
-  async function runRefine() {
-    const name = form.name.trim();
-    if (!name || busy) return;
-    setRefine({ searching: true, results: [], attempted: false });
-    setAppliedMatch(null);
-    const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
-    const r = await searchGoogleVendor(dash.mode, refineArea ? `${name} ${refineArea}` : name, token);
-    setRefine({ searching: false, results: r, attempted: true });
-  }
-
-  // Suggestions de villes pendant la saisie (aide, pas une liste fermée) : on ne les propose que
-  // si le prestataire n'est pas déjà raccroché à un résultat Google (pickGoogle a déjà sa ville).
-  // pickedAreaRef retient la ville choisie dans la liste (avant puis après le code postal) : sans ça,
-  // la resélectionne et rouvre la liste juste après qu'on l'ait fermée en cliquant dessus.
-  const pickedAreaRef = useRef(null);
-  useEffect(() => {
-    if (!manual || refineArea.length < 2 || refineArea === pickedAreaRef.current) {
-      setCities((c) => (c.open || c.searching ? { open: false, searching: false, results: [] } : c));
-      return undefined;
-    }
-    let live = true;
-    setCities((c) => ({ ...c, searching: true }));
-    const t = setTimeout(async () => {
-      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
-      const r = await searchCities(dash.mode, refineArea, token);
-      if (live) setCities({ open: true, searching: false, results: r });
-    }, 250);
-    return () => {
-      live = false;
-      clearTimeout(t);
-    };
-  }, [manual, refineArea, dash.mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, dash.mode, searched]);
 
   function reset() {
     setQ("");
     setOpen(false);
-    setManual(false);
-    setForm(EMPTY_FORM);
-    setResults([]);
-    setGoogle({ searching: false, done: false, results: [] });
-    setRefine({ searching: false, results: [], attempted: false });
-    setAppliedMatch(null);
-    setCities({ open: false, searching: false, results: [] });
+    setFound(IDLE);
   }
 
-  async function pick(v) {
-    setBusy(true);
-    await add(v);
-    setBusy(false);
-    dash.setToast({ kind: "ok", text: `${v.name} est ajouté à vos prestataires.` });
+  async function pickCatalog(v) {
+    if (isPicked(v)) {
+      reset();
+      setShown({ v, notice: "Déjà dans vos prestataires." });
+      return;
+    }
+    setBusyId(v.id);
+    const p = await add(v);
+    setBusyId(null);
+    if (!p) return;
     reset();
+    setShown({ v, notice: "Ajouté à vos prestataires." });
   }
 
-  function startManual() {
-    setForm((f) => ({ ...f, name: q.trim() }));
-    setManual(true);
+  function openForm(initial) {
+    setOpen(false);
+    setDialog(initial);
   }
 
-  function pickGoogle(g) {
-    pickedAreaRef.current = g.city || "";
-    setForm({ name: g.name, category: "", area: g.city || "", phone: g.phone || "", website: g.website || "", lat: g.lat, lng: g.lng });
-    setManual(true);
-    setAppliedMatch(g);
+  function onCreated(v) {
+    setDialog(null);
+    reset();
+    setShown({ v, notice: v.existed ? "Déjà dans vos prestataires." : "Ajouté à vos prestataires." });
   }
 
-  function applyRefine(g) {
-    if (g.city) pickedAreaRef.current = g.city;
-    setForm((f) => ({ ...f, name: g.name, area: g.city || f.area, phone: g.phone || f.phone, website: g.website || f.website, lat: g.lat, lng: g.lng }));
-    setRefine({ searching: false, results: [], attempted: false });
-    // Pour que la confirmation de création reprenne exactement ce résultat au lieu de relancer
-    // une recherche à l'aveugle, qui pourrait tomber sur un autre établissement.
-    setAppliedMatch(g);
-  }
-
-  async function submitManual(e) {
-    e.preventDefault();
-    const name = form.name.trim();
-    if (!name || !form.category || creatingBusy) return;
-    const v = await createNow(name, form.category, form.area.trim(), {
-      match: appliedMatch,
-      fallback: { phone: form.phone, website: form.website, lat: form.lat, lng: form.lng },
-    });
-    if (v) reset();
-  }
-
-  const showDrop = open && (searched || manual);
+  const settled = !found.loading && found.q === text;
+  const stale = found.loading || found.q !== text;
+  const empty = settled && !found.catalog.length && !found.google.length;
+  const showDrop = open && searched;
 
   return (
     <div className="d-pr-search" ref={boxRef}>
@@ -181,217 +113,328 @@ export default function VendorSearchBar() {
           placeholder="Ajouter un prestataire que vous avez déjà…"
           value={q}
           onFocus={() => setOpen(true)}
+          onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);
-            setManual(false);
           }}
         />
+        {found.loading ? <BusyDots label="Recherche" /> : null}
       </label>
       {showDrop ? (
         <div className="d-pr-search-drop">
-          {!manual ? (
-            <>
-              {searching ? <BusyDots label="Recherche" /> : null}
-              {!searching && results.length ? (
+          <div className={`d-pr-search-results${stale ? " is-stale" : ""}`}>
+            {found.catalog.length ? (
+              <>
+                <span className="d-pr-search-sec">Dans le catalogue Merry</span>
                 <ul className="d-pr-to">
-                  {results.map((v) => (
-                    <li key={v.id}>
-                      <Thumb v={v} size={44} />
+                  {found.catalog.map((v) => {
+                    const mine = isPicked(v);
+                    return (
+                      <li key={v.id}>
+                        <Thumb v={v} size={44} />
+                        <div className="d-pr-to-main">
+                          <span className="d-pr-to-name">{v.name}</span>
+                          <span className="d-pr-to-meta">
+                            {catOf(v.category).label}
+                            {v.area ? ` · ${v.area}` : ""}
+                          </span>
+                        </div>
+                        <Btn kind="ghost" small disabled={!!busyId} onClick={() => pickCatalog(v)}>
+                          {busyId === v.id ? "Ajout…" : mine ? "Voir la fiche" : "Ajouter"}
+                        </Btn>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+            {found.google.length ? (
+              <>
+                <span className="d-pr-search-sec">Pas encore sur Merry, trouvé sur Google</span>
+                <ul className="d-pr-to">
+                  {found.google.map((g, i) => (
+                    <li key={`${g.name}-${i}`}>
+                      <Thumb v={{ name: g.name }} size={44} />
                       <div className="d-pr-to-main">
-                        <span className="d-pr-to-name">{v.name}</span>
-                        <span className="d-pr-to-meta">
-                          {catOf(v.category).label}
-                          {v.area ? ` · ${v.area}` : ""}
-                        </span>
+                        <span className="d-pr-to-name">{g.name}</span>
+                        <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
                       </div>
-                      <Btn kind="ghost" small disabled={busy} onClick={() => pick(v)}>
-                        Ajouter
+                      <Btn kind="ghost" small onClick={() => openForm(fromGoogle(g))}>
+                        C'est lui
+                      </Btn>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {empty ? <span className="d-small-muted">Aucun prestataire trouvé pour « {text} »{dash.mode === "live" && text.length >= 3 ? ", ni sur Merry ni sur Google" : " dans le catalogue Merry"}.</span> : null}
+            {!settled && !found.catalog.length && !found.google.length ? <span className="d-small-muted">Recherche de « {text} »…</span> : null}
+          </div>
+          <button type="button" className="d-pr-search-manual" onClick={() => openForm({ ...EMPTY_FORM, name: text })}>
+            <Icon name="plus" size={15} sw={2.2} />
+            {found.catalog.length || found.google.length ? "Ce n'est pas lui ? " : ""}Ajouter « {text} » à la main
+          </button>
+        </div>
+      ) : null}
+      {dialog ? <AddVendorDialog initial={dialog} onClose={() => setDialog(null)} onCreated={onCreated} /> : null}
+      {shown ? (
+        <FichePanel
+          v={shown.v}
+          notice={shown.notice}
+          index={0}
+          total={1}
+          onClose={() => setShown(null)}
+          onRequest={async (v) => {
+            const p = await add(v);
+            setShown(null);
+            if (p) setDevis([p]);
+          }}
+        />
+      ) : null}
+      {devis ? <DevisDialog picks={devis} onClose={() => setDevis(null)} onSent={() => setDevis(null)} /> : null}
+    </div>
+  );
+}
+
+const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null, match: null };
+
+function fromGoogle(g, base = EMPTY_FORM) {
+  return {
+    ...base,
+    name: g.name || base.name,
+    category: base.category || g.category || "",
+    area: g.city || base.area,
+    phone: g.phone || "",
+    website: g.website || "",
+    lat: g.lat ?? null,
+    lng: g.lng ?? null,
+    match: g,
+  };
+}
+
+// Fenêtre « Ajouter un prestataire » : nom, catégorie, ville. Si un résultat Google a été choisi, son
+// téléphone, son site et sa position sont repris ; sinon on peut le chercher sur Google d'ici.
+function AddVendorDialog({ initial, onClose, onCreated }) {
+  const dash = useDash();
+  const { busy, createNow } = useCreateFiche();
+  const [form, setForm] = useState(initial);
+  const [more, setMore] = useState(!!(initial.phone || initial.website));
+  const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
+  const [cities, setCities] = useState({ open: false, results: [] });
+  const pickedAreaRef = useRef(initial.area || null);
+  const area = form.area.trim();
+  const name = form.name.trim();
+  const ready = name && form.category;
+
+  // Suggestions de villes pendant la frappe (une aide, le champ reste libre), jamais juste après en
+  // avoir choisi une : sinon la liste se rouvre aussitôt fermée.
+  useEffect(() => {
+    if (area.length < 2 || area === pickedAreaRef.current) {
+      setCities((c) => (c.open ? { open: false, results: [] } : c));
+      return undefined;
+    }
+    let live = true;
+    const t = setTimeout(async () => {
+      const r = await searchCities(dash.mode, area, await tokenOf(dash));
+      if (live) setCities({ open: r.length > 0, results: r });
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [area, dash.mode]);
+
+  // Un changement de nom ou de ville détache le résultat Google choisi : ce n'est plus forcément lui.
+  function edit(patch, detach = false) {
+    setForm((f) => ({ ...f, ...patch, ...(detach && f.match ? { match: null, lat: null, lng: null } : {}) }));
+    if (detach) setRefine({ searching: false, results: [], attempted: false });
+  }
+
+  async function pickCity(c) {
+    pickedAreaRef.current = c.label;
+    edit({ area: c.label }, true);
+    setCities({ open: false, results: [] });
+    if (!c.placeId) return;
+    const postal = await cityPostalCode(dash.mode, c.placeId, await tokenOf(dash));
+    if (postal) {
+      pickedAreaRef.current = `${c.label} ${postal}`;
+      setForm((f) => (f.area === c.label ? { ...f, area: `${c.label} ${postal}` } : f));
+    }
+  }
+
+  async function runRefine() {
+    if (!name || refine.searching) return;
+    setRefine({ searching: true, results: [], attempted: false });
+    const r = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, await tokenOf(dash));
+    setRefine({ searching: false, results: r, attempted: true });
+  }
+
+  function applyGoogle(g) {
+    if (g.city) pickedAreaRef.current = g.city;
+    setForm((f) => fromGoogle(g, f));
+    if (g.phone || g.website) setMore(true);
+    setRefine({ searching: false, results: [], attempted: false });
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!ready || busy) return;
+    const v = await createNow(name, form.category, area, {
+      quiet: true,
+      fallback: { phone: form.phone.trim(), website: form.website.trim(), lat: form.lat, lng: form.lng },
+    });
+    if (v) onCreated(v);
+  }
+
+  return (
+    <Layer kind="dialog" labelledBy="ajout-titre" onClose={() => !busy && onClose()}>
+      <form className="d-pr-addvendor" onSubmit={submit}>
+        <div className="d-pr-panel-head is-dialog">
+          <h2 id="ajout-titre">Ajouter un prestataire</h2>
+          <CloseBtn onClose={() => !busy && onClose()} />
+        </div>
+        <div className="d-pr-panel-body">
+          {form.match ? (
+            <div className="d-create-card">
+              <div className="d-create-card-head">
+                <Thumb v={{ name: form.match.name }} size={44} />
+                <div>
+                  <span className="d-create-card-name">{form.match.name}</span>
+                  <span className="d-create-card-addr">{form.match.address || form.match.city || ""}</span>
+                </div>
+              </div>
+              <button type="button" className="d-pr-arrowlink is-13" onClick={() => edit({ phone: "", website: "" }, true)}>
+                Ce n'est pas lui
+              </button>
+            </div>
+          ) : null}
+          <div className="d-form-grid">
+            <label className="d-field is-full">
+              <span className="d-field-label">Nom</span>
+              <input className="d-input" value={form.name} onChange={(e) => edit({ name: e.target.value })} placeholder="Maison Lemoine" maxLength={120} autoFocus={!form.name} required />
+            </label>
+            <label className="d-field">
+              <span className="d-field-label">Catégorie</span>
+              <select className="d-input" value={form.category} onChange={(e) => edit({ category: e.target.value })} autoFocus={!!form.name && !form.category} required>
+                <option value="" disabled>
+                  Choisir
+                </option>
+                {CATEGORIES.map((c) => (
+                  <optgroup key={c.key} label={c.group}>
+                    {CATALOG_CATEGORIES.filter((x) => x.group === c.key).map((x) => (
+                      <option key={x.key} value={x.key}>
+                        {x.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <div className="d-field">
+              <span className="d-field-label">Ville ou région · facultatif</span>
+              <div className="d-pr-townfield is-float">
+                <div className="d-pr-townsearch">
+                  <Icon name="search" size={16} sw={2} />
+                  <input
+                    className="d-input"
+                    value={form.area}
+                    placeholder="Luberon"
+                    maxLength={80}
+                    autoComplete="off"
+                    aria-label="Ville ou région"
+                    onChange={(e) => {
+                      pickedAreaRef.current = null;
+                      edit({ area: e.target.value }, true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape" && cities.open) {
+                        e.stopPropagation();
+                        setCities((c) => ({ ...c, open: false }));
+                      }
+                    }}
+                    onFocus={() => setCities((c) => ({ ...c, open: c.results.length > 0 && area !== pickedAreaRef.current }))}
+                    onBlur={() => setTimeout(() => setCities((c) => ({ ...c, open: false })), 150)}
+                  />
+                </div>
+                {cities.open ? (
+                  <ul className="d-pr-townlist is-float">
+                    {cities.results.map((c) => (
+                      <li
+                        key={c.placeId || c.label}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pickCity(c);
+                        }}
+                      >
+                        <Icon name="map" size={16} sw={1.8} />
+                        <span>
+                          <strong>{c.label}</strong>
+                          {c.secondary ? <small>{c.secondary}</small> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+            {more ? (
+              <>
+                <label className="d-field">
+                  <span className="d-field-label">Téléphone · facultatif</span>
+                  <input className="d-input" type="tel" value={form.phone} onChange={(e) => edit({ phone: e.target.value })} maxLength={40} autoComplete="off" />
+                </label>
+                <label className="d-field">
+                  <span className="d-field-label">Site internet · facultatif</span>
+                  <input className="d-input" value={form.website} onChange={(e) => edit({ website: e.target.value })} maxLength={300} placeholder="maison-lemoine.fr" autoComplete="off" />
+                </label>
+              </>
+            ) : (
+              <div className="d-field is-full">
+                <button type="button" className="d-pr-arrowlink is-13" onClick={() => setMore(true)}>
+                  Ajouter son téléphone ou son site
+                </button>
+              </div>
+            )}
+          </div>
+          {!form.match && dash.mode === "live" ? (
+            <div className="d-pr-addvendor-google">
+              <Btn kind="ghost" small onClick={runRefine} disabled={!name || refine.searching}>
+                Retrouver « {name || "ce nom"} »{area ? ` à ${area}` : ""} sur Google
+              </Btn>
+              {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
+              {!refine.searching && refine.results.length ? (
+                <ul className="d-pr-to">
+                  {refine.results.map((g, i) => (
+                    <li key={`${g.name}-${i}`}>
+                      <Thumb v={{ name: g.name }} size={44} />
+                      <div className="d-pr-to-main">
+                        <span className="d-pr-to-name">{g.name}</span>
+                        <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
+                      </div>
+                      <Btn kind="ghost" small onClick={() => applyGoogle(g)}>
+                        C'est lui
                       </Btn>
                     </li>
                   ))}
                 </ul>
               ) : null}
-              {noMatch ? (
-                <div className="d-pr-search-empty">
-                  <span className="d-small-muted">Aucun prestataire ne correspond dans le catalogue Merry.</span>
-                  {google.searching ? <BusyDots label="Recherche sur Google" /> : null}
-                  {!google.searching && google.results.length ? (
-                    <>
-                      <span className="d-small-muted">Trouvé sur Google, lequel est-ce ?</span>
-                      <ul className="d-pr-to">
-                      {google.results.map((g, i) => (
-                        <li key={i}>
-                          <Thumb v={{ name: g.name }} size={44} />
-                          <div className="d-pr-to-main">
-                            <span className="d-pr-to-name">{g.name}</span>
-                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
-                          </div>
-                          <Btn kind="ghost" small onClick={() => pickGoogle(g)}>
-                            C'est lui
-                          </Btn>
-                        </li>
-                      ))}
-                      </ul>
-                    </>
-                  ) : null}
-                  <button type="button" className="d-pr-arrowlink is-13" onClick={startManual}>
-                    {google.done && !google.results.length ? "Toujours rien : ajoutez-le à la main" : "Ce n'est pas ça ? Ajoutez-le à la main"}
-                  </button>
-                </div>
+              {!refine.searching && refine.attempted && !refine.results.length ? (
+                <span className="d-small-muted">Rien trouvé sur Google pour « {name} »{area ? ` à ${area}` : ""}. Vous pouvez quand même l'ajouter.</span>
               ) : null}
-            </>
-          ) : (
-            <form className="d-form-grid d-pr-addvendor-form" onSubmit={submitManual}>
-              <div className="d-field is-full">
-                <span className="d-field-label">Nom</span>
-                <input
-                  className="d-input"
-                  value={form.name}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, name: e.target.value }));
-                    setRefine({ searching: false, results: [], attempted: false });
-                    setAppliedMatch(null);
-                  }}
-                  placeholder="Maison Lemoine"
-                  maxLength={120}
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="d-field">
-                <span className="d-field-label">Catégorie</span>
-                <select className="d-input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} required>
-                  <option value="" disabled>
-                    Choisir
-                  </option>
-                  {CATEGORIES.map((c) => (
-                    <optgroup key={c.key} label={c.group}>
-                      {CATALOG_CATEGORIES.filter((x) => x.group === c.key).map((x) => (
-                        <option key={x.key} value={x.key}>
-                          {x.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-              <div className="d-field">
-                <span className="d-field-label">Ville ou région · facultatif</span>
-                <div className="d-pr-townfield">
-                  <div className="d-pr-townsearch">
-                    <Icon name="search" size={16} sw={2} />
-                    <input
-                      className="d-input"
-                      value={form.area}
-                      placeholder="Luberon"
-                      maxLength={80}
-                      autoComplete="off"
-                      onChange={(e) => {
-                        pickedAreaRef.current = null;
-                        setForm((f) => ({ ...f, area: e.target.value }));
-                        setRefine({ searching: false, results: [], attempted: false });
-                        setAppliedMatch(null);
-                      }}
-                      onFocus={() => setCities((c) => ({ ...c, open: c.results.length > 0 }))}
-                      onBlur={() => setTimeout(() => setCities((c) => ({ ...c, open: false })), 150)}
-                    />
-                  </div>
-                  {cities.open && cities.results.length ? (
-                    <ul className="d-pr-townlist">
-                      {cities.results.map((c) => (
-                        <li
-                          key={c.placeId || c.label}
-                          onMouseDown={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            pickedAreaRef.current = c.label;
-                            setForm((f) => ({ ...f, area: c.label }));
-                            setCities({ open: false, searching: false, results: [] });
-                            setRefine({ searching: false, results: [], attempted: false });
-                            setAppliedMatch(null);
-                            if (c.placeId) {
-                              const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
-                              const postal = await cityPostalCode(dash.mode, c.placeId, token);
-                              if (postal) {
-                                pickedAreaRef.current = `${c.label} ${postal}`;
-                                setForm((f) => (f.area === c.label ? { ...f, area: `${c.label} ${postal}` } : f));
-                              }
-                            }
-                          }}
-                        >
-                          <Icon name="map" size={16} sw={1.8} />
-                          <span>
-                            <strong>{c.label}</strong>
-                            {c.secondary ? <small>{c.secondary}</small> : null}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              </div>
-              {appliedMatch ? (
-                <div className="d-field is-full d-create-card">
-                  <div className="d-create-card-head">
-                    <Thumb v={{ name: appliedMatch.name }} size={44} />
-                    <div>
-                      <span className="d-create-card-name">Trouvé sur Google : {appliedMatch.name}</span>
-                      <span className="d-create-card-addr">{appliedMatch.address || appliedMatch.city || ""}</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="d-pr-arrowlink is-13"
-                    onClick={() => {
-                      setAppliedMatch(null);
-                      setRefine({ searching: false, results: [], attempted: false });
-                    }}
-                  >
-                    Ce n'est pas ça, chercher autre chose
-                  </button>
-                </div>
-              ) : (
-                <div className="d-field is-full">
-                  <Btn kind="ghost" type="button" small onClick={runRefine} disabled={!form.name.trim() || refine.searching}>
-                    Chercher sur Google « {form.name.trim() || "ce nom"} »{refineArea ? ` à ${refineArea}` : ""}
-                  </Btn>
-                  {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
-                  {!refine.searching && refine.results.length ? (
-                    <ul className="d-pr-to">
-                      {refine.results.map((g, i) => (
-                        <li key={i}>
-                          <Thumb v={{ name: g.name }} size={44} />
-                          <div className="d-pr-to-main">
-                            <span className="d-pr-to-name">{g.name}</span>
-                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
-                          </div>
-                          <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
-                            C'est lui
-                          </Btn>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {!refine.searching && refine.attempted && !refine.results.length ? (
-                    <span className="d-small-muted">
-                      Aucun résultat sur Google pour « {form.name.trim()} »{refineArea ? ` à ${refineArea}` : ""}. Vous pouvez quand même l'ajouter ci-dessous.
-                    </span>
-                  ) : null}
-                </div>
-              )}
-              <div className="d-pr-addvendor-actions">
-                <Btn kind="ghost" onClick={() => setManual(false)}>
-                  Annuler
-                </Btn>
-                <Btn type="submit" disabled={busy || creatingBusy || !form.name.trim() || !form.category}>
-                  Ajouter à mes prestataires
-                </Btn>
-              </div>
-            </form>
-          )}
+            </div>
+          ) : null}
         </div>
-      ) : null}
-    </div>
+        <div className="d-pr-panel-foot is-devis">
+          <Btn kind="ghost" onClick={onClose} disabled={busy}>
+            Annuler
+          </Btn>
+          <Btn type="submit" disabled={busy || !ready}>
+            {busy ? "Ajout en cours…" : "Ajouter à mes prestataires"}
+          </Btn>
+        </div>
+      </form>
+    </Layer>
   );
 }
