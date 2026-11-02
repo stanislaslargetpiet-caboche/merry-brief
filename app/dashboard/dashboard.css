@@ -15938,3 +15938,31 @@ body.d-noscroll {
   max-height: 320px;
   overflow-y: auto;
 }
+
+/* Fiche : modifier les coordonnées (nom, ville, téléphone, e-mail, site) */
+.d-pr-fsec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.d-pr-fsec-head .d-pr-linkbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.d-pr-edit {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--d-panel);
+}
+
+.d-pr-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
