@@ -55,17 +55,19 @@ export async function POST(req) {
   const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
     headers: { "content-type": "application/json", "X-Goog-Api-Key": key },
-    body: JSON.stringify({ input: q, includedPrimaryTypes: ["locality", "administrative_area_level_2", "administrative_area_level_1"], languageCode: "fr", regionCode: "FR" }),
+    body: JSON.stringify({ input: q, includedPrimaryTypes: ["locality", "administrative_area_level_2", "administrative_area_level_1"], includedRegionCodes: ["fr"], languageCode: "fr", regionCode: "FR" }),
   });
   if (!res.ok) {
     console.error("[merry] suggestions ville", res.status, await res.text().catch(() => ""));
     return Response.json({ error: "google_failed" }, { status: 502 });
   }
   const out = await res.json();
+  // Toujours un sous-texte (France par défaut) pour une liste homogène : Google omet parfois la
+  // région/le département pour les villes les plus connues, mais pas pour les autres.
   const results = (out.suggestions || [])
     .map((s) => ({
       label: s.placePrediction?.structuredFormat?.mainText?.text || s.placePrediction?.text?.text || "",
-      secondary: s.placePrediction?.structuredFormat?.secondaryText?.text || "",
+      secondary: s.placePrediction?.structuredFormat?.secondaryText?.text || "France",
       placeId: s.placePrediction?.placeId || "",
     }))
     .filter((r) => r.label)
