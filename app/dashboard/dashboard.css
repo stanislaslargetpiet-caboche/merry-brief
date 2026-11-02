@@ -1,4 +1,6 @@
 /* Merry · tableau de bord (maquette validée le 21 octobre 2026) */
+/* Système de design v2 (30 oct. 2026) : Alan Sans partout, Climate Crisis pour le seul logo, accent citron. Migré le 2 nov. 2026. */
+@font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
 
 .d-root {
   --d-ink: #1c1c1a;
@@ -21,13 +23,15 @@
   --d-info-ink: #30567a;
   --d-purple-bg: #ece3f5;
   --d-purple-ink: #5b3a84;
-  --d-display: Fraunces, Georgia, serif;
+  --d-display: "Alan Sans", Helvetica, Arial, sans-serif;
 
   display: flex;
   min-height: 100dvh;
   background: #ffffff;
   color: var(--d-ink);
-  font-family: Inter, Helvetica, Arial, sans-serif;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Couleur choisie dans Réglages (tableau de bord des organisateurs ; citron par défaut).
@@ -396,7 +400,7 @@
 .d-title {
   margin: 0;
   font-family: var(--d-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(24px, 6.4vw, 30px);
   line-height: 1.1;
   overflow-wrap: anywhere;
@@ -910,7 +914,7 @@ button.d-rsvp:hover {
 .d-stat-value {
   font-family: var(--d-display);
   font-size: 28px;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -993,7 +997,7 @@ button.d-rsvp:hover {
 .d-countdown strong {
   font-family: var(--d-display);
   font-size: 40px;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -4773,7 +4777,7 @@ button.d-rsvp:hover {
 
 .d-fpreview-body > strong {
   font-family: var(--d-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 18px;
   line-height: 1.1;
 }
@@ -4951,7 +4955,6 @@ button.d-rsvp:hover {
 .d-folder-meta {
   display: block;
   margin-top: 6px;
-  font-family: Inter, Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: var(--d-muted);
 }
@@ -5624,8 +5627,8 @@ button.d-rsvp:hover {
 }
 .d-imp-fin h2 {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
-  font-weight: 400;
+  font-family: var(--d-display);
+  font-weight: 600;
   font-size: clamp(24px, 6.4vw, 30px);
 }
 .d-imp-fin-check {
@@ -8751,7 +8754,7 @@ body.d-noscroll {
 .d-pr-fiche-title h1 {
   margin: 0;
   font-family: var(--d-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 34px;
   line-height: 1.1;
 }
@@ -12232,8 +12235,8 @@ body.d-noscroll {
 
 .d-se-title {
   margin: 0;
-  font-family: Fraunces, Georgia, serif;
-  font-weight: 400;
+  font-family: var(--d-display);
+  font-weight: 600;
   font-size: 24px;
   line-height: 1.1;
 }
@@ -12711,7 +12714,7 @@ body.d-noscroll {
   flex-direction: column;
   gap: 12px;
   box-sizing: border-box;
-  font-family: Inter, Helvetica, Arial, sans-serif;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
 }
 
 .d-se-pop-head {
@@ -13837,7 +13840,7 @@ body.d-noscroll {
 .d-split-stats strong {
   font-family: var(--d-display);
   font-size: 24px;
-  font-weight: 400;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -14310,7 +14313,8 @@ body.d-noscroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--d-display);
+  font-weight: 600;
   font-size: 18px;
   box-shadow: 0 0 0 6px #ffffff;
 }
