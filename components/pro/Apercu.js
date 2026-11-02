@@ -8,6 +8,7 @@ import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { fromCatalog } from "@/lib/dash/catalog";
 import { euros } from "@/lib/dash/format";
+import { responseStats } from "@/lib/pro/format";
 import { MiniMap, VendorCard } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
 import { ProIcon } from "./icons";
@@ -32,6 +33,7 @@ export function coupleView(d) {
     ...v,
     place: [row.city, row.department && /^\d/.test(row.department) ? null : row.department].filter(Boolean).join(", ") || v.area,
     rating: row.google_rating ? { score: String(row.google_rating).replace(".", ","), count: row.google_review_count || 0 } : null,
+    responseHours: responseStats(d)?.avgHours ?? null,
     included: first?.includes?.length ? first.includes : null,
     story: row.description || null,
     where: [row.city ? `Près de ${row.city}` : null, v.access].filter(Boolean).join(" · "),
@@ -150,6 +152,7 @@ export default function Apercu({ onClose }) {
                       <strong>{v.rating.score}</strong> · {v.rating.count} avis
                     </span>
                   </div>
+                  {v.responseHours !== null ? <span className="p-apercu-resp">Répond en {v.responseHours} h</span> : null}
                 </section>
               ) : null}
               {v.lat !== null && v.lat !== undefined ? (
