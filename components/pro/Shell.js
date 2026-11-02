@@ -87,7 +87,7 @@ function Frame({ children }) {
   const v = pro.data.vendor;
   const cover = pro.data.photos?.[0]?.url;
   const credits = pro.data.pro?.credits ?? 0;
-  const here = PRO_NAV.find((n) => (n.match.some((m) => pathname === m || pathname.startsWith(m + "/"))))?.label || "Accueil";
+  const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Accueil";
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -128,7 +128,7 @@ function Frame({ children }) {
       </header>
       <nav className="p-tabs" aria-label="Navigation de l'espace prestataire" ref={navRef}>
         {PRO_NAV.map((n) => {
-          const on = n.match.some((m) => pathname === m || pathname.startsWith(m + "/"));
+          const on = (n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")));
           return (
             <Link key={n.href} href={n.href} className={`p-tab${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
               {n.label}
@@ -144,7 +144,7 @@ function Frame({ children }) {
         </Link>
         <div className="p-nav-main">
           {PRO_NAV.map((n) => {
-            const on = n.match.some((m) => pathname === m || pathname.startsWith(m + "/"));
+            const on = (n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")));
             return (
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
                 <ProIcon name={n.icon} size={18} />
