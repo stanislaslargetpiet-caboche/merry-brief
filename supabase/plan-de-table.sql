@@ -3,7 +3,7 @@
 -- Le fichier peut être relancé sans risque : il ne supprime aucune donnée.
 --
 -- Un plan par moment du mariage (le dîner, le plus souvent) : des tables avec un nom et un nombre de
--- places, et qui s'assoit où. Les foyers (relances-et-foyers.sql) sont gardés ensemble par le placement
+-- places, et qui s'assoit où. Un invité et ses accompagnants sont gardés ensemble par le placement
 -- automatique, et signalés quand ils sont séparés.
 
 create table if not exists public.seating_tables (
