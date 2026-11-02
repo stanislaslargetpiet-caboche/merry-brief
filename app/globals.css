@@ -1,15 +1,15 @@
 @font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
 
 :root {
-  --ink: #1c1c1a;
-  --muted: #5f5e58;
-  --line: #e4e2dc;
-  --ground: #f5f4f0;
+  --ink: var(--m-ink);
+  --muted: var(--m-ink-muted);
+  --line: var(--m-border);
+  --ground: var(--m-surface-sunken);
   --card: #ffffff;
-  --lime: #fff700;
+  --lime: var(--m-accent);
   --navy: #0f2537;
   --danger: #8a3a2c;
-  --radius: 18px;
+  --radius: var(--m-radius-lg);
   --font-body: "Alan Sans", Helvetica, Arial, sans-serif;
   --font-display: "Alan Sans", Helvetica, Arial, sans-serif;
   --font-logo: "Climate Crisis", "Arial Black", sans-serif;

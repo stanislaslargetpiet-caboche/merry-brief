@@ -1,3 +1,4 @@
+import "./tokens.css";
 import "./globals.css";
 import { LangProvider } from "@/lib/lang";
 import PostHogProvider from "@/components/PostHogProvider";

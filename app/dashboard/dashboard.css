@@ -5267,7 +5267,7 @@ button.d-rsvp:hover {
 }
 
 .d-choice.is-off .d-badge {
-  background: #e4e2dc;
+  background: #ecebe6;
   color: #4d4c46;
 }
 
@@ -5415,7 +5415,7 @@ button.d-rsvp:hover {
   height: 46px;
   border-radius: 8px;
   background: #ffffff;
-  border: 1px solid #e4e2dc;
+  border: 1px solid #ecebe6;
   font-size: 10px;
   font-weight: 600;
   color: #8c4229;
@@ -7002,9 +7002,9 @@ button.d-group-none {
    ===================================================================== */
 
 .d-root {
-  --pr-card: #f5f4f0;
-  --pr-sub: #5f5e58;
-  --pr-rule: #e4e2dc;
+  --pr-card: #f6f5f1;
+  --pr-sub: #6b6a63;
+  --pr-rule: #ecebe6;
   --pr-ph: #e9e7e0;
   --pr-ph-dot: #e2ded3;
   --pr-nego-bg: var(--d-limetint);
@@ -14648,7 +14648,7 @@ body.d-noscroll {
 }
 
 .d-cmp-card {
-  background: #f5f4f0;
+  background: #f6f5f1;
   border-radius: 16px;
   padding: 12px;
   display: flex;

@@ -1,0 +1,44 @@
+/* Système de design Merry v2 (canvas « Merry · Carte brief », project/ds/merry/tokens.json).
+   Source unique des couleurs, rayons et espacements : les autres feuilles s'y réfèrent. */
+:root {
+  --m-ink: #1c1c1a;
+  --m-ink-muted: #6b6a63;
+  --m-ink-faint: #9c9a90;
+  --m-surface: #ffffff;
+  --m-surface-sunken: #f6f5f1;
+  --m-border: #ecebe6;
+  --m-border-strong: #d9d7cf;
+
+  --m-accent: #fff700;
+  --m-accent-tint: #fffdb8;
+  --m-accent-veil: #fffceb;
+  --m-accent-ink: #574e00;
+
+  --m-success-bg: #dff3e1;
+  --m-success-text: #1f6b30;
+  --m-warning-bg: #ffe6cc;
+  --m-warning-text: #8a4b0f;
+  --m-error-bg: #fde0de;
+  --m-error-text: #b42318;
+  --m-info-bg: #ebe6fb;
+  --m-info-text: #4a3d99;
+
+  --m-space-1: 4px;
+  --m-space-2: 8px;
+  --m-space-3: 12px;
+  --m-space-4: 16px;
+  --m-space-5: 20px;
+  --m-space-6: 24px;
+  --m-space-8: 32px;
+
+  --m-radius-xs: 4px;
+  --m-radius-sm: 8px;
+  --m-radius-md: 12px;
+  --m-radius-lg: 20px;
+  --m-radius-full: 999px;
+}
+
+/* Couleur d'accent choisie dans Réglages (data-accent posé par components/dash/Shell.js) */
+[data-accent="beurre"] { --m-accent: #ffe58a; --m-accent-tint: #fff5cc; --m-accent-veil: #fffcee; --m-accent-ink: #6b5300; }
+[data-accent="anis"] { --m-accent: #e4f78f; --m-accent-tint: #f5fcd2; --m-accent-veil: #fbfef0; --m-accent-ink: #4e5a00; }
+[data-accent="pistache"] { --m-accent: #bfe9a6; --m-accent-tint: #e6f7dc; --m-accent-veil: #f6fcf2; --m-accent-ink: #2f5a1a; }
