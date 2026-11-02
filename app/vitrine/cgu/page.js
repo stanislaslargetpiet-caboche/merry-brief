@@ -6,12 +6,11 @@ export const metadata = {
   alternates: { canonical: "https://www.withmerry.com/cgu" },
 };
 
-// Les éléments entre crochets sont à compléter par l'éditeur (raison sociale, adresse, contact) : voir le README.
 const SECTIONS = [
   [
     "Le service",
     [
-      "Merry est un outil en ligne pour organiser un mariage : invités, budget, rétroplanning, prestataires, site de mariage et formulaire pour les invités. Il est édité par [raison sociale et forme juridique], [adresse du siège], [adresse de contact]. En créant un compte ou en utilisant le service, vous acceptez ces conditions.",
+      "Merry est un outil en ligne pour organiser un mariage : invités, budget, rétroplanning, prestataires, site de mariage et formulaire pour les invités. Il est édité par Stanislas Larget-Piet ; contact : bonjour@withmerry.com (coordonnées postales communiquées sur demande). En créant un compte ou en utilisant le service, vous acceptez ces conditions.",
       "Merry est gratuit pour les organisateurs. Les prestataires disposent d'un espace dédié, dont certaines fonctions se paient en crédits selon les tarifs affichés dans cet espace.",
     ],
   ],
@@ -52,7 +51,7 @@ const SECTIONS = [
   [
     "Évolutions et droit applicable",
     [
-      "Ces conditions peuvent évoluer ; la date de mise à jour figure en haut de la page et les changements importants vous sont annoncés dans l'application. Elles sont soumises au droit français. En cas de litige, et après avoir cherché une solution amiable avec nous, les tribunaux compétents sont ceux du siège de l'éditeur, sans préjudice des règles protectrices applicables aux consommateurs.",
+      "Ces conditions peuvent évoluer ; la date de mise à jour figure en haut de la page et les changements importants vous sont annoncés dans l'application. Elles sont soumises au droit français. En cas de litige, et après avoir cherché une solution amiable avec nous, les tribunaux français sont compétents, sans préjudice des règles protectrices applicables aux consommateurs.",
     ],
   ],
 ];

@@ -6,12 +6,11 @@ export const metadata = {
   alternates: { canonical: "https://www.withmerry.com/confidentialite" },
 };
 
-// Les éléments entre crochets sont à compléter par l'éditeur (raison sociale, adresse, contact) : voir le README.
 const SECTIONS = [
   [
     "Qui est responsable",
     [
-      "Merry (withmerry.com et app.withmerry.com) est éditée par [raison sociale et forme juridique], [adresse du siège], qui agit comme responsable du traitement des données décrites ici. Pour toute question : [adresse de contact].",
+      "Merry (withmerry.com et app.withmerry.com) est un service édité par Stanislas Larget-Piet, responsable du traitement des données décrites ici. Pour toute question sur vos données : bonjour@withmerry.com. Les coordonnées postales de l'éditeur sont communiquées sur demande à cette adresse.",
     ],
   ],
   [
@@ -49,7 +48,7 @@ const SECTIONS = [
   [
     "Vos droits",
     [
-      "Vous pouvez accéder à vos données, les corriger, les faire effacer, en demander la portabilité, limiter ou vous opposer à leur traitement, et retirer votre accord à la mesure d'audience à tout moment (le bandeau se rouvre en effaçant les données du site dans votre navigateur). Écrivez à [adresse de contact] : nous répondons sous un mois. Vous pouvez aussi saisir la CNIL (cnil.fr).",
+      "Vous pouvez accéder à vos données, les corriger, les faire effacer, en demander la portabilité, limiter ou vous opposer à leur traitement, et retirer votre accord à la mesure d'audience à tout moment (le bandeau se rouvre en effaçant les données du site dans votre navigateur). Écrivez à bonjour@withmerry.com : nous répondons sous un mois. Vous pouvez aussi saisir la CNIL (cnil.fr).",
       "Un invité qui souhaite que ses données soient retirées d'une liste peut s'adresser aux organisateurs du mariage, ou à nous : nous les relayons.",
     ],
   ],
