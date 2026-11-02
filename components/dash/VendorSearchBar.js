@@ -225,7 +225,7 @@ export default function VendorSearchBar() {
                             <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
                           </div>
                           <Btn kind="ghost" small onClick={() => pickGoogle(g)}>
-                            Ajouter
+                            Utiliser
                           </Btn>
                         </li>
                       ))}
