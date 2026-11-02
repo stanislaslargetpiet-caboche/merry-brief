@@ -735,10 +735,6 @@ export default function Importer() {
           <span role="progressbar" aria-label="Avancement de la lecture" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} className={`d-reading-bar${partsTotal === 1 ? " is-wait" : ""}`}>
             <Bar value={Math.max(progress, 4)} height={8} />
           </span>
-          <span className="d-small d-muted">
-            Ensuite, Merry vous posera ses questions sur les colonnes qu'il ne connaît pas, puis vous validerez la liste.
-            {imports.jobs.some((j) => j.status === "encours") ? " Vous pouvez quitter cette page ou fermer l'application : la lecture continue, et la liste vous attend ici à votre retour." : ""}
-          </span>
         </div>
       ) : null}
 
