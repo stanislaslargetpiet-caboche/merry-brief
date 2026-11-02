@@ -15466,32 +15466,6 @@ body.d-noscroll {
   gap: 18px;
 }
 
-.d-pr-addvendor-google {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.d-pr-addvendor-google .d-pr-to {
-  align-self: stretch;
-}
-
-/* Suggestions de ville par-dessus le formulaire : il ne se décale plus quand elles apparaissent */
-.d-pr-townfield.is-float {
-  position: relative;
-}
-
-.d-pr-townlist.is-float {
-  position: absolute;
-  z-index: 4;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
 .d-pr-contacts {
   display: flex;
   flex-direction: column;
@@ -15739,4 +15713,19 @@ body.d-noscroll {
 .d-unassigned .d-pill {
   min-height: 30px;
   font-size: 12px;
+}
+
+/* Fenêtre « Ajouter un prestataire » : résultat trouvé sur internet à valider, autres résultats en dessous */
+.d-pr-create .d-create-card .d-field {
+  margin-top: 4px;
+}
+
+.d-pr-search-others {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-pr-search-manual svg:last-child {
+  margin-left: auto;
 }
