@@ -1830,12 +1830,18 @@ create table if not exists catalog.categories (
   label     text not null,
   position  smallint not null default 0
 );
-insert into catalog.categories (slug, label, position) values
-  ('lieu', 'Lieu de réception', 0), ('traiteur', 'Traiteur', 1), ('photographe', 'Photographe', 2), ('videaste', 'Vidéaste', 3),
-  ('dj', 'DJ', 4), ('musiciens', 'Musiciens', 5), ('fleuriste', 'Fleuriste', 6), ('decoration', 'Décoration', 7),
-  ('wedding_planner', 'Wedding planner', 8), ('patisserie', 'Pâtisserie', 9), ('beaute', 'Coiffure et maquillage', 10),
-  ('robe', 'Robe et tenues', 11), ('transport', 'Transport', 12), ('officiant', 'Officiant', 13)
-on conflict (slug) do nothing;
+-- Catégories de départ, seulement sur une base vide : la table du catalogue en production a ses propres
+-- colonnes en plus (kind…) et ses lignes, on n'y touche pas
+do $$
+begin
+  if not exists (select 1 from catalog.categories) then
+    insert into catalog.categories (slug, label, position) values
+      ('lieu', 'Lieu de réception', 0), ('traiteur', 'Traiteur', 1), ('photographe', 'Photographe', 2), ('videaste', 'Vidéaste', 3),
+      ('dj', 'DJ', 4), ('musiciens', 'Musiciens', 5), ('fleuriste', 'Fleuriste', 6), ('decoration', 'Décoration', 7),
+      ('wedding_planner', 'Wedding planner', 8), ('patisserie', 'Pâtisserie', 9), ('beaute', 'Coiffure et maquillage', 10),
+      ('robe', 'Robe et tenues', 11), ('transport', 'Transport', 12), ('officiant', 'Officiant', 13);
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Prestataires
@@ -1860,7 +1866,6 @@ create table if not exists catalog.vendors (
   website             text,
   siret               text,
   siren               text,
-  google_place_id     text,
   google_rating       numeric(2, 1),
   google_review_count integer,
   capacity_seated     integer,
@@ -1895,7 +1900,6 @@ create index if not exists vendors_department_idx on catalog.vendors (department
 create index if not exists vendors_city_idx on catalog.vendors (city) where status = 'active';
 create index if not exists vendors_email_idx on catalog.vendors (lower(email)) where email is not null;
 create index if not exists vendors_siret_idx on catalog.vendors (siret) where siret is not null;
-create index if not exists vendors_google_place_idx on catalog.vendors (google_place_id) where google_place_id is not null;
 
 -- ---------------------------------------------------------------------------
 -- Photos : fichiers dans le stockage privé catalog-photos/<vendor_id>/…, servis en liens signés
