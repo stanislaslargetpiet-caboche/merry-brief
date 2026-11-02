@@ -7,7 +7,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "@/components/pro/icons";
-import { Pills, Switch } from "@/components/pro/ui";
+import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
+import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 
@@ -72,6 +73,7 @@ function MaFiche() {
           Aperçu côté couples
         </button>
       </div>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <PhotosSection />
 

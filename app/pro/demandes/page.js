@@ -12,7 +12,8 @@ import { supabase } from "@/lib/supabase";
 import { addDays, euros, isoDate, today } from "@/lib/dash/format";
 import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, seasonOf, since, weddingWhen } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
-import { Face, Switch } from "@/components/pro/ui";
+import { Face, ProSubnav, Switch } from "@/components/pro/ui";
+import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
 
 const SEEN_KEY = "merry-pro-vues";
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
@@ -78,6 +79,7 @@ function Demandes() {
         <h1 className="p-h1 is-page">Demandes.</h1>
         <p className="p-lead is-14">Les demandes des couples sont gratuites.</p>
       </div>
+      <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
       <div className="p-dem-grid">
         <section aria-label="Liste des demandes" className="p-dem-list">
           <div role="group" aria-label="Filtrer les demandes" className="p-pills is-scroll">

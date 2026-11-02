@@ -5,7 +5,27 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { coupleInitials, faceColor } from "@/lib/pro/format";
+
+// Sous-onglets d'une section groupée de la barre latérale (Mon profil, Messagerie) : évite
+// d'empiler trop d'entrées dans la barre, comme sur les maquettes « Mon profil » et « Messagerie »
+export function ProSubnav({ items, label }) {
+  const pathname = usePathname();
+  return (
+    <nav aria-label={label} className="p-subnav">
+      {items.map((it) => {
+        const on = pathname === it.href;
+        return (
+          <Link key={it.href} href={it.href} className={`p-subtab${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
+            {it.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function Sheet({ labelledBy, onClose, children, className = "", wide = false }) {
   const box = useRef(null);

@@ -9,7 +9,8 @@ import { usePro } from "@/lib/pro/store";
 import { creditsRoi } from "@/lib/pro/format";
 import { dayMonth, euros, shortDate } from "@/lib/dash/format";
 import { ProIcon } from "@/components/pro/icons";
-import { Sheet } from "@/components/pro/ui";
+import { ProSubnav, Sheet } from "@/components/pro/ui";
+import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
 
 const PERKS = {
@@ -46,6 +47,7 @@ export default function Credits() {
           {d.pro?.renews_on ? ` · Renouvellement le ${dayMonth(d.pro.renews_on)}` : ""}
         </p>
       </div>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <section className="p-block is-tight">
         <div className="p-month-head">

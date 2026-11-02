@@ -372,6 +372,34 @@
   gap: 16px;
 }
 
+/* Sous-onglets d'une section groupée (Mon profil, Messagerie) */
+.p-subnav {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--d-line);
+  overflow-x: auto;
+}
+
+.p-subtab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--d-muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.p-subtab.is-on {
+  border-bottom-color: var(--d-ink);
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
 .p-head-text {
   display: flex;
   flex-direction: column;
