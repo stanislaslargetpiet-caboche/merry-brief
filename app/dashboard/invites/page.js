@@ -512,9 +512,9 @@ export default function Invites() {
   const [moments, setMoments] = useState(false);
   const [managingGroups, setManagingGroups] = useState(false);
   const [groupFilters, setGroupFilters] = useState([]); // plusieurs groupes à la fois (artboard 1a3)
-  // Fenêtre Filtres (artboard 1a3) : onglet Filtre, ou Modification (artboard 1f3) pour appliquer un
-  // changement à la sélection en cours, avec un avant/après avant de valider.
-  const [modTab, setModTab] = useState("filtre"); // "filtre" | "modification"
+  // Fenêtre Modification (artboard 1f3), séparée de Filtres : change la sélection en cours,
+  // avec un avant/après avant de valider.
+  const [modifying, setModifying] = useState(false);
   const [modField, setModField] = useState(null); // "groupe" | "moment"
   const [modGroupTarget, setModGroupTarget] = useState(undefined); // id de groupe, "none", ou undefined (pas choisi)
   const [modMomentId, setModMomentId] = useState(null);
@@ -523,7 +523,6 @@ export default function Invites() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [addingCol, setAddingCol] = useState(false);
-  const [bulkMenu, setBulkMenu] = useState(null); // "groupe" | "moment"
   // Un seul bouton « Filtres » (artboards 1a3, ordinateur et téléphone) : groupe, présence, moment, colonnes
   const [filtering, setFiltering] = useState(false);
   const [statusFilter, setStatusFilter] = useState(null);
@@ -651,7 +650,6 @@ export default function Invites() {
   const selectAll = () => setSelected(Object.fromEntries(shown.map((g) => [g.id, true])));
   const clearSel = () => {
     setSelected({});
-    setBulkMenu(null);
   };
   const ok = (text) => dash.setToast({ kind: "ok", text });
   const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
@@ -1141,17 +1139,7 @@ export default function Invites() {
               <Icon name="search" size={15} />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" />
             </label>
-            <button
-              type="button"
-              className={`d-group-pick${filterCount ? " is-on" : ""}`}
-              onClick={() => {
-                setModTab("filtre");
-                setModField(null);
-                setModGroupTarget(undefined);
-                setModMomentId(null);
-                setFiltering(true);
-              }}
-            >
+            <button type="button" className={`d-group-pick${filterCount ? " is-on" : ""}`} onClick={() => setFiltering(true)}>
               <Icon name="list" size={14} sw={2.2} />
               Filtres
               {filterCount ? <span className="d-filter-count">{filterCount}</span> : null}
@@ -1222,40 +1210,17 @@ export default function Invites() {
                       Tout sélectionner ({shown.length})
                     </button>
                   ) : null}
-                  <span className="d-anchor">
-                    <button type="button" onClick={() => setBulkMenu((m) => (m === "groupe" ? null : "groupe"))} aria-haspopup="menu">
-                      Groupe
-                    </button>
-                    <Popover open={bulkMenu === "groupe"} onClose={() => setBulkMenu(null)}>
-                      {groups.map((g) => (
-                        <button key={g.id} type="button" className="d-pop-item" onClick={() => bulkGroup(g.id)}>
-                          <GroupChip group={g} />
-                        </button>
-                      ))}
-                      <button type="button" className="d-pop-item" onClick={() => bulkGroup(null)}>
-                        <span className="d-pop-label">Sans groupe</span>
-                      </button>
-                    </Popover>
-                  </span>
-                  {events.length ? (
-                    <span className="d-anchor">
-                      <button type="button" onClick={() => setBulkMenu((m) => (m === "moment" ? null : "moment"))} aria-haspopup="menu">
-                        Moments
-                      </button>
-                      <Popover open={bulkMenu === "moment"} onClose={() => setBulkMenu(null)}>
-                        {events.map((ev) => (
-                          <span key={ev.id} style={{ display: "contents" }}>
-                            <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, true)}>
-                              <span className="d-pop-label">Inviter à {ev.name}</span>
-                            </button>
-                            <button type="button" className="d-pop-item" onClick={() => bulkMoment(ev, false)}>
-                              <span className="d-pop-label">Ne plus inviter à {ev.name}</span>
-                            </button>
-                          </span>
-                        ))}
-                      </Popover>
-                    </span>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModField(null);
+                      setModGroupTarget(undefined);
+                      setModMomentId(null);
+                      setModifying(true);
+                    }}
+                  >
+                    Modifier
+                  </button>
                   <BulkColumnMenu fields={fields} onApply={bulkField} />
                   <button type="button" onClick={clearSel}>
                     Tout désélectionner
@@ -1436,170 +1401,15 @@ export default function Invites() {
           title="Filtres"
           onClose={() => setFiltering(false)}
           footer={
-            modTab === "modification" ? (
-              <>
-                <button type="button" className="d-link" onClick={() => setFiltering(false)}>
-                  Annuler
-                </button>
-                <span className="d-spacer" />
-                <Btn
-                  disabled={!selIds.length || !modField || (modField === "groupe" && modGroupTarget === undefined) || (modField === "moment" && !modMomentId)}
-                  onClick={async () => {
-                    if (modField === "groupe") await bulkGroup(modGroupTarget === "none" ? null : modGroupTarget);
-                    else if (modField === "moment") await bulkMoment(events.find((e) => e.id === modMomentId), modMomentInvite);
-                    setFiltering(false);
-                  }}
-                >
-                  {selIds.length ? `Appliquer à ${n(selIds.length, "invité", "invités")}` : "Appliquer"}
-                </Btn>
-              </>
-            ) : (
-              <>
-                <button type="button" className="d-link" onClick={clearFilters}>
-                  Tout effacer
-                </button>
-                <span className="d-spacer" />
-                <Btn onClick={() => setFiltering(false)}>{`Voir ${n(shown.length, "invité", "invités")}`}</Btn>
-              </>
-            )
+            <>
+              <button type="button" className="d-link" onClick={clearFilters}>
+                Tout effacer
+              </button>
+              <span className="d-spacer" />
+              <Btn onClick={() => setFiltering(false)}>{`Voir ${n(shown.length, "invité", "invités")}`}</Btn>
+            </>
           }
         >
-          <div className="d-seg" role="radiogroup" aria-label="Filtre ou modification" style={{ marginBottom: 18 }}>
-            <button type="button" role="radio" aria-checked={modTab === "filtre"} className={modTab === "filtre" ? "is-on" : ""} onClick={() => setModTab("filtre")}>
-              Filtre
-            </button>
-            <button type="button" role="radio" aria-checked={modTab === "modification"} className={modTab === "modification" ? "is-on" : ""} onClick={() => setModTab("modification")}>
-              Modification
-            </button>
-          </div>
-
-          {modTab === "modification" ? (
-            <div className="d-col" style={{ gap: 18 }}>
-              {selIds.length ? (
-                <>
-                  <span className="d-small d-muted">{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</span>
-                  <div className="d-gfilter">
-                    <div className="d-gfilter-head">
-                      <strong>Que voulez-vous modifier ?</strong>
-                    </div>
-                    <div className="d-filters">
-                      <button
-                        type="button"
-                        className={`d-gfilter-chip${modField === "groupe" ? " is-on" : ""}`}
-                        aria-pressed={modField === "groupe"}
-                        onClick={() => {
-                          setModField("groupe");
-                          setModGroupTarget(undefined);
-                        }}
-                      >
-                        {modField === "groupe" ? <Icon name="check" size={12} sw={3} /> : null}
-                        Groupe
-                      </button>
-                      {events.length ? (
-                        <button
-                          type="button"
-                          className={`d-gfilter-chip${modField === "moment" ? " is-on" : ""}`}
-                          aria-pressed={modField === "moment"}
-                          onClick={() => {
-                            setModField("moment");
-                            setModMomentId(events[0]?.id || null);
-                          }}
-                        >
-                          {modField === "moment" ? <Icon name="check" size={12} sw={3} /> : null}
-                          Moment du mariage
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {modField === "groupe" ? (
-                    <div className="d-gfilter">
-                      <div className="d-gfilter-head">
-                        <strong>Nouveau groupe</strong>
-                      </div>
-                      <div className="d-filters">
-                        {groups.map((gr) => {
-                          const p = pastel(gr.color);
-                          const on = modGroupTarget === gr.id;
-                          return (
-                            <button key={gr.id} type="button" className={`d-gfilter-chip${on ? " is-on" : ""}`} style={on ? undefined : { background: p.bg, borderColor: p.bg }} aria-pressed={on} onClick={() => setModGroupTarget(gr.id)}>
-                              {on ? <Icon name="check" size={12} sw={3} /> : null}
-                              {gr.name}
-                            </button>
-                          );
-                        })}
-                        <button type="button" className={`d-gfilter-chip${modGroupTarget === "none" ? " is-on" : ""}`} aria-pressed={modGroupTarget === "none"} onClick={() => setModGroupTarget("none")}>
-                          {modGroupTarget === "none" ? <Icon name="check" size={12} sw={3} /> : null}
-                          Sans groupe
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {modField === "groupe" && modGroupTarget !== undefined ? (
-                    <div className="d-gfilter">
-                      <div className="d-gfilter-head">
-                        <strong>Aperçu avant / après</strong>
-                      </div>
-                      <ul className="d-moments">
-                        {selIds.map((id) => {
-                          const guest = byId.get(id);
-                          if (!guest) return null;
-                          const oldGroup = groupById.get(guest.group_id);
-                          const oldP = oldGroup ? pastel(oldGroup.color) : null;
-                          const newGroup = modGroupTarget === "none" ? null : groupById.get(modGroupTarget);
-                          const newP = newGroup ? pastel(newGroup.color) : null;
-                          return (
-                            <li key={id} className="d-moment">
-                              <span style={{ flex: "1 1 auto", fontWeight: 600, fontSize: 14 }}>{fullName(guest) || "Sans nom"}</span>
-                              <span className="d-gfilter-chip" style={{ cursor: "default", opacity: 0.55, ...(oldP ? { background: oldP.bg, borderColor: oldP.bg } : {}) }}>
-                                {oldGroup ? oldGroup.name : "Sans groupe"}
-                              </span>
-                              <Icon name="arrowRight" size={16} sw={2} />
-                              <span className="d-gfilter-chip is-on" style={newP ? { background: newP.bg } : undefined}>
-                                {newGroup ? newGroup.name : "Sans groupe"}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {modField === "moment" ? (
-                    <>
-                      <div className="d-gfilter">
-                        <div className="d-gfilter-head">
-                          <strong>Moment</strong>
-                        </div>
-                        <div className="d-filters">
-                          {events.map((ev) => (
-                            <button key={ev.id} type="button" className={`d-gfilter-chip${modMomentId === ev.id ? " is-on" : ""}`} aria-pressed={modMomentId === ev.id} onClick={() => setModMomentId(ev.id)}>
-                              {modMomentId === ev.id ? <Icon name="check" size={12} sw={3} /> : null}
-                              {ev.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="d-seg" role="radiogroup" aria-label="Inviter ou retirer de ce moment">
-                        <button type="button" role="radio" aria-checked={modMomentInvite} className={modMomentInvite ? "is-on" : ""} onClick={() => setModMomentInvite(true)}>
-                          Inviter à ce moment
-                        </button>
-                        <button type="button" role="radio" aria-checked={!modMomentInvite} className={!modMomentInvite ? "is-on" : ""} onClick={() => setModMomentInvite(false)}>
-                          Ne plus inviter
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <p className="d-small d-muted" style={{ margin: 0 }}>
-                  Sélectionnez des invités dans le tableau (cases à cocher), puis revenez dans Filtres › Modification pour leur appliquer un changement.
-                </p>
-              )}
-            </div>
-          ) : (
-            <>
           <div className="d-gfilter">
             <div className="d-gfilter-head">
               <strong>Groupes</strong>
@@ -1692,8 +1502,156 @@ export default function Invites() {
                 ))}
             </div>
           ) : null}
+        </Modal>
+      ) : null}
+
+      {modifying ? (
+        <Modal
+          title="Modification"
+          onClose={() => setModifying(false)}
+          footer={
+            <>
+              <button type="button" className="d-link" onClick={() => setModifying(false)}>
+                Annuler
+              </button>
+              <span className="d-spacer" />
+              <Btn
+                disabled={!selIds.length || !modField || (modField === "groupe" && modGroupTarget === undefined) || (modField === "moment" && !modMomentId)}
+                onClick={async () => {
+                  if (modField === "groupe") await bulkGroup(modGroupTarget === "none" ? null : modGroupTarget);
+                  else if (modField === "moment") await bulkMoment(events.find((e) => e.id === modMomentId), modMomentInvite);
+                  setModifying(false);
+                }}
+              >
+                {selIds.length ? `Appliquer à ${n(selIds.length, "invité", "invités")}` : "Appliquer"}
+              </Btn>
             </>
-          )}
+          }
+        >
+          <div className="d-col" style={{ gap: 18 }}>
+            {selIds.length ? (
+              <>
+                <span className="d-small d-muted">{n(selIds.length, "invité sélectionné", "invités sélectionnés")}</span>
+                <div className="d-gfilter">
+                  <div className="d-gfilter-head">
+                    <strong>Que voulez-vous modifier ?</strong>
+                  </div>
+                  <div className="d-filters">
+                    <button
+                      type="button"
+                      className={`d-gfilter-chip${modField === "groupe" ? " is-on" : ""}`}
+                      aria-pressed={modField === "groupe"}
+                      onClick={() => {
+                        setModField("groupe");
+                        setModGroupTarget(undefined);
+                      }}
+                    >
+                      {modField === "groupe" ? <Icon name="check" size={12} sw={3} /> : null}
+                      Groupe
+                    </button>
+                    {events.length ? (
+                      <button
+                        type="button"
+                        className={`d-gfilter-chip${modField === "moment" ? " is-on" : ""}`}
+                        aria-pressed={modField === "moment"}
+                        onClick={() => {
+                          setModField("moment");
+                          setModMomentId(events[0]?.id || null);
+                        }}
+                      >
+                        {modField === "moment" ? <Icon name="check" size={12} sw={3} /> : null}
+                        Moment du mariage
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {modField === "groupe" ? (
+                  <div className="d-gfilter">
+                    <div className="d-gfilter-head">
+                      <strong>Nouveau groupe</strong>
+                    </div>
+                    <div className="d-filters">
+                      {groups.map((gr) => {
+                        const p = pastel(gr.color);
+                        const on = modGroupTarget === gr.id;
+                        return (
+                          <button key={gr.id} type="button" className={`d-gfilter-chip${on ? " is-on" : ""}`} style={on ? undefined : { background: p.bg, borderColor: p.bg }} aria-pressed={on} onClick={() => setModGroupTarget(gr.id)}>
+                            {on ? <Icon name="check" size={12} sw={3} /> : null}
+                            {gr.name}
+                          </button>
+                        );
+                      })}
+                      <button type="button" className={`d-gfilter-chip${modGroupTarget === "none" ? " is-on" : ""}`} aria-pressed={modGroupTarget === "none"} onClick={() => setModGroupTarget("none")}>
+                        {modGroupTarget === "none" ? <Icon name="check" size={12} sw={3} /> : null}
+                        Sans groupe
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {modField === "groupe" && modGroupTarget !== undefined ? (
+                  <div className="d-gfilter">
+                    <div className="d-gfilter-head">
+                      <strong>Aperçu avant / après</strong>
+                    </div>
+                    <ul className="d-moments">
+                      {selIds.map((id) => {
+                        const guest = byId.get(id);
+                        if (!guest) return null;
+                        const oldGroup = groupById.get(guest.group_id);
+                        const oldP = oldGroup ? pastel(oldGroup.color) : null;
+                        const newGroup = modGroupTarget === "none" ? null : groupById.get(modGroupTarget);
+                        const newP = newGroup ? pastel(newGroup.color) : null;
+                        return (
+                          <li key={id} className="d-moment">
+                            <span style={{ flex: "1 1 auto", fontWeight: 600, fontSize: 14 }}>{fullName(guest) || "Sans nom"}</span>
+                            <span className="d-gfilter-chip" style={{ cursor: "default", opacity: 0.55, ...(oldP ? { background: oldP.bg, borderColor: oldP.bg } : {}) }}>
+                              {oldGroup ? oldGroup.name : "Sans groupe"}
+                            </span>
+                            <Icon name="arrowRight" size={16} sw={2} />
+                            <span className="d-gfilter-chip is-on" style={newP ? { background: newP.bg } : undefined}>
+                              {newGroup ? newGroup.name : "Sans groupe"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {modField === "moment" ? (
+                  <>
+                    <div className="d-gfilter">
+                      <div className="d-gfilter-head">
+                        <strong>Moment</strong>
+                      </div>
+                      <div className="d-filters">
+                        {events.map((ev) => (
+                          <button key={ev.id} type="button" className={`d-gfilter-chip${modMomentId === ev.id ? " is-on" : ""}`} aria-pressed={modMomentId === ev.id} onClick={() => setModMomentId(ev.id)}>
+                            {modMomentId === ev.id ? <Icon name="check" size={12} sw={3} /> : null}
+                            {ev.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="d-seg" role="radiogroup" aria-label="Inviter ou retirer de ce moment">
+                      <button type="button" role="radio" aria-checked={modMomentInvite} className={modMomentInvite ? "is-on" : ""} onClick={() => setModMomentInvite(true)}>
+                        Inviter à ce moment
+                      </button>
+                      <button type="button" role="radio" aria-checked={!modMomentInvite} className={!modMomentInvite ? "is-on" : ""} onClick={() => setModMomentInvite(false)}>
+                        Ne plus inviter
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <p className="d-small d-muted" style={{ margin: 0 }}>
+                Sélectionnez des invités dans le tableau (cases à cocher), puis cliquez sur « Modifier ».
+              </p>
+            )}
+          </div>
         </Modal>
       ) : null}
     </>
