@@ -12,8 +12,15 @@ import { createClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 export const maxDuration = 20;
 
+// En-têtes HTTP : ASCII seulement. Si la clé a été copiée avec un caractère invisible ou une puce
+// (« • », repéré dans les logs en prod : « ByteString » lève une erreur 500 sur tout appel Google),
+// on la nettoie plutôt que de planter sur chaque recherche.
+function cleanKey(k) {
+  return String(k || "").replace(/[^\x20-\x7e]/g, "").trim();
+}
+
 export async function POST(req) {
-  const key = process.env.GOOGLE_PLACES_API_KEY;
+  const key = cleanKey(process.env.GOOGLE_PLACES_API_KEY);
   if (!key) return Response.json({ error: "no_key" }, { status: 501 });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
