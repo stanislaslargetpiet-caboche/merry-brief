@@ -8,6 +8,8 @@ import { usePro } from "@/lib/pro/store";
 import { euros, parseAmount } from "@/lib/dash/format";
 import { OPTION_UNIT, UNIT_LABEL, price } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
+import { ProSubnav } from "@/components/pro/ui";
+import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 
 const OPTION_UNITS = [
   { value: "forfait", label: "Forfait" },
@@ -39,6 +41,7 @@ export default function Tarifs() {
   return (
     <div className="p-narrow is-28">
       <h1 className="p-h1 is-page">Tarifs.</h1>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
       <p className="p-banner">
         Votre prix le plus bas s’affiche aux couples :{" "}
         <strong>{lowest ? `À partir de ${euros(lowest.p)}${lowest.unit === "par_invite" ? " par invité" : ""}` : "ajoutez une formule et ses prix"}</strong>

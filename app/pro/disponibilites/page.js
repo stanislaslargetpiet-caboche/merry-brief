@@ -8,7 +8,8 @@ import { usePro } from "@/lib/pro/store";
 import { addDays, isoDate, shortDate, toDate, today } from "@/lib/dash/format";
 import { dateLong, dayLong, monthName, todayIsoLocal } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
-import { Sheet } from "@/components/pro/ui";
+import { ProSubnav, Sheet } from "@/components/pro/ui";
+import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
 
 const WEEK = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam.", "Dim."];
@@ -76,6 +77,7 @@ export default function Disponibilites() {
         <h1 className="p-h1 is-page">Disponibilités.</h1>
         <p className="p-lead">{phone ? "Touchez" : "Cliquez sur"} une date pour la bloquer, poser une option ou la marquer réservée.</p>
       </div>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
       <div className="p-dispo-grid">
         <section className="p-cal">
           <div className="p-cal-head">

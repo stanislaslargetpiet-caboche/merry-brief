@@ -12,15 +12,26 @@ import { ProIcon } from "./icons";
 import Claim from "./Claim";
 import FeatureDialog from "./FeatureDialog";
 
+// Chaque entrée groupe plusieurs pages sous un seul onglet de la barre latérale (maquettes
+// « Mon profil » et « Messagerie » du canvas) ; `match` liste les chemins qui l'activent, et ses
+// sous-pages affichent un ProSubnav vers les autres.
 export const PRO_NAV = [
-  { href: "/pro", label: "Accueil", icon: "home", exact: true },
-  { href: "/pro/fiche", label: "Ma fiche", icon: "fiche" },
-  { href: "/pro/tarifs", label: "Tarifs", icon: "tarifs" },
-  { href: "/pro/disponibilites", label: "Disponibilités", icon: "calendar" },
-  { href: "/pro/demandes", label: "Demandes", icon: "demandes" },
-  { href: "/pro/clients", label: "Clients", icon: "clients" },
-  { href: "/pro/projets", label: "Projets de mariage", icon: "projets" },
-  { href: "/pro/credits", label: "Crédits", icon: "credits" },
+  { href: "/pro", label: "Accueil", icon: "home", exact: true, match: ["/pro"] },
+  { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"] },
+  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/disponibilites", "/pro/credits"] },
+  { href: "/pro/projets", label: "Projets de mariage", icon: "projets", match: ["/pro/projets"] },
+];
+
+export const PRO_MESSAGERIE_TABS = [
+  { href: "/pro/demandes", label: "Demandes" },
+  { href: "/pro/clients", label: "Clients" },
+];
+
+export const PRO_PROFIL_TABS = [
+  { href: "/pro/fiche", label: "Ma fiche" },
+  { href: "/pro/tarifs", label: "Tarifs" },
+  { href: "/pro/disponibilites", label: "Disponibilités" },
+  { href: "/pro/credits", label: "Crédits" },
 ];
 
 export default function ProShell({ children }) {
@@ -76,7 +87,7 @@ function Frame({ children }) {
   const v = pro.data.vendor;
   const cover = pro.data.photos?.[0]?.url;
   const credits = pro.data.pro?.credits ?? 0;
-  const here = PRO_NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.label || "Accueil";
+  const here = PRO_NAV.find((n) => (n.match.some((m) => pathname === m || pathname.startsWith(m + "/"))))?.label || "Accueil";
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -117,7 +128,7 @@ function Frame({ children }) {
       </header>
       <nav className="p-tabs" aria-label="Navigation de l'espace prestataire" ref={navRef}>
         {PRO_NAV.map((n) => {
-          const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+          const on = n.match.some((m) => pathname === m || pathname.startsWith(m + "/"));
           return (
             <Link key={n.href} href={n.href} className={`p-tab${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
               {n.label}
@@ -133,7 +144,7 @@ function Frame({ children }) {
         </Link>
         <div className="p-nav-main">
           {PRO_NAV.map((n) => {
-            const on = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+            const on = n.match.some((m) => pathname === m || pathname.startsWith(m + "/"));
             return (
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
                 <ProIcon name={n.icon} size={18} />

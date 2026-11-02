@@ -10,7 +10,8 @@ import { usePro } from "@/lib/pro/store";
 import { isoDate, shortDate, toDate } from "@/lib/dash/format";
 import { dateLong, dayShort, faceColor, firstName, guestsText, STAGES, weddingWhen } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
-import { Face } from "@/components/pro/ui";
+import { Face, ProSubnav } from "@/components/pro/ui";
+import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
 
 const NEW = "nouveau";
@@ -66,6 +67,7 @@ function Clients() {
           </button>
         </div>
       </div>
+      <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
 
       <div role="tablist" aria-label="Étapes" className="p-stage-tabs">
         {STAGES.map((s) => (
