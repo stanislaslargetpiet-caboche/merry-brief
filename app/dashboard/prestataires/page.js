@@ -11,6 +11,7 @@ import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
 import { Icon } from "@/components/dash/icons";
+import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { BusyDots } from "@/components/dash/ui";
 import { FiltersPanel, SearchSummary, activeFilters, inPrice } from "@/components/dash/Filtres";
 import {
@@ -182,6 +183,7 @@ export default function Trouver() {
   return (
     <>
       <PrHead on="trouver" />
+      <VendorSearchBar />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
       <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />

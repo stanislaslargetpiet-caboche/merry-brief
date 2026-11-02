@@ -1,16 +1,19 @@
 "use client";
 
-// Barre de recherche « Ajouter un prestataire » (Mes prestataires) : un couple qui a déjà trouvé son
-// traiteur ou son photographe ailleurs le cherche d'abord dans le catalogue Merry, pour récupérer sa
-// fiche ; s'il n'y est pas, il le saisit à la main (nom, catégorie, ville), directement sous la barre.
+// Barre de recherche « Ajouter un prestataire » (Mes prestataires et Trouver des prestataires) : un
+// couple qui a déjà trouvé son traiteur ou son photographe ailleurs le cherche d'abord dans le
+// catalogue Merry, pour récupérer sa fiche ; s'il n'y est pas, Merry cherche sur Google et propose une
+// fiche déjà remplie (nom, adresse, téléphone, site) ; en dernier recours, la saisie à la main.
 
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName } from "@/lib/dash/catalog";
+import { CATALOG_CATEGORIES, CATEGORIES, catFromCatalog, catOf, customVendorId, searchCatalogByName, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { Thumb, usePicks } from "./Prestataires";
 import { Btn, BusyDots } from "./ui";
+
+const EMPTY_FORM = { name: "", category: "", area: "", phone: "", website: "", lat: null, lng: null };
 
 export default function VendorSearchBar() {
   const dash = useDash();
@@ -20,10 +23,12 @@ export default function VendorSearchBar() {
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [google, setGoogle] = useState({ searching: false, done: false, results: [] });
   const [manual, setManual] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "", area: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const searched = q.trim().length >= 2;
+  const noMatch = searched && !searching && !results.length;
 
   useEffect(() => {
     function onDocClick(e) {
@@ -41,6 +46,7 @@ export default function VendorSearchBar() {
     }
     let live = true;
     setSearching(true);
+    setGoogle({ searching: false, done: false, results: [] });
     const t = setTimeout(async () => {
       const r = await searchCatalogByName(dash.mode, q);
       if (live) {
@@ -54,12 +60,27 @@ export default function VendorSearchBar() {
     };
   }, [q, dash.mode, searched]);
 
+  useEffect(() => {
+    if (!noMatch || google.searching || google.done) return undefined;
+    let live = true;
+    setGoogle((g) => ({ ...g, searching: true }));
+    (async () => {
+      const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
+      const r = await searchGoogleVendor(dash.mode, q, token);
+      if (live) setGoogle({ searching: false, done: true, results: r });
+    })();
+    return () => {
+      live = false;
+    };
+  }, [noMatch, google.searching, google.done, dash.mode, q]);
+
   function reset() {
     setQ("");
     setOpen(false);
     setManual(false);
-    setForm({ name: "", category: "", area: "" });
+    setForm(EMPTY_FORM);
     setResults([]);
+    setGoogle({ searching: false, done: false, results: [] });
   }
 
   async function pick(v) {
@@ -72,6 +93,11 @@ export default function VendorSearchBar() {
 
   function startManual() {
     setForm((f) => ({ ...f, name: q.trim() }));
+    setManual(true);
+  }
+
+  function pickGoogle(g) {
+    setForm({ name: g.name, category: "", area: g.city || "", phone: g.phone || "", website: g.website || "", lat: g.lat, lng: g.lng });
     setManual(true);
   }
 
@@ -89,6 +115,10 @@ export default function VendorSearchBar() {
           vname: name,
           category: form.category,
           city: area || null,
+          phone: form.phone || null,
+          website: form.website || null,
+          vlat: form.lat,
+          vlng: form.lng,
         });
         if (error) throw error;
         v = { id: `catalog:${newId}`, category: catFromCatalog(form.category), name, area: area || undefined };
@@ -99,7 +129,7 @@ export default function VendorSearchBar() {
       dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
       reset();
     } catch {
-      dash.setToast({ kind: "error", text: "Ce prestataire n'a pas pu être créé : collez supabase/prestataires-ajout-manuel.sql dans Supabase (SQL Editor)." });
+      dash.setToast({ kind: "error", text: "Ce prestataire n'a pas pu être créé : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)." });
     } finally {
       setBusy(false);
     }
@@ -148,11 +178,28 @@ export default function VendorSearchBar() {
                   ))}
                 </ul>
               ) : null}
-              {!searching && !results.length ? (
+              {noMatch ? (
                 <div className="d-pr-search-empty">
                   <span className="d-small-muted">Aucun prestataire ne correspond dans le catalogue Merry.</span>
+                  {google.searching ? <BusyDots label="Recherche sur Google" /> : null}
+                  {!google.searching && google.results.length ? (
+                    <ul className="d-pr-to">
+                      {google.results.map((g, i) => (
+                        <li key={i}>
+                          <Thumb v={{ name: g.name }} size={44} />
+                          <div className="d-pr-to-main">
+                            <span className="d-pr-to-name">{g.name}</span>
+                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
+                          </div>
+                          <Btn kind="ghost" small onClick={() => pickGoogle(g)}>
+                            Ajouter
+                          </Btn>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <button type="button" className="d-pr-arrowlink is-13" onClick={startManual}>
-                    Ajoutez-le à la main
+                    {google.done && !google.results.length ? "Toujours rien : ajoutez-le à la main" : "Ce n'est pas ça ? Ajoutez-le à la main"}
                   </button>
                 </div>
               ) : null}
