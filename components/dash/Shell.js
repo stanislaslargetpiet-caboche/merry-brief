@@ -95,7 +95,8 @@ function Frame({ children }) {
 
   useEffect(() => {
     if (!dash.toast) return undefined;
-    const t = setTimeout(() => dash.setToast(null), 5000);
+    // Un toast avec « Annuler » reste un peu plus longtemps, le temps de se raviser
+    const t = setTimeout(() => dash.setToast(null), dash.toast.action ? 8000 : 5000);
     return () => clearTimeout(t);
   }, [dash.toast, dash]);
 
@@ -290,6 +291,19 @@ function Frame({ children }) {
             </span>
           ) : null}
           {dash.toast.text}
+          {dash.toast.action ? (
+            <button
+              type="button"
+              className="d-toast-action"
+              onClick={() => {
+                const run = dash.toast.action.onClick;
+                dash.setToast(null);
+                run();
+              }}
+            >
+              {dash.toast.action.label}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

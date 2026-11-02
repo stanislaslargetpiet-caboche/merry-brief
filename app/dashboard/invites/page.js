@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useDash } from "@/lib/dash/store";
-import { GUEST_STATUS_LABEL, guestStats, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
-import { fullName, normalize, pctLabel, uid } from "@/lib/dash/format";
+import { GUEST_STATUS_LABEL, guestStatus, kpiItems, responseIndex, guestLabel } from "@/lib/dash/model";
+import { fullName, normalize, uid } from "@/lib/dash/format";
 import { columnValues } from "@/lib/dash/codes";
-import { PASTEL_KEYS, RSVP, pastel } from "@/lib/dash/theme";
+import { RSVP, pastel } from "@/lib/dash/theme";
 import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu } from "@/components/dash/ui";
@@ -14,8 +14,11 @@ import InvitesHeader from "@/components/dash/InvitesTabs";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
+import GroupCell from "@/components/dash/GroupCell";
 import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
+import { readView, rememberView, writeView } from "@/lib/dash/guestView";
+import ViewsMenu from "@/components/dash/ViewsMenu";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -205,9 +208,8 @@ function SortItems({ dir, onSort, rsvp }) {
   );
 }
 
-// Menu de fin de ligne : retirer l'invité de la liste
-function RowMenu({ guest, label }) {
-  const dash = useDash();
+// Menu de fin de ligne : retirer l'invité de la liste (sans confirmation : le toast propose « Annuler »)
+function RowMenu({ guest, label, onRemove }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="d-anchor">
@@ -226,99 +228,9 @@ function RowMenu({ guest, label }) {
           className="d-pop-item is-danger"
           onClick={() => {
             setOpen(false);
-            if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
+            onRemove();
           }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <Icon name="trash" size={14} />
-            Retirer de la liste
-          </span>
-        </button>
-      </Popover>
-    </span>
-  );
-}
-
-function GroupCell({ guest, group, groups, label }) {
-  const dash = useDash();
-  const [open, setOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const close = () => {
-    setOpen(false);
-    setCreating(false);
-    setName("");
-  };
-  const create = async (e) => {
-    e.preventDefault();
-    const n = name.trim();
-    if (!n) return;
-    const exists = groups.find((g) => normalize(g.name) === normalize(n));
-    let id = exists?.id;
-    if (!id) {
-      id = uid();
-      const color = PASTEL_KEYS[groups.length % PASTEL_KEYS.length];
-      await dash.insert("guest_groups", { id, name: n, color, position: groups.length });
-    }
-    dash.update("guests", guest.id, { group_id: id });
-    close();
-  };
-  return (
-    <span className="d-anchor">
-      <GroupChip group={group} onClick={() => (open ? close() : setOpen(true))} />
-      <Popover open={open} onClose={close}>
-        <span className="d-pop-label d-small d-muted" style={{ padding: "4px 8px" }}>
-          Groupe de {label}
-        </span>
-        {groups.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            className={`d-pop-item${g.id === guest.group_id ? " is-on" : ""}`}
-            onClick={() => {
-              dash.update("guests", guest.id, { group_id: g.id });
-              close();
-            }}
-          >
-            <GroupChip group={g} />
-            {g.id === guest.group_id ? <Icon name="check" size={14} sw={2.2} /> : null}
-          </button>
-        ))}
-        {guest.group_id ? (
-          <button
-            type="button"
-            className="d-pop-item"
-            onClick={() => {
-              dash.update("guests", guest.id, { group_id: null });
-              close();
-            }}
-          >
-            <span className="d-pop-label">Sans groupe</span>
-          </button>
-        ) : null}
-        {creating ? (
-          <form onSubmit={create} style={{ display: "flex", gap: 6, padding: "4px 2px" }}>
-            <input className="d-input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du groupe" maxLength={60} aria-label="Nom du nouveau groupe" style={{ minWidth: 150 }} />
-            <Btn type="submit" small disabled={!name.trim()}>
-              Créer
-            </Btn>
-          </form>
-        ) : (
-          <button type="button" className="d-pop-item" onClick={() => setCreating(true)}>
-            <span className="d-pop-label">
-              <Icon name="plus" size={14} sw={2.2} />
-              Nouveau groupe
-            </span>
-          </button>
-        )}
-        <span style={{ height: 1, background: "var(--d-line)", margin: "4px 2px" }} />
-        <button
-          type="button"
-          className="d-pop-item is-danger"
-          onClick={() => {
-            close();
-            if (window.confirm(`Retirer ${label} de la liste ?`)) dash.remove("guests", guest.id);
-          }}
+          aria-label={`Retirer ${label} de la liste`}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Icon name="trash" size={14} />
@@ -404,11 +316,13 @@ function ColumnHead({ col, onRename, onRemove, removeLabel, extraItems }) {
   );
 }
 
-function AddGuests({ onClose }) {
+// Groupe proposé par défaut : celui qu'on filtre s'il n'y en a qu'un, sinon « Sans groupe »
+// (comme la ligne vide du tableau), jamais le premier groupe de la liste par hasard
+function AddGuests({ onClose, defaultGroupId = "" }) {
   const dash = useDash();
   const { groups, events, guests } = dash.data;
   const [names, setNames] = useState("");
-  const [groupId, setGroupId] = useState(groups[0]?.id || "");
+  const [groupId, setGroupId] = useState(groups.some((g) => g.id === defaultGroupId) ? defaultGroupId : "");
   const [invitedTo, setInvitedTo] = useState(events.map((e) => e.id));
   const lines = names
     .split(/\n|;/)
@@ -474,8 +388,9 @@ function AddGuests({ onClose }) {
   );
 }
 
-// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a)
-function GuestCard({ guest: g, events, idx, byId, groupById }) {
+// Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a),
+// et dessous sa réponse à chaque moment, modifiable sans ouvrir la fiche
+function GuestCard({ guest: g, events, idx, byId, groupById, onPick }) {
   const r = idx.get(g.id) || {};
   const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
   const status = guestStatus(r, events);
@@ -499,9 +414,21 @@ function GuestCard({ guest: g, events, idx, byId, groupById }) {
     </>
   );
   return (
-    <Link href={`/dashboard/invites/${g.id}`} className="d-gcard d-gcard-row">
-      {inner}
-    </Link>
+    <div className="d-gcard">
+      <Link href={`/dashboard/invites/${g.id}`} className="d-gcard-row">
+        {inner}
+      </Link>
+      {events.length ? (
+        <div className="d-gcard-moments">
+          {events.map((ev) => (
+            <span key={ev.id} className="d-gcard-moment">
+              <small>{ev.short_name}</small>
+              <RsvpMenu status={r[ev.id] || "non_invite"} onPick={(k) => onPick(g, ev, k)} title={`${ev.name} : modifier le statut`} />
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -561,6 +488,30 @@ export default function Invites() {
         return collator.compare(x, y) * sort.dir;
       })
     : filtered;
+  // Vue dans l'adresse (lib/dash/guestView) : lue une fois à l'ouverture, réécrite à chaque changement
+  const [viewReady, setViewReady] = useState(false);
+  useEffect(() => {
+    applyView(readView(window.location.search));
+    setViewReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, sort });
+  useEffect(() => {
+    if (!viewReady) return;
+    const { pathname, search } = window.location;
+    const url = viewQs ? `${pathname}?${viewQs}` : pathname;
+    if (url !== `${pathname}${search}`) window.history.replaceState(null, "", url);
+    rememberView(viewQs);
+  }, [viewQs, viewReady]);
+  // Appliquer une vue (enregistrée, ou vide pour tout remettre à zéro)
+  const applyView = (v) => {
+    setQuery(v.query);
+    setGroupFilters(v.groups.filter((id) => groups.some((gr) => gr.id === id)));
+    setStatusFilter(v.status);
+    setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
+    setFieldFilter(v.field);
+    setSort(v.sort);
+  };
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
   const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
@@ -654,42 +605,6 @@ export default function Invites() {
   const ok = (text) => dash.setToast({ kind: "ok", text });
   const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
 
-  async function bulkRemove() {
-    const everyone = selIds.length === guests.length;
-    const msg = everyone
-      ? `Supprimer toute la liste (${n(selIds.length, "invité", "invités")}) ? Leurs réponses seront effacées. Cette action est définitive.`
-      : `Retirer ${n(selIds.length, "invité", "invités")} de la liste ? Leurs réponses seront effacées.`;
-    if (!window.confirm(msg)) return;
-    const ids = selIds;
-    clearSel();
-    if (await dash.removeGuests(ids)) ok(`${n(ids.length, "invité retiré", "invités retirés")}.`);
-  }
-  async function bulkGroup(groupId) {
-    const ids = selIds;
-    const name = groupId ? groupById.get(groupId)?.name : null;
-    clearSel();
-    if (await dash.updateGuests(ids, { group_id: groupId })) ok(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`);
-  }
-  async function bulkMoment(ev, invite) {
-    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
-    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
-    clearSel();
-    if (ids.length && (await dash.setResponses(ids, ev.id, invite ? "attente" : "non_invite"))) ok(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`);
-  }
-  async function bulkField(field, value) {
-    const ids = selIds;
-    clearSel();
-    await Promise.all(
-      ids.map((id) => {
-        const custom = { ...(byId.get(id)?.custom || {}) };
-        if (value) custom[field.id] = value;
-        else delete custom[field.id];
-        return dash.update("guests", id, { custom });
-      }),
-    );
-    ok(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`);
-  }
-
   // Valeur brute d'une cellule, pour pouvoir la remettre telle quelle (annuler)
   const rawOf = (g, key) => {
     if (key === "name") return { first_name: g.first_name || "", last_name: g.last_name || "" };
@@ -697,22 +612,38 @@ export default function Invites() {
     if (key.startsWith("field:")) return (g.custom || {})[key.slice(6)] ?? null;
     return g[key] ?? null;
   };
-  // Annuler / rétablir : chaque geste (saisie, collage, effacement, statut) est un pas de l'historique
-  const undoRef = useRef([]); // [{ before: [{ id, key, value }], after: [...] }]
+  // Annuler / rétablir : chaque geste (saisie, collage, effacement, statut, action groupée, suppression)
+  // est un pas de l'historique { n, undo, redo, undoText?, redoText? }
+  const undoRef = useRef([]);
   const redoRef = useRef([]);
+  const applyRef = useRef(null); // toujours la dernière version d'applyValues (données à jour)
+  const pushStep = (step) => {
+    undoRef.current = [...undoRef.current.slice(-99), step];
+    redoRef.current = [];
+    return step;
+  };
+  // Toast de confirmation avec « Annuler », qui n'annule que ce geste-là (s'il est encore le dernier)
+  const okUndo = (text, step) =>
+    dash.setToast({
+      kind: "ok",
+      text,
+      action: step ? { label: "Annuler", onClick: () => undoRef.current.at(-1) === step && historyRef.current.undo() } : undefined,
+    });
 
-  // Écrit des valeurs brutes : une seule mise à jour par invité, les statuts groupés par moment
+  // Écrit des valeurs brutes : les invités qui reçoivent la même modification partent en une requête,
+  // les autres en une seule passe ; les statuts sont groupés par moment
   async function applyValues(list, record = true) {
     const patches = new Map();
     const statuses = new Map(); // "eventId|statut" -> ids
-    const step = { before: [], after: [] };
+    const before = [];
+    const after = [];
     for (const { id, key, value } of list) {
       const g = byId.get(id);
       if (!g) continue;
-      const before = rawOf(g, key);
-      if (JSON.stringify(before) === JSON.stringify(value)) continue;
-      step.before.push({ id, key, value: before });
-      step.after.push({ id, key, value });
+      const was = rawOf(g, key);
+      if (JSON.stringify(was) === JSON.stringify(value)) continue;
+      before.push({ id, key, value: was });
+      after.push({ id, key, value });
       if (key.startsWith("ev:")) {
         const k = `${key.slice(3)}|${value}`;
         statuses.set(k, [...(statuses.get(k) || []), id]);
@@ -728,21 +659,83 @@ export default function Invites() {
       } else p[key] = value;
       patches.set(id, p);
     }
-    if (!step.after.length) return 0;
-    if (record) {
-      undoRef.current = [...undoRef.current.slice(-99), step];
-      redoRef.current = [];
+    if (!after.length) return { n: 0, step: null };
+    const step = record ? pushStep({ n: after.length, undo: () => applyRef.current(before, false), redo: () => applyRef.current(after, false) }) : null;
+    const same = new Map(); // patch identique -> ids
+    for (const [id, p] of patches) {
+      const k = JSON.stringify(p);
+      same.set(k, { patch: p, ids: [...(same.get(k)?.ids || []), id] });
     }
-    await Promise.all([...patches].map(([id, p]) => dash.update("guests", id, p)));
+    const shared = [...same.values()].filter((x) => x.ids.length > 1);
+    const single = [...same.values()].filter((x) => x.ids.length === 1).map((x) => ({ id: x.ids[0], patch: x.patch }));
+    await Promise.all([...shared.map((x) => dash.updateGuests(x.ids, x.patch)), dash.patchGuests(single)]);
     for (const [k, ids] of statuses) {
       const [evId, st] = k.split("|");
       await dash.setResponses(ids, evId, st);
     }
-    return step.after.length;
+    return { n: after.length, step };
+  }
+  applyRef.current = applyValues;
+
+  // Retirer des invités (et leurs accompagnants, comme en base), avec « Annuler » : on garde de quoi
+  // les remettre tels quels, réponses comprises
+  async function removeWithUndo(ids) {
+    const gone = new Set(ids);
+    guests.forEach((x) => x.plus_one_of && gone.has(x.plus_one_of) && gone.add(x.id));
+    const rows = guests.filter((x) => gone.has(x.id));
+    const answers = data.responses.filter((r) => gone.has(r.guest_id));
+    if (!rows.length) return;
+    setSelected((x) => Object.fromEntries(Object.entries(x).filter(([id]) => !gone.has(id))));
+    if (!(await dash.removeGuests(rows.map((x) => x.id)))) return;
+    const one = rows.length === 1 ? guestLabel(rows[0], byId) : null;
+    // Un seul invité choisi, parti avec ses accompagnants : on le dit plutôt que « 2 invités retirés »
+    const extra = rows.length - ids.length;
+    const who = ids.length === 1 && extra > 0 ? `${guestLabel(byId.get(ids[0]), byId)} et ${extra > 1 ? `ses ${extra} accompagnants` : "son accompagnant"}` : null;
+    const goneText = one ? `${one} retiré de la liste.` : who ? `${who} retirés de la liste.` : `${n(rows.length, "invité retiré", "invités retirés")}.`;
+    const step = pushStep({
+      n: rows.length,
+      undo: () => dash.restoreGuests(rows, answers),
+      redo: () => dash.removeGuests(rows.map((x) => x.id)),
+      undoText: one ? `${one} est de retour dans la liste.` : who ? `${who} sont de retour dans la liste.` : `${rows.length} invités remis dans la liste.`,
+      redoText: goneText,
+    });
+    okUndo(goneText, step);
+  }
+
+  async function bulkRemove() {
+    const everyone = selIds.length === guests.length;
+    const msg = everyone
+      ? `Supprimer toute la liste (${n(selIds.length, "invité", "invités")}) ? Leurs réponses seront effacées.`
+      : `Retirer ${n(selIds.length, "invité", "invités")} de la liste ? Leurs réponses seront effacées.`;
+    if (!window.confirm(msg)) return;
+    const ids = selIds;
+    clearSel();
+    await removeWithUndo(ids);
+  }
+  async function bulkGroup(groupId) {
+    const ids = selIds;
+    const name = groupId ? groupById.get(groupId)?.name : null;
+    clearSel();
+    const { step } = await applyValues(ids.map((id) => ({ id, key: "group_id", value: groupId })));
+    okUndo(name ? `${n(ids.length, "invité déplacé", "invités déplacés")} dans « ${name} ».` : `${n(ids.length, "invité", "invités")} sans groupe.`, step);
+  }
+  async function bulkMoment(ev, invite) {
+    const ids = invite ? selIds.filter((id) => ((idx.get(id) || {})[ev.id] || "non_invite") === "non_invite") : selIds;
+    if (!invite && !window.confirm(`Ne plus inviter ${n(ids.length, "personne", "personnes")} à « ${ev.name} » ? Leurs réponses à ce moment seront effacées.`)) return;
+    clearSel();
+    if (!ids.length) return;
+    const { step } = await applyValues(ids.map((id) => ({ id, key: `ev:${ev.id}`, value: invite ? "attente" : "non_invite" })));
+    okUndo(invite ? `${n(ids.length, "invité", "invités")} à « ${ev.name} ».` : `${n(ids.length, "invité retiré", "invités retirés")} de « ${ev.name} ».`, step);
+  }
+  async function bulkField(field, value) {
+    const ids = selIds;
+    clearSel();
+    const { step } = await applyValues(ids.map((id) => ({ id, key: `field:${field.id}`, value: value || null })));
+    okUndo(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`, step);
   }
 
   // Texte saisi ou collé → valeur brute ; les cellules qui n'acceptent pas le texte sont ignorées
-  function writeCells(list) {
+  async function writeCells(list) {
     const values = [];
     for (const { g, key, text } of list) {
       const v = String(text ?? "").trim();
@@ -760,21 +753,23 @@ export default function Invites() {
         values.push({ id: g.id, key, value: value || null });
       }
     }
-    return applyValues(values);
+    return (await applyValues(values)).n;
   }
 
-  const historyStep = async (from, to, word) => {
+  const historyStep = async (from, to, isUndo) => {
     const step = from.current.pop();
     if (!step) return;
     to.current = [...to.current, step];
-    await applyValues(from === undoRef ? step.before : step.after, false);
-    const n = step.after.length;
-    ok(`${n > 1 ? `${n} modifications` : "Modification"} ${word}.`);
+    await (isUndo ? step.undo() : step.redo());
+    const custom = isUndo ? step.undoText : step.redoText;
+    if (custom) ok(custom);
+    else if (isUndo) ok(`${step.n > 1 ? `${step.n} modifications annulées` : "Modification annulée"}.`);
+    else ok(`${step.n > 1 ? `${step.n} modifications rétablies` : "Modification rétablie"}.`);
   };
   const historyRef = useRef(null);
   historyRef.current = {
-    undo: () => historyStep(undoRef, redoRef, undoRef.current.at(-1)?.after.length > 1 ? "annulées" : "annulée"),
-    redo: () => historyStep(redoRef, undoRef, redoRef.current.at(-1)?.after.length > 1 ? "rétablies" : "rétablie"),
+    undo: () => historyStep(undoRef, redoRef, true),
+    redo: () => historyStep(redoRef, undoRef, false),
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -945,7 +940,6 @@ export default function Invites() {
   const filterActive = filterCount > 0 || q.length > 0;
   const statsData = filterActive ? { ...data, guests: filtered } : data;
   const stats = kpiItems(statsData, "invites");
-  const g = guestStats(statsData);
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
@@ -1034,7 +1028,7 @@ export default function Invites() {
         );
       },
     })),
-    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} /> },
+    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} onRemove={() => removeWithUndo([g.id])} /> },
   ];
   const cols = useColumnLayout("invites", columnDefs);
   const [restoring, setRestoring] = useState(false);
@@ -1101,6 +1095,41 @@ export default function Invites() {
     );
   }
 
+  // Barre d'actions groupées : largeur fixe, jamais de retour à la ligne (une sélection ne doit pas déplacer
+  // le tableau sous la souris) ; affichée à la place de la barre d'outils, et rejouée en plein écran
+  // (la normale est cachée derrière l'overlay)
+  const selBar = (
+    <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
+      <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
+      <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
+        {!allSelected ? (
+          <button type="button" onClick={selectAll}>
+            Tout sélectionner ({shown.length})
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            setModField(null);
+            setModGroupTarget(undefined);
+            setModMomentId(null);
+            setModifying(true);
+          }}
+        >
+          Modifier
+        </button>
+        <BulkColumnMenu fields={fields} onApply={bulkField} />
+        <button type="button" onClick={clearSel}>
+          Tout désélectionner
+        </button>
+        <button type="button" className="is-danger" onClick={bulkRemove}>
+          <Icon name="trash" size={14} sw={2} />
+          {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
+        </button>
+      </span>
+    </div>
+  );
+
   return (
     <>
       <InvitesHeader
@@ -1121,10 +1150,17 @@ export default function Invites() {
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
       </div>
       <div className="d-mob-only">
+        {/* Les mêmes indicateurs que sur ordinateur (choisis dans Indicateurs), pas trois chiffres figés */}
         <div className="d-mstats-scroll">
-          <span><strong>{g.total}</strong><small>Invités</small></span>
-          <span><strong>{g.answered} <i>({pctLabel(g.answered, g.total)})</i></strong><small>Réponses</small></span>
-          <span><strong>{g.oui} <i>({pctLabel(g.oui, g.total)})</i></strong><small>Participants</small></span>
+          {stats.map((it) => (
+            <span key={it.id}>
+              <strong>
+                {it.value}
+                {it.sub ? <i> {it.sub}</i> : null}
+              </strong>
+              <small>{it.label}</small>
+            </span>
+          ))}
         </div>
       </div>
 
@@ -1132,8 +1168,11 @@ export default function Invites() {
         <GuestsNote />
       </div>
 
-      <div className="d-col" style={{ gap: 14 }}>
-        <div className="d-filters d-ifilters" style={{ justifyContent: "space-between" }}>
+      {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter / plein écran /
+          colonnes à droite. Quand des invités sont cochés, la barre d'actions groupées prend sa place,
+          à la même hauteur : le tableau ne bouge pas sous la souris. */}
+      {selIds.length ? <div className="d-desk-only">{selBar}</div> : (
+        <div className="d-filters d-ifilters d-itoolbar" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-ifilters-left">
             <label className="d-search">
               <Icon name="search" size={15} />
@@ -1144,19 +1183,44 @@ export default function Invites() {
               Filtres
               {filterCount ? <span className="d-filter-count">{filterCount}</span> : null}
             </button>
+            <ViewsMenu
+              views={wedding.guest_views || []}
+              currentQs={viewQs}
+              onApply={(qs) => applyView(readView(qs))}
+              onReset={() => applyView(readView(""))}
+              onSave={(name) => dash.saveGuestViews([...(wedding.guest_views || []), { id: uid(), name, qs: viewQs, created_by: data.meId || null }])}
+              onDelete={(id) => dash.saveGuestViews((wedding.guest_views || []).filter((v) => v.id !== id))}
+              shared={data.viewsSetup !== false}
+            />
           </div>
-          <span className="d-filters d-desk-only">
-            {cols.customised ? (
-              <button type="button" className="d-pill" onClick={cols.reset} title="Remettre l'ordre et la largeur des colonnes par défaut">
-                Colonnes par défaut
-              </button>
-            ) : null}
-            {cols.hiddenColumns.length ? (
+          {guests.length ? (
+            <span className="d-filters d-desk-only">
+              <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
+                Ajouter des invités
+              </Btn>
+              <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
+                Plein écran
+              </Btn>
               <span className="d-anchor">
                 <button type="button" className="d-pill" onClick={() => setRestoring((o) => !o)} aria-haspopup="menu" aria-expanded={restoring}>
-                  Colonnes supprimées · {cols.hiddenColumns.length}
+                  Colonnes
+                  {cols.hiddenColumns.length ? <span className="d-filter-count">{cols.hiddenColumns.length}</span> : null}
+                  <Icon name="chevDown" size={12} sw={2.2} />
                 </button>
                 <Popover open={restoring} onClose={() => setRestoring(false)} align="right">
+                  <button
+                    type="button"
+                    className="d-pop-item"
+                    onClick={() => {
+                      setRestoring(false);
+                      setAddingCol(true);
+                    }}
+                  >
+                    <span className="d-pop-label">
+                      <Icon name="plus" size={14} sw={2.2} />
+                      Ajouter une colonne
+                    </span>
+                  </button>
                   {cols.hiddenColumns.map((c) => (
                     <button
                       key={c.key}
@@ -1168,91 +1232,37 @@ export default function Invites() {
                       }}
                     >
                       <span className="d-pop-label">
-                        <Icon name="plus" size={14} sw={2.2} />
+                        <Icon name="eye" size={14} sw={2} />
                         Réafficher « {c.label} »
                       </span>
                     </button>
                   ))}
-                </Popover>
-              </span>
-            ) : null}
-            <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
-              <Icon name="plus" size={14} sw={2} />
-              Ajouter une colonne
-            </button>
-          </span>
-        </div>
-      </div>
-
-      {guests.length ? (
-        <div className="d-desk-only">
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
-              Ajouter des invités
-            </Btn>
-            <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
-              Plein écran
-            </Btn>
-          </div>
-        </div>
-      ) : null}
-
-      {guests.length ? (
-        selIds.length ? (
-          <>
-            <div className="d-desk-only">
-              {/* Largeur fixe, jamais de retour à la ligne : une sélection ne doit pas déplacer le tableau sous la souris */}
-              <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-                <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
-                <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
-                  {!allSelected ? (
-                    <button type="button" onClick={selectAll}>
-                      Tout sélectionner ({shown.length})
+                  {cols.customised ? (
+                    <button
+                      type="button"
+                      className="d-pop-item"
+                      onClick={() => {
+                        cols.reset();
+                        setRestoring(false);
+                      }}
+                    >
+                      <span className="d-pop-label">
+                        <Icon name="back" size={14} sw={2} />
+                        Colonnes par défaut
+                      </span>
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModField(null);
-                      setModGroupTarget(undefined);
-                      setModMomentId(null);
-                      setModifying(true);
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  <BulkColumnMenu fields={fields} onApply={bulkField} />
-                  <button type="button" onClick={clearSel}>
-                    Tout désélectionner
-                  </button>
-                  <button type="button" className="is-danger" onClick={bulkRemove}>
-                    <Icon name="trash" size={14} sw={2} />
-                    {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
-                  </button>
-                </span>
-              </div>
-            </div>
-
-          </>
-        ) : (
-          <>
-            <div className="d-desk-only">
-              {/* Même hauteur que la barre d'actions groupées ci-dessus : sélectionner un premier invité ne doit pas pousser le tableau */}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", minHeight: 56, alignItems: "center" }}>
-                <button type="button" className="d-pill" onClick={selectAll} disabled={!shown.length}>
-                  <Icon name="check" size={14} sw={2.2} />
-                  Tout sélectionner{shown.length ? ` · ${shown.length}` : ""}
-                </button>
-              </div>
-            </div>
-          </>
-        )
-      ) : null}
+                </Popover>
+              </span>
+            </span>
+          ) : null}
+        </div>
+      )}
 
       {guests.length ? (
         <div className="d-cards d-mob-only">
           {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} />
+            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} onPick={(guest, ev, k) => applyValues([{ id: guest.id, key: `ev:${ev.id}`, value: k }])} />
           ))}
           {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
         </div>
@@ -1275,39 +1285,7 @@ export default function Invites() {
             </Btn>
           </div>
         ) : null}
-        {full && selIds.length ? (
-          // La barre d'actions groupées normale est cachée derrière l'overlay plein écran (z-index) :
-          // on la rejoue ici pour pouvoir modifier/supprimer sans quitter le plein écran.
-          <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-            <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
-            <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
-              {!allSelected ? (
-                <button type="button" onClick={selectAll}>
-                  Tout sélectionner ({shown.length})
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  setModField(null);
-                  setModGroupTarget(undefined);
-                  setModMomentId(null);
-                  setModifying(true);
-                }}
-              >
-                Modifier
-              </button>
-              <BulkColumnMenu fields={fields} onApply={bulkField} />
-              <button type="button" onClick={clearSel}>
-                Tout désélectionner
-              </button>
-              <button type="button" className="is-danger" onClick={bulkRemove}>
-                <Icon name="trash" size={14} sw={2} />
-                {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
-              </button>
-            </span>
-          </div>
-        ) : null}
+        {full && selIds.length ? selBar : null}
         <div className="d-table-wrap d-sheet" ref={sheetRef}>
           <table className="d-table d-guests d-cols" onKeyDown={onSheetKey} onCopy={onSheetCopy} onPaste={onSheetPaste}>
             <thead>
@@ -1384,8 +1362,9 @@ export default function Invites() {
                             addRow();
                           } else if (e.key === "Escape") setNewName("");
                         }}
-                        onBlur={addRow}
+                        // Pas d'ajout en quittant le champ : un nom à moitié tapé ne devient pas un invité par accident
                         placeholder="+ Ajouter un invité"
+                        title="Tapez un nom puis Entrée"
                         aria-label="Nom du nouvel invité"
                       />
                     ) : null}
@@ -1425,7 +1404,7 @@ export default function Invites() {
         <Icon name="plus" size={22} sw={2.4} />
       </button>
 
-      {adding ? <AddGuests onClose={() => setAdding(false)} /> : null}
+      {adding ? <AddGuests onClose={() => setAdding(false)} defaultGroupId={groupFilters.length === 1 ? groupFilters[0] : ""} /> : null}
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
