@@ -22,30 +22,12 @@ export function useCreateFiche() {
   const [creating, setCreating] = useState(null); // null | { phase, name, category, area, match, linkVendorId, fallback }
   const [busy, setBusy] = useState(false);
 
-  async function runCreate(name, category, area, opts = {}) {
-    setCreating({ phase: "search", name, category, area, match: opts.match || null, linkVendorId: opts.linkVendorId || null, fallback: opts.fallback || null });
-    const start = Date.now();
-    let match = opts.match || null;
-    if (!match && dash.mode === "live" && supabase) {
-      const token = (await supabase.auth.getSession()).data?.session?.access_token || null;
-      const results = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, token);
-      match = results[0] || null;
-    }
-    const elapsed = Date.now() - start;
-    const minDelay = 1700;
-    if (elapsed < minDelay) await new Promise((r) => setTimeout(r, minDelay - elapsed));
-    setCreating((c) => (c ? { ...c, phase: "confirm", match } : c));
-  }
-
-  function cancelCreate() {
-    if (busy) return;
-    setCreating(null);
-  }
-
-  // Renvoie le prestataire créé (ou réutilisé) pour que l'appelant sache que ça a marché, null sinon.
-  async function confirmCreate() {
-    if (!creating || creating.phase !== "confirm" || busy) return null;
-    const { name, category, area, match, linkVendorId, fallback } = creating;
+  // Crée (ou retrouve) la fiche catalogue et l'ajoute aux prestataires, sans passer par la fenêtre
+  // de confirmation : pour un appelant qui a déjà fait confirmer le résultat autrement (ex. la carte
+  // « Trouvé sur Google » de la barre de recherche). Renvoie le prestataire créé, ou null si ça a échoué.
+  async function createNow(name, category, area, opts = {}) {
+    if (busy) return null;
+    const { match = null, linkVendorId = null, fallback = null } = opts;
     const city = match?.city || area;
     setBusy(true);
     try {
@@ -71,19 +53,46 @@ export function useCreateFiche() {
         await dash.update("vendor_picks", pick.id, { vendor_id: linkVendorId });
       }
       dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
-      setCreating(null);
       return v;
     } catch (e) {
       console.error("[merry] merry_add_vendor_manual", e);
       dash.setToast({ kind: "error", text: `Ce prestataire n'a pas pu être créé${e?.message ? ` : ${e.message}` : " : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)."}` });
-      setCreating(null);
       return null;
     } finally {
       setBusy(false);
     }
   }
 
-  return { creating, busy, runCreate, cancelCreate, confirmCreate };
+  async function runCreate(name, category, area, opts = {}) {
+    setCreating({ phase: "search", name, category, area, match: opts.match || null, linkVendorId: opts.linkVendorId || null, fallback: opts.fallback || null });
+    const start = Date.now();
+    let match = opts.match || null;
+    if (!match && dash.mode === "live" && supabase) {
+      const token = (await supabase.auth.getSession()).data?.session?.access_token || null;
+      const results = await searchGoogleVendor(dash.mode, area ? `${name} ${area}` : name, token);
+      match = results[0] || null;
+    }
+    const elapsed = Date.now() - start;
+    const minDelay = 1700;
+    if (elapsed < minDelay) await new Promise((r) => setTimeout(r, minDelay - elapsed));
+    setCreating((c) => (c ? { ...c, phase: "confirm", match } : c));
+  }
+
+  function cancelCreate() {
+    if (busy) return;
+    setCreating(null);
+  }
+
+  // Renvoie le prestataire créé (ou réutilisé) pour que l'appelant sache que ça a marché, null sinon.
+  async function confirmCreate() {
+    if (!creating || creating.phase !== "confirm" || busy) return null;
+    const { name, category, area, match, linkVendorId, fallback } = creating;
+    const v = await createNow(name, category, area, { match, linkVendorId, fallback });
+    setCreating(null);
+    return v;
+  }
+
+  return { creating, busy, runCreate, cancelCreate, confirmCreate, createNow };
 }
 
 export function CreateFicheDialog({ creating, busy, onCancel, onConfirm }) {
