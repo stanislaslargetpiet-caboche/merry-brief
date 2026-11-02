@@ -13,24 +13,43 @@ import { Icon } from "./icons";
 import { CloseBtn, Layer, Thumb, usePicks } from "./Prestataires";
 import { Btn } from "./ui";
 
+// Message lisible pour une erreur de merry_add_vendor_manual : une base pas à jour se répare en
+// collant le dernier fichier SQL, le reste est dit tel quel.
+function createErrorText(e) {
+  const msg = String(e?.message || "");
+  if (/ambiguous|does not exist|function .*merry_add_vendor_manual|PGRST202/i.test(`${e?.code} ${msg}`)) {
+    return "Ce prestataire n'a pas pu être créé : la base n'est pas à jour. Collez supabase/prestataires-ajout-manuel-fix-ambiguite.sql dans Supabase (SQL Editor), puis réessayez.";
+  }
+  if (/not a wedding member/i.test(msg)) return "Ce prestataire n'a pas pu être créé : vous n'êtes pas organisateur de ce mariage.";
+  if (/invalid category/i.test(msg)) return "Ce prestataire n'a pas pu être créé : choisissez une catégorie.";
+  if (/invalid name/i.test(msg)) return "Ce prestataire n'a pas pu être créé : son nom est vide ou trop long.";
+  return `Ce prestataire n'a pas pu être créé${msg ? ` : ${msg}` : ""}. Réessayez dans un instant.`;
+}
+
 // linkVendorId (facultatif) : une fiche public.vendors déjà existante (ex. créée depuis un poste du
 // budget) à raccrocher au pick créé, pour que « Mes prestataires » et ce poste pointent sur le même
 // prestataire au lieu de deux fiches séparées.
 export function useCreateFiche() {
   const dash = useDash();
-  const { add } = usePicks();
+  const { add, pickOf, picks } = usePicks();
   const [creating, setCreating] = useState(null); // null | { phase, name, category, area, match, linkVendorId, fallback }
   const [busy, setBusy] = useState(false);
 
   // Crée (ou retrouve) la fiche catalogue et l'ajoute aux prestataires, sans passer par la fenêtre
-  // de confirmation : pour un appelant qui a déjà fait confirmer le résultat autrement (ex. la carte
-  // « Trouvé sur Google » de la barre de recherche). Renvoie le prestataire créé, ou null si ça a échoué.
+  // de confirmation : pour un appelant qui a déjà fait confirmer le résultat autrement. Renvoie le
+  // prestataire (avec existed: true s'il était déjà dans la sélection), ou null si ça a échoué.
   async function createNow(name, category, area, opts = {}) {
     if (busy) return null;
-    const { match = null, linkVendorId = null, fallback = null } = opts;
+    const { match = null, linkVendorId = null, fallback = null, quiet = false } = opts;
     const city = match?.city || area;
     setBusy(true);
     try {
+      const details = {
+        phone: match?.phone || fallback?.phone || undefined,
+        website: match?.website || fallback?.website || undefined,
+        lat: match?.lat ?? fallback?.lat ?? undefined,
+        lng: match?.lng ?? fallback?.lng ?? undefined,
+      };
       let v;
       if (dash.mode === "live" && supabase) {
         const { data: newId, error } = await supabase.rpc("merry_add_vendor_manual", {
@@ -38,25 +57,30 @@ export function useCreateFiche() {
           vname: name,
           category,
           city: city || null,
-          phone: match?.phone || fallback?.phone || null,
-          website: match?.website || fallback?.website || null,
-          vlat: match?.lat ?? fallback?.lat ?? null,
-          vlng: match?.lng ?? fallback?.lng ?? null,
+          phone: details.phone || null,
+          website: details.website || null,
+          vlat: details.lat ?? null,
+          vlng: details.lng ?? null,
         });
         if (error) throw error;
-        v = { id: `catalog:${newId}`, category: catFromCatalog(category), name, area: city || undefined };
+        if (!newId) throw new Error("aucune fiche renvoyée");
+        v = { id: `catalog:${newId}`, catalogId: newId, category: catFromCatalog(category), name, area: city || undefined, ...details };
       } else {
-        v = { id: customVendorId(), category: catFromCatalog(category), name, area: city || undefined };
+        const norm = (x) => String(x || "").trim().toLocaleLowerCase("fr");
+        const same = picks.find((p) => p.category === catFromCatalog(category) && norm(p.data?.name) === norm(name));
+        v = { id: same?.catalog_ref || customVendorId(), category: catFromCatalog(category), name, area: city || undefined, ...details };
       }
+      const existed = !!pickOf(v);
       const pick = await add(v);
-      if (linkVendorId && dash.mode === "live" && pick && !pick.vendor_id) {
+      if (!pick) return null;
+      if (linkVendorId && dash.mode === "live" && !pick.vendor_id) {
         await dash.update("vendor_picks", pick.id, { vendor_id: linkVendorId });
       }
-      dash.setToast({ kind: "ok", text: `${name} est ajouté au catalogue Merry et à vos prestataires.` });
-      return v;
+      if (!quiet) dash.setToast({ kind: "ok", text: existed ? `${name} est déjà dans vos prestataires.` : `${name} est ajouté à vos prestataires.` });
+      return { ...v, existed };
     } catch (e) {
       console.error("[merry] merry_add_vendor_manual", e);
-      dash.setToast({ kind: "error", text: `Ce prestataire n'a pas pu être créé${e?.message ? ` : ${e.message}` : " : collez supabase/prestataires-ajout-manuel-google.sql dans Supabase (SQL Editor)."}` });
+      dash.setToast({ kind: "error", text: createErrorText(e) });
       return null;
     } finally {
       setBusy(false);

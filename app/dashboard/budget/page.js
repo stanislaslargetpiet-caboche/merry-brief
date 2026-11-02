@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName } from "@/lib/dash/model";
-import { euros, shortDate } from "@/lib/dash/format";
+import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName, removePosteMessage, unassignedPayments } from "@/lib/dash/model";
+import { euros, shortDate, todayIso } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Btn, Donut, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
@@ -12,6 +12,7 @@ import BudgetHeader from "@/components/dash/BudgetTabs";
 import PosteModal from "@/components/dash/PosteModal";
 import DepenseModal from "@/components/dash/DepenseModal";
 import LigneModal from "@/components/dash/LigneModal";
+import PaiementsModal from "@/components/dash/PaiementsModal";
 import { DocLink } from "@/components/dash/Documents";
 
 function dueLabel(p, weddingDate) {
@@ -33,8 +34,9 @@ export default function Budget() {
   const { items, members, vendors, documents, wedding, payments, guests } = data;
   const groups = groupItems(items);
   const [editing, setEditing] = useState(null); // item | "new"
-  const [quoteFocus, setQuoteFocus] = useState(false);
-  const [adding, setAdding] = useState(false); // fenêtre « Ajouter une dépense »
+  const [adding, setAdding] = useState(null); // fenêtre « Ajouter une dépense » : true, ou l'id du poste déjà choisi
+  const [paysOf, setPaysOf] = useState(null); // id du poste dont on ouvre les paiements
+  const [showPlanned, setShowPlanned] = useState(false); // postes « à prévoir » dépliés
   const [lining, setLining] = useState(null); // nom du poste où l'on ajoute une ligne
   const [folded, setFolded] = useState(() => new Set()); // postes à plusieurs lignes repliés
   const [sort, setSort] = useState(null); // null (ordre des postes), "desc" ou "asc" : par montant
@@ -62,10 +64,18 @@ export default function Budget() {
   }, 0);
   const hasSpend = (g) => g.items.some((it) => {
     const f = itemFinance(it, payments);
-    return f.quote !== null || f.paid > 0;
+    return f.quote !== null || f.paid > 0 || f.upcoming.length > 0;
   });
-  // Seulement les postes où l'on a déjà engagé ou payé quelque chose, rien de prérempli
-  const sorted = (sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups).filter(hasSpend);
+  const ordered = sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups;
+  // En tête, les postes où l'on a déjà engagé ou payé quelque chose ; les autres (budget seul, postes
+  // créés à l'inscription ou ajoutés à la main) restent repliés sous « À prévoir », sans disparaître
+  const sorted = ordered.filter(hasSpend);
+  const planned = ordered.filter((g) => !hasSpend(g));
+  const plannedBudget = planned.reduce((a, g) => a + g.items.reduce((x, it) => x + Number(it.budgeted || 0), 0), 0);
+  const hasPayments = (it) => payments.some((p) => p.budget_item_id === it.id);
+  // Le montant ou le statut d'une ligne ouvre ses paiements ; sans paiement, on en ajoute un pour ce poste
+  const openPayments = (it) => (hasPayments(it) ? setPaysOf(it.id) : setAdding(it.id));
+  const isLate = (f) => Boolean(f.next?.due_date && f.next.due_date < todayIso());
 
   const b = budgetTotals(data);
   const kpis = kpiItems(data, "budget");
@@ -75,6 +85,7 @@ export default function Budget() {
   // Répartition : qui a déjà payé quoi, et où va l'argent
   const byPayer = paidByPayer(data);
   const paying = byPayer.filter((x) => x.amount > 0);
+  const unassigned = unassignedPayments(data).reduce((a, p) => a + Number(p.amount || 0), 0);
   // Où va l'argent : ce qui a été payé, par poste, avec le détail des lignes en dessous
   // pour les postes à plusieurs prestataires (traiteur, lieu…)
   const spending = groups
@@ -112,26 +123,40 @@ export default function Budget() {
   // Statut d'une ligne : on ne paie pas depuis Merry, on note les dépenses (« Ajouter une dépense »)
   const lineAction = (it, f) =>
     f.fullyPaid ? (
-      <span className="d-status is-done">
+      <button type="button" className="d-status is-done is-btn" onClick={() => openPayments(it)} title="Voir les paiements">
         <Icon name="check" size={12} sw={2.4} />
         Tout payé
-      </span>
+      </button>
     ) : f.next ? (
-      <span className="d-status is-todo">{dueLabel(f.next, wedding.wedding_date)}</span>
+      <button type="button" className={`d-status is-btn ${isLate(f) ? "is-red" : "is-todo"}`} onClick={() => openPayments(it)} title="Voir les paiements, marquer payé">
+        {dueLabel(f.next, wedding.wedding_date)}
+      </button>
     ) : f.quote !== null ? (
-      <span className="d-status is-todo">Reste {euros(f.remaining)}</span>
+      <button type="button" className="d-status is-todo is-btn" onClick={() => openPayments(it)} title="Voir les paiements">
+        Reste {euros(f.remaining)}
+      </button>
     ) : (
-      <button
-        type="button"
-        className="d-link"
-        style={{ fontSize: 12 }}
-        onClick={() => {
-          setQuoteFocus(true);
-          setEditing(it);
-        }}
-      >
+      <button type="button" className="d-link" style={{ fontSize: 12 }} onClick={() => setAdding(it.id)}>
         Ajouter un paiement
       </button>
+    );
+
+  // Le montant d'une ligne : payé (sur le montant prévu), sinon le montant prévu, sinon le budget
+  const amountCell = (f) =>
+    f.paid > 0 ? (
+      <span className="d-amount-stack">
+        <span>{euros(f.paid)}</span>
+        {f.quote !== null && f.quote > f.paid + 0.5 ? <small>sur {euros(f.quote)}</small> : null}
+      </span>
+    ) : f.hasPlan ? (
+      <span className="d-muted">{euros(f.quote)}</span>
+    ) : f.budgeted ? (
+      <span className="d-amount-stack">
+        <span className="d-muted">{euros(f.budgeted)}</span>
+        <small>prévus</small>
+      </span>
+    ) : (
+      <span className="d-muted">–</span>
     );
 
   // Téléphone : un poste à plusieurs lignes, déplié ou replié
@@ -166,7 +191,7 @@ export default function Budget() {
                     {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
                   </span>
                   <span className="d-line-amount">
-                    <strong>{f.paid > 0 ? euros(f.paid) : f.hasPlan ? <span className="d-muted">{euros(f.quote)}</span> : <span className="d-muted">–</span>}</strong>
+                    <strong>{amountCell(f)}</strong>
                     {lineAction(it, f)}
                   </span>
                 </div>
@@ -202,20 +227,12 @@ export default function Budget() {
             </span>
           </button>
         </td>
-        <td className="is-num">
-          {gf.paid > 0 ? (
-            <span>{euros(gf.paid)}</span>
-          ) : gf.hasPlan ? (
-            <span className="d-muted">{euros(gf.quote)}</span>
-          ) : (
-            <span className="d-muted">–</span>
-          )}
-        </td>
+        <td className="is-num">{amountCell({ ...gf, remaining: null })}</td>
         <td>
           {gf.fullyPaid ? (
             <OkPill small>Payé</OkPill>
           ) : gf.hasPlan ? (
-            <span className="d-status is-red">À payer</span>
+            <span className={`d-status ${gf.lines.some(isLate) ? "is-red" : "is-todo"}`}>À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -261,19 +278,12 @@ export default function Budget() {
           <strong>{posteName(it)}</strong>
           {sub ? <small>{sub}</small> : null}
         </span>
-        {f.paid > 0 ? (
-          <strong className="d-mrow-amount">{euros(f.paid)}</strong>
-        ) : f.hasPlan ? (
-          <span className="d-mrow-amount d-muted">{euros(f.quote)}</span>
+        {f.paid > 0 || f.hasPlan || f.budgeted || hasPayments(it) ? (
+          <button type="button" className="d-mrow-amount d-mrow-amount-btn" onClick={() => openPayments(it)} aria-label={`Paiements de ${posteName(it)}`}>
+            {amountCell(f)}
+          </button>
         ) : (
-          <button
-            type="button"
-            className="d-link d-mrow-amount"
-            onClick={() => {
-              setQuoteFocus(true);
-              setEditing(it);
-            }}
-          >
+          <button type="button" className="d-link d-mrow-amount" onClick={() => setAdding(it.id)}>
             Ajouter un paiement
           </button>
         )}
@@ -305,20 +315,12 @@ export default function Budget() {
             </span>
           </div>
         </td>
-        <td className="is-num">
-          {f.paid > 0 ? (
-            <span>{euros(f.paid)}</span>
-          ) : f.hasPlan ? (
-            <span className="d-muted">{euros(f.quote)}</span>
-          ) : (
-            <span className="d-muted">–</span>
-          )}
-        </td>
+        <td className="is-num">{amountCell(f)}</td>
         <td>
           {f.fullyPaid ? (
             <OkPill small>Payé</OkPill>
           ) : f.hasPlan ? (
-            <span className="d-status is-red">À payer</span>
+            <span className={`d-status ${isLate(f) ? "is-red" : "is-todo"}`}>À payer</span>
           ) : (
             <span className="d-muted">–</span>
           )}
@@ -377,10 +379,7 @@ export default function Budget() {
               type="button"
               className="d-icon-btn is-flat is-danger"
               onClick={() => {
-                const n = payments.filter((p) => p.budget_item_id === it.id).length;
-                const nDocs = documents.filter((d) => d.budget_item_id === it.id).length;
-                const lost = [n ? `${n} paiement${n > 1 ? "s" : ""}` : "", nDocs ? `${nDocs} document${nDocs > 1 ? "s" : ""}` : ""].filter(Boolean).join(" et ses ");
-                if (window.confirm(`Supprimer ${it.category ? "la ligne" : "le poste"} « ${posteName(it)} »${lost ? ` et ses ${lost}` : ""} ?`)) dash.remove("budget_items", it.id);
+                if (window.confirm(removePosteMessage(it, data))) dash.remove("budget_items", it.id);
               }}
               aria-label={`Supprimer ${posteName(it)}`}
               title="Supprimer le poste"
@@ -392,6 +391,27 @@ export default function Budget() {
       </tr>
     );
   };
+
+  // Ordinateur : un poste du tableau (ligne seule, ou ligne de tête et ses lignes)
+  const renderTableGroup = (g) =>
+    g.multi ? (
+      <Fragment key={g.key}>
+        {renderGroupRow(g)}
+        {folded.has(g.key) ? null : g.items.map((it) => renderRow(it, true))}
+        {folded.has(g.key) ? null : (
+          <tr className="d-line-addrow">
+            <td colSpan={8}>
+              <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
+                <Icon name="plus" size={14} sw={2.4} />
+                Ajouter une ligne dans {g.name}
+              </button>
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    ) : (
+      renderRow(g.items[0], false)
+    );
 
   return (
     <>
@@ -436,7 +456,7 @@ export default function Budget() {
               </button>
             </div>
             <div className="d-repart">
-              <Donut segments={paying.map((x) => ({ value: x.amount, color: pastel(x.member.color).mid }))} center={euros(b.paid)} sub="déjà payés" />
+              <Donut segments={[...paying.map((x) => ({ value: x.amount, color: pastel(x.member.color).mid })), ...(unassigned > 0 ? [{ value: unassigned, color: "#d9d7cf" }] : [])]} center={euros(b.paid)} sub="déjà payés" />
               <ul className="d-legend">
                 {byPayer.map((x) => (
                   <li key={x.member.id}>
@@ -447,6 +467,15 @@ export default function Budget() {
                     <span className="d-legend-amount">{euros(x.amount)}</span>
                   </li>
                 ))}
+                {unassigned > 0 ? (
+                  <li>
+                    <span className="d-swatch" style={{ background: "#d9d7cf" }} />
+                    <span className="d-legend-text">
+                      <Link href="/dashboard/budget/repartition">Payeur à indiquer</Link>
+                    </span>
+                    <span className="d-legend-amount">{euros(unassigned)}</span>
+                  </li>
+                ) : null}
               </ul>
             </div>
           </div>
@@ -501,20 +530,30 @@ export default function Budget() {
 
         <div className="d-cards d-mob-only">
           {sorted.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
+          {planned.length ? (
+            <button type="button" className="d-planned-toggle" aria-expanded={showPlanned} onClick={() => setShowPlanned((x) => !x)}>
+              <span>
+                <strong>À prévoir</strong> · {planned.length} poste{planned.length > 1 ? "s" : ""}
+                {plannedBudget ? ` · ${euros(plannedBudget)} prévus` : ""}
+              </span>
+              <span className={`d-gchev${showPlanned ? " is-open" : ""}`}>
+                <Icon name="chev" size={16} sw={2.2} />
+              </span>
+            </button>
+          ) : null}
+          {showPlanned ? planned.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0]))) : null}
           <button type="button" className="d-mrow d-mrow-add" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} sw={2.4} />
             Ajouter un poste
           </button>
-          <span className="d-desk-only">
-            <div className="d-pcard-total">
-              <span>
-                Total <strong>{euros(b.paid)}</strong>
-              </span>
-              <small>
-                {sorted.length} poste{sorted.length > 1 ? "s" : ""}
-              </small>
-            </div>
-          </span>
+          <div className="d-pcard-total">
+            <span>
+              Total payé <strong>{euros(b.paid)}</strong>
+            </span>
+            <small>
+              {sorted.length} poste{sorted.length > 1 ? "s" : ""}
+            </small>
+          </div>
         </div>
 
 
@@ -533,26 +572,23 @@ export default function Budget() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((g) =>
-                g.multi ? (
-                  <Fragment key={g.key}>
-                    {renderGroupRow(g)}
-                    {folded.has(g.key) ? null : g.items.map((it) => renderRow(it, true))}
-                    {folded.has(g.key) ? null : (
-                      <tr className="d-line-addrow">
-                        <td colSpan={8}>
-                          <button type="button" className="d-line-add" onClick={() => addLine(g.name)}>
-                            <Icon name="plus" size={14} sw={2.4} />
-                            Ajouter une ligne dans {g.name}
-                          </button>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ) : (
-                  renderRow(g.items[0], false)
-                ),
-              )}
+              {sorted.map((g) => renderTableGroup(g))}
+              {planned.length ? (
+                <tr className="d-planned-row">
+                  <td colSpan={8}>
+                    <button type="button" className="d-planned-toggle" aria-expanded={showPlanned} onClick={() => setShowPlanned((x) => !x)}>
+                      <span>
+                        <strong>À prévoir</strong> · {planned.length} poste{planned.length > 1 ? "s" : ""} sans devis ni paiement
+                        {plannedBudget ? ` · ${euros(plannedBudget)} prévus` : ""}
+                      </span>
+                      <span className={`d-gchev${showPlanned ? " is-open" : ""}`}>
+                        <Icon name="chev" size={16} sw={2.2} />
+                      </span>
+                    </button>
+                  </td>
+                </tr>
+              ) : null}
+              {showPlanned ? planned.map((g) => renderTableGroup(g)) : null}
             </tbody>
             <tfoot>
               <tr>
@@ -579,15 +615,25 @@ export default function Budget() {
           <Icon name="plus" size={22} sw={2.4} />
         </button>
       ) : null}
-      {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
+      {adding ? <DepenseModal key={String(adding)} itemId={typeof adding === "string" ? adding : undefined} onClose={() => setAdding(null)} /> : null}
+      {paysOf && items.some((i) => i.id === paysOf) ? (
+        <PaiementsModal
+          item={items.find((i) => i.id === paysOf)}
+          onClose={() => setPaysOf(null)}
+          onAdd={() => {
+            setAdding(paysOf);
+            setPaysOf(null);
+          }}
+        />
+      ) : null}
       {lining ? <LigneModal category={lining} onClose={() => setLining(null)} /> : null}
       {editing ? (
         <PosteModal
           item={editing === "new" ? null : editing}
-          focusQuote={quoteFocus}
           onClose={() => {
+            // Un poste ajouté sans devis ni paiement se range sous « À prévoir » : on le montre
+            if (editing === "new") setShowPlanned(true);
             setEditing(null);
-            setQuoteFocus(false);
           }}
         />
       ) : null}

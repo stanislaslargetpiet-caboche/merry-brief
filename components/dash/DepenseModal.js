@@ -6,7 +6,7 @@
 
 import { useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
-import { posteName } from "@/lib/dash/model";
+import { itemFinance, posteName } from "@/lib/dash/model";
 import { euros, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { Tile, guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
@@ -16,8 +16,9 @@ import { fileSize } from "@/lib/dash/documents";
 
 export default function DepenseModal({ onClose, itemId: initialItem }) {
   const dash = useDash();
-  const { items, members, meId, folders = [] } = dash.data;
-  const [itemId, setItemId] = useState(initialItem || items[0]?.id || "new");
+  const { items, members, meId, payments, folders = [] } = dash.data;
+  // Aucun poste choisi d'office : une dépense rangée par erreur dans « Lieu » faussait le budget
+  const [itemId, setItemId] = useState(initialItem || (items.length ? null : "new"));
   const [newLabel, setNewLabel] = useState("");
   const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
@@ -25,6 +26,8 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const [rest, setRest] = useState("");
   const [statutPaid, setStatutPaid] = useState(true); // déjà payée, sinon à payer
   const [paidAt, setPaidAt] = useState(todayIso());
+  const [dueDate, setDueDate] = useState(""); // date prévue d'une dépense à payer
+  const [restDue, setRestDue] = useState(""); // date prévue du reste d'un acompte
   const [payerId, setPayerId] = useState(meId || members[0]?.id || null);
   const [file, setFile] = useState(null);
   const fileInput = useRef(null);
@@ -36,35 +39,40 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const value = parseAmount(amount);
   const vendor = item?.vendor_id ? (dash.data.vendors || []).find((v) => v.id === item.vendor_id) : null;
   const label = what.trim().slice(0, 120) || vendor?.name || "Paiement";
-  const ready = value !== null && value > 0 && (!isNew || newLabel.trim());
+  // Un poste qui a déjà un montant prévu (devis signé) : le reste se déduit du devis, rien à saisir
+  const hadQuote = !isNew && item?.quote_amount !== null && item?.quote_amount !== undefined;
+  const finance = item && hadQuote ? itemFinance(item, payments) : null;
+  const restAmount = !hadQuote && !full ? parseAmount(rest) || 0 : 0;
+  const ready = value !== null && value > 0 && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
 
   async function save(e) {
     e?.preventDefault();
     if (!ready || busy) return;
     setBusy(true);
     let id = item?.id;
-    let hadQuote = item?.quote_amount !== null && item?.quote_amount !== undefined;
     if (isNew) {
       id = uid();
       await dash.insert("budget_items", { id, label: newLabel.trim(), icon: guessIcon(newLabel), position: items.length });
       refineIcon(dash, "budget_items", id, newLabel.trim(), guessIcon(newLabel));
-      hadQuote = false;
     }
     // Un poste sans montant prévu en reçoit un, à partir de cette dépense (montant + reste si acompte) ;
     // s'il en a déjà un, on ne le touche pas pour ne pas écraser ce que Modifier le poste a pu fixer.
-    if (!hadQuote) {
-      const restAmount = full ? 0 : parseAmount(rest) || 0;
-      await dash.update("budget_items", id, { quote_amount: value + restAmount });
-    }
-    await dash.insert("payments", {
-      budget_item_id: id,
-      label,
-      amount: value,
-      paid_at: statutPaid ? paidAt || todayIso() : null,
-      payer_id: statutPaid ? payerId || null : null,
-      due_date: null,
-      note: note.trim().slice(0, 500) || null,
-    });
+    // Ce n'est pas un devis signé : les tâches « Réserver… » du rétroplanning ne se cochent pas.
+    if (!hadQuote) await dash.update("budget_items", id, { quote_amount: value + restAmount }, { quoteHook: false });
+    const rows = [
+      {
+        budget_item_id: id,
+        label,
+        amount: value,
+        paid_at: statutPaid ? paidAt || todayIso() : null,
+        payer_id: statutPaid ? payerId || null : null,
+        due_date: statutPaid ? null : dueDate || null,
+        note: note.trim().slice(0, 500) || null,
+      },
+    ];
+    // Le reste d'un acompte devient une échéance à payer, visible dans les paiements du poste
+    if (restAmount > 0) rows.push({ budget_item_id: id, label: "Solde", amount: restAmount, paid_at: null, payer_id: null, due_date: restDue || null });
+    await dash.insert("payments", rows);
     if (file) {
       const folder = folders.find((x) => /facture|devis/i.test(x.name)) || null;
       const res = await dash.uploadDocument(file, { folderId: folder?.id || null, kind: "facture", budgetItemId: id, vendorId: item?.vendor_id || null, name: file.name });
@@ -117,6 +125,13 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
         <Field label="Montant (€)">
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />
         </Field>
+        {hadQuote ? (
+          <p className="d-small d-muted d-field is-full" style={{ margin: 0 }}>
+            Montant prévu {euros(finance.quote)}, déjà payé {euros(finance.paid)}
+            {value ? ` : il restera ${euros(Math.max(0, finance.quote - finance.paid - (statutPaid ? value : 0)))} après cette dépense.` : "."}
+            {finance.upcoming.length ? ` ${finance.upcoming.length > 1 ? `${finance.upcoming.length} échéances sont déjà prévues` : "Une échéance est déjà prévue"} : si c'est elle que vous venez de régler, marquez-la payée depuis les paiements du poste.` : ""}
+          </p>
+        ) : (
         <Field label="Type" full group>
           <div className="d-filters" role="radiogroup" aria-label="Paiement intégral ou acompte">
             <button type="button" className={`d-pill${full ? " is-on" : ""}`} aria-pressed={full} onClick={() => setFull(true)}>
@@ -127,10 +142,16 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
             </button>
           </div>
         </Field>
-        {!full ? (
-          <Field label="Reste à payer (€)">
-            <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="300" />
-          </Field>
+        )}
+        {!hadQuote && !full ? (
+          <>
+            <Field label="Reste à payer (€)">
+              <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="300" />
+            </Field>
+            <Field label="Reste à payer le · facultatif">
+              <input className="d-input" type="date" value={restDue} onChange={(e) => setRestDue(e.target.value)} />
+            </Field>
+          </>
         ) : null}
         <Field label="Statut" full group>
           <div className="d-filters" role="radiogroup" aria-label="C'est payé ou à payer">
@@ -158,7 +179,11 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
               </div>
             </Field>
           </>
-        ) : null}
+        ) : (
+          <Field label="À payer le · facultatif">
+            <input className="d-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </Field>
+        )}
         <Field label="Descriptif (facultatif)" full>
           <textarea className="d-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre, remise de 10 % négociée…" />
         </Field>
