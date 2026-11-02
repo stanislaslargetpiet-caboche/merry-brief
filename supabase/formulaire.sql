@@ -29,6 +29,10 @@ alter table public.guest_forms add column if not exists title text check (title 
 alter table public.guest_forms add column if not exists cover_position smallint not null default 50 check (cover_position between 0 and 100);
 alter table public.guest_forms add column if not exists presence_mode text not null default 'moments' check (presence_mode in ('moments', 'global'));
 
+-- Ajout du 2 novembre 2026 : limite de réponses par formulaire et par heure (le formulaire est public)
+alter table public.guest_forms add column if not exists rate_window_start timestamptz;
+alter table public.guest_forms add column if not exists rate_window_count integer not null default 0;
+
 alter table public.guest_forms enable row level security;
 
 drop policy if exists "organisateurs: tout" on public.guest_forms;
@@ -129,6 +133,7 @@ create or replace function public.merry_clip(v text, n int)
 returns text
 language sql
 immutable
+set search_path = ''
 as $$
   select nullif(left(btrim(coalesce(v, '')), n), '');
 $$;
@@ -141,10 +146,15 @@ $$;
 -- fusionnée avec la mauvaise.
 -- ---------------------------------------------------------------------------
 
-create or replace function public.merry_norm(t text)
+-- merry_norm_compact : tout en minuscules sans accent, espaces, tirets et ponctuation retirés
+-- (« Saint-Georges » → « saintgeorges »). À ne pas confondre avec merry_norm (supabase/prestataires.sql),
+-- qui garde un espace entre les mots pour les recherches de villes et de lieux : les deux fonctions ont
+-- longtemps porté le même nom, et le dernier fichier collé changeait le sens de l'autre.
+create or replace function public.merry_norm_compact(t text)
 returns text
 language sql
 immutable
+set search_path = ''
 as $$
   select regexp_replace(
            translate(lower(coalesce(t, '')), 'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ', 'aaaaaaceeeeiiiinooooouuuuyyoa'),
@@ -155,6 +165,7 @@ create or replace function public.merry_lev(a text, b text)
 returns integer
 language plpgsql
 immutable
+set search_path = ''
 as $$
 declare
   la integer := length(a);
@@ -186,6 +197,7 @@ create or replace function public.merry_name_dist(a text, b text)
 returns integer
 language plpgsql
 immutable
+set search_path = ''
 as $$
 declare
   d integer;
@@ -205,8 +217,8 @@ stable
 set search_path = public
 as $$
 declare
-  nf text := public.merry_norm(v_first);
-  nl text := public.merry_norm(v_last);
+  nf text := public.merry_norm_compact(v_first);
+  nl text := public.merry_norm_compact(v_last);
   best integer := null;
   best_id uuid := null;
   ties integer := 0;
@@ -222,14 +234,14 @@ begin
   -- 1. même nom, sans tenir compte des accents, des majuscules ni des tirets
   select id into best_id from public.guests
    where wedding_id = w and plus_one_of is null
-     and public.merry_norm(first_name) = nf and public.merry_norm(last_name) = nl
+     and public.merry_norm_compact(first_name) = nf and public.merry_norm_compact(last_name) = nl
    order by created_at limit 1;
   if best_id is not null then return best_id; end if;
 
   -- 2. nom proche ou inversé ; un seul candidat doit se détacher
   for g in select id, first_name, last_name from public.guests where wedding_id = w and plus_one_of is null loop
-    cf := public.merry_norm(g.first_name);
-    cl := public.merry_norm(g.last_name);
+    cf := public.merry_norm_compact(g.first_name);
+    cl := public.merry_norm_compact(g.last_name);
     score := null;
     if cl = '' then
       -- liste faite de prénoms seuls : le prénom doit correspondre
@@ -284,6 +296,8 @@ declare
   p          jsonb;
   addr       text;
   is_new     boolean := false;
+  trusted    boolean := false;
+  n_hour     integer := 0;
 begin
   select * into f from public.guest_forms where slug = form_slug and published;
   if not found then
@@ -295,6 +309,17 @@ begin
   end if;
   if (select count(*) from public.guests where wedding_id = w) >= 3000 then
     raise exception 'Liste complète';
+  end if;
+
+  -- Au plus 200 réponses par heure et par formulaire : assez pour une liste entière qui répond le soir
+  -- même de l'envoi, trop peu pour un script qui remplit la liste de faux invités.
+  update public.guest_forms
+     set rate_window_start = case when rate_window_start is null or rate_window_start < now() - interval '1 hour' then now() else rate_window_start end,
+         rate_window_count = case when rate_window_start is null or rate_window_start < now() - interval '1 hour' then 1 else rate_window_count + 1 end
+   where wedding_id = w
+   returning rate_window_count into n_hour;
+  if n_hour > 200 then
+    raise exception 'Trop de réponses pour le moment, réessayez dans une heure';
   end if;
 
   for item in select * from jsonb_array_elements(f.fields) loop
@@ -375,12 +400,20 @@ begin
     insert into public.guests (wedding_id, first_name, last_name, position)
     values (w, v_first, v_last, pos) returning id into main_id;
   end if;
+  -- Un invité reconnu par son nom seulement : ses coordonnées déjà connues ne sont pas écrasées par
+  -- un inconnu qui taperait le même nom. Elles ne sont remplacées que si l'adresse mail envoyée est
+  -- celle de la fiche (ou si la fiche n'en a pas encore) ; sinon on ne fait que compléter les vides.
+  select lower(btrim(coalesce(email, ''))) = lower(coalesce(public.merry_clip(payload ->> 'email', 200), '')) or btrim(coalesce(email, '')) = ''
+    into trusted from public.guests where id = main_id;
+  trusted := is_new or coalesce(trusted, false);
   update public.guests
      set last_name = case when btrim(last_name) = '' then v_last else last_name end,
-         email   = coalesce(public.merry_clip(payload ->> 'email', 200), email),
-         phone   = case when coalesce(modes ->> 'tel', 'off') = 'off' then phone else coalesce(public.merry_clip(payload ->> 'phone', 40), phone) end,
-         address = coalesce(addr, address),
-         diet    = coalesce(diet_txt, diet),
+         email   = case when trusted then coalesce(public.merry_clip(payload ->> 'email', 200), email) else coalesce(email, public.merry_clip(payload ->> 'email', 200)) end,
+         phone   = case when coalesce(modes ->> 'tel', 'off') = 'off' then phone
+                        when trusted then coalesce(public.merry_clip(payload ->> 'phone', 40), phone)
+                        else coalesce(phone, public.merry_clip(payload ->> 'phone', 40)) end,
+         address = case when trusted then coalesce(addr, address) else coalesce(address, addr) end,
+         diet    = case when trusted then coalesce(diet_txt, diet) else coalesce(diet, diet_txt) end,
          custom  = custom || custom_out
    where id = main_id;
 
@@ -439,7 +472,8 @@ begin
   end if;
 
   update public.guest_forms set submissions = submissions + 1 where wedding_id = w;
-  return jsonb_build_object('ok', true, 'known', not is_new);
+  -- Pas d'indice sur la liste : la réponse ne dit pas si ce nom y figurait déjà
+  return jsonb_build_object('ok', true);
 end;
 $$;
 revoke all on function public.merry_form_submit(text, jsonb) from public;

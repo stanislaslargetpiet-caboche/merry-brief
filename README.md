@@ -116,7 +116,7 @@ Tout le contenu est en haut de `components/Brief.js` (listes `EVENTS`, `STAGES`,
 
 Les écrans suivent le canvas « Merry · Carte brief », page Dashboard (2f et 2g), validés le 21 octobre 2026.
 
-**Installer** : Supabase > SQL Editor > New query, colle `supabase/formulaire.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `guest_forms`, le dossier de stockage public `merry-covers` pour les photos d'en-tête et deux fonctions ouvertes sans compte. Tant qu'il n'est pas lancé, le reste du tableau de bord fonctionne et la page de réglages explique quoi faire.
+**Installer** : Supabase > SQL Editor > New query, colle `supabase/formulaire.sql`, Run (après `dashboard.sql`, relançable sans risque). Le fichier crée la table `guest_forms`, le dossier de stockage public `merry-covers` pour les photos d'en-tête et deux fonctions ouvertes sans compte. Les réponses sont limitées à 200 par heure et par formulaire, et un invité reconnu par son nom seul ne voit ses coordonnées remplacées que si l'adresse mail envoyée est celle de sa fiche (sinon seuls les champs vides sont complétés). Si `prestataires.sql` avait été collé avant ce fichier dans une version antérieure, recolle-le une fois après (les deux définissaient `merry_norm`), puis `refresh materialized view catalog.place_centers`. Tant qu'il n'est pas lancé, le reste du tableau de bord fonctionne et la page de réglages explique quoi faire.
 
 **Principe** : un formulaire par mariage, créé à la première visite de « Formulaire invités ». Le lien (`https://<ton domaine>/f/stanislas-et-margue-k7q2`) se colle dans un groupe WhatsApp ou Facebook. Les réglages s'enregistrent tout seuls.
 

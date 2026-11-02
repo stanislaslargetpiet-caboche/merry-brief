@@ -190,7 +190,7 @@ export default function GuestFormPage() {
     if (form.demo || !supabase) {
       console.info("[merry] démo : réponse simulée", payload);
       remember();
-      setDone({ known: false });
+      setDone({ ok: true });
       setSending(false);
       return;
     }
@@ -199,11 +199,11 @@ export default function GuestFormPage() {
     if (error) {
       console.error("[merry] envoi du formulaire", error);
       setMissing([]);
-      setDone({ error: /Liste complète/.test(error.message || "") ? "full" : "failed" });
+      setDone({ error: /Liste complète/.test(error.message || "") ? "full" : /Trop de réponses/.test(error.message || "") ? "busy" : "failed" });
       return;
     }
     remember();
-    setDone({ known: !!data?.known });
+    setDone({ ok: true });
   }
 
   const person = (p, set, prefix) => (
@@ -274,7 +274,7 @@ export default function GuestFormPage() {
             <div className="gf-done" role="status">
               <strong>Merci, c'est noté.</strong>
               <span>
-                {done.known ? "Votre réponse a mis à jour votre ligne dans la liste des mariés." : "Votre réponse est arrivée chez les mariés."} Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
+                Votre réponse est arrivée chez les mariés. Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
               </span>
             </div>
           ) : (
@@ -425,7 +425,7 @@ export default function GuestFormPage() {
               ) : null}
               {done?.error ? (
                 <div className="gf-missing" role="alert">
-                  {done.error === "full" ? "La liste des mariés est complète : contactez-les directement." : "Votre réponse n'a pas pu être envoyée. Vérifiez votre connexion et réessayez."}
+                  {done.error === "full" ? "La liste des mariés est complète : contactez-les directement." : done.error === "busy" ? "Beaucoup de réponses arrivent en ce moment : réessayez dans une heure." : "Votre réponse n'a pas pu être envoyée. Vérifiez votre connexion et réessayez."}
                 </div>
               ) : null}
               <button type="submit" className="gf-send" disabled={sending}>

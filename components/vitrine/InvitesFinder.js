@@ -36,6 +36,8 @@ function matchesDemo(w, { code, name1, name2, date }) {
   const n2 = name2.trim().toLowerCase();
   const p1 = (w.partner1 || "").trim().toLowerCase();
   const p2 = (w.partner2 || "").trim().toLowerCase();
+  // Comme la fonction Supabase : un prénom seul ne suffit pas, il faut l'autre prénom ou la date
+  if (!n2 && !date) return null;
   const sameTwo = (p1 === n1 && (!n2 || p2 === n2)) || (p2 === n1 && (!n2 || p1 === n2));
   if (!sameTwo) return null;
   if (date && w.wedding_date !== date) return null;
@@ -241,7 +243,7 @@ export default function InvitesFinder() {
           className="wv-flow-panel"
           onSubmit={(e) => {
             e.preventDefault();
-            if (name1.trim()) search({ byCode: false });
+            if (name1.trim() && (name2.trim() || date)) search({ byCode: false });
           }}
         >
           <div className="wv-flow-two">
@@ -258,7 +260,7 @@ export default function InvitesFinder() {
             <span className="wv-flow-label">Date de la fête</span>
             <input type="date" className="wv-flow-field" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
-          <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !name1.trim()}>
+          <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !name1.trim() || (!name2.trim() && !date)}>
             {busy ? <BusyDots label="Recherche en cours" /> : "Trouver la fête"}
           </button>
           <p className="wv-flow-or">
