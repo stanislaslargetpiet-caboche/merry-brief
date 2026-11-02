@@ -1275,6 +1275,39 @@ export default function Invites() {
             </Btn>
           </div>
         ) : null}
+        {full && selIds.length ? (
+          // La barre d'actions groupées normale est cachée derrière l'overlay plein écran (z-index) :
+          // on la rejoue ici pour pouvoir modifier/supprimer sans quitter le plein écran.
+          <div className="d-selbar" role="region" aria-label="Invités sélectionnés" style={{ flexWrap: "nowrap", overflowX: "auto" }}>
+            <strong style={{ flex: "none" }}>{n(selIds.length, "sélection", "sélections")}</strong>
+            <span className="d-selbar-actions" style={{ flexWrap: "nowrap" }}>
+              {!allSelected ? (
+                <button type="button" onClick={selectAll}>
+                  Tout sélectionner ({shown.length})
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setModField(null);
+                  setModGroupTarget(undefined);
+                  setModMomentId(null);
+                  setModifying(true);
+                }}
+              >
+                Modifier
+              </button>
+              <BulkColumnMenu fields={fields} onApply={bulkField} />
+              <button type="button" onClick={clearSel}>
+                Tout désélectionner
+              </button>
+              <button type="button" className="is-danger" onClick={bulkRemove}>
+                <Icon name="trash" size={14} sw={2} />
+                {allSelected && shown.length === guests.length ? "Supprimer toute la liste" : selIds.length > 1 ? `Supprimer les ${selIds.length}` : "Supprimer"}
+              </button>
+            </span>
+          </div>
+        ) : null}
         <div className="d-table-wrap d-sheet" ref={sheetRef}>
           <table className="d-table d-guests d-cols" onKeyDown={onSheetKey} onCopy={onSheetCopy} onPaste={onSheetPaste}>
             <thead>
