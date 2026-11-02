@@ -12947,6 +12947,216 @@ body.d-noscroll {
   font-weight: 600;
 }
 
+.d-itab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #1c1c1a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Messagerie (Prestataires) : liste des fils à gauche, bulles à droite */
+.d-msg-layout {
+  display: flex;
+  border: 1px solid var(--d-line);
+  border-radius: 20px;
+  overflow: hidden;
+  height: 680px;
+  background: #fff;
+}
+
+.d-msg-list {
+  width: 320px;
+  flex: 0 0 auto;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-right: 1px solid var(--d-line);
+}
+
+.d-msg-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--d-line);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.d-msg-item.is-on {
+  background: var(--d-panel);
+}
+
+.d-msg-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.d-msg-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.d-msg-item-prev {
+  font-size: 13px;
+  color: var(--d-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-msg-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #1c1c1a;
+}
+
+.d-msg-thread {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-msg-thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-msg-thread-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.d-msg-thread-meta {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-msg-bubbles {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-msg-row {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+}
+
+.d-msg-row.is-me {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.d-msg-row.is-them {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.d-msg-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.d-msg-row.is-them .d-msg-bubble {
+  background: var(--d-panel);
+  border-bottom-left-radius: 4px;
+}
+
+.d-msg-row.is-me .d-msg-bubble {
+  background: #1c1c1a;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.d-msg-time {
+  font-size: 11px;
+  color: var(--d-muted);
+  margin-top: 4px;
+}
+
+.d-msg-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--d-line);
+  margin: 0;
+}
+
+.d-msg-composer input {
+  flex: 1;
+}
+
+.d-msg-send {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 0;
+  background: #1c1c1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.d-msg-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-msg-layout {
+    flex-direction: column;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+  }
+  .d-msg-list {
+    width: 100%;
+    max-height: 240px;
+    border-right: 0;
+    border-bottom: 1px solid var(--d-line);
+  }
+  .d-msg-bubbles {
+    max-height: 50vh;
+  }
+}
+
 .d-itab .d-itab-soon,
 .d-itab .d-itab-online {
   align-self: center;
