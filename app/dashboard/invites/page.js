@@ -19,6 +19,11 @@ import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
+import GuestTarget from "@/components/dash/GuestTarget";
+import RelanceModal from "@/components/dash/RelanceModal";
+import HouseholdsModal from "@/components/dash/HouseholdsModal";
+import { agoDays, pendingGuests } from "@/lib/dash/relance";
+import { householdKey, householdLabel, householdsOf } from "@/lib/dash/households";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -209,7 +214,7 @@ function SortItems({ dir, onSort, rsvp }) {
 }
 
 // Menu de fin de ligne : retirer l'invité de la liste (sans confirmation : le toast propose « Annuler »)
-function RowMenu({ guest, label, onRemove }) {
+function RowMenu({ guest, label, onRemove, onLeaveHousehold }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="d-anchor">
@@ -223,6 +228,21 @@ function RowMenu({ guest, label, onRemove }) {
             Voir la fiche
           </span>
         </Link>
+        {guest.household_id && onLeaveHousehold ? (
+          <button
+            type="button"
+            className="d-pop-item"
+            onClick={() => {
+              setOpen(false);
+              onLeaveHousehold();
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Icon name="home" size={14} />
+              Sortir du foyer
+            </span>
+          </button>
+        ) : null}
         <button
           type="button"
           className="d-pop-item is-danger"
@@ -454,19 +474,24 @@ export default function Invites() {
   const [filtering, setFiltering] = useState(false);
   const [statusFilter, setStatusFilter] = useState(null);
   const [momentFilter, setMomentFilter] = useState({}); // { [eventId]: statut }
+  const [relanceFilter, setRelanceFilter] = useState(null); // "0" jamais relancé | "1" déjà relancé
+  const [relancing, setRelancing] = useState(null); // null | "all" | "sel"
+  const [managingHouseholds, setManagingHouseholds] = useState(false);
 
   // Une colonne supprimée ne reste pas filtrée
   const activeFieldFilter = fieldFilter && fields.some((f) => f.id === fieldFilter.fieldId) ? fieldFilter : null;
   const idx = useMemo(() => responseIndex(data.responses), [data.responses]);
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+  const households = useMemo(() => householdsOf(guests, byId), [guests, byId]);
 
   const inFieldFilter = (g) => !activeFieldFilter || normalize((g.custom || {})[activeFieldFilter.fieldId] || "") === activeFieldFilter.key;
   const base = guests;
   const q = normalize(query);
   const inStatus = (g) => !statusFilter || guestStatus(idx.get(g.id) || {}, events) === statusFilter;
   const inMoments = (g) => Object.entries(momentFilter).every(([evId, st]) => !events.some((e) => e.id === evId) || ((idx.get(g.id) || {})[evId] || "non_invite") === st);
-  const matches = (g) => (!groupFilters.length || groupFilters.includes(g.group_id)) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""}`).includes(q));
+  const inRelance = (g) => !relanceFilter || (relanceFilter === "1") === !!g.reminded_at;
+  const matches = (g) => (!groupFilters.length || groupFilters.includes(g.group_id)) && inFieldFilter(g) && inStatus(g) && inMoments(g) && inRelance(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""} ${g.phone || ""} ${groupById.get(g.group_id)?.name || ""}`).includes(q));
   // Texte d'une cellule, tel qu'on le copie ou qu'on le trie
   const statusOf = (g, evId) => (idx.get(g.id) || {})[evId] || "non_invite";
   const cellText = (key, g) => {
@@ -495,7 +520,7 @@ export default function Invites() {
     setViewReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, sort });
+  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, relance: relanceFilter, sort });
   useEffect(() => {
     if (!viewReady) return;
     const { pathname, search } = window.location;
@@ -510,15 +535,17 @@ export default function Invites() {
     setStatusFilter(v.status);
     setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
     setFieldFilter(v.field);
+    setRelanceFilter(v.relance || null);
     setSort(v.sort);
   };
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
-  const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
+  const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0) + (relanceFilter ? 1 : 0);
   const clearFilters = () => {
     setGroupFilters([]);
     setStatusFilter(null);
     setMomentFilter({});
     setFieldFilter(null);
+    setRelanceFilter(null);
   };
   // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris),
   // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
@@ -733,6 +760,31 @@ export default function Invites() {
     const { step } = await applyValues(ids.map((id) => ({ id, key: `field:${field.id}`, value: value || null })));
     okUndo(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`, step);
   }
+
+  // Relances : on note la date, avec Annuler
+  async function markReminded(ids) {
+    const now = new Date().toISOString();
+    const { step } = await applyValues(ids.map((id) => ({ id, key: "reminded_at", value: now })));
+    okUndo(`${n(ids.length, "invité marqué relancé", "invités marqués relancés")}.`, step);
+  }
+  // Foyers : mêmes identifiants pour tous (ou aucun pour défaire), accompagnants compris, avec Annuler
+  async function groupHousehold(ids, hid) {
+    const set = new Set(ids);
+    guests.forEach((x) => x.plus_one_of && set.has(x.plus_one_of) && set.add(x.id));
+    const all = [...set];
+    const { step } = await applyValues(all.map((id) => ({ id, key: "household_id", value: hid })));
+    if (!step) return;
+    const members = all.map((id) => byId.get(id)).filter(Boolean);
+    okUndo(hid ? `Foyer « ${householdLabel(members)} » : ${n(all.length, "personne", "personnes")}.` : `Foyer défait : ${n(all.length, "personne", "personnes")}.`, step);
+  }
+  const bulkHousehold = () => {
+    const existing = selIds.map((id) => byId.get(id)?.household_id).find(Boolean);
+    const ids = selIds;
+    clearSel();
+    groupHousehold(ids, existing || uid());
+  };
+  const pending = pendingGuests(guests, idx, events);
+  const selPending = pendingGuests(selIds.map((id) => byId.get(id)).filter(Boolean), idx, events);
 
   // Texte saisi ou collé → valeur brute ; les cellules qui n'acceptent pas le texte sont ignorées
   async function writeCells(list) {
@@ -1000,6 +1052,13 @@ export default function Invites() {
             {g.age ? <span>{g.age} ans</span> : null}
             {host && !fullName(g) ? <span>À nommer</span> : null}
             <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
+            {(households.get(householdKey(g, byId)) || []).length > 1 && g.household_id ? (
+              <span className="d-house" title={`Foyer : ${households.get(householdKey(g, byId)).map((m) => fullName(m) || "+1").join(", ")}`}>
+                <Icon name="home" size={11} sw={2.2} />
+                {householdLabel(households.get(householdKey(g, byId)))}
+              </span>
+            ) : null}
+            {g.reminded_at ? <span title={`Relancé le ${new Date(g.reminded_at).toLocaleDateString("fr-FR")}`}>{agoDays(g.reminded_at) === 0 ? "relancé aujourd'hui" : agoDays(g.reminded_at) === 1 ? "relancé hier" : `relancé il y a ${agoDays(g.reminded_at)} j`}</span> : null}
           </span>
         </div>
       ),
@@ -1028,7 +1087,7 @@ export default function Invites() {
         );
       },
     })),
-    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} onRemove={() => removeWithUndo([g.id])} /> },
+    { key: "tools", label: "", fixed: true, noResize: true, render: (g, r, host) => <RowMenu guest={g} label={fullName(g) || (host ? `le +1 de ${fullName(host)}` : "cet invité")} onRemove={() => removeWithUndo([g.id])} onLeaveHousehold={() => groupHousehold([g.id], null)} /> },
   ];
   const cols = useColumnLayout("invites", columnDefs);
   const [restoring, setRestoring] = useState(false);
@@ -1119,6 +1178,18 @@ export default function Invites() {
           Modifier
         </button>
         <BulkColumnMenu fields={fields} onApply={bulkField} />
+        {selPending.length ? (
+          <button type="button" onClick={() => setRelancing("sel")} title="Relancer ceux de la sélection qui n'ont pas répondu">
+            <Icon name="send" size={14} sw={2} />
+            Relancer{selPending.length < selIds.length ? ` · ${selPending.length}` : ""}
+          </button>
+        ) : null}
+        {selIds.length > 1 ? (
+          <button type="button" onClick={bulkHousehold} title="Un faire-part, une adresse pour toute la sélection">
+            <Icon name="home" size={14} sw={2} />
+            Même foyer
+          </button>
+        ) : null}
         <button type="button" onClick={clearSel}>
           Tout désélectionner
         </button>
@@ -1149,6 +1220,7 @@ export default function Invites() {
       <div className="d-desk-only">
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
       </div>
+      <GuestTarget data={statsData} filtered={filterActive} />
       <div className="d-mob-only">
         {/* Les mêmes indicateurs que sur ordinateur (choisis dans Indicateurs), pas trois chiffres figés */}
         <div className="d-mstats-scroll">
@@ -1192,6 +1264,19 @@ export default function Invites() {
               onDelete={(id) => dash.saveGuestViews((wedding.guest_views || []).filter((v) => v.id !== id))}
               shared={data.viewsSetup !== false}
             />
+            {pending.length ? (
+              <button type="button" className="d-group-pick" onClick={() => setRelancing("all")} title="Mail, WhatsApp ou SMS avec le lien du formulaire">
+                <Icon name="send" size={14} sw={2.2} />
+                Relancer
+                <span className="d-filter-count">{pending.length}</span>
+              </button>
+            ) : null}
+            {guests.length ? (
+              <button type="button" className="d-group-pick" onClick={() => setManagingHouseholds(true)} title="Un faire-part, une adresse par foyer">
+                <Icon name="home" size={14} sw={2.2} />
+                Foyers
+              </button>
+            ) : null}
           </div>
           {guests.length ? (
             <span className="d-filters d-desk-only">
@@ -1408,6 +1493,8 @@ export default function Invites() {
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
+      {relancing ? <RelanceModal guests={relancing === "sel" ? selPending : pending} onClose={() => setRelancing(null)} onMarked={markReminded} /> : null}
+      {managingHouseholds ? <HouseholdsModal onClose={() => setManagingHouseholds(false)} onGroup={groupHousehold} /> : null}
       {filtering ? (
         <Modal
           title="Filtres"
@@ -1455,6 +1542,24 @@ export default function Invites() {
             </div>
             <StatusChips value={statusFilter} onChange={setStatusFilter} />
           </div>
+          {guests.some((g) => g.reminded_at) ? (
+            <div className="d-gfilter">
+              <div className="d-gfilter-head">
+                <strong>Relance</strong>
+              </div>
+              <div className="d-filters">
+                {[
+                  ["0", "Jamais relancé"],
+                  ["1", "Déjà relancé"],
+                ].map(([id, label]) => (
+                  <button key={id} type="button" className={`d-gfilter-chip${relanceFilter === id ? " is-on" : ""}`} aria-pressed={relanceFilter === id} onClick={() => setRelanceFilter(relanceFilter === id ? null : id)}>
+                    {relanceFilter === id ? <Icon name="check" size={12} sw={3} /> : null}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {events.length ? (
             <div className="d-gfilter">
               <div className="d-gfilter-head">

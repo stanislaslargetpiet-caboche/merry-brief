@@ -5,6 +5,7 @@ import { useData } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { normalize } from "@/lib/dash/format";
 import { RSVP } from "@/lib/dash/theme";
+import { householdAddress, householdLabel, householdsOf } from "@/lib/dash/households";
 import { Icon } from "@/components/dash/icons";
 import { Btn, PageHeader } from "@/components/dash/ui";
 
@@ -67,6 +68,10 @@ export default function Exporter() {
   const [who, setWho] = useState(dinner ? "dinner" : "all");
   const [groupId, setGroupId] = useState(groups[0]?.id || "");
   const [format, setFormat] = useState("xlsx");
+  // Une ligne par foyer (faire-part) : le nom du foyer, son adresse, et les autres colonnes réunies
+  const [perHousehold, setPerHousehold] = useState(false);
+  const households = useMemo(() => householdsOf(guests, byId), [guests, byId]);
+  const hasHouseholds = useMemo(() => [...households.values()].some((m) => m.length > 1), [households]);
 
   const audiences = [
     dinner ? { id: "dinner", label: `Ceux qui viennent au ${dinner.name.toLowerCase()}`, list: guests.filter((g) => (idx.get(g.id) || {})[dinner.id] === "oui") } : null,
@@ -75,11 +80,37 @@ export default function Exporter() {
   ].filter(Boolean);
   const audience = audiences.find((a) => a.id === who) || audiences[0];
   const cols = columns.filter((c) => chosen.includes(c.id));
+  // Lignes exportées : un invité par ligne, ou un foyer par ligne (membres de l'audience seulement)
+  const exportRows = () => {
+    if (!perHousehold) return audience.list.map((g) => cols.map((c) => c.get(g)));
+    const inAudience = new Set(audience.list.map((g) => g.id));
+    const seen = new Set();
+    const out = [];
+    for (const g of audience.list) {
+      const members = [...households.values()].find((m) => m.some((x) => x.id === g.id)) || [g];
+      const key = members[0].id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const here = members.filter((m) => inAudience.has(m.id));
+      out.push(
+        cols.map((c) => {
+          if (c.id === "name") return householdLabel(here);
+          if (c.id === "address") return householdAddress(here);
+          if (c.ev) {
+            const oui = here.filter((m) => (idx.get(m.id) || {})[c.ev.id] === "oui").length;
+            return oui ? `${oui} ${oui > 1 ? "viennent" : "vient"}` : here.every((m) => ((idx.get(m.id) || {})[c.ev.id] || "non_invite") === "non_invite") ? "Non invité" : "En attente";
+          }
+          return [...new Set(here.map((m) => c.get(m)).filter(Boolean))].join(" · ");
+        }),
+      );
+    }
+    return out;
+  };
   const activeShortcut = shortcuts.find((s) => s.cols.length === chosen.length && s.cols.every((c) => chosen.includes(c)));
   const fileBase = `invites-${normalize([wedding.partner1, wedding.partner2].filter(Boolean).join(" ")).replace(/\s+/g, "-") || "mariage"}`;
 
   async function run() {
-    const rows = audience.list.map((g) => cols.map((c) => c.get(g)));
+    const rows = exportRows();
     if (format === "csv") {
       const text = [cols.map((c) => csvCell(c.label)).join(";"), ...rows.map((r) => r.map(csvCell).join(";"))].join("\r\n");
       download(new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" }), `${fileBase}.csv`);
@@ -91,7 +122,7 @@ export default function Exporter() {
       const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(fileBase)}</title>
 <style>body{font-family:Inter,Helvetica,Arial,sans-serif;color:#1c1c1a;margin:32px}h1{font-size:20px;margin:0 0 4px}p{color:#6b6a63;margin:0 0 18px;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;background:#f6f5f1;padding:8px;text-transform:uppercase;font-size:11px;letter-spacing:.04em;color:#6b6a63}td{padding:8px;border-top:1px solid #ecebe6}</style></head>
-<body><h1>${escapeHtml([wedding.partner1, wedding.partner2].filter(Boolean).join(" & "))}</h1><p>${escapeHtml(audience.label)} · ${audience.list.length} invités</p>
+<body><h1>${escapeHtml([wedding.partner1, wedding.partner2].filter(Boolean).join(" & "))}</h1><p>${escapeHtml(audience.label)} · ${perHousehold ? `${rows.length} foyers` : `${audience.list.length} invités`}</p>
 <table><thead><tr>${cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((v) => `<td>${escapeHtml(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>
 <script>window.onload=()=>window.print()</script></body></html>`;
       const w = window.open("", "_blank");
@@ -182,6 +213,15 @@ table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;back
               </button>
             ))}
           </div>
+          {hasHouseholds ? (
+            <button type="button" className={`d-choice${perHousehold ? " is-on" : ""}`} onClick={() => setPerHousehold((x) => !x)} aria-pressed={perHousehold}>
+              <span className="d-box">{perHousehold ? <Icon name="check" size={13} sw={2.4} /> : null}</span>
+              <span className="d-choice-text">
+                <strong style={{ fontSize: 14 }}>Une ligne par foyer</strong>
+                <span className="d-small d-muted">Pour les faire-part : « Claire & Pierre Morel », une adresse, une enveloppe</span>
+              </span>
+            </button>
+          ) : null}
           <div className="d-col" style={{ gap: 10 }}>
             <strong style={{ fontSize: 14 }}>Format</strong>
             <div className="d-g3 d-g3-keep3" style={{ gap: 10 }}>
@@ -197,7 +237,7 @@ table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;back
             </div>
           </div>
           <Btn icon="download" onClick={run} disabled={!cols.length || !audience.list.length} className="d-btn-block" >
-            Exporter {audience.list.length} invité{audience.list.length > 1 ? "s" : ""}
+            {perHousehold ? `Exporter ${exportRows().length} foyer${exportRows().length > 1 ? "s" : ""}` : `Exporter ${audience.list.length} invité${audience.list.length > 1 ? "s" : ""}`}
           </Btn>
           {format === "pdf" ? <p className="d-small d-muted" style={{ margin: 0 }}>Le PDF s'ouvre dans un nouvel onglet : choisissez « Enregistrer au format PDF » dans la fenêtre d'impression.</p> : null}
         </section>
