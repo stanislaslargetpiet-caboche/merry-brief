@@ -1279,6 +1279,10 @@ export default function Invites() {
             <span className="d-small d-muted">{n(shown.length, "invité", "invités")}{selIds.length ? ` · ${n(selIds.length, "sélection", "sélections")}` : ""}</span>
             <span className="d-spacer" />
             <span className="d-small d-muted d-sheet-keys">Flèches, Tab et Entrée pour se déplacer · Cmd+Z pour annuler</span>
+            <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
+              <Icon name="plus" size={14} sw={2} />
+              Ajouter une colonne
+            </button>
             <Btn kind="ghost" small icon="x" onClick={() => setFull(false)}>
               Quitter le plein écran
             </Btn>
