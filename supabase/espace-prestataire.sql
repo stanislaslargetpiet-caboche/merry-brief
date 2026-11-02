@@ -186,7 +186,7 @@ begin
   if not public.is_pro_member(v) then
     raise exception 'pas votre fiche' using errcode = '42501';
   end if;
-  foreach k in array array['video_url', 'caterer_imposed', 'caterer_mode', 'music_end', 'outdoor_ceremony', 'parking', 'accessible', 'parking_note', 'includes'] loop
+  foreach k in array array['video_url', 'caterer_imposed', 'caterer_mode', 'music_end', 'outdoor_ceremony', 'parking', 'accessible', 'parking_note', 'includes', 'service_area', 'service_radius_km', 'team_size'] loop
     if patch ? k then d := d || jsonb_build_object(k, patch -> k); end if;
   end loop;
   update catalog.vendors set

@@ -131,7 +131,16 @@ function MaFiche() {
             </select>
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="p-sec" id="activite">
+          <h2 className="p-sec-title">Votre activité</h2>
+          <div className="p-grid3">
+            <TextField id="zone" label="Zone d'intervention" value={det.service_area} onSave={(t) => save({ service_area: t })} />
+            <KmField id="rayon" value={det.service_radius_km} onSave={(n) => save({ service_radius_km: num(n) })} />
+            <NumberField id="equipe" label="Taille de l'équipe le jour J" value={det.team_size} onSave={(n) => save({ team_size: num(n) })} />
+          </div>
+        </section>
+      )}
 
       {isLieu ? (
         <section className="p-sec" id="acces">
@@ -377,6 +386,18 @@ function MinutesField({ id, value, onSave }) {
       <div className="p-input p-unit">
         <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} />
         <span>min</span>
+      </div>
+    </div>
+  );
+}
+
+function KmField({ id, value, onSave }) {
+  return (
+    <div className="p-field">
+      <label htmlFor={id}>Rayon</label>
+      <div className="p-input p-unit">
+        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} />
+        <span>km</span>
       </div>
     </div>
   );
