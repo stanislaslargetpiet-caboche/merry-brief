@@ -42,9 +42,6 @@ export default async function VitrinePrestataires() {
         <h1 className="wv-h2" style={{ maxWidth: 1100 }}>
           Recevez beaucoup plus de demandes qualifiées.
         </h1>
-        <p className="wv-lead" style={{ maxWidth: 820 }}>
-          Date, lieu, budget, nombre d’invités, style : vous lisez tout, gratuitement, avant de répondre. Fini les « vous êtes libres cet été ? ».
-        </p>
         <form className="wv-find" action={FICHE} method="get">
           <label className="wv-find-in">
             <span className="wv-sr">Le nom de votre établissement</span>
