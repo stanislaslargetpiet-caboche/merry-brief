@@ -28,7 +28,7 @@ export default function VendorSearchBar() {
   const [manual, setManual] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [refine, setRefine] = useState({ searching: false, results: [], attempted: false });
-  const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « Utiliser »
+  const [appliedMatch, setAppliedMatch] = useState(null); // résultat Google choisi via « C'est lui »
   const [cities, setCities] = useState({ open: false, searching: false, results: [] });
   const [busy, setBusy] = useState(false);
   const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
@@ -216,7 +216,9 @@ export default function VendorSearchBar() {
                   <span className="d-small-muted">Aucun prestataire ne correspond dans le catalogue Merry.</span>
                   {google.searching ? <BusyDots label="Recherche sur Google" /> : null}
                   {!google.searching && google.results.length ? (
-                    <ul className="d-pr-to">
+                    <>
+                      <span className="d-small-muted">Trouvé sur Google, lequel est-ce ?</span>
+                      <ul className="d-pr-to">
                       {google.results.map((g, i) => (
                         <li key={i}>
                           <Thumb v={{ name: g.name }} size={44} />
@@ -225,11 +227,12 @@ export default function VendorSearchBar() {
                             <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
                           </div>
                           <Btn kind="ghost" small onClick={() => pickGoogle(g)}>
-                            Utiliser
+                            C'est lui
                           </Btn>
                         </li>
                       ))}
-                    </ul>
+                      </ul>
+                    </>
                   ) : null}
                   <button type="button" className="d-pr-arrowlink is-13" onClick={startManual}>
                     {google.done && !google.results.length ? "Toujours rien : ajoutez-le à la main" : "Ce n'est pas ça ? Ajoutez-le à la main"}
@@ -321,42 +324,55 @@ export default function VendorSearchBar() {
                   ) : null}
                 </div>
               </div>
-              <div className="d-field is-full">
-                <Btn kind="ghost" type="button" small onClick={runRefine} disabled={!form.name.trim() || refine.searching}>
-                  Valider la recherche
-                </Btn>
-                <span className="d-small-muted">Cherche « {form.name.trim() || "ce nom"} »{refineArea ? ` à ${refineArea}` : ""} sur Google.</span>
-              </div>
-              {refine.searching || refine.results.length || refine.attempted ? (
+              {appliedMatch ? (
+                <div className="d-field is-full d-create-card">
+                  <div className="d-create-card-head">
+                    <Thumb v={{ name: appliedMatch.name }} size={44} />
+                    <div>
+                      <span className="d-create-card-name">Trouvé sur Google : {appliedMatch.name}</span>
+                      <span className="d-create-card-addr">{appliedMatch.address || appliedMatch.city || ""}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="d-pr-arrowlink is-13"
+                    onClick={() => {
+                      setAppliedMatch(null);
+                      setRefine({ searching: false, results: [], attempted: false });
+                    }}
+                  >
+                    Ce n'est pas ça, chercher autre chose
+                  </button>
+                </div>
+              ) : (
                 <div className="d-field is-full">
+                  <Btn kind="ghost" type="button" small onClick={runRefine} disabled={!form.name.trim() || refine.searching}>
+                    Chercher sur Google « {form.name.trim() || "ce nom"} »{refineArea ? ` à ${refineArea}` : ""}
+                  </Btn>
                   {refine.searching ? <BusyDots label="Recherche sur Google" /> : null}
                   {!refine.searching && refine.results.length ? (
-                    <>
-                      <span className="d-small-muted">Est-ce l’un de ces résultats&nbsp;? Choisissez-le pour reprendre son adresse et son téléphone.</span>
-                      <ul className="d-pr-to">
-                        {refine.results.map((g, i) => (
-                          <li key={i}>
-                            <Thumb v={{ name: g.name }} size={44} />
-                            <div className="d-pr-to-main">
-                              <span className="d-pr-to-name">{g.name}</span>
-                              <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
-                            </div>
-                            <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
-                              Utiliser
-                            </Btn>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
+                    <ul className="d-pr-to">
+                      {refine.results.map((g, i) => (
+                        <li key={i}>
+                          <Thumb v={{ name: g.name }} size={44} />
+                          <div className="d-pr-to-main">
+                            <span className="d-pr-to-name">{g.name}</span>
+                            <span className="d-pr-to-meta">{g.address || g.city || ""}</span>
+                          </div>
+                          <Btn kind="ghost" small type="button" onClick={() => applyRefine(g)}>
+                            C'est lui
+                          </Btn>
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                   {!refine.searching && refine.attempted && !refine.results.length ? (
                     <span className="d-small-muted">
-                      Aucun résultat sur Google pour « {form.name.trim()} »{refineArea ? ` à ${refineArea}` : ""}.
+                      Aucun résultat sur Google pour « {form.name.trim()} »{refineArea ? ` à ${refineArea}` : ""}. Vous pouvez quand même l'ajouter ci-dessous.
                     </span>
                   ) : null}
                 </div>
-              ) : null}
-              <span className="d-field is-full d-small-muted">Rejoint le catalogue Merry : les autres couples pourront aussi le trouver.</span>
+              )}
               <div className="d-pr-addvendor-actions">
                 <Btn kind="ghost" onClick={() => setManual(false)}>
                   Annuler
