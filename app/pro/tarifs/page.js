@@ -1,7 +1,9 @@
 "use client";
 
-// Tarifs (maquettes V3 et V3m) : formules, options et saisons. Le prix le plus bas devient le
-// « À partir de » que voient les couples (catalog.vendors.price_min, mis à jour par la base).
+// Tarifs (maquette V1, calendrier fusionné avec Disponibilités le 3 nov. 2026 à la demande de Stan,
+// « façon Airbnb, plus intuitif ») : calendrier des dates, formules, options, saisons et réglages
+// (réductions, durée de séjour, annulation). Le prix le plus bas devient le « À partir de » que
+// voient les couples (catalog.vendors.price_min, mis à jour par la base).
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
@@ -10,6 +12,13 @@ import { OPTION_UNIT, UNIT_LABEL, price } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { ProSubnav } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
+import AvailabilityCalendar from "@/components/pro/Calendar";
+
+const CANCELLATION_POLICIES = [
+  { value: "flexible", label: "Flexible", help: "Remboursement intégral jusqu'à 7 jours avant l'arrivée." },
+  { value: "moderee", label: "Modérée", help: "Remboursement intégral jusqu'à 30 jours avant, 50 % ensuite." },
+  { value: "stricte", label: "Stricte", help: "Remboursement à 50 % jusqu'à 60 jours avant, aucun après." },
+];
 
 const OPTION_UNITS = [
   { value: "forfait", label: "Forfait" },
@@ -47,6 +56,8 @@ export default function Tarifs() {
         Votre prix le plus bas s’affiche aux couples :{" "}
         <strong>{lowest ? `À partir de ${euros(lowest.p)}${lowest.unit === "par_invite" ? " par invité" : ""}` : "ajoutez une formule et ses prix"}</strong>
       </p>
+
+      <AvailabilityCalendar />
 
       <section className="p-block is-14">
         <h2 className="p-h2">Formules</h2>
@@ -143,6 +154,117 @@ export default function Tarifs() {
           ))}
         </ul>
       </section>
+
+      <section className="p-card p-options">
+        <h2 className="p-options-title">Réductions</h2>
+        <ul className="p-rows">
+          <li className="p-season">
+            <span className="p-season-name">À la semaine (7 nuits et plus)</span>
+            <PctField id="disc-week" value={d.pro?.discount_week_pct} onSave={(v) => pro.saveSeasons({ discount_week_pct: v })} />
+          </li>
+          <li className="p-season">
+            <span className="p-season-name">Au mois (28 nuits et plus)</span>
+            <PctField id="disc-month" value={d.pro?.discount_month_pct} onSave={(v) => pro.saveSeasons({ discount_month_pct: v })} />
+          </li>
+        </ul>
+      </section>
+
+      <section className="p-card p-options">
+        <h2 className="p-options-title">Disponibilités</h2>
+        <ul className="p-rows">
+          <li className="p-season">
+            <span className="p-season-name">Durée de séjour</span>
+            <div className="p-season-fields">
+              <NightsField id="min-n" label="Minimum" value={d.pro?.min_nights} onSave={(v) => pro.saveSeasons({ min_nights: v })} />
+              <NightsField id="max-n" label="Maximum" value={d.pro?.max_nights} onSave={(v) => pro.saveSeasons({ max_nights: v })} />
+            </div>
+          </li>
+          <li className="p-season">
+            <span className="p-season-name">Délai de réservation</span>
+            <div className="p-field is-8">
+              <label htmlFor="lead-days">Jours minimum avant l’arrivée</label>
+              <input
+                id="lead-days"
+                type="number"
+                min="0"
+                className="p-input"
+                defaultValue={d.pro?.booking_lead_days ?? 2}
+                onBlur={(e) => {
+                  const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+                  if (n !== d.pro?.booking_lead_days) pro.saveSeasons({ booking_lead_days: n });
+                }}
+              />
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section className="p-card p-options">
+        <h2 className="p-options-title">Annulations</h2>
+        <div role="radiogroup" aria-label="Politique d'annulation" className="p-cancel-policies">
+          {CANCELLATION_POLICIES.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={(d.pro?.cancellation_policy || "flexible") === opt.value}
+              className={`p-cancel-policy${(d.pro?.cancellation_policy || "flexible") === opt.value ? " is-on" : ""}`}
+              onClick={() => pro.saveSeasons({ cancellation_policy: opt.value })}
+            >
+              <span className="p-cancel-policy-name">{opt.label}</span>
+              <span className="p-cancel-policy-help">{opt.help}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PctField({ id, value, onSave }) {
+  const [draft, setDraft] = useState(value ?? "");
+  return (
+    <div className="p-field is-8">
+      <label htmlFor={id} className="p-sr">
+        Pourcentage
+      </label>
+      <div className="p-input p-unit">
+        <input
+          id={id}
+          type="number"
+          min="0"
+          max="90"
+          className="p-unit-input"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            const n = draft === "" ? null : Math.max(0, Math.min(90, Math.round(Number(draft))));
+            if (n !== (value ?? null)) onSave(n);
+          }}
+        />
+        <span>%</span>
+      </div>
+    </div>
+  );
+}
+
+function NightsField({ id, label, value, onSave }) {
+  const [draft, setDraft] = useState(value ?? "");
+  return (
+    <div className="p-field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        type="number"
+        min="1"
+        className="p-input"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const n = draft === "" ? null : Math.max(1, Math.round(Number(draft)));
+          if (n !== (value ?? null)) onSave(n);
+        }}
+      />
     </div>
   );
 }

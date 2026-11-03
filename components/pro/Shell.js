@@ -20,7 +20,7 @@ import FeatureDialog from "./FeatureDialog";
 export const PRO_NAV = [
   { href: "/pro", label: "Accueil", icon: "home", exact: true, match: ["/pro"] },
   { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"] },
-  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/disponibilites", "/pro/credits"] },
+  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits"] },
   { href: "/pro/projets", label: "Projets de mariage", icon: "projets", match: ["/pro/projets"] },
 ];
 
@@ -29,10 +29,10 @@ export const PRO_MESSAGERIE_TABS = [
   { href: "/pro/clients", label: "Clients" },
 ];
 
+// Disponibilités a fusionné dans Tarifs (calendrier + prix, demande de Stan le 3 nov. 2026)
 export const PRO_PROFIL_TABS = [
   { href: "/pro/fiche", label: "Ma fiche" },
   { href: "/pro/tarifs", label: "Tarifs" },
-  { href: "/pro/disponibilites", label: "Disponibilités" },
   { href: "/pro/credits", label: "Crédits" },
 ];
 

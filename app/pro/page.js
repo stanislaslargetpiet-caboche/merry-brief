@@ -143,7 +143,7 @@ export default function ProHome() {
             ) : (
               <p className="p-empty-line">Aucune date réservée pour l’instant.</p>
             )}
-            <Link href="/pro/disponibilites" className="p-link is-small">
+            <Link href="/pro/tarifs" className="p-link is-small">
               Voir le calendrier
               <ProIcon name="arrow" size={16} sw={2} />
             </Link>
