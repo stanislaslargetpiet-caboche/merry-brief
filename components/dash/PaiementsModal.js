@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { itemFinance, posteName } from "@/lib/dash/model";
 import { euros, parseAmount, shortDate, todayIso } from "@/lib/dash/format";
-import { Icon } from "./icons";
+import { guessIcon, Icon, Tile } from "./icons";
 import { Avatar, Btn, Field, Modal } from "./ui";
 
 function PaymentForm({ payment, members, onCancel, onSave }) {
@@ -122,10 +122,13 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
       <li key={p.id}>
         <span className="d-pay-text">
           <strong>{p.label}</strong>
-          <small className={!p.paid_at && p.due_date && p.due_date < todayIso() ? "is-late" : undefined}>
-            {when(p)}
-            {p.paid_at && memberById.get(p.payer_id) ? ` · ${memberById.get(p.payer_id).display_name}` : p.paid_at ? " · payeur à indiquer" : ""}
-          </small>
+          <span className="d-pay-when">
+            <small className={!p.paid_at && p.due_date && p.due_date < todayIso() ? "is-late" : undefined}>
+              {when(p)}
+              {p.paid_at && !memberById.get(p.payer_id) ? " · payeur à indiquer" : ""}
+            </small>
+            {p.paid_at && memberById.get(p.payer_id) ? <Avatar member={memberById.get(p.payer_id)} size={18} /> : null}
+          </span>
         </span>
         <strong className="d-pay-amount">{euros(p.amount)}</strong>
         <span className="d-pay-tools">
@@ -147,14 +150,12 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
 
   return (
     <Modal
-      title={`Paiements · ${posteName(item)}`}
+      title={posteName(item)}
+      icon={<Tile name={item.icon || guessIcon(item.label)} size={32} />}
       onClose={onClose}
       footer={
         <>
           <span className="d-spacer" />
-          <Btn kind="ghost" onClick={onClose}>
-            Fermer
-          </Btn>
           <Btn icon="plus" onClick={onAdd}>
             Ajouter un paiement
           </Btn>
@@ -163,10 +164,6 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
     >
       <div className="d-col" style={{ gap: 18 }}>
         <div className="d-pay-summary">
-          <span>
-            <small>Montant prévu</small>
-            <strong>{f.quote !== null ? euros(f.quote) : "–"}</strong>
-          </span>
           <span>
             <small>Déjà payé</small>
             <strong>{euros(f.paid)}</strong>
@@ -186,7 +183,6 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
 
         {done.length ? (
           <section className="d-col" style={{ gap: 6 }}>
-            <h3 className="d-pay-head">Déjà payé</h3>
             <ul className="d-pay-list">{done.map(row)}</ul>
           </section>
         ) : null}

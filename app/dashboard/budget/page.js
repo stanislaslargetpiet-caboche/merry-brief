@@ -36,7 +36,6 @@ export default function Budget() {
   const [editing, setEditing] = useState(null); // item | "new"
   const [adding, setAdding] = useState(null); // fenêtre « Ajouter une dépense » : true, ou l'id du poste déjà choisi
   const [paysOf, setPaysOf] = useState(null); // id du poste dont on ouvre les paiements
-  const [showPlanned, setShowPlanned] = useState(false); // postes « à prévoir » dépliés
   const [lining, setLining] = useState(null); // nom du poste où l'on ajoute une ligne
   const [folded, setFolded] = useState(() => new Set()); // postes à plusieurs lignes repliés
   const [sort, setSort] = useState(null); // null (ordre des postes), "desc" ou "asc" : par montant
@@ -68,10 +67,9 @@ export default function Budget() {
   });
   const ordered = sort ? [...groups].sort((a, z) => (sort === "asc" ? amountOf(a) - amountOf(z) : amountOf(z) - amountOf(a))) : groups;
   // En tête, les postes où l'on a déjà engagé ou payé quelque chose ; les autres (budget seul, postes
-  // créés à l'inscription ou ajoutés à la main) restent repliés sous « À prévoir », sans disparaître
+  // créés à l'inscription ou ajoutés à la main) suivent, sans disparaître
   const sorted = ordered.filter(hasSpend);
   const planned = ordered.filter((g) => !hasSpend(g));
-  const plannedBudget = planned.reduce((a, g) => a + g.items.reduce((x, it) => x + Number(it.budgeted || 0), 0), 0);
   const hasPayments = (it) => payments.some((p) => p.budget_item_id === it.id);
   // Le montant ou le statut d'une ligne ouvre ses paiements ; sans paiement, on en ajoute un pour ce poste
   const openPayments = (it) => (hasPayments(it) ? setPaysOf(it.id) : setAdding(it.id));
@@ -144,10 +142,7 @@ export default function Budget() {
   // Le montant d'une ligne : payé (sur le montant prévu), sinon le montant prévu, sinon le budget
   const amountCell = (f) =>
     f.paid > 0 ? (
-      <span className="d-amount-stack">
-        <span>{euros(f.paid)}</span>
-        {f.quote !== null && f.quote > f.paid + 0.5 ? <small>sur {euros(f.quote)}</small> : null}
-      </span>
+      <span>{euros(f.paid)}</span>
     ) : f.hasPlan ? (
       <span className="d-muted">{euros(f.quote)}</span>
     ) : f.budgeted ? (
@@ -169,10 +164,8 @@ export default function Budget() {
           <Tile name={g.items[0].icon || guessIcon(g.name)} />
           <span className="d-pcard-text">
             <strong>{g.name}</strong>
-            <small>
-              {g.items.length} lignes{gf.paid ? ` · ${euros(gf.paid)} payés` : ""}
-            </small>
           </span>
+          <strong className="d-mrow-amount">{amountCell({ ...gf, remaining: null })}</strong>
           <span className={`d-gchev${open ? " is-open" : ""}`}>
             <Icon name="chev" size={16} sw={2.2} />
           </span>
@@ -185,9 +178,6 @@ export default function Budget() {
               return (
                 <div key={it.id} className="d-line">
                   <span className="d-line-text">
-                    <button type="button" className="d-line-tag" onClick={() => setEditing(it)} title="Modifier la ligne">
-                      {lineLabel(it)}
-                    </button>
                     {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
                   </span>
                   <span className="d-line-amount">
@@ -218,9 +208,6 @@ export default function Budget() {
             <Tile name={g.items[0].icon || guessIcon(g.name)} />
             <span className="d-budget-poste-text">
               <strong>{g.name}</strong>
-              <small>
-                {g.items.length} lignes{gf.paid ? ` · ${euros(gf.paid)} payés` : ""}
-              </small>
             </span>
             <span className={`d-gchev${open ? " is-open" : ""}`}>
               <Icon name="chev" size={16} sw={2.2} />
@@ -248,9 +235,9 @@ export default function Budget() {
         </td>
         <td>
           {gf.payers.length ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
               {gf.payers.map((id) => (
-                <PersonChip key={id} members={[memberById.get(id)].filter(Boolean)} />
+                <PersonChip key={id} members={[memberById.get(id)].filter(Boolean)} avatarOnly />
               ))}
             </div>
           ) : (
@@ -303,9 +290,11 @@ export default function Budget() {
           <div className={`d-budget-poste${line ? " is-line" : ""}`}>
             {line ? null : <Tile name={it.icon || guessIcon(it.label)} />}
             <span className="d-budget-poste-text">
-              <button type="button" className={line ? "d-line-tag" : undefined} onClick={() => setEditing(it)} title="Modifier le poste">
-                {line ? lineLabel(it) : posteName(it)}
-              </button>
+              {line ? null : (
+                <button type="button" onClick={() => setEditing(it)} title="Modifier le poste">
+                  {posteName(it)}
+                </button>
+              )}
               {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : line ? <small>Prestataire à choisir</small> : null}
               {line ? null : (
                 <button type="button" className="d-add-line-link" onClick={() => addLine(it.category || it.label)} title="Un autre prestataire dans ce poste : tentiste, foodtruck…">
@@ -318,27 +307,36 @@ export default function Budget() {
         <td className="is-num">{amountCell(f)}</td>
         <td>
           {f.fullyPaid ? (
-            <OkPill small>Payé</OkPill>
+            <button type="button" className="d-status is-done is-btn" onClick={() => openPayments(it)} title="Voir les paiements, changer le statut">
+              <Icon name="check" size={12} sw={2.4} />
+              Payé
+            </button>
           ) : f.hasPlan ? (
-            <span className={`d-status ${isLate(f) ? "is-red" : "is-todo"}`}>À payer</span>
+            <button type="button" className={`d-status is-btn ${isLate(f) ? "is-red" : "is-todo"}`} onClick={() => openPayments(it)} title="Voir les paiements, changer le statut">
+              À payer
+            </button>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
         <td>
           {f.fullyPaid || (f.hasPlan && !f.isAcompte) ? (
-            <span className="d-status is-purple">100 %</span>
+            <button type="button" className="d-status is-purple is-btn" onClick={() => openPayments(it)} title="Voir les paiements, changer le type">
+              100 %
+            </button>
           ) : f.hasPlan ? (
-            <span className="d-status is-info">Acompte</span>
+            <button type="button" className="d-status is-info is-btn" onClick={() => openPayments(it)} title="Voir les paiements, changer le type">
+              Acompte
+            </button>
           ) : (
             <span className="d-muted">–</span>
           )}
         </td>
         <td>
           {f.payers.length ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
               {f.payers.map((id) => (
-                <PersonChip key={id} members={[memberById.get(id)].filter(Boolean)} />
+                <PersonChip key={id} members={[memberById.get(id)].filter(Boolean)} avatarOnly />
               ))}
             </div>
           ) : f.quote !== null ? (
@@ -434,9 +432,7 @@ export default function Budget() {
       </div>
       <div className="d-mob-only">
         <div className="d-mstats">
-          <div><strong>{euros(b.initial)}</strong><span>Budget initial</span></div>
-          <div><strong>{euros(b.engaged)}</strong><span>Engagé</span></div>
-          <div><strong>{euros(b.paid)}</strong><span>Déjà payé</span></div>
+          <div><strong>{euros(b.paid)}</strong><span>Payés</span></div>
         </div>
       </div>
 
@@ -530,18 +526,7 @@ export default function Budget() {
 
         <div className="d-cards d-mob-only">
           {sorted.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
-          {planned.length ? (
-            <button type="button" className="d-planned-toggle" aria-expanded={showPlanned} onClick={() => setShowPlanned((x) => !x)}>
-              <span>
-                <strong>À prévoir</strong> · {planned.length} poste{planned.length > 1 ? "s" : ""}
-                {plannedBudget ? ` · ${euros(plannedBudget)} prévus` : ""}
-              </span>
-              <span className={`d-gchev${showPlanned ? " is-open" : ""}`}>
-                <Icon name="chev" size={16} sw={2.2} />
-              </span>
-            </button>
-          ) : null}
-          {showPlanned ? planned.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0]))) : null}
+          {planned.map((g) => (g.multi ? renderGroupCard(g) : renderMobileRow(g.items[0])))}
           <button type="button" className="d-mrow d-mrow-add" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} sw={2.4} />
             Ajouter un poste
@@ -550,9 +535,6 @@ export default function Budget() {
             <span>
               Total payé <strong>{euros(b.paid)}</strong>
             </span>
-            <small>
-              {sorted.length} poste{sorted.length > 1 ? "s" : ""}
-            </small>
           </div>
         </div>
 
@@ -567,36 +549,19 @@ export default function Budget() {
                 <th>Type</th>
                 <th>Payé par</th>
                 <th>Documents</th>
-                <th aria-label="Échéance" />
+                <th>Échéance</th>
                 <th aria-label="Modifier ou supprimer" />
               </tr>
             </thead>
             <tbody>
               {sorted.map((g) => renderTableGroup(g))}
-              {planned.length ? (
-                <tr className="d-planned-row">
-                  <td colSpan={8}>
-                    <button type="button" className="d-planned-toggle" aria-expanded={showPlanned} onClick={() => setShowPlanned((x) => !x)}>
-                      <span>
-                        <strong>À prévoir</strong> · {planned.length} poste{planned.length > 1 ? "s" : ""} sans devis ni paiement
-                        {plannedBudget ? ` · ${euros(plannedBudget)} prévus` : ""}
-                      </span>
-                      <span className={`d-gchev${showPlanned ? " is-open" : ""}`}>
-                        <Icon name="chev" size={16} sw={2.2} />
-                      </span>
-                    </button>
-                  </td>
-                </tr>
-              ) : null}
-              {showPlanned ? planned.map((g) => renderTableGroup(g)) : null}
+              {planned.map((g) => renderTableGroup(g))}
             </tbody>
             <tfoot>
               <tr>
                 <td>Total</td>
                 <td className="is-num">{euros(b.paid)}</td>
-                <td colSpan={6} className="d-muted">
-                  {sorted.length} poste{sorted.length > 1 ? "s" : ""}
-                </td>
+                <td colSpan={6} />
               </tr>
             </tfoot>
           </table>
@@ -630,11 +595,7 @@ export default function Budget() {
       {editing ? (
         <PosteModal
           item={editing === "new" ? null : items.find((i) => i.id === editing.id) || editing}
-          onClose={() => {
-            // Un poste ajouté sans devis ni paiement se range sous « À prévoir » : on le montre
-            if (editing === "new") setShowPlanned(true);
-            setEditing(null);
-          }}
+          onClose={() => setEditing(null)}
         />
       ) : null}
     </>

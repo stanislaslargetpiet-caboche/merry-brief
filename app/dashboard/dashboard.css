@@ -1541,6 +1541,12 @@ button.d-rsvp:hover {
   font-weight: 600;
 }
 
+.d-modal-head h2.d-modal-title-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .d-modal-body {
   padding: 16px 22px 22px;
   display: flex;
@@ -3576,7 +3582,7 @@ button.d-rsvp:hover {
 /* Téléphone : trois indicateurs fixes, comme la maquette */
 .d-mstats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
   background: var(--d-panel);
   border-radius: 18px;
@@ -15809,9 +15815,19 @@ body.d-noscroll {
 
 .d-pay-head {
   margin: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--d-muted);
+  color: var(--d-orange-ink);
+  background: var(--d-orange-bg);
+  align-self: flex-start;
+}
+
+.d-pay-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .d-pay-list {

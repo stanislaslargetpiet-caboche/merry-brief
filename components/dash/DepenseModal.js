@@ -6,7 +6,7 @@
 
 import { useRef, useState } from "react";
 import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
-import { itemFinance, posteName } from "@/lib/dash/model";
+import { posteName } from "@/lib/dash/model";
 import { euros, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { Tile, guessIcon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
@@ -16,7 +16,7 @@ import { fileSize } from "@/lib/dash/documents";
 
 export default function DepenseModal({ onClose, itemId: initialItem }) {
   const dash = useDash();
-  const { items, members, meId, payments, folders = [] } = dash.data;
+  const { items, members, meId, folders = [] } = dash.data;
   // Aucun poste choisi d'office : une dépense rangée par erreur dans « Lieu » faussait le budget
   const [itemId, setItemId] = useState(initialItem || (items.length ? null : "new"));
   const [newLabel, setNewLabel] = useState("");
@@ -41,7 +41,6 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const label = what.trim().slice(0, 120) || vendor?.name || "Paiement";
   // Un poste qui a déjà un montant prévu (devis signé) : le reste se déduit du devis, rien à saisir
   const hadQuote = !isNew && item?.quote_amount !== null && item?.quote_amount !== undefined;
-  const finance = item && hadQuote ? itemFinance(item, payments) : null;
   const restAmount = !hadQuote && !full ? parseAmount(rest) || 0 : 0;
   const ready = value !== null && value > 0 && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
 
@@ -125,13 +124,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
         <Field label="Montant (€)">
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />
         </Field>
-        {hadQuote ? (
-          <p className="d-small d-muted d-field is-full" style={{ margin: 0 }}>
-            Montant prévu {euros(finance.quote)}, déjà payé {euros(finance.paid)}
-            {value ? ` : il restera ${euros(Math.max(0, finance.quote - finance.paid - (statutPaid ? value : 0)))} après cette dépense.` : "."}
-            {finance.upcoming.length ? ` ${finance.upcoming.length > 1 ? `${finance.upcoming.length} échéances sont déjà prévues` : "Une échéance est déjà prévue"} : si c'est elle que vous venez de régler, marquez-la payée depuis les paiements du poste.` : ""}
-          </p>
-        ) : (
+        {hadQuote ? null : (
         <Field label="Type" full group>
           <div className="d-filters" role="radiogroup" aria-label="Paiement intégral ou acompte">
             <button type="button" className={`d-pill${full ? " is-on" : ""}`} aria-pressed={full} onClick={() => setFull(true)}>
@@ -185,7 +178,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           </Field>
         )}
         <Field label="Descriptif (facultatif)" full>
-          <textarea className="d-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre, remise de 10 % négociée…" />
+          <textarea className="d-textarea" rows={1} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Acompte réglé à la signature, chèque remis en main propre, remise de 10 % négociée…" />
         </Field>
         <Field label="Facture ou devis (facultatif)" full group>
           <div className="d-filechoice">

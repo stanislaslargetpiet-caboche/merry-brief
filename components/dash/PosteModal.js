@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useDash } from "@/lib/dash/store";
+import { useRef, useState } from "react";
+import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
 import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessCatalogCategory } from "@/lib/dash/catalog";
-import { guessIcon } from "./icons";
+import { fileSize } from "@/lib/dash/documents";
+import { guessIcon, Icon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
-import { groupItems, posteName, removePosteMessage } from "@/lib/dash/model";
+import { posteName, removePosteMessage } from "@/lib/dash/model";
 import { CloseBtn, Layer } from "./Prestataires";
 import { CreateFicheDialog, useCreateFiche } from "./CreateFiche";
 import { Btn, Field, Modal } from "./ui";
@@ -18,10 +19,6 @@ export default function PosteModal({ item, onClose, focusQuote }) {
   const vendor = item?.vendor_id ? vendors.find((v) => v.id === item.vendor_id) : null;
   const quoteDoc = item ? documents.find((d) => d.budget_item_id === item.id && d.kind === "devis") : null;
   const canGroup = dash.mode === "demo" || dash.data.categoriesSetup;
-  // Postes déjà utilisés comme catégorie ou comme poste seul, proposés pour regrouper
-  const groupNames = groupItems(items.filter((i) => i.id !== item?.id))
-    .map((g) => g.name.split(" · ")[0])
-    .filter((n, i, all) => n && all.indexOf(n) === i);
   const [form, setForm] = useState({
     label: item?.label || "",
     category: item?.category || "",
@@ -29,11 +26,13 @@ export default function PosteModal({ item, onClose, focusQuote }) {
     vendorName: vendor?.name || "",
     quote: item?.quote_amount ?? "",
     signed: item?.quote_signed_at || (item?.quote_amount ? "" : todayIso()),
-    quoteUrl: quoteDoc?.url || "",
   });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const [merryPrompt, setMerryPrompt] = useState(null); // null | { name, vendorId, category }
   const { creating, busy: creatingBusy, runCreate, cancelCreate, confirmCreate } = useCreateFiche();
+  const [file, setFile] = useState(null); // nouveau devis choisi, pas encore envoyé
+  const [removeQuoteDoc, setRemoveQuoteDoc] = useState(false); // devis déjà envoyé, qu'on retire
+  const fileInput = useRef(null);
 
   async function save(e) {
     e?.preventDefault();
@@ -71,11 +70,11 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       await dash.insert("budget_items", { id: itemId, ...patch, icon: siblingIcon || guessIcon(grouped ? patch.category : form.label), position: items.length });
     }
     if (renamed && !grouped) refineIcon(dash, "budget_items", itemId, patch.label, guessIcon(patch.label));
-    const url = form.quoteUrl.trim();
-    if (url && /^https?:\/\//i.test(url)) {
-      if (quoteDoc) await dash.update("documents", quoteDoc.id, { url, vendor_id: vendorId });
-      else await dash.insert("documents", { budget_item_id: itemId, vendor_id: vendorId, kind: "devis", name: "Devis signé", url });
-    } else if (!url && quoteDoc) await dash.remove("documents", quoteDoc.id);
+    if (file) {
+      if (quoteDoc) await dash.remove("documents", quoteDoc.id);
+      const res = await dash.uploadDocument(file, { kind: "devis", budgetItemId: itemId, vendorId, name: file.name });
+      if (!res.ok) dash.setToast({ kind: "error", text: res.reason === "size" ? `Le devis dépasse ${fileSize(DOCUMENT_MAX_BYTES)}.` : res.reason === "setup" ? "Le stockage des documents n'est pas installé (supabase/documents.sql) : le poste est enregistré sans le devis." : "Le devis n'a pas pu être envoyé ; le poste est enregistré sans lui." });
+    } else if (removeQuoteDoc && quoteDoc) await dash.remove("documents", quoteDoc.id);
     // Un nouveau prestataire tapé à la main, dont on reconnaît le métier : propose de le faire rejoindre
     // le catalogue Merry plutôt que de rester une fiche isolée à ce mariage.
     if (newVendor && newVendor.category && dash.mode === "live") setMerryPrompt(newVendor);
@@ -103,8 +102,6 @@ export default function PosteModal({ item, onClose, focusQuote }) {
     onClose();
   }
 
-  const badUrl = form.quoteUrl.trim() && !/^https?:\/\//i.test(form.quoteUrl.trim());
-
   return (
     <>
     <Modal
@@ -130,7 +127,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
           <Btn kind="ghost" onClick={onClose}>
             Annuler
           </Btn>
-          <Btn onClick={save} disabled={!!badUrl}>
+          <Btn onClick={save}>
             Enregistrer
           </Btn>
         </>
@@ -139,19 +136,6 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       <form className="d-form-grid" onSubmit={save}>
         <Field label={form.category.trim() ? "Type de dépense" : "Poste"}>
           <input className="d-input" value={form.label} onChange={set("label")} placeholder={form.category.trim() ? "Tentiste" : "Traiteur"} required autoFocus={!focusQuote} />
-        </Field>
-        {canGroup ? (
-          <Field label="Regroupé dans le poste · facultatif" full hint="Plusieurs prestataires dans un même poste ? Indiquez le poste, par exemple « Lieu » pour un tentiste, un groupe électrogène, un foodtruck…">
-            <input className="d-input" value={form.category} onChange={set("category")} placeholder="Lieu" list="d-categories" maxLength={80} />
-            <datalist id="d-categories">
-              {groupNames.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
-          </Field>
-        ) : null}
-        <Field label="Budget prévu (€)">
-          <input className="d-input" inputMode="decimal" value={form.budgeted} onChange={set("budgeted")} placeholder="12 000" />
         </Field>
         <Field label="Prestataire" full>
           <input className="d-input" value={form.vendorName} onChange={set("vendorName")} placeholder="Maison Lemoine" list="d-vendors" autoFocus={!!focusQuote} />
@@ -167,8 +151,32 @@ export default function PosteModal({ item, onClose, focusQuote }) {
         <Field label="Signé le">
           <input className="d-input" type="date" value={form.signed} onChange={set("signed")} />
         </Field>
-        <Field label="Lien du devis" full hint={badUrl ? "Le lien doit commencer par https://" : "Drive, Dropbox, pièce jointe d'un mail… n'importe quel lien."}>
-          <input className="d-input" type="url" value={form.quoteUrl} onChange={set("quoteUrl")} placeholder="https://" />
+        <Field label="Devis (facultatif)" full group>
+          <div className="d-filechoice">
+            <input ref={fileInput} type="file" accept=".pdf,image/*,.doc,.docx" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            {file ? (
+              <span className="d-filechoice-name">
+                <Icon name="file" size={15} sw={2} />
+                <span>{file.name}</span>
+                <span className="d-muted">{fileSize(file.size)}</span>
+                <button type="button" className="d-icon-btn" style={{ width: 26, height: 26 }} aria-label="Retirer le fichier" onClick={() => setFile(null)}>
+                  <Icon name="x" size={13} sw={2.2} />
+                </button>
+              </span>
+            ) : quoteDoc && !removeQuoteDoc ? (
+              <span className="d-filechoice-name">
+                <Icon name="file" size={15} sw={2} />
+                <span>{quoteDoc.name}</span>
+                <button type="button" className="d-icon-btn" style={{ width: 26, height: 26 }} aria-label="Retirer le devis" onClick={() => setRemoveQuoteDoc(true)}>
+                  <Icon name="x" size={13} sw={2.2} />
+                </button>
+              </span>
+            ) : (
+              <Btn kind="ghost" small icon="upload" onClick={() => fileInput.current?.click()}>
+                Importer un PDF ou une photo
+              </Btn>
+            )}
+          </div>
         </Field>
         <button type="submit" hidden />
       </form>

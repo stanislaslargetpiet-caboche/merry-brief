@@ -128,9 +128,6 @@ export default function LigneModal({ category, onClose }) {
       }
     >
       <form onSubmit={save} className="d-col" style={{ gap: 16 }}>
-        <p className="d-small d-muted" style={{ margin: 0 }}>
-          Pour un prestataire de plus dans la même catégorie.
-        </p>
         <Field label="Type de dépense" hint={dup ? "Une ligne porte déjà ce nom dans ce poste." : undefined}>
           <input className="d-input" value={kind} onChange={(e) => setKind(e.target.value)} placeholder="Tentiste, foodtruck…" maxLength={80} autoFocus />
         </Field>

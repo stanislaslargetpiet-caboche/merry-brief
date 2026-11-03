@@ -106,9 +106,10 @@ export function Faces({ members, size = 20, ring = "#ffffff" }) {
 }
 
 // Pastille d'une personne ou de « Vous deux »
-export function PersonChip({ members, label, color }) {
+export function PersonChip({ members, label, color, avatarOnly }) {
   const list = members.filter(Boolean);
   if (!list.length) return <span className="d-muted d-small">À choisir</span>;
+  if (avatarOnly) return <Faces members={list} size={22} />;
   const p = pastel(color || (list.length > 1 ? "jaune" : list[0].color));
   return (
     <span className="d-person" style={{ background: p.bg, color: p.ink }}>
@@ -271,7 +272,7 @@ export function Bar({ value, color = "#1c1c1a", track = "#e4e2dc", height = 6 })
   );
 }
 
-export function Modal({ title, onClose, children, footer, wide }) {
+export function Modal({ title, icon, onClose, children, footer, wide }) {
   const ref = useRef(null);
   // Affichée à la racine du tableau de bord : ouverte depuis un en-tête de tableau, elle héritait sinon de ses majuscules et de son texte sans retour à la ligne
   const [host, setHost] = useState(null);
@@ -301,7 +302,10 @@ export function Modal({ title, onClose, children, footer, wide }) {
     <div className="d-modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`d-modal${wide ? " is-wide" : ""}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <div className="d-modal-head">
-          <h2>{title}</h2>
+          <h2 className={icon ? "d-modal-title-icon" : undefined}>
+            {icon}
+            {title}
+          </h2>
           <button type="button" className="d-icon-btn" onClick={onClose} aria-label="Fermer">
             <Icon name="x" size={16} sw={2.2} />
           </button>
