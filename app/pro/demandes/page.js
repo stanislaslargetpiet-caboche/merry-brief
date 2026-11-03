@@ -188,8 +188,8 @@ function Detail({ r, c, onBack }) {
       pro.setToast({ kind: "ok", text: `Réponse envoyée à ${r.names}. Elle arrive dans leur tableau de bord Merry.` });
       setText("");
       setFile(null);
-      if (pro.mode === "demo") setThread((t) => [...t, { id: String(Date.now()), from_vendor: true, body, sent_at: new Date().toISOString() }]);
-      else pro.loadThread(c.id).then(setThread);
+      // Le fil est relu après l'envoi (démo comme réel) : l'ajouter aussi à la main l'affichait deux fois
+      pro.loadThread(c.id).then(setThread);
     }
     setBusy(false);
   }

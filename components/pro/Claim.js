@@ -64,9 +64,16 @@ function formProblem(f) {
   return "";
 }
 
+// Le jeton du compte déjà connecté accompagne la vérification : la fiche rejoint ce compte au lieu de
+// basculer sur celui de l'adresse qui a reçu le code
 async function call(body) {
   try {
-    const res = await fetch("/api/pro/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const headers = { "Content-Type": "application/json" };
+    if (supabase && /verify$/.test(body.action || "")) {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.access_token) headers.authorization = `Bearer ${data.session.access_token}`;
+    }
+    const res = await fetch("/api/pro/claim", { method: "POST", headers, body: JSON.stringify(body) });
     const json = await res.json().catch(() => ({}));
     return { status: res.status, ...json };
   } catch {
@@ -116,6 +123,7 @@ export default function Claim() {
   const [creating, setCreating] = useState(false);
   const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
   const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
+  const [pendingSession, setPendingSession] = useState(null); // posée au clic sur Bienvenue
   const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
   const [loginEmail, setLoginEmail] = useState("");
   const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
@@ -355,18 +363,17 @@ export default function Claim() {
       setError(ERRORS[res.error] || ERRORS.bad_code);
       return;
     }
-    await supabase.auth.setSession(res.session);
-    // Une fiche qui vient d'être créée : écran de préparation, puis Bienvenue
-    if (creating) {
-      setPreparing("create");
-      return;
-    }
-    // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte)
+    // Création ou revendication : la fiche obtenue s'ouvre ensuite, elle (et pas une autre fiche du compte).
+    // La nouvelle session n'est posée qu'au clic sur Bienvenue : la poser maintenant rechargerait l'espace
+    // et couperait Préparation et Bienvenue en plein milieu.
     if (!logging) {
-      pro.rememberVendor(picked.id);
-      setPreparing("claim");
+      const vid = res.vendorId || picked?.id;
+      if (vid) pro.rememberVendor(vid);
+      setPendingSession(res.session || null);
+      setPreparing(creating ? "create" : "claim");
       return;
     }
+    await supabase.auth.setSession(res.session);
     await pro.reload();
     // Toujours là après la connexion : ce compte n'a pas encore de fiche
     if (logging) {
@@ -437,6 +444,11 @@ export default function Claim() {
     setPreparing(null);
   }
 
+  async function goTo(path) {
+    if (pendingSession && supabase) await supabase.auth.setSession(pendingSession);
+    window.location.assign(demo ? `${path}?demo=1` : path);
+  }
+
   if (preparing === "create") {
     return (
       <Preparation
@@ -458,16 +470,10 @@ export default function Claim() {
     );
   }
   if (welcome === "create") {
-    return <Welcome name={form.name.trim()} primary={{ label: "Accéder à mon dashboard", onClick: () => window.location.assign(demo ? "/pro?demo=1" : "/pro") }} />;
+    return <Welcome name={form.name.trim()} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
   }
   if (welcome === "claim") {
-    return (
-      <Welcome
-        name={picked.name}
-        primary={{ label: "Compléter ma fiche", onClick: () => window.location.assign(demo ? "/pro/fiche?demo=1" : "/pro/fiche") }}
-        secondary={{ label: "Accéder au dashboard", onClick: () => window.location.assign(demo ? "/pro?demo=1" : "/pro") }}
-      />
-    );
+    return <Welcome name={picked.name} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
 
   const flow = logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
