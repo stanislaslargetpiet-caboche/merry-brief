@@ -592,7 +592,9 @@ export default function Claim() {
                   <input id="pro-name" className="p-claim-input" autoComplete="organization" autoFocus {...field("name")} />
                 </div>
                 <p className="p-claim-help">Quelle est votre activité ?</p>
-                <Pills options={CATEGORIES.map(([slug, label]) => ({ value: slug, label }))} value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))} label="Activité" />
+                <div className="p-claim-cats">
+                  <Pills options={CATEGORIES.map(([slug, label]) => ({ value: slug, label }))} value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))} label="Activité" />
+                </div>
                 <button type="button" className="p-claim-link p-claim-tel-only" onClick={backToSearch}>
                   J’ai déjà une fiche Merry
                 </button>

@@ -1,13 +1,20 @@
 "use client";
 
-// Accueil de l'espace prestataire (maquettes V1 et V1m)
+// Accueil de l'espace prestataire (maquettes Vendor-Accueil / -Tel). Refait le 3 nov. 2026 pour
+// suivre le canvas de près, à la demande de Stan : bandeau de 4 chiffres, puis 3 cartes (Crédits,
+// Temps de réponse, Fiche complète) sur ordinateur — une ligne de 3 chiffres sur téléphone — puis un
+// seul flux « Demandes » (nouveaux leads et demandes déjà répondues), à la place des sections séparées
+// (à traiter, à relancer, prochaines dates, ce mois-ci, vos performances, vos crédits) de l'ancienne
+// maquette V1. « Leads intrants » = demandes non répondues reçues dans les 7 derniers jours ;
+// « Demandes live » = clients en cours de discussion (devis ou visite) — le canvas ne précise pas ces
+// deux définitions, ce sont les plus proches de ce que les données existantes permettent de calculer.
 
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { completeness, creditsRoi, dateLong, firstName, guestsText, monthName, responseStats, since, todayIsoLocal, todayLabel, weddingWhen } from "@/lib/pro/format";
-import { dayMonth, shortDate, today } from "@/lib/dash/format";
-import { ProIcon } from "@/components/pro/icons";
+import { completeness, creditsRoi, guestsText, responseStats, since, weddingWhen } from "@/lib/pro/format";
 import { Face } from "@/components/pro/ui";
+
+const WEEK_MS = 7 * 24 * 3600 * 1000;
 
 export default function ProHome() {
   const pro = usePro();
@@ -16,205 +23,124 @@ export default function ProHome() {
   const fill = completeness(d);
   const clients = d.clients || [];
   const byId = new Map(clients.map((c) => [c.id, c]));
-  const todo = (d.requests || []).filter((r) => !r.answered).slice(0, 3);
-  const now = todayIsoLocal();
-  const chase = clients.filter((c) => ["devis", "visite", "reserve"].includes(c.stage) && c.next_action_on && c.next_action_on <= now).slice(0, 4);
-  const booked = (d.dates || [])
-    .filter((x) => x.status === "reserve" && x.day >= now)
-    .sort((a, b) => a.day.localeCompare(b.day))
-    .slice(0, 3);
+  const requests = d.requests || [];
+  const answered = requests.filter((r) => r.answered);
+  const now = Date.now();
+  const incoming = requests.filter((r) => !r.answered && now - new Date(r.requested_at).getTime() < WEEK_MS);
+  const live = clients.filter((c) => ["devis", "visite"].includes(c.stage));
   const credits = d.pro?.credits ?? 0;
   const resp = responseStats(d);
   const roi = creditsRoi(d);
+  // Les demandes les plus récentes, nouvelles ou déjà répondues, comme un fil d'activité
+  const feed = [...requests].sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at)).slice(0, 5);
 
   return (
     <>
       <div className="p-head">
-        <div className="p-head-text">
-          <h1 className="p-h1">Bonjour {v.name}</h1>
-          <p className="p-lead">{todayLabel()}</p>
-        </div>
-        <Link href="/pro/fiche?apercu=1" className="p-btn p-btn-ghost p-desk-only">
-          Voir ma fiche publique
+        <h1 className="p-h1 is-page">Dashboard.</h1>
+        <Link href="/pro/demandes" className="p-btn p-btn-ghost">
+          Toutes les demandes
         </Link>
       </div>
 
-      <section className="p-fill">
-        <div className="p-fill-head">
-          <h2>{fill.pct === 100 ? "Votre fiche est complète" : `Votre fiche est complète à ${fill.pct} %`}</h2>
-          <Link href="/pro/fiche" className="p-link is-small">
-            Voir ma fiche
-          </Link>
+      <div className="p-acc-stats">
+        <div>
+          <b>{requests.length}</b>
+          <span>Demandes reçues</span>
         </div>
-        <div role="progressbar" aria-label="Fiche complète" aria-valuemin={0} aria-valuemax={100} aria-valuenow={fill.pct} className="p-bar">
-          <span style={{ width: `${fill.pct}%` }} />
+        <div>
+          <b>{live.length}</b>
+          <span>Demandes live</span>
         </div>
-        {fill.next ? (
-          <div className="p-fill-next">
-            <span>
-              <span className="p-muted">Prochaine étape :</span> {fill.next.label}
-            </span>
-            <Link href={fill.next.href || `/pro/fiche#${fill.next.anchor}`} className="p-link">
-              {fill.next.action}
-              <ProIcon name="arrow" size={16} sw={2} />
-            </Link>
-          </div>
-        ) : null}
-      </section>
-
-      <div className="p-home-grid">
-        <div className="p-col">
-          <section className="p-card p-todo">
-            <div className="p-card-head">
-              <h2>Demandes à traiter</h2>
-              <Link href="/pro/demandes" className="p-link is-small">
-                Toutes les demandes
-              </Link>
-            </div>
-            {todo.length ? (
-              <ul className="p-rows">
-                {todo.map((r) => {
-                  const c = byId.get(r.client_id) || {};
-                  return (
-                    <li key={r.client_id} className="p-todo-row">
-                      <Face names={r.names} />
-                      <div className="p-who">
-                        <span className="p-who-name">{r.names}</span>
-                        <span className="p-who-meta">{[weddingWhen({ ...c, wedding_date: c.wedding_date || r.wedding_date }), guestsText(c.guests)].filter(Boolean).join(" · ")}</span>
-                        <span className="p-who-when p-phone-block">{since(r.requested_at)}</span>
-                      </div>
-                      <span className="p-who-when p-desk-only">{since(r.requested_at)}</span>
-                      <Link href={`/pro/demandes?demande=${r.client_id}`} className="p-btn p-btn-primary is-40">
-                        Répondre
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="p-empty-line">Aucune demande en attente. Les demandes des couples arrivent ici, gratuitement.</p>
-            )}
-          </section>
-
-          {chase.length ? (
-            <section className="p-block">
-              <h2 className="p-h2">À relancer aujourd’hui</h2>
-              <ul className="p-chase">
-                {chase.map((c) => (
-                  <li key={c.id}>
-                    <div className="p-chase-who">
-                      <Face names={c.names} size={40} />
-                      <div className="p-who">
-                        <span className="p-who-name">{c.names}</span>
-                        <span className="p-who-meta is-small">{[weddingWhen(c), guestsText(c.guests)].filter(Boolean).join(" · ")}</span>
-                      </div>
-                    </div>
-                    <p>{chaseText(c)}</p>
-                    <div className="p-chase-actions">
-                      <Link href={`/pro/clients?client=${c.id}&ecrire=1`} className="p-btn p-btn-ghost is-40">
-                        {c.stage === "reserve" ? "Envoyer un rappel" : `Relancer ${firstName(c.names)}`}
-                      </Link>
-                      <Link href={`/pro/clients?client=${c.id}`} className="p-link is-small is-muted">
-                        Voir le dossier
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+        <div>
+          <b className="is-amber">{incoming.length}</b>
+          <span>Leads intrants</span>
         </div>
-
-        <div className="p-col is-side">
-          <section className="p-card p-booked">
-            <div className="p-card-head">
-              <h2>Prochaines dates réservées</h2>
-            </div>
-            {booked.length ? (
-              <ul className="p-rows">
-                {booked.map((x) => (
-                  <li key={x.id} className="p-booked-row">
-                    <span className="p-booked-day">{dateLong(x.day)}</span>
-                    <span className="p-booked-who">{byId.get(x.client_id)?.names || x.label || "Réservé"}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="p-empty-line">Aucune date réservée pour l’instant.</p>
-            )}
-            <Link href="/pro/tarifs" className="p-link is-small">
-              Voir le calendrier
-              <ProIcon name="arrow" size={16} sw={2} />
-            </Link>
-          </section>
-
-          <section className="p-block is-tight">
-            <div className="p-month-head">
-              <h2>Ce mois-ci</h2>
-              <span>{monthName(today())}</span>
-            </div>
-            <div className="p-stats">
-              <div>
-                <span className="p-stat">{d.stats?.views ?? 0}</span>
-                <span className="p-stat-label">Vues de votre fiche</span>
-              </div>
-              <div>
-                <span className="p-stat">{d.stats?.picks ?? 0}</span>
-                <span className="p-stat-label">Ajouts aux sélections</span>
-              </div>
-              <div>
-                <span className="p-stat">{d.stats?.requests ?? 0}</span>
-                <span className="p-stat-label">Demandes de devis</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="p-block is-tight">
-            <div className="p-month-head">
-              <h2>Vos performances</h2>
-            </div>
-            <div className="p-stats">
-              <div>
-                <span className="p-stat">{resp ? `${resp.avgHours} h` : "—"}</span>
-                <span className="p-stat-label">Temps de réponse moyen</span>
-              </div>
-              <div>
-                <span className="p-stat">{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</span>
-                <span className="p-stat-label">Coût moyen par réservation</span>
-              </div>
-              <div>
-                <span className="p-stat">{v.google_rating ? v.google_rating.toLocaleString("fr-FR") : "—"}</span>
-                <span className="p-stat-label">Note Google{v.google_review_count ? ` · ${v.google_review_count} avis` : ""}</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="p-credits-card">
-            <h2>Vos crédits</h2>
-            <span className="p-credits-big">
-              {credits} crédit{credits > 1 ? "s" : ""}
-            </span>
-            <div className="p-credits-plan">
-              <span className="p-muted">0,90&nbsp;€ le crédit · sans abonnement</span>
-            </div>
-            <Link href="/pro/credits" className="p-link">
-              Acheter des crédits
-              <ProIcon name="arrow" size={16} sw={2} />
-            </Link>
-          </section>
+        <div>
+          <b>{answered.length}</b>
+          <span>Répondues</span>
         </div>
       </div>
 
-      <Link href="/pro/fiche?apercu=1" className="p-btn p-btn-ghost p-phone-only p-full">
-        Voir ma fiche publique
-      </Link>
+      <div className="p-acc-cards p-desk-only">
+        <div className="p-acc-card">
+          <div className="p-acc-card-head">
+            <span>Crédits</span>
+            <Link href="/pro/credits" className="p-link is-small">
+              Détail
+            </Link>
+          </div>
+          <span className="p-acc-card-n">
+            {credits} <small>/ 100</small>
+          </span>
+          <span className="p-acc-bar">
+            <span style={{ width: `${Math.min(100, credits)}%` }} />
+          </span>
+        </div>
+        <div className="p-acc-card">
+          <span className="p-acc-card-label">Temps de réponse</span>
+          <span className="p-acc-resp">
+            <span className="p-acc-card-n">{resp ? `${resp.avgHours} h` : "—"}</span>
+            {resp && resp.avgHours <= 4 ? <span className="p-chip-fast">Répond vite</span> : null}
+          </span>
+        </div>
+        <div className="p-acc-card">
+          <div className="p-acc-card-head">
+            <span>Fiche complète</span>
+            <Link href="/pro/fiche" className="p-link is-small">
+              Compléter
+            </Link>
+          </div>
+          <span className="p-acc-card-n">{fill.pct} %</span>
+          <span className="p-acc-bar is-ink">
+            <span style={{ width: `${fill.pct}%` }} />
+          </span>
+        </div>
+      </div>
+
+      <div className="p-acc-perf p-phone-only">
+        <div>
+          <span>Temps de réponse</span>
+          <b>{resp ? `${resp.avgHours} h` : "—"}</b>
+        </div>
+        <div>
+          <span>Coût / résa</span>
+          <b>{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</b>
+        </div>
+        <div>
+          <span>Note Google</span>
+          <b>{v.google_rating ? `${v.google_rating.toLocaleString("fr-FR")}${v.google_review_count ? ` · ${v.google_review_count} avis` : ""}` : "—"}</b>
+        </div>
+      </div>
+
+      <section className="p-card p-acc-feed" aria-label="Demandes">
+        <h2 className="p-h2">Demandes</h2>
+        {feed.length ? (
+          <ul className="p-rows">
+            {feed.map((r) => {
+              const c = byId.get(r.client_id) || {};
+              return (
+                <li key={r.client_id} className="p-acc-row">
+                  <Face names={r.names} />
+                  <div className="p-who">
+                    <span className="p-who-name">{r.names}</span>
+                    <span className="p-who-meta">{[weddingWhen({ ...c, wedding_date: c.wedding_date || r.wedding_date }), guestsText(c.guests), since(r.requested_at)].filter(Boolean).join(" · ")}</span>
+                  </div>
+                  <span className={`p-chip ${r.answered ? "is-answered" : "is-live"}`}>{r.answered ? "Répondue" : "Nouveau lead"}</span>
+                  <Link href={`/pro/demandes?demande=${r.client_id}`} className={`p-btn ${r.answered ? "p-btn-ghost" : "p-btn-primary"} is-40`}>
+                    {r.answered ? "Voir" : "Répondre"}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="p-empty-line">Aucune demande en attente. Les demandes des couples arrivent ici, gratuitement.</p>
+        )}
+        <Link href="/pro/demandes" className="p-link p-phone-only p-acc-more">
+          Voir toutes les demandes
+        </Link>
+      </section>
     </>
   );
-}
-
-// Ce qui attend le prestataire pour ce couple
-function chaseText(c) {
-  if (c.stage === "devis") return c.answered_at ? `Devis envoyé le ${shortDate(String(c.answered_at).slice(0, 10))}, pas encore de réponse.` : `${c.next_action || "Relancer"}.`;
-  if (c.stage === "reserve" && c.notes) return c.notes;
-  return `${c.next_action || "À relancer"}${c.next_action_on ? `, prévu le ${dayMonth(c.next_action_on)}` : ""}.`;
 }
