@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
-import { SITE_URL } from "@/lib/site";
+import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
 import FeatureDialog from "./FeatureDialog";
@@ -158,7 +158,17 @@ function Frame({ children }) {
           })}
         </div>
         <div className="p-nav-bottom">
-          <CollabWidget />
+          <div className="d-help">
+            <Link className={`d-help-btn${pathname.startsWith("/pro/compte") ? " is-on" : ""}`} href="/pro/compte">
+              <Icon name="settings" size={16} sw={2} />
+              <span>Réglages</span>
+            </Link>
+            <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              <Icon name="bubble" size={16} sw={2} />
+              <span>Aide</span>
+            </a>
+          </div>
+          <CollabTeam />
           <VendorSwitch />
           <Link href="/pro/credits" className="p-credits-pill">
             <CreditsCoins size={16} />
@@ -200,30 +210,37 @@ function Frame({ children }) {
   );
 }
 
-// Aperçu des collaborateurs dans la barre latérale (maquette Compte) : raccourci vers /pro/compte
-function CollabWidget() {
+// Collaborateurs dans la barre latérale (maquette Compte), sur le modèle de la carte « Organisateurs »
+// du tableau de bord des couples (components/dash/Shell.js) : avatars, invitation en attente, bouton d'invitation
+function CollabTeam() {
   const pro = usePro();
   const members = pro.data.members || [];
-  const others = members.filter((m) => m.user_id !== pro.data.user?.id);
-  if (!others.length) return null;
-  const shown = others.slice(0, 2);
-  const first = shown[0];
-  const text = first.user_id ? `${first.display_name || first.email} peut répondre à vos demandes.` : `Invitation envoyée à ${first.display_name || first.email}.`;
+  if (!members.length) return null;
+  const pending = members.filter((m) => !m.user_id);
+  const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${pending[0].display_name || pending[0].email} n’a pas encore rejoint.`) : null;
   return (
-    <Link href="/pro/compte" className="p-collab-widget">
-      <span className="p-collab-label">Collaborateurs</span>
-      <span className="p-collab-avatars">
-        {shown.map((m) => (
-          <span key={m.id} className="p-collab-avatar" aria-hidden="true">
-            {(m.display_name || m.email || "?")[0].toUpperCase()}
+    <div className="d-team">
+      <div className="d-team-title">Collaborateurs</div>
+      <Link href="/pro/compte" className="d-team-faces" aria-label="Voir les collaborateurs">
+        {members.slice(0, 5).map((m, i) => (
+          <span key={m.id} style={{ marginLeft: i ? -9 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
+            <span
+              aria-hidden="true"
+              style={{ width: 32, height: 32, borderRadius: 999, background: "#ffffff", border: "2px solid #ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "11.5px", fontWeight: 700 }}
+            >
+              {(m.display_name || m.email || "?")[0].toUpperCase()}
+            </span>
           </span>
         ))}
-        <span className="p-collab-add" aria-hidden="true">
-          <Icon name="plus" size={13} sw={2.4} />
+        <span className="d-team-plus" style={{ marginLeft: members.length ? -9 : 0 }}>
+          <Icon name="plus" size={14} sw={2} />
         </span>
-      </span>
-      <span className="p-collab-text">{text}</span>
-    </Link>
+      </Link>
+      {note ? <div className="d-team-note">{note}</div> : null}
+      <Link href="/pro/compte" className="d-btn d-btn-primary d-btn-small d-btn-block">
+        Inviter un collaborateur
+      </Link>
+    </div>
   );
 }
 
