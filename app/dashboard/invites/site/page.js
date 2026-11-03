@@ -119,7 +119,7 @@ export default function InvitesSite() {
         <Link href="/dashboard/invites?st=attente" className="d-isite-card">
           <strong>{g.attente}</strong>
           <span>Invités sans réponse</span>
-          <small>À relancer avec le lien du site</small>
+          <small>Voir qui n’a pas encore répondu</small>
         </Link>
         {data.site?.published && visits7j != null ? (
           <div className="d-isite-card">

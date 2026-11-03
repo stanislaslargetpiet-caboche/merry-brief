@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-// Fiche d'un invité, une colonne : son nom et ses actions (relancer, accompagnant, retirer), ses réponses
+// Fiche d'un invité, une colonne : son nom et ses actions (accompagnant, retirer), ses réponses
 // par moment, puis une seule liste de tout ce que le tableau sait de lui (contact, adresse, régime, âge,
 // colonnes ajoutées), ce qui est renseigné d'abord, et la note pour l'équipe. Chaque champ se modifie en
 // cliquant dessus, comme dans le tableau.
@@ -16,8 +16,6 @@ import { LIST_PATH, listHref } from "@/lib/dash/guestView";
 import { Btn, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
 import { fieldMode } from "@/lib/dash/form";
 import GroupCell from "@/components/dash/GroupCell";
-import { agoDays, hasContact } from "@/lib/dash/relance";
-import RelanceModal from "@/components/dash/RelanceModal";
 import { ChoiceCell } from "@/components/dash/ColumnModal";
 
 function splitName(s) {
@@ -49,7 +47,6 @@ export default function FicheInvite() {
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
   const addingPlus = useRef(false);
-  const [relancing, setRelancing] = useState(false);
 
   if (!guest) return <PageHeader back={{ href: back, label: "Invités" }} title="Invité introuvable." />;
 
@@ -57,8 +54,6 @@ export default function FicheInvite() {
   const r = idx.get(guest.id) || {};
   const host = guest.plus_one_of ? byId.get(guest.plus_one_of) : null;
   const plusOnes = guests.filter((g) => g.plus_one_of === guest.id);
-  const pending = events.some((ev) => (r[ev.id] || "non_invite") === "attente");
-  const remindedDays = agoDays(guest.reminded_at);
   const answerOf = (evId) => responses.find((x) => x.guest_id === guest.id && x.event_id === evId);
   // Dernière trace de l'historique pour ce moment : « par le formulaire, 8 oct. » ou « par Léa, 12 nov. »
   const traceOf = (evId) => {
@@ -164,14 +159,8 @@ export default function FicheInvite() {
               +1 : {fullName(p) || "à nommer"}
             </Link>
           ))}
-          {guest.reminded_at && remindedDays !== null ? <span className="d-muted">{remindedDays === 0 ? "Relancé aujourd'hui" : remindedDays === 1 ? "Relancé hier" : `Relancé il y a ${remindedDays} j`}</span> : null}
         </div>
         <div className="d-fiche-actions">
-          {pending && !host && hasContact(guest) ? (
-            <Btn icon="send" onClick={() => setRelancing(true)}>
-              Relancer
-            </Btn>
-          ) : null}
           {!host ? (
             <Btn kind="ghost" icon="plus" onClick={addPlusOne}>
               Accompagnant
@@ -215,8 +204,6 @@ export default function FicheInvite() {
           Retirer {label} de la liste
         </button>
       </div>
-
-      {relancing ? <RelanceModal guests={[guest]} onClose={() => setRelancing(false)} onMarked={(ids) => dash.updateGuests(ids, { reminded_at: new Date().toISOString() })} /> : null}
     </div>
   );
 }

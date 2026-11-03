@@ -4,7 +4,7 @@
 // - une ligne de chiffres (lien vers les indicateurs), une recherche avec les filtres dedans ;
 // - des sections par groupe (ou par réponse), repliables, avec leur compte ;
 // - une ligne par invité : nom, pastille de réponse ; glisser à droite = vient, à gauche = ne vient pas ;
-// - la pastille ouvre une feuille en bas : la réponse pour chaque moment, la fiche, la relance.
+// - la pastille ouvre une feuille en bas : la réponse pour chaque moment, et la fiche.
 // Le filtrage, le tri et l'enregistrement (avec Annuler) restent ceux de la page : la liste reçoit `shown`
 // et `applyValues`, rien n'est recalculé ici.
 
@@ -33,7 +33,7 @@ function readGroupBy(fallback) {
 // Les moments auxquels l'invité est convié : c'est à ceux-là qu'un glissement répond
 const invitedEvents = (r, events) => events.filter((ev) => (r[ev.id] || "non_invite") !== "non_invite");
 
-export default function InvitesMobile({ data, shown, stats, events, groups, idx, byId, groupById, query, setQuery, filterCount, onFilters, pending, onRelance, applyValues, okUndo }) {
+export default function InvitesMobile({ data, shown, stats, events, groups, idx, byId, groupById, query, setQuery, filterCount, onFilters, applyValues, okUndo }) {
   const filtered = filterCount > 0 || query.trim().length > 0;
   const [groupBy, setGroupBy] = useState(() => readGroupBy(groups.length > 1 ? "groupe" : "aucun"));
   const [closed, setClosed] = useState(() => new Set());
@@ -103,12 +103,6 @@ export default function InvitesMobile({ data, shown, stats, events, groups, idx,
           ))}
           <Icon name="chev" size={12} sw={2.4} />
         </Link>
-        {pending.length ? (
-          <button type="button" className="d-mlist-relance" onClick={() => onRelance(pending)}>
-            <Icon name="send" size={13} sw={2.2} />
-            Relancer <span>{pending.length}</span>
-          </button>
-        ) : null}
       </div>
 
       <label className="d-msearch">
@@ -164,7 +158,7 @@ export default function InvitesMobile({ data, shown, stats, events, groups, idx,
         })
       )}
 
-      {current ? <GuestSheet guest={current} events={events} idx={idx} byId={byId} groupById={groupById} pending={pending.some((p) => p.id === current.id)} onRelance={() => onRelance([current])} onClose={() => setSheet(null)} onPick={(ev, k) => applyValues([{ id: current.id, key: `ev:${ev.id}`, value: k }])} /> : null}
+      {current ? <GuestSheet guest={current} events={events} idx={idx} byId={byId} groupById={groupById} onClose={() => setSheet(null)} onPick={(ev, k) => applyValues([{ id: current.id, key: `ev:${ev.id}`, value: k }])} /> : null}
     </div>
   );
 }
@@ -228,8 +222,8 @@ function Row({ guest: g, events, idx, byId, groupById, showGroup, onOpen, onAnsw
   );
 }
 
-// Feuille en bas : la réponse pour chaque moment, la fiche, la relance
-function GuestSheet({ guest: g, events, idx, byId, groupById, pending, onRelance, onClose, onPick }) {
+// Feuille en bas : la réponse pour chaque moment, et la fiche
+function GuestSheet({ guest: g, events, idx, byId, groupById, onClose, onPick }) {
   const ref = useRef(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -288,12 +282,6 @@ function GuestSheet({ guest: g, events, idx, byId, groupById, pending, onRelance
           {!events.length ? <p className="d-small d-muted">Ajoutez un moment (cocktail, dîner…) pour noter les réponses.</p> : null}
         </div>
         <div className="d-msheet-actions">
-          {pending ? (
-            <button type="button" className="d-btn d-btn-ghost" onClick={onRelance}>
-              <Icon name="send" size={15} sw={2.2} />
-              Relancer
-            </button>
-          ) : null}
           <Link href={`/dashboard/invites/${g.id}`} className="d-btn d-btn-primary">
             Voir la fiche
           </Link>
