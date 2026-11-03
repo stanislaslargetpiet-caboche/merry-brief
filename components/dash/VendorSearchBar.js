@@ -65,10 +65,15 @@ export default function VendorSearchBar() {
     };
   }, [q, dash.mode, searched]);
 
+  // noMatch, dash.mode et q sont les seules dépendances : google.searching/done ne doivent PAS en faire
+  // partie. Ce sont ce même effet qui les modifie via setGoogle ; les y inclure provoquait un aller-retour
+  // (l'effet se relance dès que searching passe à true, nettoie l'appel qu'il vient de lancer — live
+  // passe à false — puis ressort aussitôt sans rien faire, laissant la vraie réponse Google, une fois
+  // arrivée, être ignorée par ce live devenu faux : recherche bloquée en « … » pour toujours, silencieusement).
   useEffect(() => {
-    if (!noMatch || google.searching || google.done) return undefined;
+    if (!noMatch) return undefined;
     let live = true;
-    setGoogle((g) => ({ ...g, searching: true }));
+    setGoogle({ searching: true, done: false, results: [] });
     (async () => {
       const token = dash.mode === "live" && supabase ? (await supabase.auth.getSession()).data?.session?.access_token : null;
       const r = await searchGoogleVendor(dash.mode, q, token);
@@ -77,7 +82,7 @@ export default function VendorSearchBar() {
     return () => {
       live = false;
     };
-  }, [noMatch, google.searching, google.done, dash.mode, q]);
+  }, [noMatch, dash.mode, q]);
 
   const refineArea = manual ? form.area.trim() : "";
 
