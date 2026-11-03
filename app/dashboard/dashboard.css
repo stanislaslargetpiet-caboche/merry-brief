@@ -2429,6 +2429,13 @@ button.d-rsvp:hover {
   .d-root {
     flex-direction: column;
     background: #ffffff;
+    /* Rien ne doit élargir la page : une bande qui déborde défile dans sa bande, pas la page entière */
+    overflow-x: clip;
+  }
+
+  /* Pages avec un bouton « + » flottant : la dernière ligne reste lisible au-dessus du bouton */
+  .d-root:has(.d-fab) .d-main {
+    padding-bottom: calc(148px + env(safe-area-inset-bottom));
   }
 
   .d-nav,
@@ -2492,6 +2499,8 @@ button.d-rsvp:hover {
     position: sticky;
     top: 0;
     z-index: 40;
+    /* Le titre et les onglets qui défilent sous la barre ne doivent pas réapparaître à travers elle */
+    isolation: isolate;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -13022,12 +13031,16 @@ body.d-noscroll {
   gap: 18px;
 }
 
-/* Sur une fenêtre étroite, les onglets défilent au lieu d'élargir la page */
+/* Sur une fenêtre étroite, les onglets défilent au lieu d'élargir la page. Jamais de défilement vertical
+   dans la bande (sur iPhone, un geste légèrement oblique la faisait glisser vers le haut et coupait les
+   onglets en deux : l'onglet déborde d'un pixel sous la ligne, de quoi rendre la bande défilable). */
 .d-itabs {
   display: flex;
   gap: 28px;
   border-bottom: 1px solid var(--d-line);
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
@@ -13526,6 +13539,7 @@ body.d-noscroll {
     margin: 0 -16px;
     padding: 0 16px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
   }
 

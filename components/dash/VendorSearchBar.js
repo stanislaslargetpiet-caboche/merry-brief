@@ -105,7 +105,7 @@ export default function VendorSearchBar() {
         <input
           type="search"
           className="d-pr-search-input"
-          placeholder="Ajouter un prestataire que vous avez déjà…"
+          placeholder="Ajouter un prestataire déjà trouvé…"
           value={q}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
