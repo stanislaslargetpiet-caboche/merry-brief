@@ -777,6 +777,11 @@
   font-weight: 500;
   --p-muted: #5f5e58;
   --p-line: #e4e2dc;
+  /* Rendu hors de .d-root (écran de connexion/revendication) : ces variables n'existent pas encore */
+  --d-ink: #1c1c1a;
+  --d-lime: #fff700;
+  --d-panel: #f6f5f1;
+  --d-border: #d9d7cf;
 }
 
 .p-claim-panel {
@@ -4932,6 +4937,9 @@ button.p-dem-item {
   color: var(--d-ink, #1c1c1a);
   position: relative;
   overflow: hidden;
+  /* Rendu hors de .d-root : ces variables n'existent pas encore */
+  --d-ink: #1c1c1a;
+  --d-lime: #fff700;
 }
 
 .p-prep-head {
@@ -5406,4 +5414,77 @@ button.p-dem-item {
   width: 100%;
   min-height: 38px;
   font-size: 13px;
+}
+
+/* ---------- Bienvenue (fin de la création/revendication, maquettes Onb5/Rev4) ---------- */
+
+.p-welcome {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--d-ink, #1c1c1a);
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Rendu hors de .d-root : ces variables n'existent pas encore */
+  --d-ink: #1c1c1a;
+  --d-lime: #fff700;
+}
+
+.p-welcome-blob {
+  position: absolute;
+  top: -220px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 760px;
+  height: 760px;
+  border-radius: 999px;
+  background: var(--d-lime);
+  opacity: 0.3;
+}
+
+.p-welcome-logo {
+  position: absolute;
+  top: 28px;
+  left: 48px;
+}
+
+.p-welcome-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 22px;
+  width: 600px;
+  max-width: calc(100% - 32px);
+}
+
+.p-welcome-check {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: var(--d-ink, #1c1c1a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p-welcome-h1 {
+  margin: 0;
+  font-family: "Alan Sans", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.05;
+}
+
+@media (max-width: 700px) {
+  .p-welcome-logo {
+    top: 18px;
+    left: 20px;
+  }
 }
