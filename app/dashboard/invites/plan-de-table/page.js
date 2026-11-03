@@ -87,14 +87,16 @@ export default function PlanDeTable() {
     }
   }
   const [addCap, setAddCap] = useState(DEFAULT_CAPACITY);
-  const [addOpen, setAddOpen] = useState(false);
   function AddTableMenu({ kind, children = "Ajouter une table" }) {
+    // État d'ouverture propre à chaque bouton : sinon celui du haut et celui du bas (vide) partagent
+    // le même popover et s'ouvrent ensemble.
+    const [open, setOpen] = useState(false);
     return (
       <span className="d-anchor">
-        <Btn kind={kind} icon="plus" onClick={() => setAddOpen((o) => !o)} disabled={!setup || !eventId}>
+        <Btn kind={kind} icon="plus" onClick={() => setOpen((o) => !o)} disabled={!setup || !eventId}>
           {children}
         </Btn>
-        <Popover open={addOpen} onClose={() => setAddOpen(false)}>
+        <Popover open={open} onClose={() => setOpen(false)}>
           <div className="d-seat-addcap">
             <span className="d-small d-muted">Places à la table</span>
             <span className="d-seat-stepper">
@@ -110,7 +112,7 @@ export default function PlanDeTable() {
               small
               className="d-btn-block"
               onClick={() => {
-                setAddOpen(false);
+                setOpen(false);
                 addTable(addCap);
               }}
             >
