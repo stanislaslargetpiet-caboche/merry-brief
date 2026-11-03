@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
 import { completeness, creditsRoi, guestsText, isPastClient, responseStats, since, weddingWhen } from "@/lib/pro/format";
+import { CreditsCoins } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
 
 export default function ProHome() {
@@ -60,7 +61,16 @@ export default function ProHome() {
         </div>
         <div className="p-acc-card">
           <span className="p-acc-card-label">Coût moyen par réservation</span>
-          <span className="p-acc-card-n">{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</span>
+          <span className="p-acc-card-n p-acc-card-n-credits">
+            {roi.perBooking !== null ? (
+              <>
+                <CreditsCoins size={18} />
+                {roi.perBooking} crédits
+              </>
+            ) : (
+              "—"
+            )}
+          </span>
         </div>
         <div className="p-acc-card">
           <div className="p-acc-card-head">

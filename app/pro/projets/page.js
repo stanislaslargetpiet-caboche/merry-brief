@@ -10,7 +10,7 @@ import { usePro } from "@/lib/pro/store";
 import { Popover } from "@/components/dash/ui";
 import { toDate } from "@/lib/dash/format";
 import { budgetRange, dateLong } from "@/lib/pro/format";
-import { ProIcon } from "@/components/pro/icons";
+import { ProIcon, CreditsCoins } from "@/components/pro/icons";
 import { Sheet } from "@/components/pro/ui";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
 
@@ -104,7 +104,7 @@ export default function Projets() {
                     Débloquer ce projet
                   </button>
                   <span className="p-cost">
-                    <ProIcon name="credits" size={14} stroke="#6b6a63" />
+                    <CreditsCoins size={14} />
                     {cost === null || cost === undefined ? "Crédits à définir" : `${cost} crédit${cost > 1 ? "s" : ""}`}
                   </span>
                 </div>
@@ -298,12 +298,22 @@ function UnlockDialog({ p, onClose }) {
         <div>
           <span>Solde actuel</span>
           <span className="p-unlock-now">
+            <CreditsCoins size={16} />
             {balance} crédit{balance > 1 ? "s" : ""}
           </span>
         </div>
         <div>
           <span className="p-ink">Solde après déblocage</span>
-          <span className="p-unlock-after">{priced ? `${balance - cost} crédit${Math.abs(balance - cost) > 1 ? "s" : ""}` : "À définir"}</span>
+          <span className="p-unlock-after">
+            {priced ? (
+              <>
+                <CreditsCoins size={18} />
+                {balance - cost} crédit{Math.abs(balance - cost) > 1 ? "s" : ""}
+              </>
+            ) : (
+              "À définir"
+            )}
+          </span>
         </div>
       </div>
       {/* L'achat de crédits est désactivé pour l'instant (audit du 3 nov. 2026) : on écrit à Merry */}

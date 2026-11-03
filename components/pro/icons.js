@@ -8,7 +8,6 @@ const PATHS = {
   demandes: '<path d="M3.5 13.5 6 5h12l2.5 8.5v5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 13.5H9a3 3 0 0 0 6 0h5.5"/>',
   clients: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.6.2 4.6 2 5.3 5.4"/>',
   projets: '<circle cx="9" cy="14" r="5.5"/><circle cx="15" cy="14" r="5.5"/><path d="M10 4.5h4l-2 2.5z"/>',
-  credits: '<circle cx="12" cy="12" r="8.5"/><path d="M14.6 9.4c-.5-.9-1.4-1.4-2.6-1.4-1.5 0-2.6.8-2.6 2s1 1.7 2.6 2 2.6.8 2.6 2-1.1 2-2.6 2c-1.2 0-2.1-.5-2.6-1.4M12 6.5V8M12 16v1.5"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -63,5 +62,19 @@ export function ProIcon({ name, size = 18, stroke = "#1c1c1a", sw = 1.8, fill = 
       style={style}
       dangerouslySetInnerHTML={{ __html: PATHS[name] || PATHS.plus }}
     />
+  );
+}
+
+// Deux pièces jaunes empilées : seul endroit de l'appli prestataire où l'accent citron se pose en aplat,
+// pour incarner les crédits plutôt que l'illustrer avec un pictogramme générique à un seul trait.
+// Partagé partout où un montant de crédits s'affiche (solde, coût, historique).
+export function CreditsCoins({ size = 20, className, style }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true" className={className} style={style}>
+      <circle cx="10.5" cy="17.5" r="7.5" fill="#fffdb8" stroke="#574e00" strokeWidth="1.5" />
+      <circle cx="10.5" cy="17.5" r="4.6" fill="none" stroke="#574e00" strokeWidth="1" opacity="0.45" />
+      <circle cx="17.5" cy="10.5" r="7.5" fill="#fff700" stroke="#574e00" strokeWidth="1.5" />
+      <circle cx="17.5" cy="10.5" r="4.6" fill="none" stroke="#574e00" strokeWidth="1" opacity="0.45" />
+    </svg>
   );
 }

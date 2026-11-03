@@ -10,7 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { SITE_URL } from "@/lib/site";
-import { ProIcon } from "./icons";
+import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
 import FeatureDialog from "./FeatureDialog";
 
@@ -117,7 +117,7 @@ function Frame({ children }) {
         </Link>
         <span className="p-top-right">
           <Link href="/pro/credits" className="p-credits-pill is-small">
-            <ProIcon name="credits" size={15} sw={2} />
+            <CreditsCoins size={16} />
             {credits} crédit{credits > 1 ? "s" : ""}
           </Link>
           <span className="d-anchor">
@@ -161,7 +161,7 @@ function Frame({ children }) {
           <CollabWidget />
           <VendorSwitch />
           <Link href="/pro/credits" className="p-credits-pill">
-            <ProIcon name="credits" size={15} sw={2} />
+            <CreditsCoins size={16} />
             {credits} crédit{credits > 1 ? "s" : ""}
           </Link>
           <button type="button" className="p-outline-pill" onClick={() => setFeature(true)}>
