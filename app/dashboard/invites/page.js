@@ -20,8 +20,6 @@ import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
-import RelanceModal from "@/components/dash/RelanceModal";
-import { agoDays, pendingGuests } from "@/lib/dash/relance";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -423,8 +421,6 @@ export default function Invites() {
   const [filtering, setFiltering] = useState(false);
   const [statusFilter, setStatusFilter] = useState(null);
   const [momentFilter, setMomentFilter] = useState({}); // { [eventId]: statut }
-  const [relanceFilter, setRelanceFilter] = useState(null); // "0" jamais relancé | "1" déjà relancé
-  const [relancing, setRelancing] = useState(null); // null | "all" | "sel"
   // Nouvelles réponses reçues par le formulaire depuis la dernière visite de cet organisateur sur la liste
   const seenKey = `merry-invites-seen:${wedding.id}:${data.meId || "me"}`;
   const [seen, setSeen] = useState(null);
@@ -475,8 +471,7 @@ export default function Invites() {
   const q = normalize(query);
   const inStatus = (g) => !statusFilter || guestStatus(idx.get(g.id) || {}, events) === statusFilter;
   const inMoments = (g) => Object.entries(momentFilter).every(([evId, st]) => !events.some((e) => e.id === evId) || ((idx.get(g.id) || {})[evId] || "non_invite") === st);
-  const inRelance = (g) => !relanceFilter || (relanceFilter === "1") === !!g.reminded_at;
-  const matches = (g) => (!groupFilters.length || groupFilters.includes(g.group_id)) && inFieldFilter(g) && inStatus(g) && inMoments(g) && inRelance(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""} ${g.phone || ""} ${groupById.get(g.group_id)?.name || ""}`).includes(q));
+  const matches = (g) => (!groupFilters.length || groupFilters.includes(g.group_id)) && inFieldFilter(g) && inStatus(g) && inMoments(g) && (!q || normalize(`${guestLabel(g, byId)} ${g.email || ""} ${g.phone || ""} ${groupById.get(g.group_id)?.name || ""}`).includes(q));
   // Texte d'une cellule, tel qu'on le copie ou qu'on le trie
   const statusOf = (g, evId) => (idx.get(g.id) || {})[evId] || "non_invite";
   const cellText = (key, g) => {
@@ -489,7 +484,7 @@ export default function Invites() {
   // Filtre et tri mémorisés : la liste n'est recalculée que quand les invités, les réponses ou les
   // filtres changent (pas à chaque frappe ailleurs, ni à chaque signal de présence)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filtered = useMemo(() => base.filter((g) => matches(g)), [base, groupFilters, activeFieldFilter, statusFilter, momentFilter, relanceFilter, q, idx, byId, groupById, events]);
+  const filtered = useMemo(() => base.filter((g) => matches(g)), [base, groupFilters, activeFieldFilter, statusFilter, momentFilter, q, idx, byId, groupById, events]);
   const shown = useMemo(
     () =>
       sort
@@ -526,17 +521,15 @@ export default function Invites() {
     setStatusFilter(v.status);
     setMomentFilter(Object.fromEntries(Object.entries(v.moments).filter(([id]) => events.some((e) => e.id === id))));
     setFieldFilter(v.field);
-    setRelanceFilter(v.relance || null);
     setSort(v.sort);
   };
   const sortItems = (key) => <SortItems dir={sort?.key === key ? sort.dir : 0} rsvp={key.startsWith("ev:")} onSort={(dir) => setSort(dir ? { key, dir } : null)} />;
-  const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0) + (relanceFilter ? 1 : 0);
+  const filterCount = (groupFilters.length ? 1 : 0) + (statusFilter ? 1 : 0) + Object.keys(momentFilter).length + (activeFieldFilter ? 1 : 0);
   const clearFilters = () => {
     setGroupFilters([]);
     setStatusFilter(null);
     setMomentFilter({});
     setFieldFilter(null);
-    setRelanceFilter(null);
   };
   // Sélection : cases à cocher, « Tout sélectionner » (tous les invités affichés, filtres compris),
   // et Maj + clic sur une case pour cocher toute une plage d'un coup (comme un tableur)
@@ -752,14 +745,6 @@ export default function Invites() {
     okUndo(value ? `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » : ${value}.` : `${n(ids.length, "invité modifié", "invités modifiés")} · « ${field.name} » effacée.`, step);
   }
 
-  // Relances : on note la date, avec Annuler
-  async function markReminded(ids) {
-    const now = new Date().toISOString();
-    const { step } = await applyValues(ids.map((id) => ({ id, key: "reminded_at", value: now })));
-    okUndo(`${n(ids.length, "invité marqué relancé", "invités marqués relancés")}.`, step);
-  }
-  const pending = pendingGuests(guests, idx, events);
-  const selPending = pendingGuests(selIds.map((id) => byId.get(id)).filter(Boolean), idx, events);
 
   // Texte saisi ou collé → valeur brute ; les cellules qui n'acceptent pas le texte sont ignorées
   async function writeCells(list) {
@@ -1028,7 +1013,6 @@ export default function Invites() {
             {g.age ? <span>{g.age} ans</span> : null}
             {host && !fullName(g) ? <span>À nommer</span> : null}
             <GroupCell guest={g} group={groupById.get(g.group_id)} groups={groups} label={guestLabel(g, byId)} />
-            {g.reminded_at ? <span title={`Relancé le ${new Date(g.reminded_at).toLocaleDateString("fr-FR")}`}>{agoDays(g.reminded_at) === 0 ? "relancé aujourd'hui" : agoDays(g.reminded_at) === 1 ? "relancé hier" : `relancé il y a ${agoDays(g.reminded_at)} j`}</span> : null}
           </span>
         </div>
         );
@@ -1149,12 +1133,6 @@ export default function Invites() {
           Modifier
         </button>
         <BulkColumnMenu fields={fields} onApply={bulkField} />
-        {selPending.length ? (
-          <button type="button" onClick={() => setRelancing("sel")} title="Relancer ceux de la sélection qui n'ont pas répondu">
-            <Icon name="send" size={14} sw={2} />
-            Relancer{selPending.length < selIds.length ? ` · ${selPending.length}` : ""}
-          </button>
-        ) : null}
         <button type="button" onClick={clearSel}>
           Tout désélectionner
         </button>
@@ -1240,13 +1218,6 @@ export default function Invites() {
               onDelete={(id) => dash.saveGuestViews((wedding.guest_views || []).filter((v) => v.id !== id))}
               shared={data.viewsSetup !== false}
             />
-            {pending.length ? (
-              <button type="button" className="d-group-pick" onClick={() => setRelancing("all")} title="Mail, WhatsApp ou SMS avec le lien du formulaire">
-                <Icon name="send" size={14} sw={2.2} />
-                Relancer
-                <span className="d-filter-count">{pending.length}</span>
-              </button>
-            ) : null}
             {here.length ? (
               <span className="d-presence" title="Sur la liste en ce moment, comme vous">
                 {here.slice(0, 3).map((x) => (
@@ -1338,8 +1309,6 @@ export default function Invites() {
           setQuery={setQuery}
           filterCount={filterCount}
           onFilters={() => setFiltering(true)}
-          pending={pending}
-          onRelance={(list) => setRelancing(list)}
           applyValues={applyValues}
           okUndo={okUndo}
         />
@@ -1485,7 +1454,6 @@ export default function Invites() {
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
-      {relancing ? <RelanceModal guests={Array.isArray(relancing) ? relancing : relancing === "sel" ? selPending : pending} onClose={() => setRelancing(null)} onMarked={markReminded} /> : null}
       {filtering ? (
         <Modal
           title="Filtres"
@@ -1533,24 +1501,6 @@ export default function Invites() {
             </div>
             <StatusChips value={statusFilter} onChange={setStatusFilter} />
           </div>
-          {guests.some((g) => g.reminded_at) ? (
-            <div className="d-gfilter">
-              <div className="d-gfilter-head">
-                <strong>Relance</strong>
-              </div>
-              <div className="d-filters">
-                {[
-                  ["0", "Jamais relancé"],
-                  ["1", "Déjà relancé"],
-                ].map(([id, label]) => (
-                  <button key={id} type="button" className={`d-gfilter-chip${relanceFilter === id ? " is-on" : ""}`} aria-pressed={relanceFilter === id} onClick={() => setRelanceFilter(relanceFilter === id ? null : id)}>
-                    {relanceFilter === id ? <Icon name="check" size={12} sw={3} /> : null}
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
           {events.length ? (
             <div className="d-gfilter">
               <div className="d-gfilter-head">
