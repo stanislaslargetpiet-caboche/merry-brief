@@ -111,7 +111,7 @@ export default function Collaborators() {
                 {m.user_id === user?.id ? <span className="p-muted" style={{ fontWeight: 400 }}> (vous)</span> : null}
               </strong>
               <span className="d-org-meta">
-                <span className={`d-org-status${m.user_id ? " is-on" : ""}`}>{m.user_id ? "Connecté·e" : "Invitation envoyée"}</span>
+                <span className={`d-org-status${m.user_id ? " is-on" : ""}`}>{m.user_id ? "Connecté" : "Invitation envoyée"}</span>
                 {m.display_name && m.email ? <span className="p-muted d-org-mail">{m.email}</span> : null}
               </span>
             </span>

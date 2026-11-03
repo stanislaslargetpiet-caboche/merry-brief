@@ -1,7 +1,8 @@
 "use client";
 
-// Compte (maquette V2e, Mon profil) : adresse mail de connexion, collaborateurs, suppression du compte.
-// Pas de mot de passe : l'espace prestataire se connecte uniquement par code reçu par mail.
+// Compte (maquette V2e, Mon profil) : adresse mail et mot de passe de connexion, collaborateurs,
+// suppression du compte. La connexion (app/connexion) utilise un mot de passe (supabase.auth.signInWithPassword) ;
+// ce formulaire le change directement (updateUser) plutôt que de renvoyer par le lien « mot de passe oublié ».
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
@@ -16,25 +17,42 @@ export default function Compte() {
   const pro = usePro();
   const live = pro.mode === "live";
   const [email, setEmail] = useState(pro.data.user?.email || "");
+  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function save(e) {
     e.preventDefault();
+    const cleanPassword = password.trim();
+    if (cleanPassword && cleanPassword.length < 8) {
+      pro.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
+      return;
+    }
     setSaving(true);
     const notes = [];
+    let failed = false;
     const cleanEmail = email.trim();
     if (cleanEmail && cleanEmail !== pro.data.user?.email) {
       if (!live) notes.push("en démo, l'adresse mail ne change pas");
       else {
         const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+        failed = failed || !!error;
         notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
+      }
+    }
+    if (cleanPassword) {
+      if (!live) notes.push("en démo, le mot de passe ne change pas");
+      else {
+        const { error } = await supabase.auth.updateUser({ password: cleanPassword });
+        failed = failed || !!error;
+        notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
+        if (!error) setPassword("");
       }
     }
     setSaving(false);
     const text = notes.length ? `C'est enregistré ; ${notes.join(", ")}.` : "C'est enregistré.";
-    pro.setToast({ kind: notes.some((n) => /pas pu/.test(n)) ? "error" : "ok", text });
+    pro.setToast({ kind: failed ? "error" : "ok", text });
   }
 
   async function removeAccount() {
@@ -65,6 +83,9 @@ export default function Compte() {
         <div className="d-form-grid">
           <Field label="Adresse mail">
             <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </Field>
+          <Field label="Nouveau mot de passe" hint="Laissez vide pour ne pas le changer">
+            <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="••••••••" />
           </Field>
         </div>
         <div className="d-settings-actions">
