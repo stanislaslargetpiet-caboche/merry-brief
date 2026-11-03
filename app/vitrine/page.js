@@ -5,11 +5,12 @@ import { formatProof, getProof } from "@/lib/vitrine/proof";
 import proposition from "@/lib/vitrine/blocks/proposition";
 import carrousel from "@/lib/vitrine/blocks/carrousel";
 
-// Trois étapes, chacune avec un écran du tableau de bord (public/vitrine/etapes, captures 1800 × 1350)
+// Trois étapes, chacune avec l'écran correspondant (public/vitrine/etapes) : le questionnaire « L'essentiel »
+// de l'onboarding, la page Prestataires du tableau de bord, la liste des invités.
 const STEPS = [
-  ["brief", "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
-  ["prestataires", "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
-  ["pilotage", "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
+  ["brief", 1800, 1260, "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
+  ["prestataires", 1800, 1350, "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
+  ["pilotage", 1800, 1350, "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
 ];
 
 const FAQ = [
@@ -67,10 +68,10 @@ export default async function VitrineAccueil() {
           </h2>
         </div>
         <ol className="wv-how-g">
-          {STEPS.map(([img, title, text], i) => (
+          {STEPS.map(([img, w, h, title, text], i) => (
             <li key={img} className="wv-how-card">
               <div className="wv-how-shot">
-                <Image src={`/vitrine/etapes/${img}.webp`} alt="" width={1800} height={1350} sizes="(max-width: 760px) 92vw, 30vw" loading={i === 0 ? "eager" : "lazy"} />
+                <Image src={`/vitrine/etapes/${img}.webp`} alt="" width={w} height={h} sizes="(max-width: 760px) 92vw, 30vw" loading={i === 0 ? "eager" : "lazy"} />
               </div>
               <span className="wv-how-n" aria-hidden="true">
                 {i + 1}
