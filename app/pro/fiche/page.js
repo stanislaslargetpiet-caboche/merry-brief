@@ -50,14 +50,15 @@ function MaFiche() {
 
   return (
     <div className="p-narrow">
-      <div className="p-head">
-        <h1 className="p-h1 is-page">Ma fiche.</h1>
+      {/* Le titre seul, comme les autres onglets de Mon profil ; l'aperçu passe sous les onglets */}
+      <h1 className="p-h1 is-page">Ma fiche.</h1>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
+      <div className="p-clients-tools">
         <button type="button" className="p-btn p-btn-ghost p-phone-wide" onClick={() => router.push("/pro/fiche?apercu=1")}>
           <ProIcon name="eye" size={18} />
           Aperçu côté couples
         </button>
       </div>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <PhotosSection />
 

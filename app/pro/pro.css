@@ -355,7 +355,8 @@
 .p-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  /* En haut : le titre du Dashboard tombe à la même hauteur que celui des autres pages */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
@@ -5781,4 +5782,15 @@ button.p-dem-item {
     top: 18px;
     left: 20px;
   }
+}
+
+/* Le titre ne bouge pas d'une page à l'autre (remarque de Stan, 3 nov. 2026) : chaque page part du même
+   bord gauche, et le même écart sépare le titre des onglets, quelle que soit la largeur de son contenu.
+   En dernier dans le fichier pour passer devant les écarts propres à chaque page, téléphone compris. */
+.p-narrow,
+.p-credits,
+.p-clients,
+.p-demandes {
+  margin: 0;
+  gap: 28px;
 }
