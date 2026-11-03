@@ -1,19 +1,31 @@
 "use client";
 
-// Revendiquer sa fiche (maquettes V0 et V0m) : retrouver son établissement dans le catalogue Merry,
-// puis prouver que c'est bien soi avec un code reçu à l'adresse mail de la fiche. Sert aussi de connexion :
-// un prestataire qui revient refait ces deux étapes et retrouve son espace.
-// Créer sa fiche (maquettes V0c et V0cm) : l'établissement n'est pas dans le catalogue, le prestataire donne
-// son nom, son activité, son adresse et son adresse mail ; le code reçu à cette adresse crée la fiche.
-// Se connecter : un prestataire qui revient tape son adresse mail, reçoit un code, et retrouve ses fiches.
-// /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement la fiche, code sur un clic ;
+// Revendiquer sa fiche (maquettes V0-Rev1 à V0-Rev4) : retrouver son établissement dans le catalogue
+// Merry, confirmer que c'est bien le sien, puis prouver que c'est bien soi avec un code reçu à l'adresse
+// mail de la fiche. Sert aussi de connexion : un prestataire qui revient refait ces étapes et retrouve
+// son espace.
+// Créer sa fiche (maquettes V0-Onb1 à V0-Onb4) : l'établissement n'est pas dans le catalogue, un écran par
+// groupe d'informations (nom et activité, adresse, contact), puis le code reçu à cette adresse crée la
+// fiche. Chaque étape a sa propre barre de progression, conforme au canvas du 3 nov. 2026 (avant cette
+// date, ces deux parcours tenaient sur un seul écran fusionné ; Stan a demandé de les refaire pas à pas).
+// Se connecter : un prestataire qui revient tape son adresse mail, reçoit un code, et retrouve ses fiches
+// (hors canvas, parcours à part, sans barre de progression, inchangé).
+// /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement l'écran de confirmation ;
 // /pro?etablissement=<nom> (recherche du site vitrine) préremplit la recherche.
+//
+// Le mot de passe du canvas (Onb3/Rev2) n'a pas été repris : le compte prestataire reste sans mot de
+// passe, uniquement par code à 6 chiffres (Onb4/Rev3, backend existant) — en ajouter un changerait la
+// façon dont un compte s'authentifie, à trancher avec Stan plutôt qu'à décider seul depuis une maquette.
+// Le SIRET (facultatif) n'apparaît plus non plus dans Votre compte, le canvas ne le montre plus : le champ
+// reste accepté par l'API si jamais réintroduit.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
+import { Pills } from "./ui";
 import { ProIcon } from "./icons";
 import Preparation from "./Preparation";
+import Welcome from "./Welcome";
 
 const CONTACT = "bonjour@withmerry.com";
 
@@ -37,7 +49,11 @@ const CATEGORIES = [
 const EMPTY_FORM = { name: "", category: "lieu", address: "", postal_code: "", city: "", email: "", phone: "", siret: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Ce qui manque au formulaire « Créer votre fiche », dans l'ordre de l'écran
+const CREATE_FLOW = ["name", "address", "contact", "code"];
+const CLAIM_FLOW = ["search", "confirm", "code"];
+const LOGIN_FLOW = ["login-email", "login-code"];
+
+// Ce qui manque au formulaire « Créer votre fiche », dans l'ordre des écrans
 function formProblem(f) {
   if (f.name.trim().length < 2) return "Indiquez le nom de votre établissement.";
   if (!f.address.trim()) return "Indiquez l’adresse de votre établissement.";
@@ -86,7 +102,7 @@ const ERRORS = {
 
 export default function Claim() {
   const pro = usePro();
-  const [step, setStep] = useState(1);
+  const [screen, setScreen] = useState("search");
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -99,6 +115,7 @@ export default function Claim() {
   const [fixNote, setFixNote] = useState(false);
   const [creating, setCreating] = useState(false);
   const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
+  const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
   const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
   const [loginEmail, setLoginEmail] = useState("");
   const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
@@ -108,7 +125,7 @@ export default function Claim() {
   const signedIn = Boolean(pro.data?.user?.email);
   const myFiches = pro.data?.vendors || []; // connecté à un espace, venu chercher une autre fiche
 
-  // Arrivée par un lien : la fiche est ouverte et le code part tout de suite ; ou le nom du site est repris
+  // Arrivée par un lien : la fiche s'ouvre directement sur l'écran de confirmation ; ou le nom du site est repris
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fiche = params.get("fiche");
@@ -121,7 +138,7 @@ export default function Claim() {
     (async () => {
       const res = await call({ action: "lookup", vendorId: fiche });
       if (!live) return;
-      if (res.result) choose(res.result, { send: false });
+      if (res.result) choose(res.result);
       else setNotice(ERRORS[res.error] || ERRORS.not_found);
     })();
     return () => {
@@ -132,7 +149,7 @@ export default function Claim() {
 
   // Connecté, mais aucune fiche rattachée à ce compte : on le dit au-dessus de la recherche
   useEffect(() => {
-    if (signedIn && !myFiches.length && !logging && !creating && step === 1 && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    if (signedIn && !myFiches.length && !logging && !creating && screen === "search" && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
@@ -158,17 +175,18 @@ export default function Claim() {
     };
   }, [q]);
 
+  // Renvoie true si le code est parti (ou en démo) : sert à passer à l'écran suivant seulement si besoin
   async function sendCode(target = picked) {
     setError("");
     if (!target?.email_hint) {
       setError(ERRORS.no_email);
-      return;
+      return false;
     }
     // Démo : aucun code ne part, n'importe quels 6 chiffres ouvrent l'espace de démonstration
     if (demo) {
       setSent(true);
       setTimeout(() => boxes.current[0]?.focus(), 50);
-      return;
+      return true;
     }
     setBusy(true);
     const res = await call({ action: "send", vendorId: target.id });
@@ -177,24 +195,30 @@ export default function Claim() {
       setSent(true);
       setCode(["", "", "", "", "", ""]);
       setTimeout(() => boxes.current[0]?.focus(), 50);
-    } else setError(ERRORS[res.error] || ERRORS.send_failed);
+      return true;
+    }
+    setError(ERRORS[res.error] || ERRORS.send_failed);
+    return false;
   }
 
-  // Depuis la recherche (« C'est moi »), le code part tout de suite ; depuis un lien (/pro?fiche=…), la fiche
-  // s'ouvre et le code part sur un clic : un lien reçu ou forgé ne doit pas envoyer un mail à lui seul
-  function choose(found, { send = true } = {}) {
+  // Un résultat choisi, ou l'arrivée par lien : toujours l'écran de confirmation d'abord, le code ne part
+  // que sur un clic explicite (un lien reçu ou forgé ne doit pas envoyer un mail à lui seul)
+  function choose(found) {
     const r = demo && !found.email_hint ? { ...found, email_hint: "c•••@exemple.fr" } : found;
     setPicked(r);
-    setStep(2);
+    setScreen("confirm");
     setSent(false);
     setError("");
     setFixNote(false);
-    if (r.email_hint && send) sendCode(r);
+  }
+
+  async function confirmAndSend() {
+    if (await sendCode()) setScreen("code");
   }
 
   function startCreate() {
     setCreating(true);
-    setStep(1);
+    setScreen("name");
     setError("");
     setSent(false);
     if (q.trim().length >= 3 && !/^\d[\d\s]*$/.test(q) && !form.name) setForm((f) => ({ ...f, name: q.trim() }));
@@ -203,7 +227,7 @@ export default function Claim() {
   function backToSearch() {
     setCreating(false);
     setLogging(false);
-    setStep(1);
+    setScreen("search");
     setSent(false);
     setError("");
   }
@@ -211,10 +235,17 @@ export default function Claim() {
   function startLogin() {
     setLogging(true);
     setCreating(false);
-    setStep(1);
+    setScreen("login-email");
     setSent(false);
     setError("");
     setNotice("");
+  }
+
+  function backTo(target) {
+    return () => {
+      setError("");
+      setScreen(target);
+    };
   }
 
   async function sendLoginCode() {
@@ -225,7 +256,7 @@ export default function Claim() {
     }
     setError("");
     if (demo) {
-      setStep(2);
+      setScreen("login-code");
       setSent(true);
       setTimeout(() => boxes.current[0]?.focus(), 50);
       return;
@@ -237,7 +268,7 @@ export default function Claim() {
       setError(ERRORS[res.error] || ERRORS.send_failed);
       return;
     }
-    setStep(2);
+    setScreen("login-code");
     setSent(true);
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
@@ -245,6 +276,32 @@ export default function Claim() {
 
   const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
   const formFields = () => ({ ...form, email: undefined });
+
+  function nextFromName() {
+    if (form.name.trim().length < 2) {
+      setError("Indiquez le nom de votre établissement.");
+      return;
+    }
+    setError("");
+    setScreen("address");
+  }
+
+  function nextFromAddress() {
+    if (!form.address.trim()) {
+      setError("Indiquez l’adresse de votre établissement.");
+      return;
+    }
+    if (!/^\d{5}$/.test(form.postal_code.replace(/\s/g, ""))) {
+      setError("Le code postal compte 5 chiffres.");
+      return;
+    }
+    if (!form.city.trim()) {
+      setError("Indiquez la ville.");
+      return;
+    }
+    setError("");
+    setScreen("contact");
+  }
 
   async function sendCreateCode() {
     const problem = formProblem(form);
@@ -254,7 +311,7 @@ export default function Claim() {
     }
     setError("");
     if (demo) {
-      setStep(2);
+      setScreen("code");
       setSent(true);
       return;
     }
@@ -265,7 +322,7 @@ export default function Claim() {
       setError(ERRORS[res.error] || ERRORS.send_failed);
       return;
     }
-    setStep(2);
+    setScreen("code");
     setSent(true);
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
@@ -299,13 +356,12 @@ export default function Claim() {
       return;
     }
     await supabase.auth.setSession(res.session);
-    // Une fiche qui vient d'être créée s'ouvre dans Ma fiche : photos, prix et capacités à compléter
+    // Une fiche qui vient d'être créée : écran de préparation, puis Bienvenue
     if (creating) {
       setPreparing("create");
       return;
     }
-    // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte) ; l'adresse repart sans
-    // ses paramètres, sinon l'écran de recherche reviendrait
+    // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte)
     if (!logging) {
       pro.rememberVendor(picked.id);
       setPreparing("claim");
@@ -316,7 +372,7 @@ export default function Claim() {
     if (logging) {
       setBusy(false);
       setLogging(false);
-      setStep(1);
+      setScreen("search");
       setSent(false);
       setNotice(`Connecté avec ${loginEmail.trim()}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
     }
@@ -340,10 +396,6 @@ export default function Claim() {
     setCode(next);
     if (digits && i < 5) boxes.current[i + 1]?.focus();
   }
-
-  const cardTitle = logging ? "Connectez-vous" : step === 2 ? (creating ? form.name.trim() : picked?.name) : creating ? "Créez votre fiche" : "Retrouvez votre établissement";
-  const eyebrow = logging ? "Espace prestataire" : step === 2 ? "Votre fiche" : creating ? "Nouvelle fiche" : "Espace prestataire";
-  const goBack = logging ? (step === 2 ? () => setStep(1) : backToSearch) : step === 2 ? () => setStep(1) : creating ? backToSearch : null;
 
   const codeBlock = (label, resend) => (
     <div className="p-claim-code">
@@ -381,8 +433,8 @@ export default function Claim() {
   const categoryLabel = CATEGORIES.find(([slug]) => slug === form.category)?.[1];
 
   function finishPreparing() {
-    if (preparing === "create") window.location.assign(demo ? "/pro/fiche?demo=1" : "/pro/fiche");
-    else window.location.assign(demo ? "/pro?demo=1" : "/pro");
+    setWelcome(preparing);
+    setPreparing(null);
   }
 
   if (preparing === "create") {
@@ -405,6 +457,51 @@ export default function Claim() {
       />
     );
   }
+  if (welcome === "create") {
+    return <Welcome name={form.name.trim()} primary={{ label: "Accéder à mon dashboard", onClick: () => window.location.assign(demo ? "/pro?demo=1" : "/pro") }} />;
+  }
+  if (welcome === "claim") {
+    return (
+      <Welcome
+        name={picked.name}
+        primary={{ label: "Compléter ma fiche", onClick: () => window.location.assign(demo ? "/pro/fiche?demo=1" : "/pro/fiche") }}
+        secondary={{ label: "Accéder au dashboard", onClick: () => window.location.assign(demo ? "/pro?demo=1" : "/pro") }}
+      />
+    );
+  }
+
+  const flow = logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
+  const stepIndex = Math.max(0, flow.indexOf(screen));
+  const stepTotal = flow.length;
+  const isFirst = screen === "name" || screen === "search" || screen === "login-email";
+  const META = {
+    name: { eyebrow: "Votre établissement", title: "Votre établissement" },
+    address: { eyebrow: "Où êtes-vous", title: "Votre adresse" },
+    contact: { eyebrow: "Votre compte", title: "Comment vous contacter" },
+    search: { eyebrow: "Espace prestataire", title: "Retrouvez votre établissement" },
+    confirm: { eyebrow: "Votre fiche", title: picked?.name || "" },
+    "login-email": { eyebrow: "Espace prestataire", title: "Connectez-vous" },
+    "login-code": { eyebrow: "Espace prestataire", title: "Connectez-vous" },
+    code: { eyebrow: "Dernière étape", title: (creating ? form.name.trim() : picked?.name) || "Vérification" },
+  };
+  const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
+  const goBack = logging
+    ? screen === "login-code"
+      ? backTo("login-email")
+      : null
+    : creating
+      ? screen === "name"
+        ? null
+        : screen === "address"
+          ? backTo("name")
+          : screen === "contact"
+            ? backTo("address")
+            : backTo("contact")
+      : screen === "search"
+        ? null
+        : screen === "confirm"
+          ? backTo("search")
+          : backTo("confirm");
 
   return (
     <div className="p-claim">
@@ -413,7 +510,7 @@ export default function Claim() {
           <span className="p-brand-logo">Merry</span>
           <span className="p-brand-sub">Espace prestataire</span>
         </div>
-        <div className="p-claim-word">{step === 1 ? "Bienvenue." : "C’est à vous."}</div>
+        <div className="p-claim-word">{isFirst ? "Bienvenue." : "C’est à vous."}</div>
         <div className="p-claim-caption">Merry - Experience Crafting Group</div>
       </aside>
       <div className="p-claim-stage">
@@ -427,9 +524,11 @@ export default function Claim() {
               <span className="p-claim-back is-empty" />
             )}
             <div className="p-claim-progress">
-              <span style={{ width: step === 1 ? "50%" : "100%" }} />
+              <span style={{ width: `${Math.round(((stepIndex + 1) / stepTotal) * 100)}%` }} />
             </div>
-            <span className="p-claim-count">{step} / 2</span>
+            <span className="p-claim-count">
+              {stepIndex + 1} / {stepTotal}
+            </span>
           </div>
           <div className="p-claim-band-title">
             <span className="p-claim-eyebrow">{eyebrow}</span>
@@ -441,9 +540,9 @@ export default function Claim() {
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
 
           {logging ? (
-            <>
-              <p className="p-claim-help">{step === 1 ? "L’adresse mail de votre compte Merry : nous y envoyons un code à 6 chiffres." : `Le code à 6 chiffres envoyé à ${loginEmail.trim()}.`}</p>
-              {step === 1 ? (
+            screen === "login-email" ? (
+              <>
+                <p className="p-claim-help">L’adresse mail de votre compte Merry : nous y envoyons un code à 6 chiffres.</p>
                 <div className="p-claim-field">
                   <label htmlFor="pro-login">Adresse mail</label>
                   <input
@@ -457,120 +556,116 @@ export default function Claim() {
                     autoFocus
                   />
                 </div>
-              ) : (
-                codeBlock("Le code reçu par mail", sendLoginCode)
-              )}
-              {errorBox}
-              <div className="p-claim-actions is-split">
-                <button type="button" className="p-claim-link" onClick={backToSearch}>
-                  Retrouver ma fiche par son nom
-                </button>
-                {step === 1 ? (
+                {errorBox}
+                <div className="p-claim-actions is-split">
+                  <button type="button" className="p-claim-link" onClick={backToSearch}>
+                    Retrouver ma fiche par son nom
+                  </button>
                   <button type="button" className="p-claim-submit" onClick={sendLoginCode} disabled={busy}>
                     Recevoir mon code
                   </button>
-                ) : (
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="p-claim-help">{`Le code à 6 chiffres envoyé à ${loginEmail.trim()}.`}</p>
+                {codeBlock("Le code reçu par mail", sendLoginCode)}
+                {errorBox}
+                <div className="p-claim-actions is-split">
+                  <button type="button" className="p-claim-link" onClick={backToSearch}>
+                    Retrouver ma fiche par son nom
+                  </button>
                   <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
                     Me connecter
                   </button>
-                )}
-              </div>
-            </>
-          ) : creating && step === 1 ? (
-            <>
-              <p className="p-claim-help">Quelques informations pour commencer. Photos, prix et capacités se complètent ensuite dans Ma fiche.</p>
-              <div className="p-claim-field">
-                <label htmlFor="pro-name">Nom de l’établissement</label>
-                <input id="pro-name" className="p-claim-input" autoComplete="organization" {...field("name")} />
-              </div>
-              <div className="p-claim-field">
-                <label htmlFor="pro-cat">Activité</label>
-                <select id="pro-cat" className="p-claim-input p-claim-select" {...field("category")}>
-                  {CATEGORIES.map(([slug, label]) => (
-                    <option key={slug} value={slug}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="p-claim-field">
-                <label htmlFor="pro-adr">Adresse</label>
-                <input id="pro-adr" className="p-claim-input" autoComplete="address-line1" {...field("address")} />
-              </div>
-              <div className="p-claim-row">
-                <div className="p-claim-field is-cp">
-                  <label htmlFor="pro-cp">Code postal</label>
-                  <input id="pro-cp" className="p-claim-input" inputMode="numeric" autoComplete="postal-code" maxLength={6} {...field("postal_code")} />
                 </div>
+              </>
+            )
+          ) : creating ? (
+            screen === "name" ? (
+              <>
+                <p className="p-claim-help">Comment s’appelle votre établissement ?</p>
                 <div className="p-claim-field">
-                  <label htmlFor="pro-ville">Ville</label>
-                  <input id="pro-ville" className="p-claim-input" autoComplete="address-level2" {...field("city")} />
+                  <label htmlFor="pro-name" className="p-sr">
+                    Nom de l’établissement
+                  </label>
+                  <input id="pro-name" className="p-claim-input" autoComplete="organization" autoFocus {...field("name")} />
                 </div>
-              </div>
-              <div className="p-claim-field">
-                <label htmlFor="pro-mail">Adresse mail de l’établissement</label>
-                <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" {...field("email")} />
-                <span className="p-claim-hint">Nous y envoyons un code pour vérifier que c’est bien vous. C’est aussi là qu’arrivent les demandes des couples.</span>
-              </div>
-              <div className="p-claim-row is-wrap">
+                <p className="p-claim-help">Quelle est votre activité ?</p>
+                <Pills options={CATEGORIES.map(([slug, label]) => ({ value: slug, label }))} value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))} label="Activité" />
+                <button type="button" className="p-claim-link p-claim-tel-only" onClick={backToSearch}>
+                  J’ai déjà une fiche Merry
+                </button>
+                {errorBox}
+                <div className="p-claim-actions is-split">
+                  <button type="button" className="p-claim-link p-desk-only" onClick={backToSearch}>
+                    J’ai déjà une fiche Merry
+                  </button>
+                  <button type="button" className="p-claim-submit" onClick={nextFromName}>
+                    Suivant
+                  </button>
+                </div>
+              </>
+            ) : screen === "address" ? (
+              <>
+                <p className="p-claim-help">Quelle est l’adresse de votre établissement ?</p>
+                <div className="p-claim-field">
+                  <label htmlFor="pro-adr" className="p-sr">
+                    Adresse
+                  </label>
+                  <input id="pro-adr" className="p-claim-input" autoComplete="address-line1" autoFocus {...field("address")} />
+                </div>
+                <div className="p-claim-row">
+                  <div className="p-claim-field is-cp">
+                    <label htmlFor="pro-cp">Code postal</label>
+                    <input id="pro-cp" className="p-claim-input" inputMode="numeric" autoComplete="postal-code" maxLength={6} {...field("postal_code")} />
+                  </div>
+                  <div className="p-claim-field">
+                    <label htmlFor="pro-ville">Ville</label>
+                    <input id="pro-ville" className="p-claim-input" autoComplete="address-level2" {...field("city")} />
+                  </div>
+                </div>
+                {errorBox}
+                <div className="p-claim-actions">
+                  <button type="button" className="p-claim-submit" onClick={nextFromAddress}>
+                    Suivant
+                  </button>
+                </div>
+              </>
+            ) : screen === "contact" ? (
+              <>
+                <p className="p-claim-help">Comment peut-on vous contacter ?</p>
+                <div className="p-claim-field">
+                  <label htmlFor="pro-mail">Adresse mail de l’établissement</label>
+                  <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" autoFocus {...field("email")} />
+                  <span className="p-claim-hint">Nous y envoyons un code pour vérifier que c’est bien vous. C’est aussi là qu’arrivent les demandes des couples.</span>
+                </div>
                 <div className="p-claim-field">
                   <label htmlFor="pro-tel">
                     Téléphone <span className="p-claim-opt">(facultatif)</span>
                   </label>
                   <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" {...field("phone")} />
                 </div>
-                <div className="p-claim-field">
-                  <label htmlFor="pro-siret">
-                    SIRET <span className="p-claim-opt">(facultatif)</span>
-                  </label>
-                  <input id="pro-siret" className="p-claim-input" inputMode="numeric" {...field("siret")} />
+                {errorBox}
+                <div className="p-claim-actions">
+                  <button type="button" className="p-claim-submit" onClick={sendCreateCode} disabled={busy}>
+                    Recevoir mon code
+                  </button>
                 </div>
-              </div>
-              <button type="button" className="p-claim-link p-claim-tel-only" onClick={backToSearch}>
-                Retrouver une fiche existante
-              </button>
-              {errorBox}
-              <div className="p-claim-actions is-split">
-                <button type="button" className="p-claim-link p-desk-only" onClick={backToSearch}>
-                  Retrouver une fiche existante
-                </button>
-                <button type="button" className="p-claim-submit" onClick={sendCreateCode} disabled={busy}>
-                  Recevoir mon code
-                </button>
-              </div>
-            </>
-          ) : creating ? (
-            <>
-              <div className="p-claim-recap">
-                <span className="p-claim-vname">{form.name.trim()}</span>
-                <ul>
-                  <li>
-                    <ProIcon name="pin" size={16} stroke="#5f5e58" />
-                    <span>
-                      {form.address.trim()}, {form.postal_code.trim()} {form.city.trim()}
-                    </span>
-                  </li>
-                  <li>
-                    <ProIcon name="fiche" size={16} stroke="#5f5e58" />
-                    <span>{categoryLabel}</span>
-                  </li>
-                </ul>
-                <button type="button" className="p-claim-fix" onClick={() => setStep(1)}>
-                  Modifier
-                </button>
-              </div>
-              <p className="p-claim-intro">Votre fiche est proposée aux couples dès que vous validez le code. Ajoutez ensuite vos photos, vos prix et vos capacités dans Ma fiche.</p>
-              <div className="p-claim-rule" />
-              <div className="p-claim-legend">Vérifions que c’est bien vous</div>
-              {codeBlock(`Le code à 6 chiffres envoyé à ${form.email.trim()}`, sendCreateCode)}
-              {errorBox}
-              <div className="p-claim-actions">
-                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
-                  Créer ma fiche
-                </button>
-              </div>
-            </>
-          ) : step === 1 ? (
+              </>
+            ) : (
+              <>
+                <p className="p-claim-help">Vérifions que c’est bien vous.</p>
+                {codeBlock(`Le code à 6 chiffres envoyé à ${form.email.trim()}`, sendCreateCode)}
+                {errorBox}
+                <div className="p-claim-actions">
+                  <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
+                    Créer ma fiche
+                  </button>
+                </div>
+              </>
+            )
+          ) : screen === "search" ? (
             <>
               <p className="p-claim-help">Merry a peut-être déjà une fiche pour vous. Retrouvez-la pour en prendre la main.</p>
               {myFiches.length ? (
@@ -616,7 +711,7 @@ export default function Claim() {
               <div className="p-claim-new">
                 <span>
                   <span className="p-claim-new-title">Mon établissement n’apparaît pas</span>
-                  <span className="p-claim-new-sub">Créez votre fiche en deux minutes.</span>
+                  <span className="p-claim-new-sub">Créez votre fiche en quelques écrans.</span>
                 </span>
                 <button type="button" className="p-btn p-btn-ghost" onClick={startCreate}>
                   Créer ma fiche
@@ -631,7 +726,7 @@ export default function Claim() {
                 </p>
               ) : null}
             </>
-          ) : (
+          ) : screen === "confirm" ? (
             <>
               <div className="p-claim-vcard">
                 <div role="img" aria-label={`${picked.name}, photo de couverture`} className="p-claim-cover" style={picked.photo ? { backgroundImage: `url("${picked.photo}")` } : undefined} />
@@ -666,8 +761,6 @@ export default function Claim() {
                 </div>
               </div>
               <p className="p-claim-intro">Merry a préparé votre fiche à partir d’informations publiques. Vérifiez-la, complétez-la, elle est à vous.</p>
-              <div className="p-claim-rule" />
-              <div className="p-claim-legend">Vérifions que c’est bien vous</div>
               <div className="p-claim-channel is-on is-single">
                 <ProIcon name="mail" size={20} />
                 <span>
@@ -675,11 +768,21 @@ export default function Claim() {
                   <span className="p-claim-chint">{picked.email_hint || "Écrivez-nous depuis l’adresse de votre établissement : nous vous ouvrons l’accès."}</span>
                 </span>
               </div>
-              {picked.email_hint ? codeBlock(sent ? "Le code à 6 chiffres reçu par mail" : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode()) : null}
+              {errorBox}
+              <div className="p-claim-actions">
+                <button type="button" className="p-claim-submit" onClick={confirmAndSend} disabled={busy || !picked.email_hint}>
+                  Recevoir mon code
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="p-claim-help">Vérifions que c’est bien vous.</p>
+              {codeBlock(sent ? `Le code à 6 chiffres reçu à ${picked.email_hint}` : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode())}
               {errorBox}
               <div className="p-claim-actions">
                 <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || !picked.email_hint}>
-                  Valider
+                  Confirmer
                 </button>
               </div>
             </>
