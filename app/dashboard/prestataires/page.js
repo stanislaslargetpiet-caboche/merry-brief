@@ -10,6 +10,7 @@ import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters } from "@
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
+import { cityFilter } from "@/lib/dash/filters";
 import { Icon } from "@/components/dash/icons";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { BusyDots } from "@/components/dash/ui";
@@ -87,7 +88,9 @@ export default function Trouver() {
   }, []);
 
   const venuePick = chosenVenue(dash.data, picks);
-  const venueName = venuePick?.data?.name || dash.data.wedding.venue || null;
+  // Une ville cherchée dans « Où » (hors Lieux) passe avant le lieu du mariage, pour la distance affichée
+  const cityWish = cat !== "lieu" ? cityFilter(dash.data.wishes?.wishes) : null;
+  const venueName = cityWish?.name || venuePick?.data?.name || dash.data.wedding.venue || null;
   // Zone de la carte (« Rechercher dans cette zone ») : remplace la région du brief tant qu'elle est choisie
   const [bbox, setBbox] = useState(null);
   const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox);

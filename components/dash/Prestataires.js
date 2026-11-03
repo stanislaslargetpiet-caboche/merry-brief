@@ -144,7 +144,9 @@ export function useRecommendations(category, near, bbox = null) {
   const places = [category === "lieu" ? region : venue, category === "lieu" && !lieuOff ? venue : region].filter(Boolean);
   const wishes = category === "lieu" ? searchWishes(data) : null;
   const filters = hardFilters(wishes);
-  const city = cityFilter(wishes);
+  // « Où » s'applique à toute catégorie : pour les autres que Lieux, la ville cherchée vient
+  // directement des envies enregistrées, pas de searchWishes (qui les vide si « lieu » est écarté)
+  const city = category === "lieu" ? cityFilter(wishes) : cityFilter(data.wishes?.wishes);
   const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
   const filterKey = JSON.stringify([filters.map((f) => [f.col, f.op, f.value]), city]);
   const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", filterKey, ctxKey].join("/");
