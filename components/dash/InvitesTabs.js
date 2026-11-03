@@ -37,7 +37,7 @@ export default function InvitesHeader({ tab, actions }) {
               {t.extra}
             </span>
           ) : (
-            <Link key={t.id} href={t.href} className={`d-itab${t.id === tab ? " is-on" : ""}`} aria-current={t.id === tab ? "page" : undefined} aria-label={t.label}>
+            <Link key={t.id} href={t.href} className={`d-itab${t.id === tab ? " is-on" : ""}${t.id === "plan" ? " is-plan" : ""}`} aria-current={t.id === tab ? "page" : undefined} aria-label={t.label}>
               <span className="d-itab-long">{t.label}</span>
               <span className="d-itab-short">{t.short}</span>
               {t.extra}
