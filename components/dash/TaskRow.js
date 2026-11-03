@@ -182,7 +182,7 @@ export default function TaskRow({ task }) {
             </button>
           </span>
         ) : null}
-        <span className={`d-task-date${late ? " is-late" : ""}`}>{task.done ? "Fait" : task.due_date ? shortDate(task.due_date) : "Sans date"}</span>
+        <span className={`d-task-date d-desk-only${late ? " is-late" : ""}`}>{task.done ? "Fait" : task.due_date ? shortDate(task.due_date) : "Sans date"}</span>
         <span className="d-task-who">
           <TaskWho task={task} members={members} />
         </span>
