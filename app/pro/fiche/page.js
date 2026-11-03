@@ -313,19 +313,16 @@ function PlusInfosSection() {
 function PlusChoiceRow({ choice: c, value, onChange }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
-  const list = c.multiple ? value || [] : value ? [value] : [];
+  const list = value || [];
   const extra = list.filter((v) => !c.options.some((o) => o.value === v));
   const isOn = (v) => list.includes(v);
-  const toggle = (v) => {
-    if (!c.multiple) return onChange(v === value ? null : v);
-    onChange(isOn(v) ? list.filter((x) => x !== v) : [...list, v]);
-  };
+  const toggle = (v) => onChange(isOn(v) ? list.filter((x) => x !== v) : [...list, v]);
   const addCustom = () => {
     const t = draft.trim();
     setAdding(false);
     setDraft("");
     if (!t || isOn(t)) return;
-    onChange(c.multiple ? [...list, t] : t);
+    onChange([...list, t]);
   };
 
   return (
@@ -333,7 +330,7 @@ function PlusChoiceRow({ choice: c, value, onChange }) {
       <span id={`plus-${c.key}`} className="p-plus-q">
         {c.question}
       </span>
-      <div className="p-pills" role={c.multiple ? "group" : "radiogroup"} aria-label={c.question}>
+      <div className="p-pills" role="group" aria-label={c.question}>
         {c.options.map((o) => (
           <button key={o.value} type="button" className={`p-pill${isOn(o.value) ? " is-on" : ""}`} onClick={() => toggle(o.value)}>
             {o.label}
