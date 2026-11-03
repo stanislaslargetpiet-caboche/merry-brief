@@ -62,47 +62,52 @@ export async function POST(req) {
   const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
   const link = `${publicOrigin(req)}/pro${catalogId ? `?fiche=${catalogId}` : ""}`;
 
-  const subject = isRequest ? `${couple} vous a écrit` : `${couple} vous a écrit sur Merry`;
-  const plainParts = [`Bonjour,`, message || `${couple} vous a envoyé un message sur Merry.`];
+  // Deux prénoms : « vous ont écrit » ; le message du couple commence déjà par « Bonjour », on ne le redouble pas
+  const verb = wedding?.partner1 && wedding?.partner2 ? "vous ont écrit" : "vous a écrit";
+  const subject = isRequest ? `${couple} ${verb}` : `${couple} ${verb} sur Merry`;
+  const greets = /^\s*(bonjour|bonsoir|hello|salut|cher|chère)/i.test(message);
+  const plainParts = [...(greets ? [] : [`Bonjour,`]), message || `${couple} ${verb} sur Merry.`];
   if (dates.length) plainParts.push(dates[0]);
   if (budget) plainParts.push(`Notre budget : ${budget} au total.`);
   if (questions.length) plainParts.push(questions.map((q) => `– ${q}`).join("\n"));
   if (sign) plainParts.push(sign);
-  plainParts.push(`Pour lire le message et répondre, revendiquez votre fiche (gratuit) :\n${link}`, `L'équipe Merry`);
+  plainParts.push(`Lire le message et répondre : ${link}`);
   const text = plainParts.join("\n\n");
 
+  // Mise en page en tableaux : Gmail ignore flex et grid (avant le 3 nov. 2026, la pastille du couple
+  // était rognée et « DATE » collé à sa valeur). Plus de phrases grises, à la demande de Stan.
   const infoTiles = [
-    dates[0] ? { label: "DATE", value: dates[0].replace(/^Dates flexibles\s*:\s*/i, "") } : null,
-    guests ? { label: "INVITÉS", value: guests } : null,
-    budget ? { label: "BUDGET", value: budget } : null,
+    dates[0] ? { label: "Date", value: dates[0].replace(/^Dates flexibles\s*:\s*/i, "") } : null,
+    guests ? { label: "Invités", value: guests } : null,
+    budget ? { label: "Budget", value: budget } : null,
   ].filter(Boolean);
 
   const infoCard = isRequest
-    ? `<div style="margin-top:20px;background:#f4f3ef;border-radius:18px;padding:16px">
-<div style="display:flex;align-items:center;gap:10px"><span style="flex:none;width:36px;height:36px;border-radius:999px;background:#e9dff3;color:#4a3a5c;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">${esc(initials)}</span><div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:15px;font-weight:600">${esc(couple)}</span><span style="font-size:12px;color:#6b6a63">Vous écrivent via Merry</span></div></div>${
-        infoTiles.length
-          ? `<div style="margin-top:12px;display:grid;grid-template-columns:repeat(${infoTiles.length},minmax(0,1fr));gap:8px">${infoTiles
-              .map(
-                (t) =>
-                  `<div style="background:#ffffff;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px;min-width:0"><div style="font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#6b6a63">${esc(t.label)}</div><div style="font-size:14px;font-weight:600;white-space:nowrap">${esc(t.value)}</div></div>`,
-              )
-              .join("")}</div>`
-          : ""
-      }</div>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#f4f3ef;border-radius:16px;border-collapse:separate"><tr><td style="padding:16px">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:#e9dff3;color:#4a3a5c;font-size:14px;font-weight:700;line-height:40px">${esc(initials)}</td>
+<td style="padding-left:12px;font-size:16px;font-weight:700">${esc(couple)}</td>
+</tr></table>${infoTiles
+        .map(
+          (t) =>
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;background:#ffffff;border-radius:10px;border-collapse:separate"><tr><td style="padding:10px 14px"><div style="font-size:12px;color:#6b6a63">${esc(t.label)}</div><div style="margin-top:2px;font-size:15px;font-weight:700">${esc(t.value)}</div></td></tr></table>`,
+        )
+        .join("")}
+</td></tr></table>`
     : "";
 
   const questionsBlock = questions.length
-    ? `<div style="margin-top:20px;background:#ffffff;border:1px solid #ecebe6;border-radius:14px;padding:16px"><span style="font-size:11.5px;font-weight:700;letter-spacing:.08em;color:#6b6a63">QUELQUES QUESTIONS</span><div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;font-size:14.5px;line-height:1.5">${questions.map((q) => `<span>– ${esc(q)}</span>`).join("")}</div></div>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:1px solid #ecebe6;border-radius:14px;border-collapse:separate"><tr><td style="padding:16px;font-size:15px;line-height:1.5"><div style="font-weight:700;margin-bottom:8px">Leurs questions</div>${questions.map((q) => `<div style="margin-top:6px">– ${esc(q)}</div>`).join("")}</td></tr></table>`
     : "";
 
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:560px">
-<p>Bonjour,</p>
-<p>${esc(message || `${couple} vous a envoyé un message sur Merry.`)}</p>
+${greets ? "" : "<p>Bonjour,</p>"}
+<p style="white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
 ${infoCard}
 ${questionsBlock}
-${sign ? `<p style="white-space:pre-line">${esc(sign)}</p>` : ""}
-<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">Lire le message et répondre</a></p>
-<p style="font-size:13px;color:#666">Il suffit de revendiquer votre fiche (gratuit) pour le lire et répondre. Ce lien ne fonctionne qu'une fois connecté·e.<br>S'il ne s'ouvre pas, copiez-le dans votre navigateur :<br>${esc(link)}</p></div>`;
+${sign ? `<p style="white-space:pre-line;margin-top:20px">${esc(sign)}</p>` : ""}
+<p style="margin-top:24px"><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message et répondre</a></p>
+</div>`;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
