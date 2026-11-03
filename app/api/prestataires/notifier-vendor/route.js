@@ -65,8 +65,7 @@ export async function POST(req) {
   // Deux prénoms : « vous ont écrit » ; le message du couple commence déjà par « Bonjour », on ne le redouble pas
   const verb = wedding?.partner1 && wedding?.partner2 ? "vous ont écrit" : "vous a écrit";
   const subject = isRequest ? `${couple} ${verb}` : `${couple} ${verb} sur Merry`;
-  const greets = /^\s*(bonjour|bonsoir|hello|salut|cher|chère)/i.test(message);
-  const plainParts = [...(greets ? [] : [`Bonjour,`]), message || `${couple} ${verb} sur Merry.`];
+  const plainParts = [message || `${couple} ${verb} sur Merry.`];
   if (dates.length) plainParts.push(dates[0]);
   if (budget) plainParts.push(`Notre budget : ${budget} au total.`);
   if (questions.length) plainParts.push(questions.map((q) => `– ${q}`).join("\n"));
@@ -86,10 +85,10 @@ export async function POST(req) {
 <td style="padding-left:12px;font-size:17px;font-weight:700">${esc(couple)}</td>
 </tr></table>`;
 
-  // Message (et salutation si elle manque) à l'intérieur d'un encadré, comme le message de Diana
-  // chez HomeExchange, pour le distinguer du reste du mail.
+  // Message à l'intérieur d'un encadré, comme le message de Diana chez HomeExchange, pour le
+  // distinguer du reste du mail. Tel quel, sans salutation ajoutée : seul le couple écrit ce texte.
   const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;border-radius:16px;border-collapse:separate"><tr><td style="padding:18px 20px;font-size:16px;line-height:1.5">
-${greets ? "" : '<p style="margin:0 0 10px">Bonjour,</p>'}<p style="margin:0;white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
+<p style="margin:0;white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
 </td></tr></table>`;
 
   const infoTiles = [
