@@ -70,7 +70,7 @@ export default function Compte() {
 
   return (
     <div className="p-narrow is-28">
-      <h1 className="p-h1 is-page">Mon profil.</h1>
+      <h1 className="p-h1 is-page">Compte.</h1>
       <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <Section title="Connexion" />

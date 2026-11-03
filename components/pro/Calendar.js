@@ -72,7 +72,6 @@ export default function AvailabilityCalendar() {
 
   return (
     <section className="p-dispo">
-      <p className="p-lead">{phone ? "Touchez" : "Cliquez sur"} une date pour la bloquer, poser une option ou la marquer réservée.</p>
       <div className="p-dispo-grid">
         <section className="p-cal">
           <div className="p-cal-head">
@@ -154,7 +153,9 @@ export default function AvailabilityCalendar() {
               </ul>
             </section>
           ) : null}
-          <SyncCard />
+          {/* Synchronisation d'agenda (SyncCard, plus bas dans ce fichier) retirée de l'affichage le
+              3 nov. 2026 à la demande de Stan : « pour le moment, ne mets pas de synchronisation avec
+              le calendrier ». Fonction laissée intacte pour la remettre facilement. */}
           {expiring.length ? (
             <section className="p-expiring">
               <h2>Options qui expirent bientôt</h2>

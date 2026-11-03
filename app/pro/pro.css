@@ -2558,6 +2558,79 @@ select.p-input {
   font-size: 12.5px;
 }
 
+.p-season-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.p-season-cal {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.p-season-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.p-season-cal-head button {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.p-season-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.p-season-cal-day {
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.p-season-cal-day:hover {
+  border-color: var(--d-border);
+}
+
+.p-season-cal-day.is-on {
+  background: var(--d-ink);
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .p-formula.is-editing,
 .p-option.is-editing {
   gap: 14px;
@@ -4791,6 +4864,11 @@ button.p-dem-item {
 .p-pack-p {
   font-size: 14px;
   color: var(--d-muted);
+}
+
+.p-credits-mini {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .p-roi-stats {

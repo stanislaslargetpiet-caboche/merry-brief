@@ -63,10 +63,7 @@ function MaFiche() {
   return (
     <div className="p-narrow">
       <div className="p-head">
-        <div className="p-head-text is-8">
-          <h1 className="p-h1 is-page">Ma fiche.</h1>
-          <p className="p-lead">Ce que les couples voient de vous. Vos modifications sont enregistrées au fur et à mesure.</p>
-        </div>
+        <h1 className="p-h1 is-page">Ma fiche.</h1>
         <button type="button" className="p-btn p-btn-ghost p-phone-wide" onClick={() => router.push("/pro/fiche?apercu=1")}>
           <ProIcon name="eye" size={18} />
           Aperçu côté couples
