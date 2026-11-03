@@ -1,0 +1,124 @@
+"use client";
+
+// Compte (maquette V2e, Mon profil) : connexion (mail/mot de passe), collaborateurs, suppression
+// du compte. Sur le modèle de app/dashboard/reglages/page.js côté couple.
+
+import { useState } from "react";
+import { usePro } from "@/lib/pro/store";
+import { supabase } from "@/lib/supabase";
+import { ProSubnav } from "@/components/pro/ui";
+import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
+import { Btn, Field, Modal, Section } from "@/components/dash/ui";
+import { Icon } from "@/components/dash/icons";
+import Collaborators from "@/components/pro/Collaborators";
+
+export default function Compte() {
+  const pro = usePro();
+  const live = pro.mode === "live";
+  const [email, setEmail] = useState(pro.data.user?.email || "");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function save(e) {
+    e.preventDefault();
+    if (password && password.length < 8) {
+      pro.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
+      return;
+    }
+    setSaving(true);
+    const notes = [];
+    const cleanEmail = email.trim();
+    if (cleanEmail && cleanEmail !== pro.data.user?.email) {
+      if (!live) notes.push("en démo, l'adresse mail ne change pas");
+      else {
+        const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+        notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
+      }
+    }
+    if (password) {
+      if (!live) notes.push("en démo, le mot de passe ne change pas");
+      else {
+        const { error } = await supabase.auth.updateUser({ password });
+        notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
+        if (!error) setPassword("");
+      }
+    }
+    setSaving(false);
+    const text = notes.length ? `C'est enregistré ; ${notes.join(", ")}.` : "C'est enregistré.";
+    pro.setToast({ kind: notes.some((n) => /pas pu/.test(n)) ? "error" : "ok", text });
+  }
+
+  async function removeAccount() {
+    if (!live) {
+      setConfirm(false);
+      pro.setToast({ kind: "ok", text: "En démo, le compte n'est pas supprimé." });
+      return;
+    }
+    setDeleting(true);
+    const { data: s } = await supabase.auth.getSession();
+    const res = await fetch("/api/compte", { method: "DELETE", headers: { authorization: `Bearer ${s?.session?.access_token || ""}` } }).catch(() => null);
+    if (!res?.ok) {
+      setDeleting(false);
+      pro.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écris-nous à bonjour@withmerry.com." });
+      return;
+    }
+    await supabase.auth.signOut();
+    window.location.href = "/connexion";
+  }
+
+  return (
+    <div className="p-narrow is-28">
+      <h1 className="p-h1 is-page">Mon profil.</h1>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
+
+      <Section title="Connexion" />
+      <form className="d-card d-settings" onSubmit={save}>
+        <div className="d-form-grid">
+          <Field label="Adresse mail">
+            <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </Field>
+          <Field label="Nouveau mot de passe">
+            <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Laisser vide pour le garder" />
+          </Field>
+        </div>
+        <div className="d-settings-actions">
+          <Btn type="submit" disabled={saving}>
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </Btn>
+        </div>
+      </form>
+
+      <Collaborators />
+
+      <Section title="Votre compte" />
+      <div className="d-card d-settings d-settings-danger">
+        <strong>Supprimer mon compte</strong>
+        <button type="button" className="d-btn d-btn-danger" onClick={() => setConfirm(true)}>
+          <Icon name="trash" size={16} sw={2} />
+          Supprimer
+        </button>
+      </div>
+
+      {confirm ? (
+        <Modal
+          title="Supprimer ton compte ?"
+          onClose={() => setConfirm(false)}
+          footer={
+            <>
+              <Btn kind="ghost" onClick={() => setConfirm(false)}>
+                Annuler
+              </Btn>
+              <button type="button" className="d-btn d-btn-danger" onClick={removeAccount} disabled={deleting}>
+                {deleting ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </>
+          }
+        >
+          <p className="d-settings-warn">Irréversible : votre fiche et vos crédits sont perdus.</p>
+        </Modal>
+      ) : null}
+    </div>
+  );
+}

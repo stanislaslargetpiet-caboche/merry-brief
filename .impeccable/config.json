@@ -20,6 +20,15 @@
         ],
         "createdAt": "2026-11-02T11:08:47.408Z",
         "reason": "transactional email HTML (Resend), not app UI — same exception as notifier-vendor/route.js"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "app/api/pro/inviter/route.js"
+        ],
+        "createdAt": "2026-11-03T14:00:01.217Z",
+        "reason": "transactional mail HTML, matches existing app/api/inviter/route.js template verbatim; Arial/Helvetica is a safe system-font fallback for email clients, not a product UI font choice"
       }
     ]
   }

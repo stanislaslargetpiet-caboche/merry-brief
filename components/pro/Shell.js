@@ -20,7 +20,7 @@ import FeatureDialog from "./FeatureDialog";
 export const PRO_NAV = [
   { href: "/pro", label: "Accueil", icon: "home", exact: true, match: ["/pro"] },
   { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"] },
-  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits"] },
+  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits", "/pro/compte"] },
   { href: "/pro/projets", label: "Projets de mariage", icon: "projets", match: ["/pro/projets"] },
 ];
 
@@ -35,6 +35,7 @@ export const PRO_PROFIL_TABS = [
   { href: "/pro/fiche", label: "Ma fiche" },
   { href: "/pro/tarifs", label: "Tarifs" },
   { href: "/pro/credits", label: "Crédits" },
+  { href: "/pro/compte", label: "Compte" },
 ];
 
 export default function ProShell({ children }) {
@@ -153,6 +154,7 @@ function Frame({ children }) {
           })}
         </div>
         <div className="p-nav-bottom">
+          <CollabWidget />
           <VendorSwitch />
           <Link href="/pro/credits" className="p-credits-pill">
             <ProIcon name="credits" size={15} sw={2} />
@@ -196,6 +198,33 @@ function Frame({ children }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+// Aperçu des collaborateurs dans la barre latérale (maquette Compte) : raccourci vers /pro/compte
+function CollabWidget() {
+  const pro = usePro();
+  const members = pro.data.members || [];
+  const others = members.filter((m) => m.user_id !== pro.data.user?.id);
+  if (!others.length) return null;
+  const shown = others.slice(0, 2);
+  const first = shown[0];
+  const text = first.user_id ? `${first.display_name || first.email} peut répondre à vos demandes.` : `Invitation envoyée à ${first.display_name || first.email}.`;
+  return (
+    <Link href="/pro/compte" className="p-collab-widget">
+      <span className="p-collab-label">Collaborateurs</span>
+      <span className="p-collab-avatars">
+        {shown.map((m) => (
+          <span key={m.id} className="p-collab-avatar" aria-hidden="true">
+            {(m.display_name || m.email || "?")[0].toUpperCase()}
+          </span>
+        ))}
+        <span className="p-collab-add" aria-hidden="true">
+          <Icon name="plus" size={13} sw={2.4} />
+        </span>
+      </span>
+      <span className="p-collab-text">{text}</span>
+    </Link>
   );
 }
 
