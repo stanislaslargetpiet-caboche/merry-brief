@@ -2828,6 +2828,39 @@ select.p-input {
   padding-top: 4px;
 }
 
+.p-cancel-policies {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.p-cancel-policy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--d-border);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.p-cancel-policy.is-on {
+  border-color: var(--d-ink);
+  background: var(--d-accent-tint, #fffceb);
+}
+
+.p-cancel-policy-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.p-cancel-policy-help {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
 .p-day-cancel {
   min-height: 44px;
   padding: 0 2px;
