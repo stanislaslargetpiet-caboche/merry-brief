@@ -13,8 +13,9 @@ import LangSwitch from "@/components/LangSwitch";
 
 /*
  * Connexion au tableau de bord, depuis le bouton « Connexion » du site.
- * Gère aussi le lien d'invitation d'un organisateur (?invitation=…) : on
- * montre le mariage concerné et on ne rejoint qu'après confirmation.
+ * Gère aussi le lien d'invitation d'un organisateur ou d'un collaborateur
+ * prestataire (?invitation=…) : on montre le mariage ou l'établissement
+ * concerné et on ne rejoint qu'après confirmation.
  * Textes FR/EN : voir lib/i18n/connexion.js.
  */
 
@@ -24,8 +25,8 @@ const TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 const INITIAL_HASH = typeof window !== "undefined" ? window.location.hash : "";
 
 function safeNext(raw) {
-  // Uniquement des chemins internes au tableau de bord
-  return raw && /^\/dashboard(\/|$|\?)/.test(raw) ? raw : "/dashboard";
+  // Uniquement des chemins internes au tableau de bord ou à l'espace prestataire
+  return raw && /^\/(dashboard|pro)(\/|$|\?)/.test(raw) ? raw : "/dashboard";
 }
 
 function readToken() {
@@ -53,7 +54,8 @@ export default function Connexion() {
   const [mode, setMode] = useState("checking");
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [invite, setInvite] = useState(null); // { partner1, partner2, invited_as }
+  const [invite, setInvite] = useState(null); // { partner1, partner2, invited_as } ou { vendor_name }
+  const [inviteKind, setInviteKind] = useState("wedding"); // wedding | pro
   const [next, setNext] = useState("/dashboard");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,14 +64,23 @@ export default function Connexion() {
   const [busy, setBusy] = useState(false);
 
   async function showJoin(t) {
-    const { data } = await supabase.rpc("merry_invite_info", { token: t });
-    if (data && data.length) {
-      setInvite(data[0]);
+    const wedding = await supabase.rpc("merry_invite_info", { token: t });
+    if (wedding.data && wedding.data.length) {
+      setInvite(wedding.data[0]);
+      setInviteKind("wedding");
       setMode("join");
-    } else {
-      dropToken();
-      setMode("badlink");
+      return;
     }
+    // Pas une invitation de mariage : peut-être une invitation de collaborateur prestataire
+    const pro = await supabase.rpc("pro_invite_info", { token: t });
+    if (pro.data && pro.data.length) {
+      setInvite(pro.data[0]);
+      setInviteKind("pro");
+      setMode("join");
+      return;
+    }
+    dropToken();
+    setMode("badlink");
   }
 
   useEffect(() => {
@@ -137,15 +148,24 @@ export default function Connexion() {
   async function join() {
     setBusy(true);
     setError("");
-    const { data: w, error: err } = await supabase.rpc("merry_join", { token });
+    const { data: id, error: err } = await supabase.rpc(inviteKind === "pro" ? "pro_join" : "merry_join", { token });
     setBusy(false);
     dropToken();
-    if (err || !w) {
+    if (err || !id) {
       setMode("badlink");
       return;
     }
+    if (inviteKind === "pro") {
+      try {
+        window.localStorage.setItem("merry-pro-vendor", id);
+      } catch {
+        /* ignore */
+      }
+      window.location.replace("/pro");
+      return;
+    }
     try {
-      window.localStorage.setItem("merry-wedding", w);
+      window.localStorage.setItem("merry-wedding", id);
     } catch {
       /* ignore */
     }
@@ -200,7 +220,7 @@ export default function Connexion() {
     reset: s.titles.reset,
     sent: s.titles.sent,
     confirm: s.titles.confirm,
-    join: s.titles.join(couple),
+    join: inviteKind === "pro" ? s.titles.joinPro(invite?.vendor_name || "") : s.titles.join(couple),
     badlink: s.titles.badlink,
     signedin: s.titles.signedin,
     expired: s.titles.expired,
@@ -271,7 +291,7 @@ export default function Connexion() {
           </>
         ) : mode === "join" ? (
           <>
-            <p className="cx-help">{s.joinHelp(invite?.invited_as)}</p>
+            <p className="cx-help">{inviteKind === "pro" ? s.joinHelpPro(invite?.vendor_name || "") : s.joinHelp(invite?.invited_as)}</p>
             <button type="button" className="ob-btn accent cx-wide" onClick={join} disabled={busy}>
               {s.join}
             </button>
@@ -280,7 +300,7 @@ export default function Connexion() {
               className="ob-link cx-center"
               onClick={() => {
                 dropToken();
-                window.location.replace("/dashboard");
+                window.location.replace(inviteKind === "pro" ? "/pro" : "/dashboard");
               }}
             >
               {s.notNow}

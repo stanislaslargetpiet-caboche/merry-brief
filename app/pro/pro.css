@@ -108,6 +108,63 @@
   font-size: 12.5px;
 }
 
+.p-collab-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--d-ink);
+  text-decoration: none;
+}
+
+.p-collab-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(28, 28, 26, 0.72);
+}
+
+.p-collab-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.p-collab-avatar,
+.p-collab-add {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.p-collab-avatar {
+  background: #ffffff;
+}
+
+.p-collab-avatar + .p-collab-avatar,
+.p-collab-avatars .p-collab-add {
+  margin-left: -8px;
+}
+
+.p-collab-add {
+  border-style: dashed;
+  border-color: var(--d-ink);
+  background: transparent;
+}
+
+.p-collab-text {
+  font-size: 12.5px;
+  color: rgba(28, 28, 26, 0.75);
+  line-height: 1.4;
+}
+
 .p-outline-pill {
   align-self: flex-start;
   display: inline-flex;
