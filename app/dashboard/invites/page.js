@@ -506,7 +506,7 @@ export default function Invites() {
     setViewReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, relance: relanceFilter, sort });
+  const viewQs = writeView({ query, groups: groupFilters, status: statusFilter, moments: momentFilter, field: activeFieldFilter, sort });
   useEffect(() => {
     if (!viewReady) return;
     const { pathname, search } = window.location;
