@@ -11,7 +11,7 @@ import { normalize, uid } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { DEFAULT_CAPACITY, autoSeat, defaultSeatingEvent, eligibleGuests, planFor, splitUnits, unitKey } from "@/lib/dash/seating";
 import { Icon } from "@/components/dash/icons";
-import { Btn, InlineEdit, Popover } from "@/components/dash/ui";
+import { Btn, InlineEdit, Modal, Popover } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 
 function escapeHtml(s) {
@@ -87,6 +87,10 @@ export default function PlanDeTable() {
     }
   }
   const [addCap, setAddCap] = useState(DEFAULT_CAPACITY);
+  // Téléphone : le bouton rond flottant ouvre une fenêtre plutôt qu'un popover (ancré à un bouton
+  // en position fixe, le popover se place n'importe où)
+  const [mobAddOpen, setMobAddOpen] = useState(false);
+  const [mobAddCap, setMobAddCap] = useState(DEFAULT_CAPACITY);
   function AddTableMenu({ kind, children = "Ajouter une table" }) {
     // État d'ouverture propre à chaque bouton : sinon celui du haut et celui du bas (vide) partagent
     // le même popover et s'ouvrent ensemble.
@@ -222,21 +226,24 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
     );
   };
 
+  const mealSelect =
+    events.length > 1 ? (
+      <select className="d-select" value={eventId || ""} onChange={(e) => setEventId(e.target.value)} aria-label="Moment du plan" style={{ width: "auto", minHeight: 40 }}>
+        {events.map((e) => (
+          <option key={e.id} value={e.id}>
+            {e.name}
+          </option>
+        ))}
+      </select>
+    ) : null;
+
   return (
     <>
       <InvitesHeader
         tab="plan"
         actions={
           <span className="d-filters" style={{ gap: 10 }}>
-            {events.length > 1 ? (
-              <select className="d-select" value={eventId || ""} onChange={(e) => setEventId(e.target.value)} aria-label="Moment du plan" style={{ width: "auto", minHeight: 40 }}>
-                {events.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
+            {mealSelect}
             <Btn kind="ghost" icon="file" onClick={print} disabled={!plan.tables.length}>
               Imprimer
             </Btn>
@@ -244,6 +251,13 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
           </span>
         }
       />
+      {/* Téléphone : le moment et Imprimer, puisque les actions de l'en-tête n'y sont pas visibles */}
+      <div className="d-mob-only-flex" style={{ gap: 10, padding: "0 16px 14px", alignItems: "center" }}>
+        {mealSelect}
+        <Btn kind="ghost" icon="file" onClick={print} disabled={!plan.tables.length}>
+          Imprimer
+        </Btn>
+      </div>
 
       {!setup ? (
         <p className="d-small" style={{ margin: 0, padding: 12, borderRadius: 12, background: "#fff4e5" }}>
@@ -468,6 +482,43 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
           </div>
         </>
       )}
+
+      {/* Téléphone : le bouton rond flottant « + » pour ajouter une table */}
+      {plan.tables.length ? (
+        <button type="button" className="d-fab" aria-label="Ajouter une table" onClick={() => setMobAddOpen(true)} disabled={!setup || !eventId}>
+          <Icon name="plus" size={22} sw={2.4} />
+        </button>
+      ) : null}
+      {mobAddOpen ? (
+        <Modal
+          title="Ajouter une table"
+          onClose={() => setMobAddOpen(false)}
+          footer={
+            <Btn
+              className="d-btn-block"
+              onClick={() => {
+                setMobAddOpen(false);
+                addTable(mobAddCap);
+              }}
+            >
+              Ajouter
+            </Btn>
+          }
+        >
+          <div className="d-seat-addcap">
+            <span className="d-small d-muted">Places à la table</span>
+            <span className="d-seat-stepper">
+              <button type="button" className="d-icon-btn" aria-label="Moins de places" onClick={() => setMobAddCap((c) => Math.max(1, c - 1))}>
+                <Icon name="minus" size={14} sw={2.4} />
+              </button>
+              <strong>{mobAddCap}</strong>
+              <button type="button" className="d-icon-btn" aria-label="Plus de places" onClick={() => setMobAddCap((c) => Math.min(60, c + 1))}>
+                <Icon name="plus" size={14} sw={2.4} />
+              </button>
+            </span>
+          </div>
+        </Modal>
+      ) : null}
     </>
   );
 }
