@@ -14,7 +14,7 @@ import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
-import { PLUS_CHOICES, PLUS_TEXT, PLUS_TOGGLES } from "@/lib/vendorPlus";
+import { plusFor } from "@/lib/vendorPlus";
 
 const CATERER = [
   { value: "libre", label: "Libre" },
@@ -22,6 +22,10 @@ const CATERER = [
   { value: "liste", label: "Liste de traiteurs" },
 ];
 const catererOf = (det) => (det.caterer_mode ? det.caterer_mode : det.caterer_imposed === false ? "libre" : det.caterer_imposed === true ? "impose" : "");
+const hasPlus = (category) => {
+  const { choices, toggles, text } = plusFor(category);
+  return choices.length > 0 || toggles.length > 0 || text.length > 0;
+};
 
 export default function MaFichePage() {
   return (
@@ -139,10 +143,10 @@ function MaFiche() {
         </section>
       ) : null}
 
-      {isLieu ? (
+      {hasPlus(v.primary_category) ? (
         <section className="p-sec" id="plus">
           <h2 className="p-sec-title">Plus d’informations</h2>
-          <PlusInfosSection />
+          <PlusInfosSection category={v.primary_category} />
         </section>
       ) : null}
 
@@ -279,20 +283,21 @@ function VideoSection() {
   );
 }
 
-// ---------- Plus d'informations : questions propres aux lieux (lib/vendorPlus.js) ----------
+// ---------- Plus d'informations : questions propres à chaque métier (lib/vendorPlus.js) ----------
 
-function PlusInfosSection() {
+function PlusInfosSection({ category }) {
   const pro = usePro();
   const v = pro.data.vendor;
   const det = v.details || {};
   const save = (patch) => pro.saveFiche(patch);
+  const { choices, toggles, text } = plusFor(category);
 
   return (
     <div className="p-plus">
-      {PLUS_CHOICES.map((c) => (
+      {choices.map((c) => (
         <PlusChoiceRow key={c.key} choice={c} value={det[c.key]} onChange={(val) => save({ [c.key]: val })} />
       ))}
-      {PLUS_TOGGLES.map((t) => (
+      {toggles.map((t) => (
         <div key={t.key} className="p-plus-row is-toggle">
           <span id={`plus-${t.key}`} className="p-plus-q">
             {t.question}
@@ -300,7 +305,7 @@ function PlusInfosSection() {
           <Switch on={det[t.key] === true} labelledBy={`plus-${t.key}`} onChange={(on) => save({ [t.key]: on })} />
         </div>
       ))}
-      {PLUS_TEXT.map((t) => (
+      {text.map((t) => (
         <div key={t.key} className="p-plus-row is-text">
           <TextField id={`plus-${t.key}`} label={t.question} value={det[t.key]} onSave={(val) => save({ [t.key]: val || null })} />
         </div>
