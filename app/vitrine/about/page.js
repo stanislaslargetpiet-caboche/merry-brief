@@ -27,10 +27,10 @@ const BLOCKS = [
 export default async function VitrineAPropos() {
   return (
     <Frame current="about">
-      <main className="wv-about">
+      <section className="wv-about" aria-label="À propos">
         <img src="/vitrine/apropos.webp" alt="" className="wv-photo" width={1400} height={1944} decoding="async" />
         <div className="wv-text">
-          <h1 className="wv-h2">On ne cessera jamais de se réunir.</h1>
+          <h1 className="wv-h1">On ne cessera jamais de se réunir.</h1>
           <p className="wv-lead">Un mariage, un anniversaire, une fête de famille : personne ne regrette ces moments. Les organiser, en revanche, tout le monde s’en passerait.</p>
           {BLOCKS.map(([title, paragraphs, lead]) => (
             <div key={title} className="wv-block">
@@ -52,7 +52,7 @@ export default async function VitrineAPropos() {
             </div>
           </div>
         </div>
-      </main>
+      </section>
     </Frame>
   );
 }

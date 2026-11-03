@@ -90,11 +90,11 @@ export default function InvitesFinder() {
     const names = [found.partner1, found.partner2].filter(Boolean).join(" & ");
     const place = [found.venue, found.region].filter(Boolean).join(", ");
     return (
-      <main className="wv-flow">
+      <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">
+        <h1 className="wv-h1">
           On a trouvé la fête.
         </h1>
         <div className="wv-flow-panel">
@@ -146,17 +146,17 @@ export default function InvitesFinder() {
             <b>Cadeaux</b>La liste ou la cagnotte.
           </li>
         </ul>
-      </main>
+      </section>
     );
   }
 
   if (view === "non-trouve") {
     return (
-      <main className="wv-flow">
+      <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">On n’a rien trouvé.</h1>
+        <h1 className="wv-h1">On n’a rien trouvé.</h1>
         <div className="wv-flow-panel">
           <p className="wv-help">
             Vérifie l’orthographe des prénoms ou du code, majuscules et accents ne comptent pas. Si plusieurs couples
@@ -183,17 +183,17 @@ export default function InvitesFinder() {
             )}
           </p>
         </div>
-      </main>
+      </section>
     );
   }
 
   if (view === "code") {
     return (
-      <main className="wv-flow">
+      <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">
+        <h1 className="wv-h1">
           Ton code d’invitation.
         </h1>
         <form
@@ -226,17 +226,17 @@ export default function InvitesFinder() {
             </button>
           </p>
         </form>
-      </main>
+      </section>
     );
   }
 
   if (view === "nom") {
     return (
-      <main className="wv-flow">
+      <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           ← Retour
         </button>
-        <h1 className="wv-h2">
+        <h1 className="wv-h1">
           Qui se marie ?
         </h1>
         <form
@@ -270,18 +270,18 @@ export default function InvitesFinder() {
             </button>
           </p>
         </form>
-      </main>
+      </section>
     );
   }
 
   return (
-    <main className="wv-invites">
+    <section className="wv-invites" aria-label="Invités">
       <img src="/vitrine/invites-1.webp" alt="" className="wv-ph wv-ph1" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-2.webp" alt="" className="wv-ph wv-ph2" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-3.webp" alt="" className="wv-ph wv-ph3" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-4.webp" alt="" className="wv-ph wv-ph4" width={1400} height={978} decoding="async" />
       <div className="wv-invites-in">
-        <h1 className="wv-h2">Tu es invité au plus beau jour de leur vie.</h1>
+        <h1 className="wv-h1">Tu es invité au plus beau jour de leur vie.</h1>
         <p className="wv-h4">C’est pas rien.</p>
         <div className="wv-btns" style={{ justifyContent: "center", marginTop: 18 }}>
           <button type="button" className="wv-btn wv-btn-dark" onClick={() => setView("code")}>
@@ -293,6 +293,6 @@ export default function InvitesFinder() {
         </div>
         <p className="wv-flow-hint">Le code est sur ton faire-part ou dans le message des mariés.</p>
       </div>
-    </main>
+    </section>
   );
 }

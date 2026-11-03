@@ -6,6 +6,7 @@ import { SITE_URL } from "@/lib/site";
 import { useLang } from "@/lib/lang";
 import { BRIEF_TEXT, VIBE_UNSURE } from "@/lib/i18n/brief";
 import LangSwitch from "@/components/LangSwitch";
+import "@/app/onboarding.css";
 import { trackEvent } from "@/lib/analytics";
 import { searchPlaces } from "@/lib/places";
 

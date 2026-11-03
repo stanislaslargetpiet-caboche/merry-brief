@@ -1,5 +1,6 @@
-import Frame, { Block, getLinks } from "@/components/vitrine/Frame";
-import { SIGNUP } from "@/lib/vitrine/routes";
+import Frame, { Block } from "@/components/vitrine/Frame";
+import { LINKS, SIGNUP } from "@/lib/vitrine/routes";
+import { formatProof, getProof } from "@/lib/vitrine/proof";
 import proposition from "@/lib/vitrine/blocks/proposition";
 import carrousel from "@/lib/vitrine/blocks/carrousel";
 
@@ -11,14 +12,25 @@ const FAQ = [
   ["Comment mes invités retrouvent la page de la fête ?", "Ils entrent les prénoms de ceux qui organisent et la date, ou ton code d’invitation. Ils retrouvent alors la page de la fête, la cagnotte ou la liste de cadeaux, et toutes les infos pratiques."],
 ];
 
+// Données structurées : la FAQ, telle qu'affichée, pour les moteurs de recherche
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+};
+
 export default async function VitrineAccueil() {
-  const links = await getLinks();
+  const links = LINKS;
+  const proof = formatProof(await getProof());
   return (
     <Frame current="home">
+      {/* Première image de la carte animée du haut : chargée dès l'entête plutôt qu'après le CSS */}
+      <link rel="preload" as="image" href="/vitrine/blocks/proposition-1.webp" />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }} />
       <section className="wv-hero" aria-label="Accueil">
         <div className="wv-hero-in">
           <p className="wv-eyebrow">Gratuit pour les mariés</p>
-          <h1 className="wv-h2">Organiser un mariage devrait être (très) simple.</h1>
+          <h1 className="wv-h1">Organiser un mariage devrait être (très) simple.</h1>
           <p className="wv-lead">
             Merry : l’assistant qui <b>simplifie</b> l’organisation de ton mariage de A à Z.
           </p>
@@ -31,7 +43,7 @@ export default async function VitrineAccueil() {
             </a>
           </div>
           <p className="wv-proof-line">
-            Plus de <span className="wv-proof-hl">15 000 prestataires</span> référencés (octobre 2026).
+            Plus de <span className="wv-proof-hl">{proof.number} prestataires</span> référencés ({proof.month}).
           </p>
         </div>
         <Block html={proposition} className="wv-hero-media" />

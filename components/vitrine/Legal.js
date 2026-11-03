@@ -5,8 +5,8 @@ import Frame from "@/components/vitrine/Frame";
 export default function Legal({ title, updated, intro, sections }) {
   return (
     <Frame current="legal">
-      <main className="wv-legal">
-        <h1 className="wv-h2">{title}</h1>
+      <section className="wv-legal">
+        <h1 className="wv-h1">{title}</h1>
         <p className="wv-p wv-legal-date">Dernière mise à jour : {updated}</p>
         {intro ? <p className="wv-lead">{intro}</p> : null}
         {sections.map(([heading, paragraphs]) => (
@@ -27,7 +27,7 @@ export default function Legal({ title, updated, intro, sections }) {
             )}
           </section>
         ))}
-      </main>
+      </section>
     </Frame>
   );
 }

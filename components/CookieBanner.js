@@ -27,7 +27,7 @@ export default function CookieBanner() {
     <div className="cookie" role="region" aria-label={s.aria}>
       <p className="cookie-text">
         {s.text}{" "}
-        <a href="https://www.withmerry.com/confidentialite" target="_blank" rel="noreferrer">
+        <a href="https://www.withmerry.com/confidentialite" target="_blank" rel="noopener noreferrer">
           {s.more}
         </a>
       </p>
