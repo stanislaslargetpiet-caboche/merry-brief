@@ -1328,6 +1328,7 @@ export default function Invites() {
         <InvitesMobile
           data={data}
           shown={shown}
+          stats={stats}
           events={events}
           groups={groups}
           idx={idx}
@@ -1341,7 +1342,6 @@ export default function Invites() {
           onRelance={(list) => setRelancing(list)}
           applyValues={applyValues}
           okUndo={okUndo}
-          onAdd={() => setAdding(true)}
         />
       ) : null}
 

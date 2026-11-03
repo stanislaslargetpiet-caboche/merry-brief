@@ -137,7 +137,13 @@ export default function Indicateurs() {
   const [chosen, setChosen] = useState(initial);
   const ctx = kpiContext(data);
 
-  const toggle = (id) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : c.length >= KPI_MAX ? c : [...c, id]));
+  // Chaque coche s'enregistre tout de suite : la liste et le budget suivent sans bouton à trouver
+  const toggle = (id) => {
+    const next = chosen.includes(id) ? chosen.filter((x) => x !== id) : chosen.length >= KPI_MAX ? chosen : [...chosen, id];
+    if (next === chosen) return;
+    setChosen(next);
+    dash.saveKpis(sc, next);
+  };
 
   async function save() {
     await dash.saveKpis(sc, chosen);
@@ -181,9 +187,9 @@ export default function Indicateurs() {
         </div>
       ) : null}
 
-      {(sc === "budget" ? [] : kpiCatalog(sc, data)).map((fam) => (
+      {(sc === "budget" ? [] : kpiCatalog(sc)).map((fam, i, all) => (
         <div key={fam.family} className="d-col" style={{ gap: 10 }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div>
+          {all.length > 1 ? <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div> : <p className="d-small d-muted" style={{ margin: 0 }}>Jusqu'à {KPI_MAX} indicateurs en tête de la liste des invités. Chaque coche est enregistrée tout de suite.</p>}
           <div className="d-g3 d-desk-only">
             {fam.items.map((it) => {
               const on = chosen.includes(it.id);
@@ -240,10 +246,7 @@ export default function Indicateurs() {
       ))}
 
       <div className="d-actions-end">
-        <Btn kind="ghost" href={conf.href}>
-          Annuler
-        </Btn>
-        <Btn onClick={save}>Enregistrer</Btn>
+        <Btn onClick={save}>Terminé</Btn>
       </div>
     </>
   );
