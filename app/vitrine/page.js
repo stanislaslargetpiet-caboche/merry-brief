@@ -5,12 +5,12 @@ import { formatProof, getProof } from "@/lib/vitrine/proof";
 import proposition from "@/lib/vitrine/blocks/proposition";
 import carrousel from "@/lib/vitrine/blocks/carrousel";
 
-// Trois étapes, chacune avec l'écran correspondant (public/vitrine/etapes) : le questionnaire « L'essentiel »
-// de l'onboarding, la page Prestataires du tableau de bord, la liste des invités.
+// Trois étapes, chacune avec l'écran correspondant (public/vitrine/etapes, 16:9) : le questionnaire « L'essentiel »
+// de l'onboarding, la page Prestataires d'un vrai compte, la liste des invités.
 const STEPS = [
-  ["brief", 1800, 1260, "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
-  ["prestataires", 1800, 1089, "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
-  ["pilotage", 1800, 1350, "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
+  ["brief", 1800, 1013, "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
+  ["prestataires", 1800, 1013, "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
+  ["pilotage", 1800, 1013, "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
 ];
 
 const FAQ = [
