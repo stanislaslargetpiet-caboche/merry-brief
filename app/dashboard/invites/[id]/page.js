@@ -14,8 +14,9 @@ import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, shortDate } from "@/lib/dash/format";
 import { LIST_PATH, listHref } from "@/lib/dash/guestView";
 import { Btn, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
+import { fieldMode } from "@/lib/dash/form";
 import GroupCell from "@/components/dash/GroupCell";
-import { agoDays } from "@/lib/dash/relance";
+import { agoDays, hasContact } from "@/lib/dash/relance";
 import RelanceModal from "@/components/dash/RelanceModal";
 import { ChoiceCell } from "@/components/dash/ColumnModal";
 
@@ -32,45 +33,6 @@ function telHref(phone) {
 function parseAge(v) {
   const n = parseInt(String(v || "").replace(/[^\d]/g, ""), 10);
   return Number.isFinite(n) && n >= 0 && n <= 120 ? n : null;
-}
-
-// Note des organisateurs sur l'invité : enregistrée en quittant le champ (ou Cmd+Entrée)
-function GuestNote({ guest }) {
-  const dash = useDash();
-  const [draft, setDraft] = useState(guest.note || "");
-  const [editing, setEditing] = useState(false);
-  // Une note qui arrive d'ailleurs (autre organisateur, écho) ne remplace pas celle qu'on est en train d'écrire
-  useEffect(() => {
-    if (!editing) setDraft(guest.note || "");
-  }, [guest.id, guest.note, editing]);
-  const commit = () => {
-    setEditing(false);
-    const text = draft.trim();
-    if (text === (guest.note || "")) return;
-    dash.update("guests", guest.id, { note: text || null });
-  };
-  if (!dash.data.guestNoteSetup) {
-    return (
-      <p className="d-small d-muted" style={{ margin: 0 }}>
-        Pour garder un mot sur chaque invité, lancez <code>supabase/fiche-et-vues-invites.sql</code> dans Supabase (SQL Editor).
-      </p>
-    );
-  }
-  return (
-    <textarea
-      className="d-textarea d-guest-note"
-      value={draft}
-      onFocus={() => setEditing(true)}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.blur();
-      }}
-      placeholder="Un mot pour l'équipe : « vient avec sa mère », « allergie à vérifier avec le traiteur »… L'invité ne le voit jamais."
-      maxLength={1000}
-      aria-label={`Note sur ${guestLabel(guest)}`}
-    />
-  );
 }
 
 export default function FicheInvite() {
@@ -138,11 +100,15 @@ export default function FicheInvite() {
     dash.update("guests", guest.id, { custom });
   };
 
+  // Ce que le formulaire invités remplit tout seul : le mail toujours, le reste selon les questions activées,
+  // et les colonnes reliées à une question (enfants, hébergement, mot, questions ajoutées)
+  const asks = (key) => Boolean(form) && fieldMode(form, key) !== "off";
+  const formColumns = new Set(form ? [...(form.fields || []).filter((f) => f.mode !== "off" && f.field_id).map((f) => f.field_id), ...(form.custom || []).map((c) => c.field_id || c.id)] : []);
   const info = [
-    { key: "phone", label: "Téléphone", value: guest.phone, action: guest.phone ? { href: telHref(guest.phone), label: "Appeler" } : null, onSave: (v) => dash.update("guests", guest.id, { phone: v }) },
-    { key: "email", label: "Mail", value: guest.email, action: guest.email ? { href: `mailto:${guest.email}`, label: "Écrire" } : null, onSave: (v) => dash.update("guests", guest.id, { email: v }) },
-    { key: "address", label: "Adresse", value: guest.address, multiline: true, onSave: (v) => dash.update("guests", guest.id, { address: v }) },
-    { key: "diet", label: "Régime", value: guest.diet, onSave: (v) => dash.update("guests", guest.id, { diet: v }) },
+    { key: "phone", label: "Téléphone", value: guest.phone, form: asks("tel"), action: guest.phone ? { href: telHref(guest.phone), label: "Appeler" } : null, onSave: (v) => dash.update("guests", guest.id, { phone: v }) },
+    { key: "email", label: "Mail", value: guest.email, form: Boolean(form), action: guest.email ? { href: `mailto:${guest.email}`, label: "Écrire" } : null, onSave: (v) => dash.update("guests", guest.id, { email: v }) },
+    { key: "address", label: "Adresse", value: guest.address, form: asks("adresse"), multiline: true, onSave: (v) => dash.update("guests", guest.id, { address: v }) },
+    { key: "diet", label: "Régime", value: guest.diet, form: asks("regime"), onSave: (v) => dash.update("guests", guest.id, { diet: v }) },
     {
       key: "age",
       label: "Âge",
@@ -150,15 +116,19 @@ export default function FicheInvite() {
       display: guest.age !== null && guest.age !== undefined && guest.age !== "" ? `${guest.age} ans` : undefined,
       onSave: (v) => dash.update("guests", guest.id, { age: parseAge(v) }),
     },
-    ...fields.map((f) => ({ key: `field:${f.id}`, label: f.name, value: (guest.custom || {})[f.id], field: f })),
+    ...fields.map((f) => ({ key: `field:${f.id}`, label: f.name, value: (guest.custom || {})[f.id], field: f, form: formColumns.has(f.id) })),
   ];
+  const anyFromForm = info.some((x) => x.form);
   // Ce qui est renseigné d'abord, puis ce qui reste à remplir, discret
   const filled = info.filter((x) => x.value);
   const empty = info.filter((x) => !x.value);
 
   const row = (x) => (
-    <div key={x.key} className={`d-frow${x.value ? "" : " is-empty"}`}>
-      <span className="d-frow-label">{x.label}</span>
+    <div key={x.key} className={`d-frow${x.value ? "" : " is-empty"}${x.form ? " is-form" : ""}`}>
+      <span className="d-frow-label">
+        {x.label}
+        {x.form ? <small>via le formulaire</small> : null}
+      </span>
       <span className="d-frow-value">
         {x.field?.kind === "choice" ? (
           <ChoiceCell value={x.value} options={x.field.options} label={x.label} onChange={(v) => saveCustom(x.field, v)} />
@@ -197,7 +167,7 @@ export default function FicheInvite() {
           {guest.reminded_at && remindedDays !== null ? <span className="d-muted">{remindedDays === 0 ? "Relancé aujourd'hui" : remindedDays === 1 ? "Relancé hier" : `Relancé il y a ${remindedDays} j`}</span> : null}
         </div>
         <div className="d-fiche-actions">
-          {pending && !host ? (
+          {pending && !host && hasContact(guest) ? (
             <Btn icon="send" onClick={() => setRelancing(true)}>
               Relancer
             </Btn>
@@ -231,16 +201,13 @@ export default function FicheInvite() {
             Pas encore de moment défini.
           </p>
         )}
-        {form ? <p className="d-fiche-hint">Les réponses arrivent aussi par le formulaire invités.</p> : null}
+        {form ? <p className="d-fiche-hint">Les invités répondent eux-mêmes par le formulaire.</p> : null}
       </section>
 
       <section className="d-fiche-block" aria-label="Informations">
+        {anyFromForm ? <p className="d-fiche-hint is-top">En gris : ce que l'invité remplit lui-même par le formulaire.</p> : null}
         {filled.map(row)}
         {empty.length ? <div className="d-fiche-empties">{empty.map(row)}</div> : null}
-        <div className="d-frow is-note">
-          <span className="d-frow-label">Note pour l'équipe</span>
-          <GuestNote guest={guest} />
-        </div>
       </section>
 
       <div>
