@@ -147,6 +147,21 @@
   font-weight: 600;
 }
 
+.d-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #1c1c1a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* En-tête et onglets du téléphone : cachés sur grand écran */
 .d-topbar,
 .d-tabbar {
@@ -2605,6 +2620,7 @@ button.d-rsvp:hover {
   }
 
   .d-tab-item {
+    position: relative;
     flex: 1;
     display: flex;
     align-items: center;
@@ -2624,6 +2640,24 @@ button.d-rsvp:hover {
     background: var(--d-lime);
     border-radius: 999px;
     padding: 4px 16px;
+  }
+
+  .d-tab-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 22px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 11px;
+    height: 11px;
+    padding: 0 3px;
+    border-radius: 999px;
+    border: 1.5px solid #ffffff;
+    background: #1c1c1a;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
   }
 
   /* Zone principale */
@@ -7126,6 +7160,38 @@ body.d-noscroll {
   font-weight: 600;
 }
 
+.d-pr-headbtn {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--d-panel);
+  color: var(--d-ink);
+}
+
+.d-pr-headbtn-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background: #1c1c1a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 /* Votre brief */
 .d-pr-briefrow {
   display: flex;
@@ -7250,6 +7316,65 @@ body.d-noscroll {
   border-color: var(--d-border);
   background: #ffffff;
   font-weight: 600;
+}
+
+/* Téléphone (page Trouver) : Filtres et catégories fusionnés en une ligne de pastilles défilante,
+   à la façon d'Airbnb, pour tenir dans un écran étroit sans empiler plusieurs rangées de contrôles. */
+.d-pr-pillrow {
+  display: flex;
+  gap: 8px;
+  width: calc(100% + 32px);
+  margin: 0 -16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.d-pr-pillrow::-webkit-scrollbar {
+  display: none;
+}
+
+.d-pr-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  color: var(--d-ink);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.d-pr-pill.is-on {
+  background: #1c1c1a;
+  border-color: #1c1c1a;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.d-pr-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #1c1c1a;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.d-pr-pill.is-on .d-pr-pill-badge {
+  background: #ffffff;
+  color: #1c1c1a;
 }
 
 .d-pr-intro {
@@ -10289,6 +10414,14 @@ body.d-noscroll {
 
   .d-pr-head .d-title {
     font-size: 27px;
+  }
+
+  /* Tête compacte (Trouver / Mes sur téléphone) : titre et bouton sur la même ligne */
+  .d-itabs-head.is-compact .d-pr-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .d-pr-seg {

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
@@ -100,6 +100,7 @@ export default function Trouver() {
     return () => clearTimeout(t);
   }, [searching, loading]);
   const pending = picks.filter((p) => !p.requested_at);
+  const filtersCount = activeFilters(dash.data, price);
   const c = catOf(cat);
   const fiche = ficheId ? list.find((v) => v.id === ficheId) || vendors.find((v) => v.id === ficheId) : null;
 
@@ -174,7 +175,7 @@ export default function Trouver() {
   if (view === "carte" && phone) {
     return (
       <>
-        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={activeFilters(dash.data, price)} onList={() => changeView("liste")} pending={pending} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} phone isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={filtersCount} onList={() => changeView("liste")} pending={pending} />
         {overlays}
       </>
     );
@@ -186,16 +187,37 @@ export default function Trouver() {
       <VendorSearchBar />
       <SampleNote source={source} />
       <FiltersNote rec={rec} />
-      <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />
-      <div className="d-pr-tabrow">
-        <CategoryTabs value={cat} onChange={changeCat} />
-        <div className="d-pr-tabrow-right">
+      {phone ? (
+        <>
+          <div className="d-pr-pillrow">
+            <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)}>
+              <Icon name="list" size={14} sw={2} />
+              Filtres
+              {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
+            </button>
+            {CATEGORIES.map((cg) => (
+              <button key={cg.key} type="button" className={`d-pr-pill${cat === cg.key ? " is-on" : ""}`} onClick={() => changeCat(cg.key)}>
+                {cg.tab}
+              </button>
+            ))}
+          </div>
+          {searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
           <ViewToggle view={view} onChange={changeView} />
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />
+          <div className="d-pr-tabrow">
+            <CategoryTabs value={cat} onChange={changeCat} />
+            <div className="d-pr-tabrow-right">
+              <ViewToggle view={view} onChange={changeView} />
+            </div>
+          </div>
+        </>
+      )}
 
       {view === "carte" ? (
-        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={activeFilters(dash.data, price)} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
+        <MapView focusId={focusId} list={list} rec={rec} onArea={setBbox} cat={cat} source={source} isPicked={isPicked} onToggle={toggle} onOpen={openFiche} onFilters={() => setFilters(true)} filtersCount={filtersCount} pending={pending} onRequest={() => setDevis(pending)} onClear={clearSelection} />
       ) : (
         <>
           <div className="d-pr-intro">

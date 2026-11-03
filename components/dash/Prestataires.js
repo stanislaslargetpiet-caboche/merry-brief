@@ -248,7 +248,26 @@ export function MoreButton({ rec, category, className = "" }) {
 // En-tête : « Prestataires. » et les deux onglets
 // ---------------------------------------------------------------------------
 
+// Téléphone : plus de place pour deux onglets Trouver / Mes en haut de page, un seul à la fois suffit à
+// l'écran ; l'autre se rejoint par une icône à côté du titre (cœur vers Mes, recherche vers Trouver).
 export function PrHead({ on }) {
+  const phone = useIsPhone();
+  const dash = useDash();
+  if (phone) {
+    const toMes = on !== "mes";
+    const count = (dash.data?.picks || []).length;
+    return (
+      <div className="d-itabs-head is-compact">
+        <div className="d-pr-head">
+          <h1 className="d-title">{on === "mes" ? "Mes prestataires." : "Prestataires."}</h1>
+          <Link href={toMes ? "/dashboard/prestataires/mes" : "/dashboard/prestataires"} className="d-pr-headbtn" aria-label={toMes ? "Mes prestataires" : "Trouver des prestataires"}>
+            <Icon name={toMes ? "heart" : "search"} size={18} sw={2} />
+            {toMes && count ? <span className="d-pr-headbtn-badge">{count}</span> : null}
+          </Link>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="d-itabs-head">
       <div className="d-pr-head">
@@ -259,17 +278,9 @@ export function PrHead({ on }) {
   );
 }
 
-// Réponse reçue mais pas encore relue (pickStatus la classe "reponse" tant que le couple n'a pas
-// signé de devis ni renvoyé de message) : sert de pastille sur l'onglet Messagerie, faute d'un vrai
-// suivi de lecture par message.
-function useUnreadCount() {
-  const dash = useDash();
-  const { picks = [] } = dash.data;
-  return picks.filter((p) => pickStatus(p, dash.data).key === "reponse").length;
-}
-
+// Depuis la promotion de la Messagerie en entrée de navigation principale (barre latérale,
+// onglets du téléphone), ce segment n'a plus que « Trouver » et « Mes » à départager.
 export function Segment({ on }) {
-  const unread = useUnreadCount();
   return (
     <nav aria-label="Prestataires" className="d-itabs">
       <Link href="/dashboard/prestataires" className={`d-itab${on === "trouver" ? " is-on" : ""}`} aria-current={on === "trouver" ? "page" : undefined}>
@@ -279,11 +290,6 @@ export function Segment({ on }) {
       <Link href="/dashboard/prestataires/mes" className={`d-itab${on === "mes" ? " is-on" : ""}`} aria-current={on === "mes" ? "page" : undefined}>
         <span className="d-itab-long">Mes prestataires</span>
         <span className="d-itab-short">Mes</span>
-      </Link>
-      <Link href="/dashboard/prestataires/messagerie" className={`d-itab${on === "messagerie" ? " is-on" : ""}`} aria-current={on === "messagerie" ? "page" : undefined}>
-        <span className="d-itab-long">Messagerie</span>
-        <span className="d-itab-short">Messagerie</span>
-        {unread ? <span className="d-itab-badge">{unread}</span> : null}
       </Link>
     </nav>
   );
@@ -464,7 +470,7 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
             {onMap && mapPoint(v) ? (
               <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
                 <Icon name="map" size={14} sw={2} />
-                Voir sur la carte
+                Carte
               </button>
             ) : null}
           </div>

@@ -9,8 +9,9 @@ import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { notifyVendor } from "@/lib/dash/vendorMail";
 import { ago } from "@/components/dash/VendorComments";
-import { Thumb, PrHead, useIsPhone } from "@/components/dash/Prestataires";
+import { Thumb, useIsPhone } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
+import { PageHeader } from "@/components/dash/ui";
 
 function threadsOf(data) {
   const byVendor = new Map();
@@ -54,7 +55,7 @@ export default function Messagerie() {
 
   return (
     <>
-      <PrHead on="messagerie" />
+      <PageHeader title="Messagerie." />
       {!threads.length ? (
         <div className="d-card is-panel">
           <strong>Pas encore de conversation.</strong>

@@ -7,20 +7,24 @@ import { DashProvider, useDash } from "@/lib/dash/store";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
+import { pickStatus } from "@/lib/dash/picks";
 import { Icon } from "./icons";
 import { Avatar, Popover, PageLoader } from "./ui";
 import Organisers from "./Organisers";
 
-// Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires
+// Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires, Messagerie
 const NAV = [
   { href: "/dashboard/invites", label: "Invités", short: "Invités", icon: "users" },
   { href: "/dashboard/budget", label: "Budget", short: "Budget", icon: "wallet", also: ["/dashboard/documents", "/dashboard/indicateurs/budget"] },
   { href: "/dashboard/retroplanning", label: "Rétroplanning", short: "Planning", icon: "calendar" },
-  { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store" },
+  { href: "/dashboard/prestataires", label: "Prestataires", short: "Prestataires", icon: "store", exclude: ["/dashboard/prestataires/messagerie"] },
+  { href: "/dashboard/prestataires/messagerie", label: "Messagerie", short: "Messagerie", icon: "bubble", badge: true },
 ];
 
 // L'éditeur du site (/dashboard/site) fait partie de l'espace Invités ; les documents et les indicateurs, du Budget
-const isOn = (n, pathname) => pathname.startsWith(n.href) || (n.also || []).some((h) => pathname.startsWith(h)) || (n.href === "/dashboard/invites" && pathname.startsWith("/dashboard/site"));
+const isOn = (n, pathname) =>
+  (pathname.startsWith(n.href) || (n.also || []).some((h) => pathname.startsWith(h)) || (n.href === "/dashboard/invites" && pathname.startsWith("/dashboard/site"))) &&
+  !(n.exclude || []).some((h) => pathname.startsWith(h));
 
 export default function Shell({ children }) {
   return (
@@ -30,6 +34,14 @@ export default function Shell({ children }) {
       </ImportsProvider>
     </DashProvider>
   );
+}
+
+// Réponse reçue mais pas encore relue (pickStatus la classe "reponse" tant que le couple n'a pas
+// signé de devis ni renvoyé de message) : sert de pastille sur le bouton Messagerie de la navigation.
+function useUnreadMessages() {
+  const dash = useDash();
+  const picks = dash.data?.picks || [];
+  return picks.filter((p) => pickStatus(p, dash.data).key === "reponse").length;
 }
 
 function pendingSentence(pending) {
@@ -81,6 +93,7 @@ function Frame({ children }) {
   const dash = useDash();
   const pathname = usePathname();
   const router = useRouter();
+  const unread = useUnreadMessages();
   const [showOrganisers, setShowOrganisers] = useState(false);
   const accent = useAccent();
 
@@ -220,6 +233,7 @@ function Frame({ children }) {
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
                 <Icon name={n.icon} size={18} />
                 {n.label}
+                {n.badge && unread ? <span className="d-nav-badge" aria-label={`${unread} non lus`}>{unread}</span> : null}
               </Link>
             );
           })}
