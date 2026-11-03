@@ -38,9 +38,16 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   ...(devPort ? { distDir: `.next-dev-${devPort}` } : {}),
+  // PostHog passe par notre domaine (lib/analytics.js, api_host: "/ingest") plutôt que eu.i.posthog.com :
+  // un bloqueur de pub qui cible le domaine PostHog par son nom ne voit plus la différence avec le reste du site.
+  skipTrailingSlashRedirect: true,
   // Navigateurs et robots demandent /favicon.ico sans lire la page : on sert l'icône générée (app/icon.js)
   async rewrites() {
-    return [{ source: "/favicon.ico", destination: "/icon" }];
+    return [
+      { source: "/favicon.ico", destination: "/icon" },
+      { source: "/ingest/static/:path*", destination: "https://eu-assets.i.posthog.com/static/:path*" },
+      { source: "/ingest/:path*", destination: "https://eu.i.posthog.com/:path*" },
+    ];
   },
   async headers() {
     return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
