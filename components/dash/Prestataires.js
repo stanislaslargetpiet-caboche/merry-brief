@@ -488,9 +488,11 @@ export function ToConfirm({ v }) {
 export function ConfirmDivider({ list, index, category = "lieu" }) {
   const v = list[index];
   if (!v?.unknown?.length || list[index - 1]?.unknown?.length) return null;
+  const who = category === "lieu" ? "le lieu" : "le prestataire";
   return (
     <div className="d-pr-tier" role="presentation">
-      <strong>À confirmer avec {category === "lieu" ? "le lieu" : "le prestataire"}</strong>
+      <strong>À confirmer avec {who}</strong>
+      {index === 0 ? <span className="d-small d-muted">Aucun{category === "lieu" ? " lieu" : ""} ne tient tous vos critères d’après ce que nous savons : ceux-ci peuvent y répondre, à vérifier avec {who}.</span> : null}
     </div>
   );
 }
