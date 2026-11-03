@@ -13196,10 +13196,28 @@ body.d-noscroll {
 
 .d-msg-item-name {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
   font-size: 14.5px;
   font-weight: 600;
+}
+
+.d-msg-item-name-text {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-msg-item-time {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--d-muted);
 }
 
 .d-msg-item-prev {
@@ -13212,8 +13230,8 @@ body.d-noscroll {
 
 .d-msg-dot {
   flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
   background: #1c1c1a;
 }
@@ -13228,10 +13246,29 @@ body.d-noscroll {
 .d-msg-thread-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 16px 22px;
   border-bottom: 1px solid var(--d-line);
+}
+
+.d-msg-thread-head-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.d-msg-back {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 0;
+  background: none;
+  color: var(--d-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -6px;
+  cursor: pointer;
 }
 
 .d-msg-thread-head h2 {
@@ -13328,6 +13365,8 @@ body.d-noscroll {
 }
 
 @media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  /* Un seul panneau à la fois, comme Airbnb : la liste plein écran, puis le fil plein écran une
+     fois une conversation choisie (bouton retour dans son en-tête) — jamais les deux empilés. */
   .d-msg-layout {
     flex-direction: column;
     height: auto;
@@ -13336,12 +13375,28 @@ body.d-noscroll {
   }
   .d-msg-list {
     width: 100%;
-    max-height: 240px;
     border-right: 0;
-    border-bottom: 1px solid var(--d-line);
+  }
+  .d-msg-item {
+    padding: 14px 4px;
+  }
+  .d-msg-layout.is-thread .d-msg-list {
+    display: none;
+  }
+  .d-msg-layout:not(.is-thread) .d-msg-thread {
+    display: none;
+  }
+  .d-msg-thread-head {
+    padding: 12px 4px;
   }
   .d-msg-bubbles {
-    max-height: 50vh;
+    padding: 18px 4px;
+  }
+  .d-msg-composer {
+    padding: 12px 4px;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
   }
 }
 

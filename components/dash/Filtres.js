@@ -15,7 +15,7 @@ import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
 import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, VENUE, styleCriteria } from "./Prestataires";
 
-export const PRICE_MAX = 30000;
+export const PRICE_MAX = 100000;
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const fmt = (n) => Math.round(n).toLocaleString("fr-FR").replace(/\s/g, " ");
 
@@ -97,7 +97,7 @@ export function PriceRange({ value, onChange }) {
         <div>
           <label htmlFor="prix-max">Maximum</label>
           <div className="d-pr-eurbox">
-            <input id="prix-max" type="text" inputMode="numeric" value={fmt(range[1])} onChange={(e) => onChange([range[0], Math.max(parse(e.target.value), range[0])])} />
+            <input id="prix-max" type="text" inputMode="numeric" value={range[1] >= PRICE_MAX ? `${fmt(PRICE_MAX)} +` : fmt(range[1])} onChange={(e) => onChange([range[0], Math.max(parse(e.target.value), range[0])])} />
             <span aria-hidden="true">€</span>
           </div>
         </div>

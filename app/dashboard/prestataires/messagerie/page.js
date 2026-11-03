@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { notifyVendor } from "@/lib/dash/vendorMail";
 import { ago } from "@/components/dash/VendorComments";
-import { Thumb, PrHead } from "@/components/dash/Prestataires";
+import { Thumb, PrHead, useIsPhone } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
 
 function threadsOf(data) {
@@ -32,11 +32,14 @@ function threadsOf(data) {
 export default function Messagerie() {
   const dash = useDash();
   const data = dash.data;
+  const phone = useIsPhone();
   const threads = useMemo(() => threadsOf(data), [data]);
   const [openId, setOpenId] = useState(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const current = threads.find((t) => t.vendor.id === openId) || threads[0] || null;
+  // Téléphone : un seul panneau à la fois (comme Airbnb), la liste d'abord, le fil une fois un
+  // échange choisi. Ordinateur : la liste et le fil côte à côte, le plus récent ouvert d'emblée.
+  const current = threads.find((t) => t.vendor.id === openId) || (phone ? null : threads[0]) || null;
 
   async function send(e) {
     e.preventDefault();
@@ -60,16 +63,19 @@ export default function Messagerie() {
           </span>
         </div>
       ) : (
-        <div className="d-msg-layout">
+        <div className={`d-msg-layout${phone && current ? " is-thread" : ""}`}>
           <ul className="d-msg-list">
             {threads.map((t) => (
               <li key={t.vendor.id}>
                 <button type="button" className={`d-msg-item${current?.vendor.id === t.vendor.id ? " is-on" : ""}`} onClick={() => setOpenId(t.vendor.id)}>
-                  <Thumb v={t.vendor} size={44} />
+                  <Thumb v={t.vendor} size={48} />
                   <div className="d-msg-item-main">
                     <span className="d-msg-item-name">
-                      {t.vendor.name}
-                      {t.unread ? <span className="d-msg-dot" aria-hidden="true" /> : null}
+                      <span className="d-msg-item-name-text">
+                        {t.unread ? <span className="d-msg-dot" aria-hidden="true" /> : null}
+                        {t.vendor.name}
+                      </span>
+                      <span className="d-msg-item-time">{ago(t.last.sent_at)}</span>
                     </span>
                     <span className="d-msg-item-prev">{t.last.body}</span>
                   </div>
@@ -80,7 +86,12 @@ export default function Messagerie() {
           {current ? (
             <section className="d-msg-thread">
               <div className="d-msg-thread-head">
-                <div>
+                {phone ? (
+                  <button type="button" className="d-msg-back" onClick={() => setOpenId(null)} aria-label="Revenir aux conversations">
+                    <Icon name="back" size={18} sw={2.2} />
+                  </button>
+                ) : null}
+                <div className="d-msg-thread-head-main">
                   <h2>{current.vendor.name}</h2>
                   <span className="d-msg-thread-meta">{current.vendor.category}</span>
                 </div>

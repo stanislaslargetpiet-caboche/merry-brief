@@ -1758,10 +1758,9 @@ export function RowActions({ p, status, onFiche, onCompare }) {
 // Note affichée tant que les recommandations sont celles du canvas (catalogue sans prestataire validé)
 export function SampleNote({ source }) {
   const dash = useDash();
-  if (dash.mode !== "live") return null;
   return (
     <>
-      {!dash.data.picksSetup ? (
+      {dash.mode === "live" && !dash.data.picksSetup ? (
         <div className="d-card is-panel">
           <strong>Les prestataires ne sont pas encore installés sur la base.</strong>
           <span className="d-small" style={{ lineHeight: 1.5, color: "#43423c" }}>
@@ -1769,7 +1768,11 @@ export function SampleNote({ source }) {
           </span>
         </div>
       ) : null}
-      {source === "exemple" ? <p className="d-pr-samplenote">Exemples : pas encore de prestataire validé dans votre région.</p> : null}
+      {source === "exemple" ? (
+        <p className="d-pr-samplenote">
+          {dash.mode === "live" ? "Exemples : pas encore de prestataire validé dans votre région." : "Exemples : données de démonstration, pas filtrées par votre recherche."}
+        </p>
+      ) : null}
     </>
   );
 }
