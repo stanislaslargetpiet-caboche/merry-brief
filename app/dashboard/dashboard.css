@@ -16188,6 +16188,8 @@ body.d-noscroll {
   flex: none;
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--d-muted);

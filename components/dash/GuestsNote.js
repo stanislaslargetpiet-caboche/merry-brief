@@ -9,21 +9,6 @@ import { useDash } from "@/lib/dash/store";
 import { pastel } from "@/lib/dash/theme";
 import { Icon } from "./icons";
 
-// « à l'instant », « il y a 5 min », « il y a 2 h », « hier », puis la date
-function ago(iso) {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return "";
-  const min = Math.round((Date.now() - t) / 60000);
-  if (min < 1) return "à l'instant";
-  if (min < 60) return `il y a ${min} min`;
-  const h = Math.round(min / 60);
-  if (h < 24 && new Date(t).toDateString() === new Date().toDateString()) return `à ${new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (new Date(t).toDateString() === yesterday.toDateString()) return `hier à ${new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  return new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-}
-
 const collapsedKey = (id) => `merry-note-collapsed-${id}`;
 
 export default function GuestsNote() {
@@ -92,10 +77,8 @@ export default function GuestsNote() {
         <p className="d-note-text">{note.text}</p>
       )}
       <div className="d-note-foot">
-        {note?.updated_at ? (
-          <span className="d-note-meta">
-            Modifié par {author?.display_name || "quelqu'un"} · {ago(note.updated_at)}
-          </span>
+        {note?.updated_by ? (
+          <span className="d-note-meta">Modifié par {author?.display_name || "quelqu'un"}</span>
         ) : (
           <span />
         )}
