@@ -49,13 +49,20 @@ export default function AvailabilityCalendar() {
   // Le calendrier s'ouvre toujours sur le mois en cours
   const [month, setMonth] = useState(() => ({ y: today().getFullYear(), m: today().getMonth() }));
   const [open, setOpen] = useState(null);
+  // Sélection de plusieurs jours à la fois, pour poser une option ou une réservation en une fois
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [anchorDay, setAnchorDay] = useState(null);
+  const [multiOpen, setMultiOpen] = useState(false);
   const days = monthGrid(month.y, month.m);
+  const monthIsos = useMemo(() => days.filter((x) => x.getMonth() === month.m).map(isoDate), [days, month.m]);
   const go = (delta) => {
     const x = new Date(month.y, month.m + delta, 1);
     setMonth({ y: x.getFullYear(), m: x.getMonth() });
     setOpen(null);
+    setSelected(new Set());
+    setAnchorDay(null);
   };
-  const expiring = d.dates.filter((x) => x.status === "option" && x.expires_on).sort((a, b) => a.expires_on.localeCompare(b.expires_on));
   const inMonth = d.dates.filter((x) => toDate(x.day).getMonth() === month.m && toDate(x.day).getFullYear() === month.y).sort((a, b) => a.day.localeCompare(b.day));
 
   const openDay = (iso) => {
@@ -64,26 +71,85 @@ export default function AvailabilityCalendar() {
     setOpen(iso);
   };
 
+  const toggleSelectMode = () => {
+    setSelectMode((v) => !v);
+    setSelected(new Set());
+    setAnchorDay(null);
+    setOpen(null);
+  };
+
+  const dayClick = (iso, e) => {
+    if (!selectMode) {
+      setOpen(open === iso ? null : iso);
+      return;
+    }
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (e.shiftKey && anchorDay) {
+        const i1 = monthIsos.indexOf(anchorDay);
+        const i2 = monthIsos.indexOf(iso);
+        if (i1 !== -1 && i2 !== -1) {
+          const [lo, hi] = i1 < i2 ? [i1, i2] : [i2, i1];
+          for (let i = lo; i <= hi; i++) next.add(monthIsos[i]);
+          return next;
+        }
+      }
+      if (next.has(iso)) next.delete(iso);
+      else next.add(iso);
+      return next;
+    });
+    setAnchorDay(iso);
+  };
+
+  const closeMulti = () => {
+    setMultiOpen(false);
+    setSelectMode(false);
+    setSelected(new Set());
+    setAnchorDay(null);
+  };
+
   const editor = open ? <DayEditor day={open} entry={byDay.get(open)} clients={clients} phone={phone} onClose={() => setOpen(null)} /> : null;
+  const selectedDays = useMemo(() => monthIsos.filter((iso) => selected.has(iso)), [monthIsos, selected]);
+  const multiEditor = multiOpen ? <MultiDayEditor days={selectedDays} clients={clients} onClose={closeMulti} /> : null;
 
   return (
     <section className="p-dispo">
-      <div className={`p-dispo-grid${expiring.length ? "" : " is-single"}`}>
+      <div className="p-dispo-grid is-single">
         <section className="p-cal">
           <div className="p-cal-head">
             <h2>
               {monthName(new Date(month.y, month.m, 1))} {month.y}
             </h2>
-            <span className="p-cal-nav">
-              <button type="button" aria-label="Mois précédent" onClick={() => go(-1)}>
-                <ProIcon name="prev" size={16} sw={2} />
+            <span className="p-cal-headactions">
+              <button type="button" className={`p-btn p-btn-ghost is-40${selectMode ? " is-on" : ""}`} aria-pressed={selectMode} onClick={toggleSelectMode}>
+                {selectMode ? "Terminé" : "Sélectionner plusieurs jours"}
               </button>
-              <button type="button" aria-label="Mois suivant" onClick={() => go(1)}>
-                <ProIcon name="next" size={16} sw={2} />
-              </button>
+              <span className="p-cal-nav">
+                <button type="button" aria-label="Mois précédent" onClick={() => go(-1)}>
+                  <ProIcon name="prev" size={16} sw={2} />
+                </button>
+                <button type="button" aria-label="Mois suivant" onClick={() => go(1)}>
+                  <ProIcon name="next" size={16} sw={2} />
+                </button>
+              </span>
             </span>
           </div>
+          {selectMode ? (
+            <div className="p-cal-select-bar">
+              <span>
+                {selected.size
+                  ? `${selected.size} jour${selected.size > 1 ? "s" : ""} sélectionné${selected.size > 1 ? "s" : ""}`
+                  : phone
+                    ? "Touchez des jours à modifier ensemble"
+                    : "Cliquez sur des jours, ou Maj + clic pour une période"}
+              </span>
+              <button type="button" className="p-btn p-btn-primary is-40" disabled={!selected.size} onClick={() => setMultiOpen(true)}>
+                Modifier
+              </button>
+            </div>
+          ) : null}
           <Legend className="p-desk-only" />
+          <Legend className="p-phone-only is-dots" />
           <div className="p-cal-days">
             {WEEK.map((w, k) => (
               <div key={w} className={`p-cal-wd${k >= 5 ? " is-we" : ""}`}>
@@ -104,16 +170,19 @@ export default function AvailabilityCalendar() {
               const x = byDay.get(iso);
               const who = x ? nameOf(x) : "";
               const state = x ? (x.status === "reserve" ? "réservé" : "option posée") : "libre";
-              const label = `${dateLong(iso)}, ${state}${who ? `, ${who}` : ""}${x?.status === "option" && x.expires_on ? `, expire le ${shortDate(x.expires_on)}` : ""}`;
+              const isSel = selectMode && selected.has(iso);
+              const label = `${dateLong(iso)}, ${state}${who ? `, ${who}` : ""}${x?.status === "option" && x.expires_on ? `, expire le ${shortDate(x.expires_on)}` : ""}${selectMode ? isSel ? ", sélectionné" : ", non sélectionné" : ""}`;
               return (
                 <div key={iso} className="p-cal-cellwrap">
                   <button
                     type="button"
                     aria-label={label}
-                    aria-expanded={open === iso}
-                    className={`p-cal-day${we ? " is-we" : ""}${x ? ` is-${x.status}` : ""}${open === iso ? " is-open" : ""}`}
-                    onClick={() => setOpen(open === iso ? null : iso)}
+                    aria-expanded={!selectMode ? open === iso : undefined}
+                    aria-pressed={selectMode ? isSel : undefined}
+                    className={`p-cal-day${we ? " is-we" : ""}${x ? ` is-${x.status}` : ""}${open === iso ? " is-open" : ""}${isSel ? " is-selected" : ""}`}
+                    onClick={(e) => dayClick(iso, e)}
                   >
+                    {selectMode ? <span className={`p-cal-check${isSel ? " is-on" : ""}`} aria-hidden="true" /> : null}
                     <span className="p-cal-n">{day.getDate()}</span>
                     {x ? (
                       <>
@@ -123,12 +192,11 @@ export default function AvailabilityCalendar() {
                       </>
                     ) : null}
                   </button>
-                  {open === iso && !phone ? editor : null}
+                  {open === iso && !selectMode && !phone ? editor : null}
                 </div>
               );
             })}
           </div>
-          <Legend className="p-phone-only is-dots" />
         </section>
 
         <div className="p-dispo-side">
@@ -149,29 +217,10 @@ export default function AvailabilityCalendar() {
               </ul>
             </section>
           ) : null}
-          {expiring.length ? (
-            <section className="p-expiring">
-              <h2>Options qui expirent bientôt</h2>
-              <ul className="p-rows">
-                {expiring.slice(0, 5).map((x) => (
-                  <li key={x.id}>
-                    <span className="p-who is-3">
-                      <span className="p-exp-name">{nameOf(x) || "Option"}</span>
-                      <span className="p-exp-meta">
-                        {dateLong(x.day)} · Expire le {shortDate(x.expires_on)}
-                      </span>
-                    </span>
-                    <button type="button" className="p-link is-135" onClick={() => openDay(x.day)}>
-                      Prolonger
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
         </div>
       </div>
       {open && phone ? editor : null}
+      {multiEditor}
     </section>
   );
 }
@@ -195,23 +244,18 @@ function Legend({ className = "" }) {
   );
 }
 
-// Libre, option (avec le couple et la fin de l'option) ou réservé
-function DayEditor({ day, entry, clients, phone, onClose }) {
-  const pro = usePro();
-  const choices = clients.filter((c) => c.stage !== "perdu");
+// État, couple et expiration d'une option : partagé entre l'édition d'un jour et de plusieurs jours
+function useDayStatusState(entry, choices) {
   const [status, setStatus] = useState(entry?.status || "option");
   const [who, setWho] = useState(entry?.client_id || (entry?.label ? OTHER : choices[0]?.id || OTHER));
   const [label, setLabel] = useState(entry?.label || "");
   const [expires, setExpires] = useState(entry?.expires_on || isoDate(addDays(today(), 14)));
-  const title = dayLong(day);
+  return { status, setStatus, who, setWho, label, setLabel, expires, setExpires };
+}
 
-  async function save() {
-    if (status === "libre") await pro.setDay(day, null);
-    else await pro.setDay(day, { status, client_id: who === OTHER ? null : who, label: who === OTHER ? label.trim() || null : null, expires_on: expires });
-    onClose();
-  }
-
-  const body = (
+function DayStatusFields({ idPrefix, state, choices }) {
+  const { status, setStatus, who, setWho, label, setLabel, expires, setExpires } = state;
+  return (
     <>
       <div role="radiogroup" aria-label="État de la date" className="p-day-states">
         {[
@@ -227,8 +271,8 @@ function DayEditor({ day, entry, clients, phone, onClose }) {
       {status !== "libre" ? (
         <>
           <div className="p-field">
-            <label htmlFor="couple-pop">Couple</label>
-            <select id="couple-pop" className="p-input" value={who} onChange={(e) => setWho(e.target.value)}>
+            <label htmlFor={`${idPrefix}-couple`}>Couple</label>
+            <select id={`${idPrefix}-couple`} className="p-input" value={who} onChange={(e) => setWho(e.target.value)}>
               {choices.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.names}
@@ -239,21 +283,42 @@ function DayEditor({ day, entry, clients, phone, onClose }) {
           </div>
           {who === OTHER ? (
             <div className="p-field">
-              <label htmlFor="couple-autre">Nom du couple</label>
-              <input id="couple-autre" className="p-input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Julie & Paul" />
+              <label htmlFor={`${idPrefix}-autre`}>Nom du couple</label>
+              <input id={`${idPrefix}-autre`} className="p-input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Julie & Paul" />
             </div>
           ) : null}
           {status === "option" ? (
             <div className="p-field">
-              <label htmlFor="exp-pop">L’option expire le</label>
+              <label htmlFor={`${idPrefix}-exp`}>L’option expire le</label>
               <div className="p-input p-unit">
                 <ProIcon name="calendar" size={16} stroke="#6b6a63" />
-                <input id="exp-pop" type="date" className="p-unit-input" value={expires || ""} onChange={(e) => setExpires(e.target.value)} />
+                <input id={`${idPrefix}-exp`} type="date" className="p-unit-input" value={expires || ""} onChange={(e) => setExpires(e.target.value)} />
               </div>
             </div>
           ) : null}
         </>
       ) : null}
+    </>
+  );
+}
+
+// Libre, option (avec le couple et la fin de l'option) ou réservé
+function DayEditor({ day, entry, clients, phone, onClose }) {
+  const pro = usePro();
+  const choices = clients.filter((c) => c.stage !== "perdu");
+  const state = useDayStatusState(entry, choices);
+  const { status, who, label, expires } = state;
+  const title = dayLong(day);
+
+  async function save() {
+    if (status === "libre") await pro.setDay(day, null);
+    else await pro.setDay(day, { status, client_id: who === OTHER ? null : who, label: who === OTHER ? label.trim() || null : null, expires_on: expires });
+    onClose();
+  }
+
+  const body = (
+    <>
+      <DayStatusFields idPrefix="day-pop" state={state} choices={choices} />
       <div className="p-day-foot">
         <button type="button" className="p-day-cancel" onClick={onClose}>
           Annuler
@@ -286,5 +351,47 @@ function DayEditor({ day, entry, clients, phone, onClose }) {
       </div>
       {body}
     </div>
+  );
+}
+
+// Même état (libre, option, réservé) posé sur plusieurs jours à la fois
+function MultiDayEditor({ days, clients, onClose }) {
+  const pro = usePro();
+  const choices = clients.filter((c) => c.stage !== "perdu");
+  const state = useDayStatusState(null, choices);
+  const { status, who, label, expires } = state;
+  const sorted = useMemo(() => [...days].sort(), [days]);
+  const title = `${sorted.length} jour${sorted.length > 1 ? "s" : ""} sélectionné${sorted.length > 1 ? "s" : ""}`;
+  const summary = sorted.length > 3 ? `${shortDate(sorted[0])} – ${shortDate(sorted[sorted.length - 1])}` : sorted.map((x) => shortDate(x)).join(", ");
+
+  async function save() {
+    const payload = status === "libre" ? null : { status, client_id: who === OTHER ? null : who, label: who === OTHER ? label.trim() || null : null, expires_on: expires };
+    await Promise.all(sorted.map((day) => pro.setDay(day, payload)));
+    onClose();
+  }
+
+  const body = (
+    <>
+      <p className="p-note">{summary}</p>
+      <DayStatusFields idPrefix="day-multi" state={state} choices={choices} />
+      <div className="p-day-foot">
+        <button type="button" className="p-day-cancel" onClick={onClose}>
+          Annuler
+        </button>
+        <button type="button" className="p-btn p-btn-primary" onClick={save} disabled={!sorted.length || (status !== "libre" && who === OTHER && !label.trim())}>
+          Appliquer à {sorted.length} jour{sorted.length > 1 ? "s" : ""}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <Sheet labelledBy="multi-day-title" onClose={onClose} className="p-day-sheet">
+      <div className="p-day-head">
+        <strong id="multi-day-title">{title}</strong>
+        <CloseBtn onClose={onClose} />
+      </div>
+      {body}
+    </Sheet>
   );
 }

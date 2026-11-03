@@ -30,6 +30,7 @@ export default function Tarifs() {
   const formulas = [...d.formulas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const options = [...d.options].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const [editing, setEditing] = useState(null);
+  const [openFormula, setOpenFormula] = useState(null);
 
   async function addFormula() {
     const row = await pro.insertRow("pro_formulas", "formulas", { name: "Nouvelle formule", unit: "forfait", includes: [], price_high: null, price_low: null, position: formulas.length });
@@ -48,55 +49,65 @@ export default function Tarifs() {
 
       <AvailabilityCalendar />
 
-      <section className="p-block is-14">
-        <h2 className="p-h2">Formules</h2>
-        <ul className="p-formulas">
+      <section className="p-card p-options">
+        <h2 className="p-options-title">Formules</h2>
+        <ul className="p-rows">
           {formulas.map((f) =>
             editing === f.id ? (
               <FormulaEditor key={f.id} f={f} onDone={() => setEditing(null)} />
             ) : (
-              <li key={f.id} className="p-formula">
-                <div className="p-formula-top">
-                  <h3>{f.name}</h3>
-                  <span className="p-chip">{UNIT_LABEL[f.unit]}</span>
-                </div>
-                {f.includes?.length ? (
-                  <ul className="p-checks">
-                    {f.includes.map((t, i) => (
-                    <li key={`${t}-${i}`}>
-                        <ProIcon name="check" size={15} sw={2.4} stroke="#574e00" style={{ flex: "none", marginTop: 2 }} />
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="p-seasons-prices">
-                  {[
-                    ["Haute saison", f.price_high],
-                    ["Basse saison", f.price_low],
-                  ].map(([k, p]) => (
-                    <div key={k}>
-                      <span className="p-sp-k">{k}</span>
-                      <span className="p-sp-v">
-                        {price(p)}
-                        <span>{f.unit === "par_invite" && p !== null && p !== undefined ? " par invité" : ""}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="p-link p-start" onClick={() => setEditing(f.id)}>
-                  Modifier
+              <li key={f.id} className="p-formula-row">
+                <button type="button" className="p-formula-toggle" aria-expanded={openFormula === f.id} onClick={() => setOpenFormula(openFormula === f.id ? null : f.id)}>
+                  <span className="p-formula-toggle-left">
+                    <span className="p-option-name">{f.name}</span>
+                    <span className="p-chip">{UNIT_LABEL[f.unit]}</span>
+                  </span>
+                  <span className="p-formula-toggle-right">
+                    <span className="p-option-price">
+                      {price(f.price_high)} <span>{f.unit === "par_invite" && f.price_high !== null && f.price_high !== undefined ? "par invité" : ""}</span>
+                    </span>
+                    <ProIcon name={openFormula === f.id ? "chevUp" : "chevDown"} size={16} sw={2} />
+                  </span>
                 </button>
+                {openFormula === f.id ? (
+                  <div className="p-formula-detail">
+                    {f.includes?.length ? (
+                      <ul className="p-checks">
+                        {f.includes.map((t, i) => (
+                          <li key={`${t}-${i}`}>
+                            <ProIcon name="check" size={15} sw={2.4} stroke="#574e00" style={{ flex: "none", marginTop: 2 }} />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="p-seasons-prices">
+                      {[
+                        ["Haute saison", f.price_high],
+                        ["Basse saison", f.price_low],
+                      ].map(([k, p]) => (
+                        <div key={k}>
+                          <span className="p-sp-k">{k}</span>
+                          <span className="p-sp-v">
+                            {price(p)}
+                            <span>{f.unit === "par_invite" && p !== null && p !== undefined ? " par invité" : ""}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="p-icon-btn p-formula-edit" aria-label={`Modifier ${f.name}`} onClick={() => setEditing(f.id)}>
+                      <ProIcon name="pencil" size={15} sw={2} />
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ),
           )}
-          <li className="p-formula-add">
-            <button type="button" onClick={addFormula}>
-              <ProIcon name="plus" size={20} sw={2} />
-              Ajouter une formule
-            </button>
-          </li>
         </ul>
+        <button type="button" className="p-link is-plain p-start p-add-line" onClick={addFormula}>
+          <ProIcon name="plus" size={16} sw={2} />
+          Ajouter une formule
+        </button>
       </section>
 
       <section className="p-card p-options">
@@ -112,8 +123,8 @@ export default function Tarifs() {
                   <span className="p-option-price">
                     {price(o.price)} <span>{o.price !== null && o.price !== undefined ? OPTION_UNIT[o.unit] : ""}</span>
                   </span>
-                  <button type="button" className="p-link is-small" onClick={() => setEditing(o.id)}>
-                    Modifier
+                  <button type="button" className="p-icon-btn" aria-label={`Modifier ${o.name}`} onClick={() => setEditing(o.id)}>
+                    <ProIcon name="pencil" size={15} sw={2} />
                   </button>
                 </span>
               </li>

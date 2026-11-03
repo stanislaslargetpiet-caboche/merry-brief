@@ -188,12 +188,7 @@ function Frame({ children }) {
             </button>
           </div>
         ) : null}
-        <div className="p-wrap">
-          {children}
-          <button type="button" className="p-outline-pill p-phone-only p-feature-phone" onClick={() => setFeature(true)}>
-            Proposer une fonctionnalité
-          </button>
-        </div>
+        <div className="p-wrap">{children}</div>
       </main>
       {feature ? <FeatureDialog page={here} onClose={() => setFeature(false)} /> : null}
       {pro.toast ? (

@@ -268,11 +268,6 @@
     padding: 24px 16px 32px;
     gap: 22px;
   }
-  .p-feature-phone {
-    align-self: center;
-    min-height: 40px;
-    padding: 0 16px;
-  }
 }
 
 /* ---------- Boutons, titres, champs ---------- */
@@ -2592,13 +2587,53 @@ select.p-input {
   gap: 14px;
 }
 
-.p-formulas {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.p-formula-row {
+  padding: 4px 0;
+}
+
+.p-formula-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.p-formula-toggle-left,
+.p-formula-toggle-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.p-formula-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 0 14px;
+}
+
+.p-formula-edit {
+  align-self: flex-end;
+}
+
+.p-icon-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .p-formula {
@@ -2610,19 +2645,6 @@ select.p-input {
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-}
-
-.p-formula-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.p-formula-top h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .p-checks {
@@ -2670,24 +2692,6 @@ select.p-input {
   font-size: 12px;
   font-weight: 400;
   color: var(--d-muted);
-}
-
-.p-formula-add button {
-  width: 100%;
-  height: 100%;
-  min-height: 120px;
-  border-radius: 16px;
-  border: 1.5px dashed #b9b7ae;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--d-ink);
-  cursor: pointer;
 }
 
 .p-options {
@@ -2876,10 +2880,6 @@ select.p-input {
 }
 
 @media (max-width: 700px) {
-  .p-formulas {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
   .p-options {
     padding: 6px 16px 10px;
   }
@@ -2959,9 +2959,33 @@ select.p-input {
   font-weight: 600;
 }
 
+.p-cal-headactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.p-cal-headactions .p-btn.is-on {
+  border-color: var(--d-ink);
+  background: var(--d-ink);
+  color: #ffffff;
+}
+
 .p-cal-nav {
   display: inline-flex;
   gap: 8px;
+}
+
+.p-cal-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--d-panel);
+  font-size: 13.5px;
 }
 
 .p-cal-nav button {
@@ -3032,10 +3056,6 @@ select.p-input {
   color: #b9b7ae;
 }
 
-.p-cal-out.is-we {
-  min-height: 120px;
-}
-
 .p-cal-cellwrap {
   position: relative;
   min-width: 0;
@@ -3058,7 +3078,6 @@ select.p-input {
 }
 
 .p-cal-day.is-we {
-  min-height: 120px;
   border-color: var(--d-border);
 }
 
@@ -3105,6 +3124,35 @@ select.p-input {
 
 .p-cal-day.is-open {
   box-shadow: 0 0 0 2px var(--d-ink);
+}
+
+.p-cal-day.is-selected {
+  box-shadow: 0 0 0 2px var(--d-ink);
+  background: var(--d-panel);
+}
+
+.p-cal-day.is-option.is-selected,
+.p-cal-day.is-reserve.is-selected {
+  box-shadow: 0 0 0 2px var(--d-ink), inset 0 0 0 2px #ffffff;
+}
+
+.p-cal-check {
+  align-self: flex-end;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--d-border);
+  background: #ffffff;
+}
+
+.p-cal-day.is-reserve .p-cal-check {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.p-cal-check.is-on {
+  border-color: var(--d-ink);
+  background: var(--d-ink);
 }
 
 .p-cal-dot {
@@ -3252,8 +3300,7 @@ select.p-input {
   gap: 12px;
 }
 
-.p-sync h2,
-.p-expiring h2 {
+.p-sync h2 {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
@@ -3274,24 +3321,6 @@ select.p-input {
 
 .p-sync-btns .p-btn {
   padding: 0 18px;
-}
-
-.p-expiring {
-  background: var(--d-panel);
-  border-radius: 20px;
-  padding: 16px 20px 8px;
-}
-
-.p-expiring h2 {
-  margin-bottom: 4px;
-}
-
-.p-expiring li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 0;
 }
 
 .p-who.is-3 {
@@ -3470,6 +3499,21 @@ select.p-input {
   }
   .p-day-head strong {
     font-size: 17px;
+  }
+  .p-cal-headactions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .p-cal-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 14px;
+    height: 14px;
+  }
+  .p-cal-day.is-selected {
+    background: var(--d-panel);
   }
 }
 
