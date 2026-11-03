@@ -71,42 +71,60 @@ export async function POST(req) {
   if (budget) plainParts.push(`Notre budget : ${budget} au total.`);
   if (questions.length) plainParts.push(questions.map((q) => `– ${q}`).join("\n"));
   if (sign) plainParts.push(sign);
-  plainParts.push(`Lire le message et répondre : ${link}`);
+  plainParts.push(`Répondre sur Merry : ${link}`);
   const text = plainParts.join("\n\n");
+
+  // Premier prénom de chacun, pour le bouton (« Répondre à Camille et Lou », sur le modèle du
+  // « Reply to Diana » de HomeExchange) ; on retombe sur le nom complet si on n'a qu'un prénom.
+  const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "";
+  const firstNames = [firstName(wedding?.partner1), firstName(wedding?.partner2)].filter(Boolean).join(" et ") || couple;
 
   // Mise en page en tableaux : Gmail ignore flex et grid (avant le 3 nov. 2026, la pastille du couple
   // était rognée et « DATE » collé à sa valeur). Plus de phrases grises, à la demande de Stan.
+  const headerBlock = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:16px"><tr>
+<td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:#e9dff3;color:#4a3a5c;font-size:14px;font-weight:700;line-height:40px">${esc(initials)}</td>
+<td style="padding-left:12px;font-size:17px;font-weight:700">${esc(couple)}</td>
+</tr></table>`;
+
+  // Message (et salutation si elle manque) à l'intérieur d'un encadré, comme le message de Diana
+  // chez HomeExchange, pour le distinguer du reste du mail.
+  const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;border-radius:16px;border-collapse:separate"><tr><td style="padding:18px 20px;font-size:16px;line-height:1.5">
+${greets ? "" : '<p style="margin:0 0 10px">Bonjour,</p>'}<p style="margin:0;white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
+</td></tr></table>`;
+
   const infoTiles = [
     dates[0] ? { label: "Date", value: dates[0].replace(/^Dates flexibles\s*:\s*/i, "") } : null,
     guests ? { label: "Invités", value: guests } : null,
     budget ? { label: "Budget", value: budget } : null,
   ].filter(Boolean);
 
-  const infoCard = isRequest
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#f4f3ef;border-radius:16px;border-collapse:separate"><tr><td style="padding:16px">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:#e9dff3;color:#4a3a5c;font-size:14px;font-weight:700;line-height:40px">${esc(initials)}</td>
-<td style="padding-left:12px;font-size:16px;font-weight:700">${esc(couple)}</td>
-</tr></table>${infoTiles
+  const tilesBlock = infoTiles.length
+    ? infoTiles
         .map(
           (t) =>
-            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;background:#ffffff;border-radius:10px;border-collapse:separate"><tr><td style="padding:10px 14px"><div style="font-size:12px;color:#6b6a63">${esc(t.label)}</div><div style="margin-top:2px;font-size:15px;font-weight:700">${esc(t.value)}</div></td></tr></table>`,
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;background:#ffffff;border:1px solid #ecebe6;border-radius:10px;border-collapse:separate"><tr><td style="padding:10px 14px"><div style="font-size:12px;color:#6b6a63">${esc(t.label)}</div><div style="margin-top:2px;font-size:15px;font-weight:700">${esc(t.value)}</div></td></tr></table>`,
         )
-        .join("")}
-</td></tr></table>`
+        .join("")
     : "";
 
   const questionsBlock = questions.length
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:1px solid #ecebe6;border-radius:14px;border-collapse:separate"><tr><td style="padding:16px;font-size:15px;line-height:1.5"><div style="font-weight:700;margin-bottom:8px">Leurs questions</div>${questions.map((q) => `<div style="margin-top:6px">– ${esc(q)}</div>`).join("")}</td></tr></table>`
     : "";
 
+  // Bouton centré et visible sans avoir à faire défiler, sur le modèle du « Reply to Diana » de
+  // HomeExchange : on répond depuis Merry, jamais en répondant directement à ce mail.
+  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td align="center">
+<a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Répondre à ${esc(firstNames)}</a>
+</td></tr></table>`;
+
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:560px">
-${greets ? "" : "<p>Bonjour,</p>"}
-<p style="white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
-${infoCard}
+${headerBlock}
+${messageBox}
+${tilesBlock}
 ${questionsBlock}
 ${sign ? `<p style="white-space:pre-line;margin-top:20px">${esc(sign)}</p>` : ""}
-<p style="margin-top:24px"><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message et répondre</a></p>
+${ctaBlock}
+<p style="margin-top:20px;font-size:13px;color:#8a8a82;text-align:center">Vous recevez ce mail car ${esc(couple)} vous a contacté sur Merry. Pour répondre, utilisez le bouton ci-dessus plutôt que de répondre directement à ce mail.</p>
 </div>`;
 
   const res = await fetch("https://api.resend.com/emails", {
