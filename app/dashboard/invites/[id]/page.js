@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 
-// Fiche d'un invité : tout ce que le tableau sait de lui (réponses par moment, groupe, âge, contact,
-// régime, adresse, colonnes ajoutées), ses accompagnants, et une note pour les organisateurs.
-// Chaque champ se modifie en cliquant dessus, comme dans le tableau.
+// Fiche d'un invité, une colonne : son nom et ses actions (relancer, accompagnant, retirer), ses réponses
+// par moment, puis une seule liste de tout ce que le tableau sait de lui (contact, adresse, régime, âge,
+// colonnes ajoutées), ce qui est renseigné d'abord, et la note pour l'équipe. Chaque champ se modifie en
+// cliquant dessus, comme dans le tableau.
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -12,10 +13,10 @@ import { useDash } from "@/lib/dash/store";
 import { responseIndex, guestLabel } from "@/lib/dash/model";
 import { fullName, shortDate } from "@/lib/dash/format";
 import { LIST_PATH, listHref } from "@/lib/dash/guestView";
-import { Icon } from "@/components/dash/icons";
 import { Btn, InlineEdit, PageHeader, RsvpMenu } from "@/components/dash/ui";
 import GroupCell from "@/components/dash/GroupCell";
-import { agoDays, inviteLink, mailHref, reminderSubject, reminderText, smsHref, waDigits, waHref } from "@/lib/dash/relance";
+import { agoDays } from "@/lib/dash/relance";
+import RelanceModal from "@/components/dash/RelanceModal";
 import { ChoiceCell } from "@/components/dash/ColumnModal";
 
 function splitName(s) {
@@ -86,6 +87,7 @@ export default function FicheInvite() {
   const byId = useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
   const addingPlus = useRef(false);
+  const [relancing, setRelancing] = useState(false);
 
   if (!guest) return <PageHeader back={{ href: back, label: "Invités" }} title="Invité introuvable." />;
 
@@ -94,9 +96,6 @@ export default function FicheInvite() {
   const host = guest.plus_one_of ? byId.get(guest.plus_one_of) : null;
   const plusOnes = guests.filter((g) => g.plus_one_of === guest.id);
   const pending = events.some((ev) => (r[ev.id] || "non_invite") === "attente");
-  const link = inviteLink(dash.data);
-  const relText = reminderText(dash.data, link).replace(/^Bonjour !/, guest.first_name ? `Bonjour ${guest.first_name.trim()} !` : "Bonjour !");
-  const relSubject = reminderSubject(dash.data);
   const remindedDays = agoDays(guest.reminded_at);
   const answerOf = (evId) => responses.find((x) => x.guest_id === guest.id && x.event_id === evId);
   // Dernière trace de l'historique pour ce moment : « par le formulaire, 8 oct. » ou « par Léa, 12 nov. »
@@ -139,213 +138,118 @@ export default function FicheInvite() {
     dash.update("guests", guest.id, { custom });
   };
 
+  const info = [
+    { key: "phone", label: "Téléphone", value: guest.phone, action: guest.phone ? { href: telHref(guest.phone), label: "Appeler" } : null, onSave: (v) => dash.update("guests", guest.id, { phone: v }) },
+    { key: "email", label: "Mail", value: guest.email, action: guest.email ? { href: `mailto:${guest.email}`, label: "Écrire" } : null, onSave: (v) => dash.update("guests", guest.id, { email: v }) },
+    { key: "address", label: "Adresse", value: guest.address, multiline: true, onSave: (v) => dash.update("guests", guest.id, { address: v }) },
+    { key: "diet", label: "Régime", value: guest.diet, onSave: (v) => dash.update("guests", guest.id, { diet: v }) },
+    {
+      key: "age",
+      label: "Âge",
+      value: guest.age !== null && guest.age !== undefined && guest.age !== "" ? String(guest.age) : "",
+      display: guest.age !== null && guest.age !== undefined && guest.age !== "" ? `${guest.age} ans` : undefined,
+      onSave: (v) => dash.update("guests", guest.id, { age: parseAge(v) }),
+    },
+    ...fields.map((f) => ({ key: `field:${f.id}`, label: f.name, value: (guest.custom || {})[f.id], field: f })),
+  ];
+  // Ce qui est renseigné d'abord, puis ce qui reste à remplir, discret
+  const filled = info.filter((x) => x.value);
+  const empty = info.filter((x) => !x.value);
+
+  const row = (x) => (
+    <div key={x.key} className={`d-frow${x.value ? "" : " is-empty"}`}>
+      <span className="d-frow-label">{x.label}</span>
+      <span className="d-frow-value">
+        {x.field?.kind === "choice" ? (
+          <ChoiceCell value={x.value} options={x.field.options} label={x.label} onChange={(v) => saveCustom(x.field, v)} />
+        ) : (
+          <InlineEdit value={x.value} placeholder="Ajouter" label={x.label.toLowerCase()} display={x.display} multiline={x.multiline} onSave={x.field ? (v) => saveCustom(x.field, v) : x.onSave} />
+        )}
+        {x.action ? (
+          <a href={x.action.href} className="d-frow-action">
+            {x.action.label}
+          </a>
+        ) : null}
+      </span>
+    </div>
+  );
+
   return (
-    <>
+    <div className="d-fiche">
       <PageHeader back={{ href: back, label: "Invités" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: -14 }}>
-        <span className="d-avatar" style={{ width: 56, height: 56, background: "#e4e2dc", fontSize: 20 }}>
-          {label.charAt(0).toUpperCase()}
-        </span>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
-          <h1 className="d-title">
-            <InlineEdit value={fullName(guest)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", guest.id, splitName(v))} />
-          </h1>
-          <span className="d-guest-sub" style={{ fontSize: 13 }}>
-            <GroupCell guest={guest} group={groupById.get(guest.group_id)} groups={groups} label={label} small={false} />
-            {host ? <span>Accompagne {fullName(host) || "un invité"}</span> : null}
-            {guest.age !== null && guest.age !== undefined && guest.age !== "" ? <span>{guest.age} ans</span> : null}
-          </span>
+
+      <header className="d-fiche-head">
+        <h1 className="d-title">
+          <InlineEdit value={fullName(guest)} placeholder={host ? `+1 de ${fullName(host)}` : "Sans nom"} label="nom de l'invité" onSave={(v) => dash.update("guests", guest.id, splitName(v))} />
+        </h1>
+        <div className="d-fiche-sub">
+          <GroupCell guest={guest} group={groupById.get(guest.group_id)} groups={groups} label={label} small={false} />
+          {host ? (
+            <Link href={`/dashboard/invites/${host.id}`} className="d-fiche-link">
+              Accompagne {fullName(host) || "un invité sans nom"}
+            </Link>
+          ) : null}
+          {plusOnes.map((p) => (
+            <Link key={p.id} href={`/dashboard/invites/${p.id}`} className="d-fiche-link">
+              +1 : {fullName(p) || "à nommer"}
+            </Link>
+          ))}
+          {guest.reminded_at && remindedDays !== null ? <span className="d-muted">{remindedDays === 0 ? "Relancé aujourd'hui" : remindedDays === 1 ? "Relancé hier" : `Relancé il y a ${remindedDays} j`}</span> : null}
         </div>
-      </div>
-
-      <div className="d-grid-side" style={{ marginTop: 20 }}>
-        <div className="d-col">
-          <section className="d-card">
-            {/* Les réponses ne gardent pas leur origine : on dit seulement que le formulaire peut les remplir */}
-            {form ? (
-              <span className="d-fm-tag is-opt d-autofill">
-                <Icon name="sparkle" size={12} sw={2.2} />
-                Se remplit aussi par le formulaire
-              </span>
-            ) : null}
-            <h2>Réponses par moment</h2>
-            {events.length ? (
-              <div className="d-col" style={{ gap: 2 }}>
-                {events.map((ev) => {
-                  const a = answerOf(ev.id);
-                  const st = r[ev.id] || "non_invite";
-                  return (
-                    <div key={ev.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, borderTop: "1px solid var(--d-line)" }}>
-                      <span style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: 14.5, fontWeight: 500 }}>{ev.name}</span>
-                        {st !== "non_invite" && traceOf(ev.id) ? <small className="d-muted">{traceOf(ev.id)}</small> : (st === "oui" || st === "non") && a?.updated_at ? <small className="d-muted">Mis à jour le {shortDate(new Date(a.updated_at))}</small> : null}
-                      </span>
-                      <RsvpMenu status={st} onPick={(k) => dash.setResponse(guest.id, ev.id, k)} title={`${ev.name} : modifier le statut`} />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="d-small d-muted" style={{ margin: 0 }}>
-                Pas encore de moment défini.
-              </p>
-            )}
-          </section>
-
-          <section className="d-card">
-            <h2>Accompagnant{plusOnes.length > 1 ? "s" : ""}</h2>
-            <div className="d-col" style={{ gap: 2 }}>
-              {host ? (
-                <Link href={`/dashboard/invites/${host.id}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
-                  <Icon name="chev" size={14} sw={2.2} style={{ transform: "rotate(180deg)" }} />
-                  Accompagne {fullName(host) || "un invité sans nom"}
-                </Link>
-              ) : null}
-              {plusOnes.map((p) => (
-                <Link key={p.id} href={`/dashboard/invites/${p.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 44, color: "var(--d-ink)", textDecoration: "none" }}>
-                  <span>{fullName(p) || "Accompagnant à nommer"} (+1)</span>
-                  <Icon name="chev" size={14} sw={2.2} />
-                </Link>
-              ))}
-              {!host && !plusOnes.length ? (
-                <p className="d-small d-muted" style={{ margin: "0 0 8px" }}>
-                  Personne pour l'instant. Un accompagnant est un invité à part entière, invité aux mêmes moments.
-                </p>
-              ) : null}
-            </div>
-            {!host ? (
-              <div>
-                <Btn kind="ghost" small icon="plus" onClick={addPlusOne}>
-                  Ajouter un accompagnant
-                </Btn>
-              </div>
-            ) : null}
-          </section>
-
+        <div className="d-fiche-actions">
           {pending && !host ? (
-            <section className="d-card">
-              <h2>Relancer</h2>
-              <p className="d-small d-muted" style={{ margin: 0 }}>
-                {remindedDays === null ? "Jamais relancé." : remindedDays === 0 ? "Relancé aujourd'hui." : remindedDays === 1 ? "Relancé hier." : `Relancé il y a ${remindedDays} jours.`}
-                {link ? " Le message reprend le lien pour répondre." : " Créez d'abord le formulaire invités pour avoir un lien à envoyer."}
-              </p>
-              <div className="d-filters">
-                {guest.email ? (
-                  <Btn small icon="mail" href={mailHref(guest.email, relSubject, relText)}>
-                    Mail
-                  </Btn>
-                ) : null}
-                {waDigits(guest.phone) ? (
-                  <Btn small kind="ghost" icon="bubble" href={waHref(guest.phone, relText)} target="_blank">
-                    WhatsApp
-                  </Btn>
-                ) : null}
-                {guest.phone ? (
-                  <Btn small kind="ghost" icon="phone" href={smsHref(guest.phone, relText)}>
-                    SMS
-                  </Btn>
-                ) : null}
-                {dash.data.relancesSetup !== false ? (
-                  <button type="button" className="d-pill" onClick={() => dash.update("guests", guest.id, { reminded_at: new Date().toISOString() })}>
-                    <Icon name="check" size={14} sw={2.2} />
-                    Marquer comme relancé
-                  </button>
-                ) : null}
-              </div>
-              {!guest.email && !guest.phone ? (
-                <p className="d-small d-muted" style={{ margin: 0 }}>
-                  Ni mail ni téléphone : ajoutez-en un dans Contact, ou passez par sa famille.
-                </p>
-              ) : null}
-            </section>
+            <Btn icon="send" onClick={() => setRelancing(true)}>
+              Relancer
+            </Btn>
           ) : null}
-
-          <section className="d-card">
-            <h2>Note pour les organisateurs</h2>
-            <GuestNote guest={guest} />
-          </section>
-        </div>
-
-        <div className="d-col">
-          <section className="d-card">
-            <h2>Contact</h2>
-            <div>
-              <div className="d-contact-row">
-                <Icon name="phone" size={16} style={{ marginTop: 3 }} />
-                <div>
-                  <small>Téléphone</small>
-                  <InlineEdit value={guest.phone} placeholder="Ajouter" label="téléphone" onSave={(v) => dash.update("guests", guest.id, { phone: v })} />
-                  {guest.phone ? (
-                    <a href={telHref(guest.phone)} className="d-small">
-                      Appeler
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-              <div className="d-contact-row">
-                <Icon name="mail" size={16} style={{ marginTop: 3 }} />
-                <div>
-                  <small>Mail</small>
-                  <InlineEdit value={guest.email} placeholder="Ajouter" label="mail" onSave={(v) => dash.update("guests", guest.id, { email: v })} />
-                  {guest.email ? (
-                    <a href={`mailto:${guest.email}`} className="d-small">
-                      Écrire
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="d-card">
-            <h2>Autres informations</h2>
-            <div>
-              <div className="d-contact-row">
-                <Icon name="file" size={16} style={{ marginTop: 3 }} />
-                <div>
-                  <small>Régime</small>
-                  <InlineEdit value={guest.diet} placeholder="Ajouter" label="régime" onSave={(v) => dash.update("guests", guest.id, { diet: v })} />
-                </div>
-              </div>
-              <div className="d-contact-row">
-                <Icon name="pin" size={16} style={{ marginTop: 3 }} />
-                <div>
-                  <small>Adresse</small>
-                  <InlineEdit value={guest.address} placeholder="Ajouter" label="adresse" multiline onSave={(v) => dash.update("guests", guest.id, { address: v })} />
-                </div>
-              </div>
-              <div className="d-contact-row">
-                <Icon name="users" size={16} style={{ marginTop: 3 }} />
-                <div>
-                  <small>Âge (pour les enfants)</small>
-                  <InlineEdit value={guest.age !== null && guest.age !== undefined ? String(guest.age) : ""} placeholder="Ajouter" label="âge" display={guest.age !== null && guest.age !== undefined && guest.age !== "" ? `${guest.age} ans` : undefined} onSave={(v) => dash.update("guests", guest.id, { age: parseAge(v) })} />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {fields.length ? (
-            <section className="d-card">
-              <h2>Vos colonnes</h2>
-              <div>
-                {fields.map((f) => (
-                  <div key={f.id} className="d-contact-row">
-                    <Icon name={f.source === "invites" ? "sparkle" : "list"} size={16} style={{ marginTop: 3 }} />
-                    <div>
-                      <small>{f.name}</small>
-                      {f.kind === "choice" ? <ChoiceCell value={(guest.custom || {})[f.id]} options={f.options} label={f.name} onChange={(v) => saveCustom(f, v)} /> : <InlineEdit value={(guest.custom || {})[f.id]} placeholder="Ajouter" label={f.name} onSave={(v) => saveCustom(f, v)} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+          {!host ? (
+            <Btn kind="ghost" icon="plus" onClick={addPlusOne}>
+              Accompagnant
+            </Btn>
           ) : null}
-
-          <Btn kind="ghost" icon="trash" onClick={removeGuest}>
-            Retirer de la liste
-          </Btn>
         </div>
+      </header>
+
+      <section className="d-fiche-block" aria-label="Réponses par moment">
+        {events.length ? (
+          events.map((ev) => {
+            const a = answerOf(ev.id);
+            const st = r[ev.id] || "non_invite";
+            const trace = st !== "non_invite" && traceOf(ev.id) ? traceOf(ev.id) : (st === "oui" || st === "non") && a?.updated_at ? `mis à jour le ${shortDate(new Date(a.updated_at))}` : null;
+            return (
+              <div key={ev.id} className="d-frow is-moment">
+                <span className="d-frow-label">
+                  {ev.name}
+                  {trace ? <small>{trace}</small> : null}
+                </span>
+                <RsvpMenu status={st} onPick={(k) => dash.setResponse(guest.id, ev.id, k)} title={`${ev.name} : modifier le statut`} />
+              </div>
+            );
+          })
+        ) : (
+          <p className="d-small d-muted" style={{ margin: 0 }}>
+            Pas encore de moment défini.
+          </p>
+        )}
+        {form ? <p className="d-fiche-hint">Les réponses arrivent aussi par le formulaire invités.</p> : null}
+      </section>
+
+      <section className="d-fiche-block" aria-label="Informations">
+        {filled.map(row)}
+        {empty.length ? <div className="d-fiche-empties">{empty.map(row)}</div> : null}
+        <div className="d-frow is-note">
+          <span className="d-frow-label">Note pour l'équipe</span>
+          <GuestNote guest={guest} />
+        </div>
+      </section>
+
+      <div>
+        <button type="button" className="d-link d-fiche-remove" onClick={removeGuest}>
+          Retirer {label} de la liste
+        </button>
       </div>
-    </>
+
+      {relancing ? <RelanceModal guests={[guest]} onClose={() => setRelancing(false)} onMarked={(ids) => dash.updateGuests(ids, { reminded_at: new Date().toISOString() })} /> : null}
+    </div>
   );
 }
