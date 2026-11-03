@@ -16024,6 +16024,28 @@ body.d-noscroll {
   flex-wrap: wrap;
 }
 
+.d-seat-addcap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px;
+  min-width: 160px;
+}
+
+.d-seat-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.d-seat-stepper strong {
+  min-width: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .d-seat-side .d-seat-list {
   overflow-y: auto;
   min-height: 0;

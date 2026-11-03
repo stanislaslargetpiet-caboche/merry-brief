@@ -39,17 +39,21 @@ export default function PlanDeTable() {
   const split = useMemo(() => splitUnits(eligible, plan.tableOf), [eligible, plan.tableOf]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState({});
-  const [keepTogether, setKeepTogether] = useState(true);
   const [over, setOver] = useState(null); // table survolée pendant un glisser
   const [menu, setMenu] = useState(null); // id de la table dont le menu est ouvert
+  const [editTable, setEditTable] = useState(null); // { id, name, capacity } : brouillon du formulaire « Modifier »
+  const [groupFilter, setGroupFilter] = useState({}); // groupe (ou "none") coché → seuls ceux-là s'affichent
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const q = normalize(query);
-  const shown = unseated.filter((g) => !q || normalize(`${guestLabel(g, byId)} ${groupById.get(g.group_id)?.name || ""}`).includes(q));
+  const hasNoGroup = unseated.some((g) => !g.group_id);
+  const filterOn = Object.values(groupFilter).some(Boolean);
+  const matchesGroup = (g) => !filterOn || groupFilter[g.group_id || "none"];
+  const shown = unseated.filter((g) => matchesGroup(g) && (!q || normalize(`${guestLabel(g, byId)} ${groupById.get(g.group_id)?.name || ""}`).includes(q)));
   const selIds = unseated.filter((g) => selected[g.id]).map((g) => g.id);
   const ok = (text) => dash.setToast({ kind: "ok", text });
 
-  // L'hôte et ses accompagnants encore à placer suivent (option « garder les accompagnants ensemble »)
+  // L'hôte et ses accompagnants encore à placer suivent toujours ensemble
   const withUnit = (ids) => {
-    if (!keepTogether) return ids;
     const set = new Set(ids);
     for (const id of ids) {
       const g = byId.get(id);
@@ -72,15 +76,50 @@ export default function PlanDeTable() {
     if (await dash.seatGuests(ids, eventId, null)) ok(`${n(ids.length, "invité retiré", "invités retirés")} du plan.`);
   }
   const addingTable = useRef(false);
-  async function addTable() {
+  async function addTable(capacity) {
     if (addingTable.current) return;
     addingTable.current = true;
     try {
       const name = `Table ${plan.tables.length + 1}`;
-      await dash.insert("seating_tables", { id: uid(), event_id: eventId, name, capacity: DEFAULT_CAPACITY, position: plan.tables.length });
+      await dash.insert("seating_tables", { id: uid(), event_id: eventId, name, capacity: Math.max(1, Math.min(60, capacity || DEFAULT_CAPACITY)), position: plan.tables.length });
     } finally {
       addingTable.current = false;
     }
+  }
+  const [addCap, setAddCap] = useState(DEFAULT_CAPACITY);
+  const [addOpen, setAddOpen] = useState(false);
+  function AddTableMenu({ kind, children = "Ajouter une table" }) {
+    return (
+      <span className="d-anchor">
+        <Btn kind={kind} icon="plus" onClick={() => setAddOpen((o) => !o)} disabled={!setup || !eventId}>
+          {children}
+        </Btn>
+        <Popover open={addOpen} onClose={() => setAddOpen(false)}>
+          <div className="d-seat-addcap">
+            <span className="d-small d-muted">Places à la table</span>
+            <span className="d-seat-stepper">
+              <button type="button" className="d-icon-btn" aria-label="Moins de places" onClick={() => setAddCap((c) => Math.max(1, c - 1))}>
+                <Icon name="minus" size={14} sw={2.4} />
+              </button>
+              <strong>{addCap}</strong>
+              <button type="button" className="d-icon-btn" aria-label="Plus de places" onClick={() => setAddCap((c) => Math.min(60, c + 1))}>
+                <Icon name="plus" size={14} sw={2.4} />
+              </button>
+            </span>
+            <Btn
+              small
+              className="d-btn-block"
+              onClick={() => {
+                setAddOpen(false);
+                addTable(addCap);
+              }}
+            >
+              Ajouter
+            </Btn>
+          </div>
+        </Popover>
+      </span>
+    );
   }
   async function removeTable(t) {
     const seated = (plan.perTable.get(t.id) || []).length;
@@ -148,8 +187,6 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
     if (ids.length) place(ids, tableId);
   };
 
-  const full = plan.tables.filter((t) => (plan.perTable.get(t.id) || []).length >= (t.capacity || DEFAULT_CAPACITY)).length;
-  const overCap = plan.tables.filter((t) => (plan.perTable.get(t.id) || []).length > (t.capacity || DEFAULT_CAPACITY)).length;
   const guestRow = (g, seatedAt) => {
     const isSplit = split.has(unitKey(g));
     const group = groupById.get(g.group_id);
@@ -201,9 +238,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
             <Btn kind="ghost" icon="file" onClick={print} disabled={!plan.tables.length}>
               Imprimer
             </Btn>
-            <Btn kind="lime" icon="plus" onClick={addTable} disabled={!setup || !eventId}>
-              Ajouter une table
-            </Btn>
+            <AddTableMenu kind="lime" />
           </span>
         }
       />
@@ -219,36 +254,51 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
         </div>
       ) : (
         <>
-          <div className="d-seat-summary">
-            <span>
-              <b>{eligible.length - unseated.length}</b> placés sur <b>{eligible.length}</b> qui viennent {event.name === "Dîner" ? "au dîner" : `à « ${event.name} »`}
-            </span>
-            {unseated.length ? <span>· {n(unseated.length, "à placer", "à placer")}</span> : <span>· tout le monde a sa place</span>}
-            {full ? <span>· {n(full, "table pleine", "tables pleines")}</span> : null}
-            {overCap ? <span className="d-seat-warn">· {n(overCap, "table au-dessus de sa capacité", "tables au-dessus de leur capacité")}</span> : null}
-            {split.size ? <span className="d-seat-warn">· {split.size > 1 ? `${split.size} invités séparés de leurs accompagnants` : "1 invité séparé de son accompagnant"}</span> : null}
-          </div>
-
           <div className="d-seat-layout">
             <aside className="d-seat-side">
               <div className="d-seat-side-head">
-                <strong>À placer · {unseated.length}</strong>
-                {unseated.length ? (
-                  <Btn small kind="ghost" icon="sparkle" onClick={autoPlace} disabled={!setup} title="Chacun avec ses accompagnants, par groupe, dans les tables qui ont de la place">
-                    Placer automatiquement
-                  </Btn>
-                ) : null}
+                <strong>À placer : {n(unseated.length, "invité restant", "invités restants")}</strong>
               </div>
               {eligible.length ? (
                 <>
-                  <label className="d-search" style={{ width: "100%", boxSizing: "border-box" }}>
-                    <Icon name="search" size={15} />
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher" aria-label="Chercher un invité à placer" style={{ width: "100%" }} />
-                  </label>
-                  <label className="d-small" style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                    <input type="checkbox" className="d-check" checked={keepTogether} onChange={(e) => setKeepTogether(e.target.checked)} />
-                    Garder les accompagnants avec leur hôte
-                  </label>
+                  <span className="d-filters" style={{ gap: 8 }}>
+                    <label className="d-search" style={{ flex: 1, boxSizing: "border-box" }}>
+                      <Icon name="search" size={15} />
+                      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher" aria-label="Chercher un invité à placer" style={{ width: "100%" }} />
+                    </label>
+                    {groups.length ? (
+                      <span className="d-anchor">
+                        <button type="button" className={`d-group-pick${filterOn ? " is-on" : ""}`} onClick={() => setFiltersOpen((o) => !o)} aria-haspopup="menu" aria-expanded={filtersOpen}>
+                          <Icon name="list" size={14} sw={2.2} />
+                          Filtres
+                          {filterOn ? <span className="d-filter-count">{Object.values(groupFilter).filter(Boolean).length}</span> : null}
+                        </button>
+                        <Popover open={filtersOpen} onClose={() => setFiltersOpen(false)} align="right">
+                          {groups.map((grp) => (
+                            <label key={grp.id} className="d-pop-item" style={{ cursor: "pointer" }}>
+                              <span className="d-pop-label">
+                                <input type="checkbox" className="d-check" checked={!!groupFilter[grp.id]} onChange={(e) => setGroupFilter((x) => ({ ...x, [grp.id]: e.target.checked }))} />
+                                {grp.name}
+                              </span>
+                            </label>
+                          ))}
+                          {hasNoGroup ? (
+                            <label className="d-pop-item" style={{ cursor: "pointer" }}>
+                              <span className="d-pop-label">
+                                <input type="checkbox" className="d-check" checked={!!groupFilter.none} onChange={(e) => setGroupFilter((x) => ({ ...x, none: e.target.checked }))} />
+                                Sans groupe
+                              </span>
+                            </label>
+                          ) : null}
+                          {filterOn ? (
+                            <button type="button" className="d-pop-item" onClick={() => setGroupFilter({})}>
+                              <span className="d-pop-label">Tout voir</span>
+                            </button>
+                          ) : null}
+                        </Popover>
+                      </span>
+                    ) : null}
+                  </span>
                   {selIds.length ? (
                     <div className="d-seat-selbar">
                       <strong>{n(selIds.length, "sélection", "sélections")}</strong>
@@ -304,32 +354,82 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
                         <button type="button" className="d-icon-btn" aria-label={`Options de ${t.name}`} onClick={() => setMenu(menu === t.id ? null : t.id)}>
                           <Icon name="dots" size={16} sw={2.4} />
                         </button>
-                        <Popover open={menu === t.id} onClose={() => setMenu(null)} align="right">
-                          {list.length ? (
-                            <button
-                              type="button"
-                              className="d-pop-item"
-                              onClick={() => {
-                                setMenu(null);
-                                unseat(list.map((g) => g.id));
-                              }}
-                            >
-                              <span className="d-pop-label">Vider la table</span>
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="d-pop-item is-danger"
-                            onClick={() => {
-                              setMenu(null);
-                              removeTable(t);
-                            }}
-                          >
-                            <span className="d-pop-label">
-                              <Icon name="trash" size={14} sw={2} />
-                              Supprimer la table
-                            </span>
-                          </button>
+                        <Popover
+                          open={menu === t.id}
+                          onClose={() => {
+                            setMenu(null);
+                            setEditTable(null);
+                          }}
+                          align="right"
+                        >
+                          {editTable?.id === t.id ? (
+                            <div className="d-seat-addcap">
+                              <span className="d-small d-muted">Nom de la table</span>
+                              <input
+                                className="d-inline-input"
+                                value={editTable.name}
+                                maxLength={40}
+                                autoFocus
+                                onChange={(e) => setEditTable((x) => ({ ...x, name: e.target.value }))}
+                              />
+                              <span className="d-small d-muted">Places à la table</span>
+                              <span className="d-seat-stepper">
+                                <button type="button" className="d-icon-btn" aria-label="Moins de places" onClick={() => setEditTable((x) => ({ ...x, capacity: Math.max(1, x.capacity - 1) }))}>
+                                  <Icon name="minus" size={14} sw={2.4} />
+                                </button>
+                                <strong>{editTable.capacity}</strong>
+                                <button type="button" className="d-icon-btn" aria-label="Plus de places" onClick={() => setEditTable((x) => ({ ...x, capacity: Math.min(60, x.capacity + 1) }))}>
+                                  <Icon name="plus" size={14} sw={2.4} />
+                                </button>
+                              </span>
+                              <Btn
+                                small
+                                className="d-btn-block"
+                                onClick={() => {
+                                  const name = editTable.name.trim().slice(0, 40) || t.name;
+                                  dash.update("seating_tables", t.id, { name, capacity: editTable.capacity });
+                                  setMenu(null);
+                                  setEditTable(null);
+                                }}
+                              >
+                                Enregistrer
+                              </Btn>
+                            </div>
+                          ) : (
+                            <>
+                              <button type="button" className="d-pop-item" onClick={() => setEditTable({ id: t.id, name: t.name, capacity: cap })}>
+                                <span className="d-pop-label">
+                                  <Icon name="pencil" size={14} sw={2} />
+                                  Modifier
+                                </span>
+                              </button>
+                              {list.length ? (
+                                <button
+                                  type="button"
+                                  className="d-pop-item"
+                                  onClick={() => {
+                                    setMenu(null);
+                                    unseat(list.map((g) => g.id));
+                                  }}
+                                >
+                                  <span className="d-pop-label">Vider la table</span>
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="d-pop-item is-danger"
+                                onClick={() => {
+                                  setMenu(null);
+                                  removeTable(t);
+                                }}
+                              >
+                                <span className="d-pop-label">
+                                  <Icon name="trash" size={14} sw={2} />
+                                  Supprimer la table
+                                </span>
+                              </button>
+                            </>
+                          )}
                         </Popover>
                       </span>
                     </header>
@@ -353,9 +453,7 @@ ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6}li small{color:#6
                 <div className="d-empty" style={{ gridColumn: "1 / -1" }}>
                   <p>Pas encore de table pour {event.name === "Dîner" ? "le dîner" : `« ${event.name} »`}.</p>
                   <div className="d-filters">
-                    <Btn kind="lime" icon="plus" onClick={addTable} disabled={!setup}>
-                      Ajouter une table
-                    </Btn>
+                    <AddTableMenu kind="lime" />
                     {unseated.length ? (
                       <Btn kind="ghost" icon="sparkle" onClick={autoPlace} disabled={!setup}>
                         Créer les tables et placer tout le monde
