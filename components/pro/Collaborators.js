@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { uid } from "@/lib/dash/format";
+import { collabColor } from "@/lib/pro/format";
 import { Icon } from "@/components/dash/icons";
 import { supabase } from "@/lib/supabase";
 import { Popover, BusyDots } from "@/components/dash/ui";
@@ -101,7 +102,19 @@ export default function Collaborators() {
           <li key={m.id} className="d-org-row">
             <span
               aria-hidden="true"
-              style={{ flex: "none", width: 38, height: 38, borderRadius: 999, background: "var(--d-panel)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600 }}
+              style={{
+                flex: "none",
+                width: 38,
+                height: 38,
+                borderRadius: 999,
+                background: collabColor(m.id).mid,
+                color: collabColor(m.id).ink,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
             >
               {(m.display_name || m.email || "?")[0].toUpperCase()}
             </span>

@@ -10,6 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
+import { collabColor } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
@@ -164,6 +165,10 @@ function Frame({ children }) {
           })}
         </div>
         <div className="p-nav-bottom">
+          <Link href="/pro/credits" className="p-credits-pill">
+            <CreditsCoins size={16} />
+            {credits} crédit{credits > 1 ? "s" : ""}
+          </Link>
           <div className="d-help">
             <Link className={`d-help-btn${pathname.startsWith("/pro/compte") ? " is-on" : ""}`} href="/pro/compte">
               <Icon name="settings" size={16} sw={2} />
@@ -176,15 +181,10 @@ function Frame({ children }) {
           </div>
           <CollabTeam />
           <VendorSwitch />
-          <Link href="/pro/credits" className="p-credits-pill">
-            <CreditsCoins size={16} />
-            {credits} crédit{credits > 1 ? "s" : ""}
-          </Link>
           <button type="button" className="p-outline-pill" onClick={() => setFeature(true)}>
             Proposer une fonctionnalité
           </button>
           <div className="d-nav-links">
-            <a href="/pro?revendiquer=1">Ajouter une fiche</a>
             <a href={SITE_URL}>Retour au site</a>
             <button type="button" onClick={pro.signOut}>
               Se déconnecter
@@ -232,7 +232,19 @@ function CollabTeam() {
           <span key={m.id} style={{ marginLeft: i ? -9 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
             <span
               aria-hidden="true"
-              style={{ width: 32, height: 32, borderRadius: 999, background: "#ffffff", border: "2px solid #ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "11.5px", fontWeight: 700 }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                background: collabColor(m.id).mid,
+                color: collabColor(m.id).ink,
+                border: "2px solid #ffffff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "11.5px",
+                fontWeight: 700,
+              }}
             >
               {(m.display_name || m.email || "?")[0].toUpperCase()}
             </span>
