@@ -60,10 +60,29 @@ async function SeoLinks() {
   );
 }
 
+// « Connexion » ouvre un choix : l'espace des couples (tableau de bord) ou celui des prestataires
+// (adresse mail puis code). Un seul lien envoyait tout le monde au même endroit.
+const LOGIN_ITEMS = [
+  [LOGIN, "Espace couple"],
+  [PRO_LOGIN, "Espace prestataire"],
+];
+
+function LoginMenu() {
+  return (
+    <Dropdown className="wv-login" summaryLabel="Connexion : choisir son espace" summary="Connexion ▾">
+      <div className="wv-login-list">
+        {LOGIN_ITEMS.map(([href, label]) => (
+          <a key={href} href={href}>
+            {label}
+          </a>
+        ))}
+      </div>
+    </Dropdown>
+  );
+}
+
 export default function Frame({ current, children }) {
   const links = LINKS;
-  // Sur la page Prestataires, « Connexion » ouvre l'espace prestataire (adresse mail puis code)
-  const login = current === "pro" ? PRO_LOGIN : LOGIN;
   const item = (key, href, label) => (
     <a href={href} className={current === key ? "on" : undefined} aria-current={current === key ? "page" : undefined}>
       {label}
@@ -82,7 +101,7 @@ export default function Frame({ current, children }) {
         <nav className="wv-nav" aria-label="Navigation principale">
           {item("home", links.home, "Accueil")}
           {item("pro", links.pro, "Prestataires")}
-          <a href={login}>Connexion</a>
+          <LoginMenu />
         </nav>
         <div className="wv-right">
           <LangSwitch />
@@ -102,7 +121,12 @@ export default function Frame({ current, children }) {
               <a href={links.home}>Accueil</a>
               <a href={links.pro}>Prestataires</a>
               <a href={links.about}>À propos</a>
-              <a href={login}>Connexion</a>
+              <p className="wv-menu-group">Connexion</p>
+              {LOGIN_ITEMS.map(([href, label]) => (
+                <a key={href} href={href} className="wv-menu-sub">
+                  {label}
+                </a>
+              ))}
               <LangSwitch className="wv-lang-menu" />
             </nav>
           </Dropdown>

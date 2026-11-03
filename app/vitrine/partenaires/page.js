@@ -55,8 +55,13 @@ export default async function VitrinePrestataires() {
           </button>
         </form>
         <p className="wv-find-note">
-          Plus de {proof.number} prestataires sont déjà référencés sur Merry ({proof.month}). Votre fiche existe peut-être déjà. Déjà inscrit ? <a href={PRO_LOGIN}>Connectez-vous</a>.
+          Plus de <span className="wv-proof-hl">{proof.number} prestataires</span> sont déjà référencés sur Merry ({proof.month}). Votre fiche existe peut-être déjà.
         </p>
+        <div className="wv-btns" style={{ justifyContent: "center" }}>
+          <a href={PRO_LOGIN} className="wv-btn wv-btn-line">
+            Déjà inscrit ? Connexion
+          </a>
+        </div>
         <Block html={avantApres} className="wv-media wv-media-wide" />
         <p className="wv-lead" style={{ maxWidth: 620 }}>
           Pas encore sur Merry ? Créez votre fiche, ça prend 3 minutes.

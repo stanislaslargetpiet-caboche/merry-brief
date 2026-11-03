@@ -21,6 +21,14 @@
 .wv-menu > summary::-webkit-details-marker { display: none; }
 .wv-menu-list { position: absolute; right: 0; top: 52px; min-width: 200px; background: #ffffff; border: 1px solid #000; border-radius: 16px; padding: 8px; display: flex; flex-direction: column; }
 .wv-menu-list a { padding: 12px 14px; text-decoration: none; font-size: 16px; border-radius: 10px; }
+.wv-login { position: relative; }
+.wv-login > summary { list-style: none; cursor: pointer; white-space: nowrap; }
+.wv-login > summary::-webkit-details-marker { display: none; }
+.wv-login-list { position: absolute; left: 50%; transform: translateX(-50%); top: 36px; min-width: 190px; background: #ffffff; border: 1px solid #000; border-radius: 16px; padding: 6px; display: flex; flex-direction: column; }
+.wv-login-list a { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.wv-login-list a:hover { background: #f4f3ef; }
+.wv-menu-group { margin: 8px 14px 0; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b6a63; }
+.wv-menu-list a.wv-menu-sub { padding-left: 24px; }
 .wv-lang { position: relative; font-size: 14px; }
 .wv-lang summary { list-style: none; cursor: pointer; padding: 8px 4px; white-space: nowrap; }
 .wv-lang summary::-webkit-details-marker { display: none; }
