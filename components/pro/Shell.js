@@ -226,7 +226,9 @@ function CollabTeam() {
   const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${pending[0].display_name || pending[0].email} n’a pas encore rejoint.`) : null;
   return (
     <div className="d-team">
-      <div className="d-team-title">Collaborateurs</div>
+      <Link href="/pro/compte" className="d-team-title" style={{ textDecoration: "none", color: "inherit" }}>
+        Collaborateurs
+      </Link>
       <Link href="/pro/compte" className="d-team-faces" aria-label="Voir les collaborateurs">
         {members.slice(0, 5).map((m, i) => (
           <span key={m.id} style={{ marginLeft: i ? -9 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
