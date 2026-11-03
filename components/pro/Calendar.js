@@ -46,12 +46,8 @@ export default function AvailabilityCalendar() {
   const nameOf = (x) => clients.find((c) => c.id === x.client_id)?.names || x.label || "";
   const now = todayIsoLocal();
 
-  // Mois affiché : celui de la prochaine date posée, sinon le mois en cours
-  const [month, setMonth] = useState(() => {
-    const next = [...d.dates].filter((x) => x.day >= now).sort((a, b) => a.day.localeCompare(b.day))[0];
-    const base = toDate(next?.day) || today();
-    return { y: base.getFullYear(), m: base.getMonth() };
-  });
+  // Le calendrier s'ouvre toujours sur le mois en cours
+  const [month, setMonth] = useState(() => ({ y: today().getFullYear(), m: today().getMonth() }));
   const [open, setOpen] = useState(null);
   const days = monthGrid(month.y, month.m);
   const go = (delta) => {
@@ -72,7 +68,7 @@ export default function AvailabilityCalendar() {
 
   return (
     <section className="p-dispo">
-      <div className="p-dispo-grid">
+      <div className={`p-dispo-grid${expiring.length ? "" : " is-single"}`}>
         <section className="p-cal">
           <div className="p-cal-head">
             <h2>
@@ -153,9 +149,6 @@ export default function AvailabilityCalendar() {
               </ul>
             </section>
           ) : null}
-          {/* Synchronisation d'agenda (SyncCard, plus bas dans ce fichier) retirée de l'affichage le
-              3 nov. 2026 à la demande de Stan : « pour le moment, ne mets pas de synchronisation avec
-              le calendrier ». Fonction laissée intacte pour la remettre facilement. */}
           {expiring.length ? (
             <section className="p-expiring">
               <h2>Options qui expirent bientôt</h2>
@@ -293,50 +286,5 @@ function DayEditor({ day, entry, clients, phone, onClose }) {
       </div>
       {body}
     </div>
-  );
-}
-
-// Lien d'agenda privé (iCal), lu par Google Agenda, Apple Calendrier ou Outlook
-function SyncCard() {
-  const pro = usePro();
-  const token = pro.data.pro?.ical_token;
-  const feed = () => `${window.location.origin}/api/pro/agenda/${token}.ics`;
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(feed());
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function google() {
-    if (pro.mode === "demo") return pro.setToast({ kind: "ok", text: "En démo, l’agenda n’est pas relié." });
-    window.open(`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feed().replace(/^https?:/, "webcal:"))}`, "_blank", "noopener");
-  }
-
-  async function ical() {
-    if (pro.mode === "demo") return pro.setToast({ kind: "ok", text: "En démo, l’agenda n’est pas relié." });
-    const copied = await copy();
-    window.location.href = feed().replace(/^https?:/, "webcal:");
-    pro.setToast({ kind: "ok", text: copied ? "Lien de l’agenda copié : collez-le dans Outlook ou un autre agenda si besoin." : "Votre agenda va s’ouvrir pour s’abonner à vos dates." });
-  }
-
-  return (
-    <section className="p-sync">
-      <h2>Synchroniser mon agenda</h2>
-      <p>Vos dates réservées et vos options apparaissent dans votre agenda habituel.</p>
-      <div className="p-sync-btns">
-        <button type="button" className="p-btn p-btn-ghost" onClick={google}>
-          <ProIcon name="calendar" size={17} />
-          Google Agenda
-        </button>
-        <button type="button" className="p-btn p-btn-ghost" onClick={ical}>
-          <ProIcon name="calendar" size={17} />
-          iCal
-        </button>
-      </div>
-    </section>
   );
 }

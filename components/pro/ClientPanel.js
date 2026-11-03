@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { isoDate, shortDate, toDate } from "@/lib/dash/format";
-import { dateLong, faceColor, firstName, STAGES } from "@/lib/pro/format";
+import { dateLong, faceColor, firstName, isPastClient, STAGES } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
@@ -86,6 +86,23 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
   const v = pro.data.vendor;
   const value = (k) => (isNew ? draft[k] : c[k] ?? "");
   const set = (k, x) => (isNew ? setDraft((d) => ({ ...d, [k]: x })) : save({ [k]: x }));
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Le panneau reste ouvert ; si la nouvelle étape fait changer le client d'onglet, on dit où il est parti
+  function setStage(stage) {
+    if (isNew) return set("stage", stage);
+    const wasPast = isPastClient(c);
+    save({ stage });
+    const nowPast = isPastClient({ ...c, stage });
+    if (wasPast !== nowPast) pro.setToast({ kind: "ok", text: `${c.names} : déplacé dans ${nowPast ? "Anciens clients" : "Réservations"}.` });
+  }
+
+  async function remove() {
+    if (await pro.deleteRow("pro_clients", "clients", c.id)) {
+      pro.setToast({ kind: "ok", text: `${c.names} : supprimé.` });
+      onClose();
+    }
+  }
 
   return (
     <>
@@ -113,7 +130,7 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
           ) : null}
           <div className="p-field">
             <label htmlFor="stage">Étape</label>
-            <select id="stage" className="p-input" value={value("stage")} onChange={(e) => set("stage", e.target.value)}>
+            <select id="stage" className="p-input" value={value("stage")} onChange={(e) => setStage(e.target.value)}>
               {STAGES.map((x) => (
                 <option key={x.key} value={x.key}>
                   {x.label}
@@ -233,6 +250,29 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
                   Ajouter un document
                 </button>
               </section>
+              {/* Un client venu par Merry garde son historique ; seul un client ajouté à la main se supprime */}
+              {fromMerry ? null : (
+                <>
+                  <div className="p-rule is-flat" />
+                  {confirmDelete ? (
+                    <div className="p-edit-actions">
+                      <span>Supprimer {c.names} et ses documents ?</span>
+                      <span>
+                        <button type="button" className="p-btn p-btn-ghost is-40" onClick={() => setConfirmDelete(false)}>
+                          Annuler
+                        </button>
+                        <button type="button" className="p-btn p-btn-primary is-40" onClick={remove}>
+                          Supprimer
+                        </button>
+                      </span>
+                    </div>
+                  ) : (
+                    <button type="button" className="p-link is-small is-muted p-start" onClick={() => setConfirmDelete(true)}>
+                      Supprimer le client
+                    </button>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>

@@ -17,11 +17,13 @@ import FeatureDialog from "./FeatureDialog";
 // Chaque entrée groupe plusieurs pages sous un seul onglet de la barre latérale (maquettes
 // « Mon profil » et « Messagerie » du canvas) ; `match` liste les chemins qui l'activent, et ses
 // sous-pages affichent un ProSubnav vers les autres.
+// Projets de mariage (/pro/projets) est masqué de la navigation depuis le 3 nov. 2026 (décision de Stan) :
+// la liste reste vide tant que les couples n'ont pas d'écran pour accepter d'être contactés. La page existe
+// toujours, il suffit de remettre l'entrée ici quand cet écran couple sera prêt.
 export const PRO_NAV = [
-  { href: "/pro", label: "Accueil", icon: "home", exact: true, match: ["/pro"] },
+  { href: "/pro", label: "Dashboard", icon: "home", exact: true, match: ["/pro"] },
   { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"] },
   { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits", "/pro/compte"] },
-  { href: "/pro/projets", label: "Projets de mariage", icon: "projets", match: ["/pro/projets"] },
 ];
 
 export const PRO_MESSAGERIE_TABS = [
@@ -33,7 +35,7 @@ export const PRO_MESSAGERIE_TABS = [
 // Disponibilités a fusionné dans Tarifs (calendrier + prix, demande de Stan le 3 nov. 2026)
 export const PRO_PROFIL_TABS = [
   { href: "/pro/fiche", label: "Ma fiche" },
-  { href: "/pro/tarifs", label: "Tarifs" },
+  { href: "/pro/tarifs", label: "Calendrier & Tarifs" },
   { href: "/pro/credits", label: "Crédits" },
   { href: "/pro/compte", label: "Compte" },
 ];
@@ -55,7 +57,9 @@ function Gate({ children }) {
       </div>
     );
   }
-  if (pro.status === "claim") return <Claim />;
+  // Un lien d'invitation s'ouvre sur l'écran pour rejoindre l'équipe, même pour un compte qui a déjà sa fiche
+  const invited = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("invitation");
+  if (pro.status === "claim" || (invited && pro.status === "ready")) return <Claim />;
   if (pro.status === "setup" || pro.status === "error") return <Trouble kind={pro.status} error={pro.error} reload={pro.reload} />;
   return <Frame>{children}</Frame>;
 }
@@ -89,7 +93,7 @@ function Frame({ children }) {
   const [feature, setFeature] = useState(false);
   const [menu, setMenu] = useState(false);
   const credits = pro.data.pro?.credits ?? 0;
-  const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Accueil";
+  const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -164,7 +168,7 @@ function Frame({ children }) {
             Proposer une fonctionnalité
           </button>
           <div className="d-nav-links">
-            <a href="/pro?revendiquer=1">Une autre fiche</a>
+            <a href="/pro?revendiquer=1">Ajouter une fiche</a>
             <a href={SITE_URL}>Retour au site</a>
             <button type="button" onClick={pro.signOut}>
               Se déconnecter
@@ -263,7 +267,7 @@ function AccountMenu({ close }) {
     <>
       <VendorSwitch item />
       <a className="d-pop-item" href="/pro?revendiquer=1">
-        Revendiquer une autre fiche
+        Ajouter une fiche
       </a>
       <a className="d-pop-item" href={SITE_URL}>
         Retour au site

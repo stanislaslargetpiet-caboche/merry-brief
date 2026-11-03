@@ -2,6 +2,9 @@
 
 // Ma fiche (maquettes V2 et V2m) : ce que les couples voient du prestataire. Chaque modification part
 // tout de suite dans le catalogue que lisent les couples. ?apercu=1 ouvre l'aperçu côté couples (V2b, V2n).
+// Audit du 3 nov. 2026 : seuls restent les champs que les couples voient vraiment (places debout, fin de
+// soirée, adresse exacte, zone, rayon et taille d'équipe retirés ; import de vidéo retiré, seul un lien
+// est montré aux couples).
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -17,21 +20,6 @@ const CATERER = [
   { value: "impose", label: "Imposé" },
   { value: "liste", label: "Liste de traiteurs" },
 ];
-const MUSIC_END = ["Minuit", "1 h", "2 h", "4 h", "Pas de limite"];
-
-// Fin de soirée lue sur le site (« 2h du matin », « sans limite ») : le choix le plus proche
-function musicChoice(text) {
-  const t = String(text || "").toLowerCase();
-  if (!t) return "";
-  if (/minuit/.test(t)) return "Minuit";
-  if (/sans|pas de|aucune|illimit|aube|matin|nuit/.test(t)) return "Pas de limite";
-  const h = Number(t.match(/(\d{1,2})\s*(h|:)/)?.[1]);
-  if (h === 1) return "1 h";
-  if (h === 2) return "2 h";
-  if (h >= 3 && h <= 8) return "4 h";
-  return MUSIC_END.includes(text) ? text : "";
-}
-
 const catererOf = (det) => (det.caterer_mode ? det.caterer_mode : det.caterer_imposed === false ? "libre" : det.caterer_imposed === true ? "impose" : "");
 
 export default function MaFichePage() {
@@ -62,14 +50,15 @@ function MaFiche() {
 
   return (
     <div className="p-narrow">
-      <div className="p-head">
-        <h1 className="p-h1 is-page">Ma fiche.</h1>
+      {/* Le titre seul, comme les autres onglets de Mon profil ; l'aperçu passe sous les onglets */}
+      <h1 className="p-h1 is-page">Ma fiche.</h1>
+      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
+      <div className="p-clients-tools">
         <button type="button" className="p-btn p-btn-ghost p-phone-wide" onClick={() => router.push("/pro/fiche?apercu=1")}>
           <ProIcon name="eye" size={18} />
           Aperçu côté couples
         </button>
       </div>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <PhotosSection />
 
@@ -84,18 +73,13 @@ function MaFiche() {
           <label htmlFor="desc">Description</label>
           <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
         </div>
-        <div className="p-field is-8">
-          <label htmlFor="addr">Adresse exacte</label>
-          <TextInput id="addr" value={v.address || ""} onSave={(t) => save({ address: t || null })} />
-        </div>
       </section>
 
       {isLieu ? (
         <section className="p-sec" id="lieu">
           <h2 className="p-sec-title">Le lieu</h2>
-          <div className="p-grid3">
+          <div className="p-grid2">
             <NumberField id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
-            <NumberField id="debout" label="Places debout" value={v.capacity_standing} onSave={(n) => save({ capacity_standing: num(n) })} />
             <NumberField id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
           </div>
           <div className="p-field is-8">
@@ -107,36 +91,12 @@ function MaFiche() {
               onChange={(mode) => save({ caterer_mode: mode, caterer_imposed: mode !== "libre" })}
             />
           </div>
-          <div className="p-field is-narrow">
-            <label htmlFor="fin">Fin de soirée</label>
-            <select id="fin" className="p-input" value={musicChoice(det.music_end)} onChange={(e) => save({ music_end: e.target.value === "Pas de limite" ? "sans limite" : e.target.value.toLowerCase() === "minuit" ? "minuit" : e.target.value })}>
-              {!musicChoice(det.music_end) ? <option value="">À préciser</option> : null}
-              {MUSIC_END.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
-          </div>
         </section>
-      ) : (
-        <section className="p-sec" id="activite">
-          <h2 className="p-sec-title">Votre activité</h2>
-          <div className="p-grid3">
-            <TextField id="zone" label="Zone d'intervention" value={det.service_area} onSave={(t) => save({ service_area: t })} />
-            <KmField id="rayon" value={det.service_radius_km} onSave={(n) => save({ service_radius_km: num(n) })} />
-            <NumberField id="equipe" label="Taille de l'équipe le jour J" value={det.team_size} onSave={(n) => save({ team_size: num(n) })} />
-          </div>
-        </section>
-      )}
+      ) : null}
 
       {isLieu ? (
         <section className="p-sec" id="acces">
-          <div className="p-sec-row">
-            <h2 className="p-sec-title">Accès</h2>
-            <span className="p-calc">
-              <ProIcon name="sparkle" size={13} stroke="#574e00" sw={2} />
-              Calculé par Merry, modifiable
-            </span>
-          </div>
+          <h2 className="p-sec-title">Accès</h2>
           <div className="p-access">
             <TextField id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
             <MinutesField id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
@@ -163,7 +123,7 @@ function MaFiche() {
   );
 }
 
-// ---------- Photos : la première sert de couverture, glisser pour changer l'ordre ----------
+// ---------- Photos : la première sert de couverture (badge), glisser pour changer l'ordre ----------
 
 function PhotosSection() {
   const pro = usePro();
@@ -171,7 +131,6 @@ function PhotosSection() {
   const fileRef = useRef(null);
   const [drag, setDrag] = useState(null);
   const [busy, setBusy] = useState(false);
-  const slots = Math.max(5, photos.length);
 
   const move = (from, to) => {
     if (to < 0 || to >= photos.length || from === to) return;
@@ -185,16 +144,8 @@ function PhotosSection() {
     <section className="p-sec" id="photos">
       <h2 className="p-sec-title">Photos</h2>
       <ul className="p-photos">
-        {Array.from({ length: slots }, (_, i) => {
-          const ph = photos[i];
+        {photos.map((ph, i) => {
           const label = i === 0 ? "la photo de couverture" : `la photo ${i + 1}`;
-          if (!ph) {
-            return (
-              <li key={`vide-${i}`} className="p-photo is-empty">
-                <span>Photo {i + 1}</span>
-              </li>
-            );
-          }
           return (
             <li
               key={ph.path}
@@ -249,36 +200,24 @@ function PhotosSection() {
           </button>
         </li>
       </ul>
-      <p className="p-hint">La première photo sert de couverture. Glissez les photos pour changer l’ordre.</p>
     </section>
   );
 }
 
-// ---------- Vidéo : un lien (Matterport, YouTube, Vimeo) ou un fichier importé ----------
+// ---------- Vidéo : un lien Matterport, YouTube ou Vimeo (seul format montré aux couples) ----------
 
 function VideoSection() {
   const pro = usePro();
   const v = pro.data.vendor;
-  const url = v.details?.video_url || "";
-  const isFile = url.startsWith("fichier:");
+  const raw = v.details?.video_url || "";
+  const url = raw.startsWith("fichier:") ? "" : raw;
   const cover = pro.data.photos?.[0]?.url;
-  const fileRef = useRef(null);
-  const [busy, setBusy] = useState(false);
-
-  async function play() {
-    if (!url) return;
-    if (!isFile) {
-      window.open(/^https?:/i.test(url) ? url : `https://${url}`, "_blank", "noopener");
-      return;
-    }
-    await pro.openDocument({ storage_path: url.slice(8) });
-  }
 
   return (
     <div className="p-video">
       <div className="p-video-box" style={{ backgroundImage: cover ? `url("${cover}")` : undefined }}>
         {url ? (
-          <button type="button" className="p-video-play" aria-label="Lire la vidéo" onClick={play}>
+          <button type="button" className="p-video-play" aria-label="Lire la vidéo" onClick={() => window.open(/^https?:/i.test(url) ? url : `https://${url}`, "_blank", "noopener")}>
             <ProIcon name="play" size={22} fill="#1c1c1a" stroke="none" />
           </button>
         ) : null}
@@ -287,26 +226,8 @@ function VideoSection() {
       <div className="p-video-side">
         <div className="p-field">
           <label htmlFor="lien">Lien Matterport, YouTube ou Vimeo</label>
-          <TextInput id="lien" placeholder="https://" value={isFile ? "" : url} onSave={(t) => pro.saveFiche({ video_url: t || null })} />
+          <TextInput id="lien" placeholder="https://" value={url} onSave={(t) => pro.saveFiche({ video_url: t || null })} />
         </div>
-        <span className="p-hint">{isFile ? `ou, déjà importée : ${url.split("/").pop()}. Les vidéos importées ne sont pas encore montrées aux couples : collez un lien YouTube, Vimeo ou Matterport pour qu'ils la voient.` : "ou"}</span>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="video/*"
-          hidden
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setBusy(true);
-            await pro.uploadVideo(f);
-            setBusy(false);
-            e.target.value = "";
-          }}
-        />
-        <button type="button" className="p-btn p-btn-ghost p-start p-phone-wide" onClick={() => fileRef.current?.click()} disabled={busy}>
-          {busy ? <BusyDots /> : "Importer une vidéo"}
-        </button>
       </div>
     </div>
   );
@@ -376,16 +297,3 @@ function MinutesField({ id, value, onSave }) {
     </div>
   );
 }
-
-function KmField({ id, value, onSave }) {
-  return (
-    <div className="p-field">
-      <label htmlFor={id}>Rayon</label>
-      <div className="p-input p-unit">
-        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} />
-        <span>km</span>
-      </div>
-    </div>
-  );
-}
-

@@ -127,21 +127,12 @@ export default function Tarifs() {
       </section>
 
       <section className="p-card p-options">
-        <h2 className="p-options-title">Saisons</h2>
-        <ul className="p-rows">
-          {[
-            ["Haute saison", "high_from", "high_to"],
-            ["Basse saison", "low_from", "low_to"],
-          ].map(([label, from, to], k) => (
-            <li key={label} className="p-season">
-              <span className="p-season-name">{label}</span>
-              <div className="p-season-fields">
-                <SeasonDatePicker id={`s${k}a`} label="Du" value={d.pro?.[from]} onSave={(t) => pro.saveSeasons({ [from]: t })} />
-                <SeasonDatePicker id={`s${k}b`} label="Au" value={d.pro?.[to]} onSave={(t) => pro.saveSeasons({ [to]: t })} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* La basse saison est le reste de l'année (seasonOf ne lit que la haute saison) */}
+        <h2 className="p-options-title">Haute saison</h2>
+        <div className="p-season-fields">
+          <SeasonDatePicker id="s-from" label="Du" value={d.pro?.high_from} onSave={(t) => pro.saveSeasons({ high_from: t })} />
+          <SeasonDatePicker id="s-to" label="Au" value={d.pro?.high_to} onSave={(t) => pro.saveSeasons({ high_to: t })} />
+        </div>
       </section>
     </div>
   );
