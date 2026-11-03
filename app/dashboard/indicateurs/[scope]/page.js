@@ -138,12 +138,12 @@ export default function Indicateurs() {
   const ctx = kpiContext(data);
 
   // Chaque coche s'enregistre tout de suite : la liste et le budget suivent sans bouton à trouver
-  const toggle = (id) =>
-    setChosen((c) => {
-      const next = c.includes(id) ? c.filter((x) => x !== id) : c.length >= KPI_MAX ? c : [...c, id];
-      if (next !== c) dash.saveKpis(sc, next);
-      return next;
-    });
+  const toggle = (id) => {
+    const next = chosen.includes(id) ? chosen.filter((x) => x !== id) : chosen.length >= KPI_MAX ? chosen : [...chosen, id];
+    if (next === chosen) return;
+    setChosen(next);
+    dash.saveKpis(sc, next);
+  };
 
   async function save() {
     await dash.saveKpis(sc, chosen);
