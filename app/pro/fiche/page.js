@@ -142,7 +142,6 @@ function MaFiche() {
       {isLieu ? (
         <section className="p-sec" id="plus">
           <h2 className="p-sec-title">Plus d’informations</h2>
-          <p className="p-hint">Ces réponses enrichissent votre fiche côté couples et nourrissent les questions fréquentes affichées sur votre page.</p>
           <PlusInfosSection />
         </section>
       ) : null}
