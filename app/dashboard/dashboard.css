@@ -4617,6 +4617,10 @@ button.d-rsvp:hover {
   color: #ffffff;
 }
 
+.d-fseg-btn.is-lime.is-on {
+  background: var(--d-lime);
+}
+
 .d-fseg-static {
   display: inline-flex;
   align-items: center;
