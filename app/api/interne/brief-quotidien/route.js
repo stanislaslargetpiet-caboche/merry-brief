@@ -34,18 +34,24 @@ async function hogql(query) {
 }
 
 // Connexions des dernières 24h : auth.admin (service_role), pas soumis au consentement cookies.
-async function countLogins(admin) {
+// Le nom vient de wedding_members (display_name) ; sans fiche organisateur, l'email sert de repli.
+async function listLogins(admin) {
   const since = Date.now() - 24 * 3600 * 1000;
-  let count = 0;
+  const users = [];
   for (let page = 1; ; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw error;
     for (const u of data.users) {
-      if (u.last_sign_in_at && Date.parse(u.last_sign_in_at) >= since) count += 1;
+      if (u.last_sign_in_at && Date.parse(u.last_sign_in_at) >= since) users.push(u);
     }
     if (data.users.length < 1000) break;
   }
-  return count;
+  if (!users.length) return [];
+
+  const { data: members } = await admin.from("wedding_members").select("user_id, display_name").in("user_id", users.map((u) => u.id));
+  const nameByUser = new Map();
+  for (const m of members || []) if (m.display_name && !nameByUser.has(m.user_id)) nameByUser.set(m.user_id, m.display_name);
+  return users.map((u) => nameByUser.get(u.id) || u.email || u.id);
 }
 
 // Même logique que le cohort PostHog "Internal / Test users" (notes/journal.md, 3 nov. 2026) : on écarte le
@@ -60,9 +66,9 @@ const DASHBOARD_HOST = `properties.$host = 'app.withmerry.com'`;
 const SITE_HOST = `properties.$host IN ('withmerry.com', 'www.withmerry.com')`;
 
 async function gatherStats(admin) {
-  const [logins, [dash], [[topPage, topPageViews] = []], [[exceptions]], [[rageClicks]], [[visitors, pageviews]], landing, [[bounceRate]]] =
+  const [loginNames, [dash], [[topPage, topPageViews] = []], [[exceptions]], [[rageClicks]], [[visitors, pageviews]], landing, [[bounceRate]]] =
     await Promise.all([
-      countLogins(admin),
+      listLogins(admin),
       hogql(`
         SELECT avg(duration), avg(pages) FROM (
           SELECT properties.$session_id AS sid,
@@ -107,7 +113,8 @@ async function gatherStats(admin) {
     ]);
 
   return {
-    logins,
+    logins: loginNames.length,
+    loginNames,
     avgDurationS: Math.round(dash?.[0] || 0),
     avgPages: Math.round((dash?.[1] || 0) * 10) / 10,
     topPage: topPage || null,
@@ -139,7 +146,7 @@ function renderEmail(stats, dateLabel) {
 
       <h3>Dashboard organisateurs</h3>
       <ul>
-        <li>${stats.logins} connexion(s) sur 24h (Supabase)</li>
+        <li>${stats.logins} connexion(s) sur 24h (Supabase)${stats.loginNames.length ? ` : ${esc(stats.loginNames.join(", "))}` : ""}</li>
         <li>${duration} passées en moyenne par session, ${stats.avgPages} page(s) vue(s) en moyenne</li>
         <li>Page la plus consultée : ${stats.topPage ? `<code>${esc(stats.topPage)}</code> (${stats.topPageViews} vue${stats.topPageViews > 1 ? "s" : ""})` : "aucune donnée"}</li>
         <li>${stats.exceptions} erreur(s) détectée(s), ${stats.rageClicks} clic(s) de rage</li>
