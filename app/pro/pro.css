@@ -564,6 +564,12 @@
   color: var(--d-muted);
 }
 
+.p-acc-card-n-credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .p-acc-bar {
   display: block;
   height: 7px;
@@ -727,6 +733,25 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.p-pill-add {
+  gap: 6px;
+  border-style: dashed;
+  border-color: #b9b7ae;
+  color: var(--d-muted);
+}
+
+.p-pill-input {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--d-ink);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--d-ink);
+  width: 140px;
 }
 
 .p-pill.is-on {
@@ -1998,6 +2023,9 @@
 }
 
 .p-credits-big {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 28px;
   font-weight: 600;
   line-height: 1.1;
@@ -4885,6 +4913,13 @@ button.p-dem-item {
 
 .p-ink {
   color: var(--d-ink);
+}
+
+.p-unlock-now,
+.p-unlock-after {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .p-unlock-now {
