@@ -16285,3 +16285,477 @@ button.d-gcard-status.is-open svg {
     padding: 3px 8px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Liste des invités sur téléphone (components/dash/InvitesMobile.js) : une tâche par écran
+   --------------------------------------------------------------------------- */
+.d-mlist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-mlist-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.d-mlist-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--d-muted);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.d-mlist-counts strong {
+  color: var(--d-ink);
+  font-weight: 700;
+}
+
+.d-mlist-counts b {
+  font-weight: 700;
+}
+
+.d-mlist-counts b.is-oui {
+  color: #1f6b30;
+}
+
+.d-mlist-counts b.is-attente {
+  color: #8a4b0f;
+}
+
+.d-mlist-counts svg {
+  color: var(--d-muted);
+}
+
+.d-mlist-relance {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-ink);
+}
+
+.d-mlist-relance span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--d-ink);
+  color: #ffffff;
+  font-size: 11.5px;
+}
+
+.d-msearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 6px 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+}
+
+.d-msearch > svg {
+  flex: none;
+  color: var(--d-muted);
+}
+
+.d-msearch input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 16px; /* sous 16 px, iOS zoome sur le champ */
+}
+
+.d-msearch input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.d-msearch-clear,
+.d-msearch-filters {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--d-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.d-msearch-filters {
+  background: var(--d-panel);
+  color: var(--d-ink);
+}
+
+.d-msearch-filters.is-on {
+  background: var(--d-ink);
+  color: #ffffff;
+}
+
+.d-mlist-group {
+  display: flex;
+  gap: 6px;
+}
+
+.d-mlist-group button {
+  flex: 1 1 0;
+  min-height: 34px;
+  border: 1px solid var(--d-border);
+  border-radius: 999px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-muted);
+}
+
+.d-mlist-group button.is-on {
+  background: var(--d-limetint, #f4f8d6);
+  border-color: transparent;
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
+.d-mlist-empty {
+  margin: 0;
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.d-msec {
+  display: flex;
+  flex-direction: column;
+}
+
+.d-msec-head {
+  position: sticky;
+  top: 56px; /* sous la barre du haut */
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 6px 4px;
+  border: 0;
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  color: var(--d-ink);
+}
+
+.d-msec-head i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.d-msec-head strong {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.d-msec-head span {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-msec-head svg {
+  margin-left: auto;
+  color: var(--d-muted);
+  transition: transform 0.15s;
+}
+
+.d-mcards {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--d-line);
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.d-mcard {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y; /* le doigt fait défiler la page ; un geste franchement horizontal répond */
+}
+
+.d-mcard + .d-mcard {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-mcard-hints {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.d-mcard-hints span {
+  opacity: 0.55;
+  transition: opacity 0.1s;
+}
+
+.d-mcard-hints .is-oui {
+  color: #1f6b30;
+}
+
+.d-mcard-hints .is-non {
+  color: #9b2c2c;
+}
+
+.d-mcard-hints .is-armed {
+  opacity: 1;
+}
+
+.d-mcard-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 0;
+  background: #ffffff;
+  transition: transform 0.15s;
+}
+
+.d-mcard.is-dragging .d-mcard-face {
+  transition: none;
+}
+
+.d-mcard-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 56px;
+  justify-content: center;
+  padding: 8px 10px 8px 14px;
+  border-left: 3px solid transparent;
+  color: inherit;
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.d-mcard-main strong {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-mcard-main strong.is-non {
+  text-decoration: line-through;
+  color: var(--d-muted);
+}
+
+.d-mcard-main small {
+  font-size: 12.5px;
+  color: var(--d-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-mcard-status {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.d-mcard-status.is-oui {
+  background: #dff3e1;
+  color: #1f6b30;
+}
+
+.d-mcard-status.is-attente {
+  background: #ffe6cc;
+  color: #8a4b0f;
+}
+
+.d-mcard-status.is-non,
+.d-mcard-status.is-non_invite {
+  background: var(--d-panel);
+  color: var(--d-muted);
+}
+
+/* Feuille en bas : la réponse de l'invité pour chaque moment */
+.d-msheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+}
+
+.d-msheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 28, 26, 0.35);
+}
+
+.d-msheet {
+  position: relative;
+  width: 100%;
+  max-height: 86dvh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -12px 40px rgba(28, 28, 26, 0.18);
+  animation: d-msheet-in 0.18s ease-out;
+}
+
+@keyframes d-msheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.d-msheet-grip {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: var(--d-line);
+}
+
+.d-msheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.d-msheet-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.d-msheet-head strong {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.d-msheet-head small {
+  font-size: 13px;
+  color: var(--d-muted);
+}
+
+.d-msheet-moments {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.d-msheet-moment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.d-msheet-moment > span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.d-msheet-seg {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--d-panel);
+}
+
+.d-msheet-seg button {
+  min-height: 38px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--d-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-msheet-seg button.is-on {
+  font-weight: 700;
+}
+
+.d-msheet-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.d-msheet-actions .d-btn {
+  flex: 1 1 0;
+  justify-content: center;
+  min-height: 46px;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  /* Le plan de table vit au glisser-déposer : sur téléphone il attend sa version tactile */
+  .d-root .d-itab.is-plan {
+    display: none;
+  }
+}

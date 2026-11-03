@@ -8,7 +8,9 @@ import { pastel, RSVP, RSVP_ORDER } from "@/lib/dash/theme";
 
 // Téléphone (ou paysage bas) : un seul des deux agencements est rendu, pas les deux cachés par le CSS
 export function useIsPhone() {
-  const [phone, setPhone] = useState(false);
+  // Connu dès le premier rendu quand on est dans le navigateur (les pages du tableau de bord ne se rendent
+  // qu'après le chargement des données, côté client) : pas d'image du tableau avant les cartes
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 700px), (max-height: 500px) and (orientation: landscape)").matches);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 700px), (max-height: 500px) and (orientation: landscape)");
     const on = () => setPhone(mq.matches);

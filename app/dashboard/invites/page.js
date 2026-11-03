@@ -11,6 +11,7 @@ import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
 import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu, useIsPhone } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
+import InvitesMobile from "@/components/dash/InvitesMobile";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
 import GuestsNote from "@/components/dash/GuestsNote";
@@ -400,58 +401,6 @@ function AddGuests({ onClose, defaultGroupId = "" }) {
 // Téléphone : une ligne par invité, qui mène à la fiche, avec la pastille de son groupe (artboard 1a).
 // Un appui sur le statut déplie la réponse à chaque moment, modifiable sans ouvrir la fiche ;
 // replié par défaut pour que la liste reste aérée.
-function GuestCard({ guest: g, events, idx, byId, groupById, onPick }) {
-  const [open, setOpen] = useState(false);
-  const r = idx.get(g.id) || {};
-  const host = g.plus_one_of ? byId.get(g.plus_one_of) : null;
-  const status = guestStatus(r, events);
-  const label = guestLabel(g, byId) || (host ? `+1 de ${fullName(host)}` : "Sans nom");
-  const group = groupById.get(g.group_id);
-  const p = pastel(group?.color);
-  const sub = [g.age ? `${g.age} ans` : null, host && !fullName(g) ? "À nommer" : null].filter(Boolean).join(" · ");
-  const inner = (
-    <>
-      <span className="d-gavatar" style={{ background: group ? p.bg : "#e4e2dc" }} aria-hidden="true">
-        {(label || "?").charAt(0).toUpperCase()}
-      </span>
-      <span className="d-gcard-name">
-        <strong style={status === "non" ? { textDecoration: "line-through", color: "var(--d-muted)" } : undefined}>{label}</strong>
-        <span className="d-guest-sub">
-          <GroupChip group={group} />
-          {sub ? <span>{sub}</span> : null}
-        </span>
-      </span>
-    </>
-  );
-  return (
-    <div className="d-gcard">
-      <div className="d-gcard-top">
-        <Link href={`/dashboard/invites/${g.id}`} className="d-gcard-row">
-          {inner}
-        </Link>
-        {events.length ? (
-          <button type="button" className={`d-gcard-status is-${status}${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={`${GUEST_STATUS_LABEL[status]} : voir ou modifier la réponse à chaque moment`}>
-            {GUEST_STATUS_LABEL[status]}
-            <Icon name="chevDown" size={11} sw={2.4} />
-          </button>
-        ) : (
-          <span className={`d-gcard-status is-${status}`}>{GUEST_STATUS_LABEL[status]}</span>
-        )}
-      </div>
-      {open && events.length ? (
-        <div className="d-gcard-moments">
-          {events.map((ev) => (
-            <span key={ev.id} className="d-gcard-moment">
-              <small>{ev.short_name}</small>
-              <RsvpMenu status={r[ev.id] || "non_invite"} onPick={(k) => onPick(g, ev, k)} title={`${ev.name} : modifier le statut`} />
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function Invites() {
   const dash = useDash();
   const data = dash.data;
@@ -1236,20 +1185,6 @@ export default function Invites() {
       <div className="d-desk-only">
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />
       </div>
-      <div className="d-mob-only">
-        {/* Les mêmes indicateurs que sur ordinateur (choisis dans Indicateurs), pas trois chiffres figés */}
-        <div className="d-mstats-scroll">
-          {stats.map((it) => (
-            <span key={it.id}>
-              <strong>
-                {it.value}
-                {it.sub ? <i> {it.sub}</i> : null}
-              </strong>
-              <small>{it.label}</small>
-            </span>
-          ))}
-        </div>
-      </div>
 
       <div className="d-desk-only">
         <GuestsNote />
@@ -1284,7 +1219,7 @@ export default function Invites() {
       {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter / plein écran /
           colonnes à droite. Quand des invités sont cochés, la barre d'actions groupées prend sa place,
           à la même hauteur : le tableau ne bouge pas sous la souris. */}
-      {selIds.length ? <div className="d-desk-only">{selBar}</div> : (
+      {phone ? null : selIds.length ? <div className="d-desk-only">{selBar}</div> : (
         <div className="d-filters d-ifilters d-itoolbar" style={{ justifyContent: "space-between" }}>
           <div className="d-filters d-ifilters-left">
             <label className="d-search">
@@ -1389,13 +1324,25 @@ export default function Invites() {
         </div>
       )}
 
-      {guests.length && phone ? (
-        <div className="d-cards d-mob-only">
-          {shown.map((g) => (
-            <GuestCard key={g.id} guest={g} events={events} idx={idx} byId={byId} groupById={groupById} onPick={(guest, ev, k) => applyValues([{ id: guest.id, key: `ev:${ev.id}`, value: k }])} />
-          ))}
-          {!shown.length ? <p className="d-muted d-small" style={{ margin: 0, padding: 16 }}>Aucun invité ne correspond.</p> : null}
-        </div>
+      {phone ? (
+        <InvitesMobile
+          data={data}
+          shown={shown}
+          events={events}
+          groups={groups}
+          idx={idx}
+          byId={byId}
+          groupById={groupById}
+          query={query}
+          setQuery={setQuery}
+          filterCount={filterCount}
+          onFilters={() => setFiltering(true)}
+          pending={pending}
+          onRelance={(list) => setRelancing(list)}
+          applyValues={applyValues}
+          okUndo={okUndo}
+          onAdd={() => setAdding(true)}
+        />
       ) : null}
 
       {guests.length && !phone ? (
@@ -1538,7 +1485,7 @@ export default function Invites() {
       {addingCol ? <ColumnModal onClose={() => setAddingCol(false)} /> : null}
       {moments ? <MomentsModal onClose={() => setMoments(false)} /> : null}
       {managingGroups ? <GroupsModal onClose={() => setManagingGroups(false)} /> : null}
-      {relancing ? <RelanceModal guests={relancing === "sel" ? selPending : pending} onClose={() => setRelancing(null)} onMarked={markReminded} /> : null}
+      {relancing ? <RelanceModal guests={Array.isArray(relancing) ? relancing : relancing === "sel" ? selPending : pending} onClose={() => setRelancing(null)} onMarked={markReminded} /> : null}
       {filtering ? (
         <Modal
           title="Filtres"
