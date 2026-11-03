@@ -47,12 +47,7 @@ export default function Credits() {
 
   return (
     <div className="p-credits">
-      <div className="p-credits-head">
-        <h1 className="p-h1 is-48">
-          {credits} crédit{credits > 1 ? "s" : ""}
-        </h1>
-        <p className="p-lead">{CREDIT_PRICE_LABEL} le crédit · sans abonnement</p>
-      </div>
+      <h1 className="p-h1 is-page">Crédits.</h1>
       <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <section className="p-block is-tight">
@@ -92,7 +87,12 @@ export default function Credits() {
       </section>
 
       <section className="p-block is-14">
-        <h2 className="p-h2 is-20">Acheter des crédits</h2>
+        <div className="p-sec-row">
+          <h2 className="p-h2 is-20">Acheter des crédits</h2>
+          <span className="p-credits-mini">
+            {credits} crédit{credits > 1 ? "s" : ""} <span className="p-muted">· {CREDIT_PRICE_LABEL}</span>
+          </span>
+        </div>
         <ul className="p-packs">
           {packs.map((k, i) => (
             <li key={i}>
