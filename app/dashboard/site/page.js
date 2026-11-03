@@ -225,7 +225,6 @@ export default function SiteMariage() {
   const [site, setSite] = useState(() => startSite(data, dash.mode !== "live"));
   const [status, setStatus] = useState(data.site ? "saved" : "new");
   const [device, setDevice] = useState("desktop");
-  const [allFonts, setAllFonts] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sheet, setSheet] = useState(null);
   const [settingsFor, setSettingsFor] = useState(null);
@@ -380,7 +379,6 @@ export default function SiteMariage() {
   const palette = paletteOf(site.template, site.palette);
   const fonts = fontsOf(site);
   const url = siteUrl(site.slug);
-  const shown = site.sections.filter((s) => !s.hidden).length;
   const statusLabel = { new: "", saving: "Enregistrement…", pending: "Modifications en cours…", saved: "Enregistré", error: "Pas enregistré, vérifiez votre connexion" }[status];
   const view = phone ? "phone" : device;
 
@@ -415,7 +413,7 @@ export default function SiteMariage() {
   };
 
   const fields = { site, setContent, setPhoto, data, dash };
-  const pairs = allFonts ? FONT_PAIRS : [fonts, ...FONT_PAIRS.filter((p) => p.id !== fonts.id)].slice(0, 4);
+  const pairs = FONT_PAIRS;
   const p1 = site.content.names?.p1 || data.wedding.partner1?.split(" ")[0] || "Léo";
   const p2 = site.content.names?.p2 || data.wedding.partner2?.split(" ")[0] || "Léa";
 
@@ -466,21 +464,13 @@ export default function SiteMariage() {
           </label>
         ))}
       </div>
-      <span className="d-se-note">Tout est facultatif. Cliquez un texte du site pour le modifier.</span>
     </>
   );
   const blocks = [
-    ["modele", "Modèle", `${TEMPLATES.length} modèles`, modele],
+    ["modele", "Modèle", "", modele],
     ["couleurs", "Couleurs", "", couleurs],
-    [
-      "police",
-      "Police",
-      <button key="all" type="button" className="d-se-more" onClick={() => setAllFonts(!allFonts)}>
-        {allFonts ? "Moins" : `Voir les ${FONT_PAIRS.length}`}
-      </button>,
-      police,
-    ],
-    ["elements", "Éléments du site", `${shown} sur ${site.sections.length}`, elements],
+    ["police", "Police", "", police],
+    ["elements", "Éléments du site", "", elements],
   ];
 
   const online = (
@@ -534,7 +524,7 @@ export default function SiteMariage() {
               ["desktop", "Ordinateur"],
               ["phone", "Téléphone"],
             ].map(([id, label]) => (
-              <button key={id} type="button" className={`d-fseg-btn is-req${device === id ? " is-on" : ""}`} aria-pressed={device === id} onClick={() => setDevice(id)}>
+              <button key={id} type="button" className={`d-fseg-btn is-lime${device === id ? " is-on" : ""}`} aria-pressed={device === id} onClick={() => setDevice(id)}>
                 {label}
               </button>
             ))}
@@ -554,6 +544,7 @@ export default function SiteMariage() {
             <Icon name={copied ? "check" : "link"} size={18} />
           </button>
           <button type="button" className="d-btn d-btn-primary d-se-desk-only" onClick={openSite}>
+            <Icon name="eye" size={16} sw={2} />
             Voir le site
           </button>
         </div>

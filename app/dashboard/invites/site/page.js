@@ -3,10 +3,8 @@
 // Espace Invités, onglet « Site de mariage » (artboards « 10b · Invités : Site de mariage » et « 10n », téléphone) :
 // l'aperçu du site, son état, son lien, puis « Personnaliser le site » qui ouvre l'éditeur plein écran (9b).
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { guestStats } from "@/lib/dash/model";
 import { defaultSite, fontsHref, fontsOf, siteUrl } from "@/lib/site/model";
 import { Btn } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
@@ -42,7 +40,6 @@ export default function InvitesSite() {
   const [url, setUrl] = useState("");
   const site = data.site || defaultSite(data);
   const fonts = fontsOf(site);
-  const g = guestStats(data);
   const visits7j = useSiteVisits(data.wedding?.id, data.site?.visits, dash.mode === "demo");
 
   // L'adresse complète dépend du domaine : connue seulement dans le navigateur
@@ -115,12 +112,6 @@ export default function InvitesSite() {
       </section>
 
       <div className="d-isite-cards">
-        {/* Sans réponse = invités en attente, pas la « liste B » des non invités ; le lien ouvre la liste filtrée */}
-        <Link href="/dashboard/invites?st=attente" className="d-isite-card">
-          <strong>{g.attente}</strong>
-          <span>Invités sans réponse</span>
-          <small>Voir qui n’a pas encore répondu</small>
-        </Link>
         {data.site?.published && visits7j != null ? (
           <div className="d-isite-card">
             <strong>{visits7j}</strong>
