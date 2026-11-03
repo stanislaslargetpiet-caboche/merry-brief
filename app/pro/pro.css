@@ -2207,6 +2207,35 @@ select.p-input {
   border-top: 1px solid var(--d-line);
 }
 
+.p-plus {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-plus-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.p-plus-row + .p-plus-row {
+  border-top: 1px solid var(--d-line);
+}
+
+.p-plus-row.is-toggle {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+}
+
+.p-plus-q {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .p-pill.is-38 {
   gap: 6px;
   min-height: 38px;
@@ -5128,139 +5157,17 @@ button.p-dem-item {
   font-weight: 600;
 }
 
-.p-roi-stats {
-  display: grid;
+.p-stats.is-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
 }
 
-.p-roi-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.p-roi-stat-icon {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--d-panel);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 4px;
-}
-
-.p-roi-stat-n {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.p-roi-stat-n.is-amber {
+.p-stat.is-amber {
   color: #574e00;
 }
 
-.p-roi-stat-label {
-  font-size: 12.5px;
-  color: var(--d-muted);
-}
-
-.p-metiers {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.p-metier-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.p-metier-icon {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--d-panel);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.p-metier-name {
-  flex: none;
-  width: 170px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.p-metier-bar {
-  flex: 1;
-  min-width: 24px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--d-line);
-  overflow: hidden;
-}
-
-.p-metier-bar > span {
-  display: block;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--d-ink);
-}
-
-.p-metier-row.is-mine .p-metier-icon {
-  background: var(--d-lime);
-}
-
-.p-metier-cost {
-  flex: none;
-  width: 82px;
-  text-align: right;
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.p-guarantee {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--d-panel);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.p-guarantee-icon {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--d-lime);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.p-guarantee p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
-}
-
 @media (max-width: 700px) {
-  .p-roi-stats {
+  .p-stats.is-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .p-metier-name {
-    width: 118px;
   }
 }
 

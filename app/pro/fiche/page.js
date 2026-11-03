@@ -14,6 +14,7 @@ import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
+import { PLUS_CHOICES, PLUS_TEXT, PLUS_TOGGLES } from "@/lib/vendorPlus";
 
 const CATERER = [
   { value: "libre", label: "Libre" },
@@ -63,7 +64,6 @@ function MaFiche() {
       <PhotosSection />
 
       <section className="p-sec" id="video">
-        <h2 className="p-sec-title">Vidéos et visite virtuelle</h2>
         <VideoSection />
       </section>
 
@@ -73,6 +73,19 @@ function MaFiche() {
           <label htmlFor="desc">Description</label>
           <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
         </div>
+        <div className="p-grid2">
+          <TextField id="site" label="Site internet" value={v.website} onSave={(t) => save({ website: t || null })} />
+          <TextField
+            id="adresse"
+            label="Adresse"
+            value={v.address}
+            onSave={async (t) => {
+              await save({ address: t || null });
+              if (t) pro.calcAccess();
+            }}
+          />
+        </div>
+        <TextField id="brochure" label="Lien vers la brochure (PDF)" value={det.brochure_url} onSave={(t) => save({ brochure_url: t || null })} />
       </section>
 
       {isLieu ? (
@@ -96,7 +109,15 @@ function MaFiche() {
 
       {isLieu ? (
         <section className="p-sec" id="acces">
-          <h2 className="p-sec-title">Accès</h2>
+          <div className="p-sec-row">
+            <h2 className="p-sec-title">Accès</h2>
+            {v.address ? (
+              <button type="button" className="p-btn p-btn-ghost" onClick={() => pro.calcAccess()}>
+                Recalculer depuis l’adresse
+              </button>
+            ) : null}
+          </div>
+          <p className="p-hint">Estimés depuis l’adresse de la section Présentation ; modifiables à la main.</p>
           <div className="p-access">
             <TextField id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
             <MinutesField id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
@@ -115,6 +136,14 @@ function MaFiche() {
               <Switch on={det.accessible === true || (det.accessible === undefined && v.accessible === true)} labelledBy="pmr" onChange={(on) => save({ accessible: on })} />
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {isLieu ? (
+        <section className="p-sec" id="plus">
+          <h2 className="p-sec-title">Plus d’informations</h2>
+          <p className="p-hint">Ces réponses enrichissent votre fiche côté couples et nourrissent les questions fréquentes affichées sur votre page.</p>
+          <PlusInfosSection />
         </section>
       ) : null}
 
@@ -212,23 +241,76 @@ function VideoSection() {
   const raw = v.details?.video_url || "";
   const url = raw.startsWith("fichier:") ? "" : raw;
   const cover = pro.data.photos?.[0]?.url;
+  const [open, setOpen] = useState(!!url);
+
+  useEffect(() => {
+    if (url) setOpen(true);
+  }, [url]);
+
+  const toggle = (on) => {
+    setOpen(on);
+    if (!on && url) pro.saveFiche({ video_url: null });
+  };
 
   return (
-    <div className="p-video">
-      <div className="p-video-box" style={{ backgroundImage: cover ? `url("${cover}")` : undefined }}>
-        {url ? (
-          <button type="button" className="p-video-play" aria-label="Lire la vidéo" onClick={() => window.open(/^https?:/i.test(url) ? url : `https://${url}`, "_blank", "noopener")}>
-            <ProIcon name="play" size={22} fill="#1c1c1a" stroke="none" />
-          </button>
-        ) : null}
-        <span className="p-video-tag">{url ? "Vidéo de présentation" : "Pas encore de vidéo"}</span>
+    <>
+      <div className="p-sec-row">
+        <h2 className="p-sec-title">Vidéos et visite virtuelle</h2>
+        <Switch on={open} label="Ajouter vidéo ou visite virtuelle" onChange={toggle} />
       </div>
-      <div className="p-video-side">
-        <div className="p-field">
-          <label htmlFor="lien">Lien Matterport, YouTube ou Vimeo</label>
-          <TextInput id="lien" placeholder="https://" value={url} onSave={(t) => pro.saveFiche({ video_url: t || null })} />
+      {open ? (
+        <div className="p-video">
+          <div className="p-video-box" style={{ backgroundImage: cover ? `url("${cover}")` : undefined }}>
+            {url ? (
+              <button type="button" className="p-video-play" aria-label="Lire la vidéo" onClick={() => window.open(/^https?:/i.test(url) ? url : `https://${url}`, "_blank", "noopener")}>
+                <ProIcon name="play" size={22} fill="#1c1c1a" stroke="none" />
+              </button>
+            ) : null}
+            <span className="p-video-tag">{url ? "Vidéo de présentation" : "Pas encore de vidéo"}</span>
+          </div>
+          <div className="p-video-side">
+            <div className="p-field">
+              <label htmlFor="lien">Lien Matterport, YouTube ou Vimeo</label>
+              <TextInput id="lien" placeholder="https://" value={url} onSave={(t) => pro.saveFiche({ video_url: t || null })} />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
+    </>
+  );
+}
+
+// ---------- Plus d'informations : questions propres aux lieux (lib/vendorPlus.js) ----------
+
+function PlusInfosSection() {
+  const pro = usePro();
+  const v = pro.data.vendor;
+  const det = v.details || {};
+  const save = (patch) => pro.saveFiche(patch);
+
+  return (
+    <div className="p-plus">
+      {PLUS_CHOICES.map((c) => (
+        <div key={c.key} className="p-plus-row">
+          <span id={`plus-${c.key}`} className="p-plus-q">
+            {c.question}
+          </span>
+          <Pills label={c.question} options={c.options} multiple={c.multiple} value={c.multiple ? det[c.key] || [] : det[c.key] || ""} onChange={(val) => save({ [c.key]: val })} />
+        </div>
+      ))}
+      {PLUS_TOGGLES.map((t) => (
+        <div key={t.key} className="p-plus-row is-toggle">
+          <span id={`plus-${t.key}`} className="p-plus-q">
+            {t.question}
+          </span>
+          <Switch on={det[t.key] === true} labelledBy={`plus-${t.key}`} onChange={(on) => save({ [t.key]: on })} />
+        </div>
+      ))}
+      {PLUS_TEXT.map((t) => (
+        <div key={t.key} className="p-plus-row is-text">
+          <TextField id={`plus-${t.key}`} label={t.question} value={det[t.key]} onSave={(val) => save({ [t.key]: val || null })} />
+        </div>
+      ))}
     </div>
   );
 }
