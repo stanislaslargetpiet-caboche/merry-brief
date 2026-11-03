@@ -11,11 +11,18 @@ import { ProSubnav } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
+import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import Collaborators from "@/components/pro/Collaborators";
 
 export default function Compte() {
   const pro = usePro();
   const live = pro.mode === "live";
+  const accent = useAccent();
+
+  async function pick(key) {
+    const ok = await saveAccent(key, live);
+    if (!ok) pro.setToast({ kind: "error", text: "La couleur n’a pas pu être enregistrée sur votre compte." });
+  }
   const [email, setEmail] = useState(pro.data.user?.email || "");
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -77,6 +84,30 @@ export default function Compte() {
     <div className="p-narrow is-28">
       <h1 className="p-h1 is-page">Compte.</h1>
       <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
+
+      <Section title="Couleur de l’espace prestataire" />
+      <div className="d-accents" role="radiogroup" aria-label="Couleur de l’espace prestataire">
+        {ACCENTS.map((a) => (
+          <button key={a.key} type="button" role="radio" aria-checked={accent === a.key} className={`d-accent${accent === a.key ? " is-on" : ""}`} onClick={() => pick(a.key)}>
+            <span className="d-accent-preview" aria-hidden="true">
+              <span className="d-accent-side" style={{ background: a.color }}>
+                <b>Merry</b>
+              </span>
+              <span className="d-accent-main">
+                <span className="d-accent-tag" style={{ background: a.color }} />
+                <span className="d-accent-pill" style={{ background: a.tint, borderColor: a.color }} />
+                <span className="d-accent-tile" style={{ background: a.tint }}>
+                  <Icon name="home" size={14} sw={2} stroke={a.ink} />
+                </span>
+              </span>
+            </span>
+            <span className="d-accent-name">
+              {a.label}
+              {accent === a.key ? <Icon name="check" size={16} sw={2.4} /> : null}
+            </span>
+          </button>
+        ))}
+      </div>
 
       <Section title="Connexion" />
       <form className="d-card d-settings" onSubmit={save}>

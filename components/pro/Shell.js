@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
+import { syncAccent, useAccent } from "@/lib/dash/accent";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
@@ -95,6 +96,11 @@ function Frame({ children }) {
   const credits = pro.data.pro?.credits ?? 0;
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
   const navRef = useRef(null);
+  const accent = useAccent();
+
+  useEffect(() => {
+    if (pro.mode === "live") syncAccent(pro.data.user);
+  }, [pro.mode, pro.data.user]);
 
   useEffect(() => {
     if (!pro.toast) return undefined;
@@ -108,7 +114,7 @@ function Frame({ children }) {
   }, [pathname]);
 
   return (
-    <div className="d-root p-root">
+    <div className="d-root p-root" data-accent={accent}>
       {/* Téléphone : bandeau lime, puis onglets texte */}
       <header className="p-top">
         <Link href="/pro" className="p-brand is-small">
