@@ -2159,7 +2159,7 @@ button.d-rsvp:hover {
 
 .d-contact-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   padding: 10px 0;
 }
@@ -2174,11 +2174,6 @@ button.d-rsvp:hover {
   gap: 2px;
   min-width: 0;
   flex: 1;
-}
-
-.d-contact-row small {
-  font-size: 12px;
-  color: var(--d-muted);
 }
 
 .d-msg {
@@ -7632,6 +7627,15 @@ body.d-noscroll {
 .d-pr-area.is-hl span {
   color: var(--d-ink);
   font-weight: 500;
+  background: linear-gradient(transparent 55%, var(--d-lime) 55%);
+  padding: 0 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Catégorie de la fiche prestataire : même surlignage au feutre que le lieu, sur sa carte */
+.d-vendor-cat {
+  color: var(--d-ink);
   background: linear-gradient(transparent 55%, var(--d-lime) 55%);
   padding: 0 2px;
   -webkit-box-decoration-break: clone;

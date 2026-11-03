@@ -5,7 +5,7 @@ import { useDash } from "@/lib/dash/store";
 import { itemFinance } from "@/lib/dash/model";
 import { euros, initials } from "@/lib/dash/format";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
-import { Btn, InlineEdit, OkPill, PageHeader } from "@/components/dash/ui";
+import { Btn, InlineEdit, PageHeader } from "@/components/dash/ui";
 import { AiFillButton, VendorDocuments } from "@/components/dash/VendorTools";
 
 function telHref(phone) {
@@ -39,22 +39,21 @@ export default function Prestataire() {
           <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
             <h1 className="d-title">{vendor.name}.</h1>
             <span style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 14, color: "var(--d-muted)" }}>
-              <InlineEdit value={vendor.category} placeholder="Catégorie" label="catégorie" width={140} onSave={(v) => dash.update("vendors", vendor.id, { category: v })} />
-              {f?.quote !== null && f?.quote !== undefined ? <span>· devis signé de {euros(f.quote)}</span> : null}
-              {f?.quote !== null && f?.quote !== undefined ? <OkPill small>Réservé</OkPill> : null}
+              <InlineEdit value={vendor.category} placeholder="Catégorie" label="catégorie" width={140} className="d-vendor-cat" onSave={(v) => dash.update("vendors", vendor.id, { category: v })} />
+              {f?.quote !== null && f?.quote !== undefined ? <span>Devis de {euros(f.quote)} signé</span> : null}
             </span>
           </div>
         </div>
         {vendor.phone ? (
           <>
             <div className="d-header-actions">
-              <Btn kind="strong" icon="phone" href={telHref(vendor.phone)}>
+              <Btn kind="primary" icon="phone" href={telHref(vendor.phone)}>
                 Appeler
               </Btn>
             </div>
             <div className="d-mob-only">
               <div className="d-vendor-actions-m">
-                <Btn kind="strong" icon="phone" href={telHref(vendor.phone)} small>
+                <Btn kind="primary" icon="phone" href={telHref(vendor.phone)} small>
                   Appeler
                 </Btn>
               </div>
@@ -73,11 +72,8 @@ export default function Prestataire() {
               <span className="d-avatar" style={{ width: 40, height: 40, background: "#e4e2dc", fontSize: 14 }}>
                 {initials(vendor.contact_name || vendor.name)}
               </span>
-              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
                 <InlineEdit value={vendor.contact_name} placeholder="Nom de votre interlocuteur" label="interlocuteur" onSave={(v) => dash.update("vendors", vendor.id, { contact_name: v })} />
-                <span className="d-small d-muted">
-                  <InlineEdit value={vendor.contact_role} placeholder="Son rôle" label="rôle" onSave={(v) => dash.update("vendors", vendor.id, { contact_role: v })} />
-                </span>
               </div>
             </div>
             <div>
@@ -88,9 +84,8 @@ export default function Prestataire() {
                 ["iban", "IBAN", "bank"],
               ].map(([k, label, icon]) => (
                 <div key={k} className="d-contact-row">
-                  <Icon name={icon} size={16} style={{ marginTop: 3 }} />
+                  <Icon name={icon} size={16} />
                   <div>
-                    <small>{label}</small>
                     <InlineEdit value={vendor[k]} placeholder="Ajouter" label={label.toLowerCase()} onSave={(v) => dash.update("vendors", vendor.id, { [k]: v })} />
                     {k === "website" && vendor.website ? (
                       <a href={siteHref(vendor.website)} target="_blank" rel="noreferrer" className="d-small">
