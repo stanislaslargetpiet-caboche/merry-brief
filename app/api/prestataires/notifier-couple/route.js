@@ -55,12 +55,12 @@ export async function POST(req) {
   const vendorName = recipients[0].vendor_name || "Un prestataire";
 
   const subject = `${vendorName} vous a répondu`;
-  const text = `Bonjour,\n\n${vendorName} vous a répondu sur Merry.\n\nPour lire le message et répondre :\n${link}\n\nPour votre sécurité, échangez et réglez toujours vos prestataires depuis Merry.\n\nL'équipe Merry`;
+  // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
+  const text = `Bonjour,\n\n${vendorName} vous a répondu sur Merry.\n\nLire le message : ${link}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111">
 <p>Bonjour,</p>
 <p>${esc(vendorName)} vous a répondu sur Merry.</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">Lire le message</a></p>
-<p style="font-size:13px;color:#666">Pour votre sécurité, échangez et réglez toujours vos prestataires depuis Merry. Ce lien ne fonctionne qu'une fois connecté·e.<br>S'il ne s'ouvre pas, copiez-le dans votre navigateur :<br>${esc(link)}</p></div>`;
+<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message</a></p></div>`;
 
   let sent = 0;
   for (const r of recipients) {
