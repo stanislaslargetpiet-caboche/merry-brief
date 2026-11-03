@@ -48,6 +48,17 @@ async function countLogins(admin) {
   return count;
 }
 
+// Même logique que le cohort PostHog "Internal / Test users" (notes/journal.md, 3 nov. 2026) : on écarte le
+// propre trafic de Stan et celui des agents (dev, localhost) des statistiques, sinon ils polluent les moyennes.
+const NOT_INTERNAL = `
+  (person.properties.email IS NULL OR person.properties.email NOT IN ('stanislas.largetpiet@gmail.com', 'largetstan@gmail.com'))
+  AND (properties.$host IS NULL OR properties.$host NOT LIKE '%localhost%')
+`;
+// Domaine exact plutôt qu'un préfixe : un host inattendu (prévisualisation Vercel, etc.) est écarté des
+// deux catégories plutôt que de polluer l'une d'elles.
+const DASHBOARD_HOST = `properties.$host = 'app.withmerry.com'`;
+const SITE_HOST = `properties.$host IN ('withmerry.com', 'www.withmerry.com')`;
+
 async function gatherStats(admin) {
   const [logins, [dash], [[topPage, topPageViews] = []], [[exceptions]], [[rageClicks]], [[visitors, pageviews]], landing, [[bounceRate]]] =
     await Promise.all([
@@ -58,29 +69,29 @@ async function gatherStats(admin) {
                  dateDiff('second', min(timestamp), max(timestamp)) AS duration,
                  countIf(event = '$pageview') AS pages
           FROM events
-          WHERE timestamp > now() - INTERVAL 1 DAY AND properties.$host LIKE 'app.%'
+          WHERE timestamp > now() - INTERVAL 1 DAY AND ${DASHBOARD_HOST} AND ${NOT_INTERNAL}
           GROUP BY sid
         )
       `),
       hogql(`
         SELECT properties.$pathname, count() AS n
         FROM events
-        WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND properties.$host LIKE 'app.%'
+        WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND ${DASHBOARD_HOST} AND ${NOT_INTERNAL}
         GROUP BY properties.$pathname
         ORDER BY n DESC LIMIT 1
       `),
-      hogql(`SELECT count() FROM events WHERE event = '$exception' AND timestamp > now() - INTERVAL 1 DAY AND properties.$host LIKE 'app.%'`),
-      hogql(`SELECT count() FROM events WHERE event = '$rageclick' AND timestamp > now() - INTERVAL 1 DAY AND properties.$host LIKE 'app.%'`),
+      hogql(`SELECT count() FROM events WHERE event = '$exception' AND timestamp > now() - INTERVAL 1 DAY AND ${DASHBOARD_HOST} AND ${NOT_INTERNAL}`),
+      hogql(`SELECT count() FROM events WHERE event = '$rageclick' AND timestamp > now() - INTERVAL 1 DAY AND ${DASHBOARD_HOST} AND ${NOT_INTERNAL}`),
       hogql(`
         SELECT uniq(distinct_id), count()
         FROM events
-        WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND properties.$host NOT LIKE 'app.%'
+        WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND ${SITE_HOST} AND ${NOT_INTERNAL}
       `),
       hogql(`
         SELECT path, count() AS n FROM (
           SELECT properties.$session_id AS sid, argMin(properties.$pathname, timestamp) AS path
           FROM events
-          WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND properties.$host NOT LIKE 'app.%'
+          WHERE event = '$pageview' AND timestamp > now() - INTERVAL 1 DAY AND ${SITE_HOST} AND ${NOT_INTERNAL}
           GROUP BY sid
         )
         GROUP BY path ORDER BY n DESC LIMIT 5
@@ -89,7 +100,7 @@ async function gatherStats(admin) {
         SELECT countIf(pages = 1) / count() FROM (
           SELECT properties.$session_id AS sid, countIf(event = '$pageview') AS pages
           FROM events
-          WHERE timestamp > now() - INTERVAL 1 DAY AND properties.$host NOT LIKE 'app.%'
+          WHERE timestamp > now() - INTERVAL 1 DAY AND ${SITE_HOST} AND ${NOT_INTERNAL}
           GROUP BY sid
         )
       `),
