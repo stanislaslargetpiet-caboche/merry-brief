@@ -59,12 +59,9 @@ export default async function VitrineAccueil() {
       </section>
 
       <section className="wv-how" aria-labelledby="wv-how-t">
-        <div className="wv-center" style={{ gap: 12 }}>
-          <p className="wv-eyebrow" style={{ alignSelf: "center" }}>
-            Comment ça marche
-          </p>
-          <h2 id="wv-how-t" className="wv-h3" style={{ maxWidth: 800 }}>
-            Dix minutes de questions, et ton mariage a un tableau de bord.
+        <div className="wv-center">
+          <h2 id="wv-how-t" className="wv-h3">
+            Comment ça marche.
           </h2>
         </div>
         <ol className="wv-how-g">
