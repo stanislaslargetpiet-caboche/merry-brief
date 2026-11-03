@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "./icons";
+import Preparation from "./Preparation";
 
 const CONTACT = "bonjour@withmerry.com";
 
@@ -97,6 +98,7 @@ export default function Claim() {
   const [busy, setBusy] = useState(false);
   const [fixNote, setFixNote] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
   const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
   const [loginEmail, setLoginEmail] = useState("");
   const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
@@ -278,7 +280,12 @@ export default function Claim() {
     setBusy(true);
     setError("");
     if (demo) {
-      window.location.assign(creating ? "/pro/fiche?demo=1" : "/pro?demo=1");
+      // La connexion (pas de fiche précise à préparer) garde le passage direct
+      if (logging) {
+        window.location.assign("/pro?demo=1");
+        return;
+      }
+      setPreparing(creating ? "create" : "claim");
       return;
     }
     const res = creating
@@ -294,14 +301,14 @@ export default function Claim() {
     await supabase.auth.setSession(res.session);
     // Une fiche qui vient d'être créée s'ouvre dans Ma fiche : photos, prix et capacités à compléter
     if (creating) {
-      window.location.assign("/pro/fiche");
+      setPreparing("create");
       return;
     }
     // Une fiche revendiquée s'ouvre, elle (et pas une autre fiche du compte) ; l'adresse repart sans
     // ses paramètres, sinon l'écran de recherche reviendrait
     if (!logging) {
       pro.rememberVendor(picked.id);
-      window.location.assign("/pro");
+      setPreparing("claim");
       return;
     }
     await pro.reload();
@@ -372,6 +379,32 @@ export default function Claim() {
     </p>
   ) : null;
   const categoryLabel = CATEGORIES.find(([slug]) => slug === form.category)?.[1];
+
+  function finishPreparing() {
+    if (preparing === "create") window.location.assign(demo ? "/pro/fiche?demo=1" : "/pro/fiche");
+    else window.location.assign(demo ? "/pro?demo=1" : "/pro");
+  }
+
+  if (preparing === "create") {
+    return (
+      <Preparation
+        tags={[form.name.trim(), categoryLabel, form.city.trim(), "100 crédits offerts", "Devis sous 48h", "Visites sur rendez-vous"].filter(Boolean)}
+        results={["Fiche en ligne créée", "100 crédits offerts", "Prête à recevoir des demandes"]}
+        lines={["On enregistre votre établissement…", "On prépare votre fiche en ligne…", "On vous met en relation avec des couples…"]}
+        onDone={finishPreparing}
+      />
+    );
+  }
+  if (preparing === "claim") {
+    return (
+      <Preparation
+        tags={[picked.name, picked.category, picked.city, picked.website, picked.phone].filter(Boolean)}
+        results={["Fiche retrouvée", "Avis Google récupérés", "Photos importées"]}
+        lines={["On retrouve votre fiche…", "On récupère vos informations publiques…", "On prépare votre tableau de bord…"]}
+        onDone={finishPreparing}
+      />
+    );
+  }
 
   return (
     <div className="p-claim">

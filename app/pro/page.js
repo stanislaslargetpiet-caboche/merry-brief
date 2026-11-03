@@ -23,7 +23,6 @@ export default function ProHome() {
     .filter((x) => x.status === "reserve" && x.day >= now)
     .sort((a, b) => a.day.localeCompare(b.day))
     .slice(0, 3);
-  const plan = (d.offer?.plans || []).find((p) => p.key === d.pro?.plan);
   const credits = d.pro?.credits ?? 0;
   const resp = responseStats(d);
   const roi = creditsRoi(d);
@@ -196,8 +195,7 @@ export default function ProHome() {
               {credits} crédit{credits > 1 ? "s" : ""}
             </span>
             <div className="p-credits-plan">
-              <span>Formule {plan?.name || "Essentiel"}</span>
-              {d.pro?.renews_on ? <span className="p-muted">Renouvellement le {dayMonth(d.pro.renews_on)}</span> : null}
+              <span className="p-muted">0,90&nbsp;€ le crédit · sans abonnement</span>
             </div>
             <Link href="/pro/credits" className="p-link">
               Acheter des crédits
