@@ -16323,12 +16323,22 @@ button.d-gcard-status.is-open svg {
   font-weight: 700;
 }
 
-.d-mlist-counts b.is-oui {
+.d-mlist-counts > span + span::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--d-border);
+}
+
+.d-mlist-counts .is-oui strong {
   color: #1f6b30;
 }
 
-.d-mlist-counts b.is-attente {
+.d-mlist-counts .is-attente strong {
   color: #8a4b0f;
+}
+
+.d-mlist-counts .is-non strong {
+  color: #9b2c2c;
 }
 
 .d-mlist-counts svg {

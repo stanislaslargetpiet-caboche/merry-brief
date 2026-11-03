@@ -11,7 +11,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GUEST_STATUS_LABEL, guestLabel, guestStatus, guestStats } from "@/lib/dash/model";
+import { GUEST_STATUS_LABEL, guestLabel, guestStatus } from "@/lib/dash/model";
 import { fullName } from "@/lib/dash/format";
 import { RSVP, RSVP_ORDER, pastel } from "@/lib/dash/theme";
 import { Icon } from "./icons";
@@ -33,8 +33,7 @@ function readGroupBy(fallback) {
 // Les moments auxquels l'invité est convié : c'est à ceux-là qu'un glissement répond
 const invitedEvents = (r, events) => events.filter((ev) => (r[ev.id] || "non_invite") !== "non_invite");
 
-export default function InvitesMobile({ data, shown, events, groups, idx, byId, groupById, query, setQuery, filterCount, onFilters, pending, onRelance, applyValues, okUndo, onAdd }) {
-  const stats = useMemo(() => guestStats(data), [data]);
+export default function InvitesMobile({ data, shown, stats, events, groups, idx, byId, groupById, query, setQuery, filterCount, onFilters, pending, onRelance, applyValues, okUndo }) {
   const filtered = filterCount > 0 || query.trim().length > 0;
   const [groupBy, setGroupBy] = useState(() => readGroupBy(groups.length > 1 ? "groupe" : "aucun"));
   const [closed, setClosed] = useState(() => new Set());
@@ -90,16 +89,18 @@ export default function InvitesMobile({ data, shown, events, groups, idx, byId, 
   return (
     <div className="d-mlist">
       <div className="d-mlist-summary">
-        <Link href="/dashboard/indicateurs/invites" className="d-mlist-counts">
-          <strong>{filtered ? `${shown.length} sur ${data.guests.length}` : data.guests.length}</strong> invité{data.guests.length > 1 ? "s" : ""}
-          {!filtered && stats.invited ? (
-            <>
-              {" · "}
-              <b className="is-oui">{stats.oui}</b> {stats.oui > 1 ? "viennent" : "vient"}
-              {" · "}
-              <b className="is-attente">{stats.attente}</b> sans réponse
-            </>
+        {/* Les indicateurs choisis dans « Vos indicateurs » (filtrés comme la liste quand on filtre) */}
+        <Link href="/dashboard/indicateurs/invites" className="d-mlist-counts" title="Choisir les indicateurs">
+          {filtered ? (
+            <span>
+              <strong>{shown.length}</strong> sur {data.guests.length}
+            </span>
           ) : null}
+          {(stats || []).map((it) => (
+            <span key={it.id} className={`is-${it.id}`}>
+              <strong>{it.value}</strong> {it.label.toLowerCase()}
+            </span>
+          ))}
           <Icon name="chev" size={12} sw={2.4} />
         </Link>
         {pending.length ? (
