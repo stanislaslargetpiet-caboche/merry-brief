@@ -4,7 +4,6 @@
 // la liste des questions posées, une fenêtre pour chacune, l'aperçu invité et l'apparence sur ordinateur, Partager sur téléphone.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { dayMonth } from "@/lib/dash/format";
 import { useDash } from "@/lib/dash/store";
 import { longDate } from "@/lib/dash/format";
 import { CUSTOM_MAX, CUSTOM_TYPES, FORM_THEMES, IDENT, IDENT_LABEL, MESSAGE_MAX, TITLE_MAX, PRESET_FIELDS, defaultForm, formTheme, formUrl, makeSlug, moveQuestion, questionOrder, shrinkImage, withPresets } from "@/lib/dash/form";
@@ -165,7 +164,6 @@ export default function FormulaireInvites() {
   const replies = data.form?.submissions || 0;
 
   // Seulement les questions posées ; les autres reviennent par « Ajouter une question »
-  const momentsText = (mode, ids) => (mode === "global" ? "une seule question" : events.filter((e) => ids.includes(e.id)).map((e) => e.name.toLowerCase()).join(", ") || "aucun moment");
   const presetRow = (f) => ({
     id: f.key,
     key: f.key,
@@ -173,7 +171,7 @@ export default function FormulaireInvites() {
     req: f.mode === "req",
     pills: PILLS[f.key] || null,
     tall: f.key === "mot",
-    detail: f.key === "presence" ? momentsText(form.presence_mode, form.event_ids) : null,
+    detail: null,
   });
   const customRow = (c) => ({
     id: c.id,
@@ -336,7 +334,7 @@ export default function FormulaireInvites() {
                 Pas enregistré, vérifiez votre connexion
               </span>
             ) : null}
-            <Btn kind="ghost" onClick={openGuestPage}>
+            <Btn kind="lime" onClick={openGuestPage}>
               Voir comme un invité
             </Btn>
             <Btn icon={copied ? "check" : "copy"} onClick={copy}>
@@ -360,7 +358,6 @@ export default function FormulaireInvites() {
           </div>
 
           <h2 className="d-fm-h d-desk-only">Les questions</h2>
-          <p className="d-fm-help">Vos invités répondent dans cet ordre. Glissez la poignée d'une ligne pour la déplacer.</p>
           <section className={`d-fm-list${drag ? " is-dragging" : ""}`} aria-label="Les questions du formulaire">
             {rows.map((r) => (
               <div
@@ -419,6 +416,9 @@ export default function FormulaireInvites() {
 
         <aside className="d-fm-side d-desk-only">
           <h2 className="d-fm-h">Ce que voient vos invités</h2>
+          <Btn kind="strong" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
+            Modifier l'apparence
+          </Btn>
           <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">
             <div className="d-fpreview-cover" style={{ background: form.cover_url ? `center ${coverPos}% / cover no-repeat url("${form.cover_url}")` : theme.deep }} />
             <div className="d-fpreview-body">
@@ -446,9 +446,6 @@ export default function FormulaireInvites() {
               <b style={{ background: theme.accent }} />
             </div>
           </div>
-          <Btn kind="strong" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
-            Modifier l'apparence
-          </Btn>
         </aside>
 
         <div className="d-fm-share d-mob-only">
@@ -676,7 +673,6 @@ export default function FormulaireInvites() {
             <label className="d-field">
               <span className="d-field-label">Répondre avant le</span>
               <input className="d-input" type="date" value={form.deadline || ""} onChange={(e) => change({ deadline: e.target.value || null })} />
-              <span className="d-field-hint">{form.deadline ? `La date est rappelée aux invités ; à partir du lendemain du ${dayMonth(form.deadline)}, le formulaire se ferme.` : "Rappelée aux invités ; passée, le formulaire se ferme (vous pouvez la repousser ici)."}</span>
             </label>
             <div className="d-field">
               <span className="d-field-label">Thème</span>
