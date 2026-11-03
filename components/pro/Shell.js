@@ -26,7 +26,8 @@ export const PRO_NAV = [
 
 export const PRO_MESSAGERIE_TABS = [
   { href: "/pro/demandes", label: "Demandes" },
-  { href: "/pro/clients", label: "Clients" },
+  { href: "/pro/clients", label: "Réservations" },
+  { href: "/pro/clients/historique", label: "Anciens clients" },
 ];
 
 // Disponibilités a fusionné dans Tarifs (calendrier + prix, demande de Stan le 3 nov. 2026)
