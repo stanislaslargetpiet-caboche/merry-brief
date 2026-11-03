@@ -31,7 +31,9 @@ function Clients() {
   const params = useSearchParams();
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("toutes");
-  const all = (pro.data.clients || []).filter((c) => !isPastClient(c));
+  // Une demande Merry pas encore répondue se traite dans Demandes, pas ici (sinon deux endroits pour
+  // répondre au même couple) ; un client ajouté à la main reste ici quelle que soit son étape
+  const all = (pro.data.clients || []).filter((c) => !isPastClient(c) && !(c.source === "merry" && c.stage === "nouvelle"));
   const norm = (s) => String(s || "").toLowerCase();
   const shown = all
     .filter((c) => !q.trim() || norm(c.names).includes(norm(q.trim())) || norm(c.email).includes(norm(q.trim())))
@@ -66,7 +68,7 @@ function Clients() {
         <button type="button" aria-pressed={stage === "toutes"} className={`p-pill is-filter${stage === "toutes" ? " is-on" : ""}`} onClick={() => setStage("toutes")}>
           Toutes
         </button>
-        {ACTIVE_STAGES.map((s) => (
+        {ACTIVE_STAGES.filter((s) => s.key !== "nouvelle" || all.some((c) => c.stage === "nouvelle")).map((s) => (
           <button key={s.key} type="button" aria-pressed={stage === s.key} className={`p-pill is-filter${stage === s.key ? " is-on" : ""}`} onClick={() => setStage(s.key)}>
             {s.label}
           </button>

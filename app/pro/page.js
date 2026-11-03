@@ -5,9 +5,8 @@
 // Temps de réponse, Fiche complète) sur ordinateur — une ligne de 3 chiffres sur téléphone — puis un
 // seul flux « Demandes » (nouveaux leads et demandes déjà répondues), à la place des sections séparées
 // (à traiter, à relancer, prochaines dates, ce mois-ci, vos performances, vos crédits) de l'ancienne
-// maquette V1. « Leads intrants » = demandes non répondues reçues dans les 7 derniers jours ;
-// « Demandes live » = clients en cours de discussion (devis ou visite) — le canvas ne précise pas ces
-// deux définitions, ce sont les plus proches de ce que les données existantes permettent de calculer.
+// maquette V1. Les 4 chiffres comptent tous des demandes, pour qu'ils s'additionnent : reçues =
+// live (pas encore répondues) + répondues ; « leads intrants » = celles des live reçues ces 7 derniers jours.
 
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
@@ -25,9 +24,9 @@ export default function ProHome() {
   const byId = new Map(clients.map((c) => [c.id, c]));
   const requests = d.requests || [];
   const answered = requests.filter((r) => r.answered);
+  const live = requests.filter((r) => !r.answered);
   const now = Date.now();
-  const incoming = requests.filter((r) => !r.answered && now - new Date(r.requested_at).getTime() < WEEK_MS);
-  const live = clients.filter((c) => ["devis", "visite"].includes(c.stage));
+  const incoming = live.filter((r) => now - new Date(r.requested_at).getTime() < WEEK_MS);
   const credits = d.pro?.credits ?? 0;
   const resp = responseStats(d);
   const roi = creditsRoi(d);
@@ -71,10 +70,7 @@ export default function ProHome() {
             </Link>
           </div>
           <span className="p-acc-card-n">
-            {credits} <small>/ 100</small>
-          </span>
-          <span className="p-acc-bar">
-            <span style={{ width: `${Math.min(100, credits)}%` }} />
+            {credits} <small>crédit{credits > 1 ? "s" : ""}</small>
           </span>
         </div>
         <div className="p-acc-card">

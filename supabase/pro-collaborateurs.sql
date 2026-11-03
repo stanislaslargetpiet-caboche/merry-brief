@@ -15,8 +15,12 @@ create unique index if not exists pro_members_token_idx on public.pro_members (i
 update public.pro_members set joined_at = coalesce(joined_at, created_at) where user_id is not null and joined_at is null;
 
 alter table public.pro_members enable row level security;
+-- espace-prestataire.sql retirait insert/delete aux comptes connectés : sans ce droit, « Inviter » et
+-- « Retirer » échouaient en direct malgré les règles ci-dessous (corrigé le 3 nov. 2026)
+grant insert, delete on public.pro_members to authenticated;
 drop policy if exists "prestataire: inviter" on public.pro_members;
-create policy "prestataire: inviter" on public.pro_members for insert to authenticated with check (public.is_pro_member(vendor_id));
+-- Une invitation seulement (user_id vide) : personne ne s'ajoute ni n'ajoute un autre compte directement
+create policy "prestataire: inviter" on public.pro_members for insert to authenticated with check (public.is_pro_member(vendor_id) and user_id is null);
 drop policy if exists "prestataire: retirer" on public.pro_members;
 create policy "prestataire: retirer" on public.pro_members for delete to authenticated using (public.is_pro_member(vendor_id));
 

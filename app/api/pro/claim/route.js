@@ -4,8 +4,10 @@
 // Créer sa fiche (maquette V0c), pour un établissement absent du catalogue :
 // 1. create_send   : le code part à l'adresse que le prestataire a saisie
 // 2. create_verify : le code ouvre la session, l'adresse est géocodée (Géoplateforme de l'IGN), la fiche est
-//    créée dans catalog.vendors, active tout de suite, et rattachée au compte. Si une fiche active porte déjà
-//    cette adresse mail, c'est elle qui est rattachée : pas de doublon.
+//    créée dans catalog.vendors, active tout de suite, et rattachée au compte. Si une fiche active que
+//    personne ne gère encore porte déjà cette adresse mail, c'est elle qui est rattachée : pas de doublon.
+// verify et create_verify : si l'écran envoie le jeton d'un prestataire déjà connecté, la fiche rejoint ce
+// compte et aucune nouvelle session n'est renvoyée.
 // Se connecter (un prestataire qui revient) : login_send envoie le code à l'adresse tapée, login_verify ouvre la session ;
 // l'écran retrouve ensuite ses fiches (pro_me). lookup : une fiche par son identifiant (lien d'un mail : /pro?fiche=…).
 // Première fiche rattachée à un compte : les crédits de bienvenue (MERRY_PRO_WELCOME_CREDITS, 100 par défaut) sont versés.
@@ -85,6 +87,15 @@ const phoneHint = (phone) => {
   const d = String(phone || "").replace(/\D/g, "");
   return d.length >= 8 ? `${d.slice(0, 2)} •• •• •• ${d.slice(-2)}` : null;
 };
+
+// Déjà connecté (jeton envoyé par l'écran) : la fiche revendiquée ou créée rejoint ce compte, sans
+// basculer sur celui de l'adresse qui a reçu le code
+async function currentUser(admin, req) {
+  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const { data } = await admin.auth.getUser(token);
+  return data?.user || null;
+}
 
 // Rattache la fiche au compte ; la première fois, les crédits de bienvenue sont versés (une seule fois par fiche)
 async function attach(admin, vendorId, user, email) {
@@ -192,19 +203,23 @@ export async function POST(req) {
     const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
     if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
 
-    // La fiche est à cette adresse : on la rattache au compte (une fois suffit)
-    return linked(await attach(admin, vendorId, data.user, email), data.session);
+    // Le code prouve que la fiche est à vous : elle rejoint le compte connecté s'il y en a un, sinon
+    // le compte de cette adresse
+    const me = await currentUser(admin, req);
+    const owner = me || data.user;
+    return linked(await attach(admin, vendorId, owner, me?.email || email), me ? null : data.session, vendorId);
   }
 
   return Response.json({ error: "bad_request" }, { status: 400 });
 }
 
-function linked(error, session) {
+// session : null quand le prestataire était déjà connecté (rien à changer côté navigateur)
+function linked(error, session, vendorId) {
   if (error) {
     const missing = /PGRST205|42P01|Could not find/i.test(`${error.code} ${error.message}`);
     return Response.json({ error: missing ? "setup" : "link_failed" }, { status: 500 });
   }
-  return Response.json({ ok: true, session: { access_token: session.access_token, refresh_token: session.refresh_token } });
+  return Response.json({ ok: true, vendorId: vendorId || null, session: session ? { access_token: session.access_token, refresh_token: session.refresh_token } : null });
 }
 
 async function create(body, admin, url, anon, req) {
@@ -229,10 +244,15 @@ async function create(body, admin, url, anon, req) {
   const code = String(body.code || "").replace(/\D/g, "");
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
 
-  // Une fiche active porte déjà cette adresse : on rattache celle-là, sinon l'adresse est placée sur la carte
-  // avant de consommer le code (un code ne sert qu'une fois)
-  const { data: same } = await admin.schema("catalog").from("vendors").select("id").eq("status", "active").ilike("email", email.replace(/[\\%_]/g, "\\$&")).limit(1);
-  let vendorId = same?.[0]?.id;
+  // Une fiche active du catalogue porte déjà cette adresse et personne ne la gère encore : on rattache
+  // celle-là (pas de doublon). Une fiche déjà gérée sur Merry n'est jamais reprise : un prestataire
+  // connecté qui crée une deuxième fiche avec sa propre adresse obtient bien une nouvelle fiche.
+  // Sinon l'adresse est placée sur la carte avant de consommer le code (un code ne sert qu'une fois).
+  const { data: same } = await admin.schema("catalog").from("vendors").select("id").eq("status", "active").ilike("email", email.replace(/[\\%_]/g, "\\$&")).limit(10);
+  const sameIds = (same || []).map((r) => r.id);
+  const { data: managed } = sameIds.length ? await admin.from("pro_vendors").select("vendor_id").in("vendor_id", sameIds) : { data: [] };
+  const taken = new Set((managed || []).map((r) => r.vendor_id));
+  let vendorId = sameIds.find((id) => !taken.has(id));
   const place = vendorId ? null : await geocode(fields);
   if (!vendorId && !place) return Response.json({ error: "address" }, { status: 422 });
 
@@ -266,7 +286,8 @@ async function create(body, admin, url, anon, req) {
     if (e0 || !row) return Response.json({ error: "create_failed" }, { status: 500 });
     vendorId = row.id;
   }
-  return linked(await attach(admin, vendorId, data.user, email), data.session);
+  const me = await currentUser(admin, req);
+  return linked(await attach(admin, vendorId, me || data.user, me?.email || email), me ? null : data.session, vendorId);
 }
 
 // Se connecter avec son adresse : un code, puis l'écran retrouve les fiches du compte

@@ -206,7 +206,7 @@ function Unlocked({ p, writing, onWrite, onCancel, onSent }) {
     const ok = await pro.proposeProject(p.wedding_id, text.trim());
     setBusy(false);
     if (ok) {
-      pro.setToast({ kind: "ok", text: `Proposition envoyée à ${p.names}. Vous les retrouvez dans Clients.` });
+      pro.setToast({ kind: "ok", text: `Proposition envoyée à ${p.names}. Vous les retrouvez dans Réservations.` });
       onSent();
     }
   }
