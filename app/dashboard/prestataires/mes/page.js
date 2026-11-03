@@ -6,7 +6,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import VendorComments, { useVendorComments } from "@/components/dash/VendorComments";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
@@ -49,7 +48,7 @@ export default function Mes() {
               <div className="d-pr-box-head">
                 <h3>{c.group}</h3>
                 {quotes > 1 ? (
-                  <Link href={`/dashboard/prestataires/comparer?cat=${c.key}`} className="d-pr-arrowlink is-13">
+                  <Link href={`/dashboard/prestataires/comparer?cat=${c.key}`} className="d-pr-arrowlink is-13 d-desk-only">
                     Comparer les {quotes} devis
                     <Icon name="arrowRight" size={14} sw={2} />
                   </Link>
@@ -108,23 +107,9 @@ export default function Mes() {
 
 function MesRow({ p, status, onCheck, onRemove, onFiche }) {
   const v = p.data || {};
-  const [talk, setTalk] = useState(false);
-  const comments = useVendorComments(p.catalog_ref);
-  const bubble = (
-    <button
-      type="button"
-      className={`d-bubble${talk ? " is-open" : ""}${comments.length ? "" : " is-empty"}`}
-      onClick={() => setTalk((x) => !x)}
-      aria-expanded={talk}
-      aria-label={comments.length ? `${comments.length} commentaire${comments.length > 1 ? "s" : ""} sur ${v.name}` : `Commenter : ${v.name}`}
-    >
-      <Icon name="bubble" size={14} sw={2} />
-      {comments.length ? comments.length : null}
-    </button>
-  );
   const todo = status.key === "todo";
   const line = status.line;
-  const acts = <RowActions p={p} status={status} onFiche={onFiche} />;
+  const acts = <RowActions p={p} status={status} />;
   return (
     <li className="d-pr-line is-mes">
       <div className="d-pr-mes-top">
@@ -148,27 +133,15 @@ function MesRow({ p, status, onCheck, onRemove, onFiche }) {
           {v.area ? <div className="d-pr-line-meta">{v.area}</div> : null}
           {line ? <div className="d-pr-line-text d-desk-only">{line}</div> : null}
         </div>
-        <div className="d-pr-line-acts d-desk-only-flex">
-          {bubble}
-          {acts}
-        </div>
+        <div className="d-pr-line-acts d-desk-only-flex">{acts}</div>
         <Heart on onClick={onRemove} label={`Retirer ${v.name} de mes prestataires`} size={18} className="d-pr-heart is-bare is-row" />
       </div>
       <div className="d-pr-mes-rest d-mob-only-flex">
-        <div>
-          <StatusChip k={status.key} />
-        </div>
-        {line ? <div className="d-pr-line-text">{line}</div> : null}
         <div className="d-pr-line-acts">
-          {bubble}
+          <StatusChip k={status.key} />
           {acts}
         </div>
       </div>
-      {talk ? (
-        <div className="d-pr-mes-thread">
-          <VendorComments vendorRef={p.catalog_ref} name={v.name} />
-        </div>
-      ) : null}
     </li>
   );
 }

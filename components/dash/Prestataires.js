@@ -1735,18 +1735,13 @@ export function DevisDialog({ picks: initial, onClose, onSent }) {
 
 // Liens d'une ligne de Mes prestataires et de Vos demandes de devis, selon où en est la demande.
 // La fiche reste toujours accessible ; la demande, la réponse ou le devis s'y ajoutent une fois envoyée.
-export function RowActions({ p, status, onFiche, onCompare }) {
+export function RowActions({ p, status, onCompare }) {
   const link = p.vendor_id ? `/dashboard/budget/prestataires/${p.vendor_id}` : null;
-  const ficheBtn = onFiche ? (
-    <button type="button" className={`d-pr-act${status.key === "todo" ? "" : " is-muted"}`} onClick={onFiche}>
-      Voir la fiche
-    </button>
-  ) : null;
-  if (status.key === "todo") return ficheBtn;
+  // Pas de bouton « Voir la fiche » : le nom et la vignette du prestataire l'ouvrent déjà
+  if (status.key === "todo") return null;
   const label = { envoyee: "Voir la demande", reponse: "Lire la réponse", devis: "Voir le devis" }[status.key];
   return (
     <>
-      {ficheBtn}
       {link && label ? (
         <Link href={link} className={`d-pr-act${status.key === "envoyee" ? " is-muted" : ""}`}>
           {label}

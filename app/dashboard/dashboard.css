@@ -2685,7 +2685,8 @@ button.d-rsvp:hover {
   .d-textarea,
   .d-search input,
   .d-inline-input,
-  .d-composer textarea {
+  .d-composer textarea,
+  .d-comment-form .d-input {
     font-size: 16px;
   }
 
@@ -4482,6 +4483,7 @@ button.d-rsvp:hover {
   flex: 1;
   min-width: 0;
   border-radius: 999px;
+  font-size: 14px;
 }
 
 .d-send {
@@ -11018,6 +11020,12 @@ body.d-noscroll {
     flex-direction: column;
     gap: 8px;
     padding: 0 0 14px 32px;
+  }
+
+  /* « Comparer les devis » reste un geste d'ordinateur : pas de place pour une 3e action en haut
+     de carte sur téléphone (les devis se consultent déjà un par un depuis chaque ligne) */
+  .d-pr-arrowlink.d-desk-only {
+    display: none;
   }
 
   .d-pr-line-acts {
