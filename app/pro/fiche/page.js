@@ -12,7 +12,6 @@ import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 
-const STYLES = ["Champêtre", "Chic", "Bohème", "Bord de mer", "Intime", "Grande fête"];
 const CATERER = [
   { value: "libre", label: "Libre" },
   { value: "impose", label: "Imposé" },
@@ -89,12 +88,8 @@ function MaFiche() {
           <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
         </div>
         <div className="p-field is-8">
-          <span>Style</span>
-          <StylePills value={v.style_tags || []} onChange={(tags) => save({ style_tags: tags })} />
-        </div>
-        <div className="p-field is-8">
-          <label htmlFor="site">Site internet (facultatif)</label>
-          <TextInput id="site" placeholder="https://" value={v.website || ""} onSave={(t) => save({ website: t || null })} />
+          <label htmlFor="addr">Adresse exacte</label>
+          <TextInput id="addr" value={v.address || ""} onSave={(t) => save({ address: t || null })} />
         </div>
       </section>
 
@@ -105,12 +100,6 @@ function MaFiche() {
             <NumberField id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
             <NumberField id="debout" label="Places debout" value={v.capacity_standing} onSave={(n) => save({ capacity_standing: num(n) })} />
             <NumberField id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
-          </div>
-          <div className="p-toggles">
-            <div className="p-toggle">
-              <span id="cer">Cérémonie en extérieur possible</span>
-              <Switch on={det.outdoor_ceremony === true} labelledBy="cer" onChange={(on) => save({ outdoor_ceremony: on })} />
-            </div>
           </div>
           <div className="p-field is-8">
             <span id="trait">Traiteur</span>
@@ -403,19 +392,3 @@ function KmField({ id, value, onSave }) {
   );
 }
 
-function StylePills({ value, onChange }) {
-  const all = [...STYLES, ...value.filter((t) => !STYLES.includes(t))];
-  return (
-    <div className="p-pills" role="group" aria-label="Style">
-      {all.map((s) => {
-        const on = value.includes(s);
-        return (
-          <button key={s} type="button" aria-pressed={on} className={`p-pill is-38${on ? " is-on" : ""}`} onClick={() => onChange(on ? value.filter((x) => x !== s) : [...value, s])}>
-            {on ? <ProIcon name="check" size={14} sw={2.4} stroke="#ffffff" /> : null}
-            {s}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
