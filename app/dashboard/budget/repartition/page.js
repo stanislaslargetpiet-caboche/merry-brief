@@ -8,27 +8,35 @@ import Link from "next/link";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { paidByPayer, posteName, unassignedPayments } from "@/lib/dash/model";
-import { MODES, ruleOf, ruleSummary, settle, targetsOf } from "@/lib/dash/partage";
+import { MODES, foldByGroup, groupLabel, groupedPayers, groupsOf, ruleOf, settle, targetsOf } from "@/lib/dash/partage";
 import { euros, pctLabel, shortDate } from "@/lib/dash/format";
 import { Icon } from "@/components/dash/icons";
-import { Avatar, Btn, Section } from "@/components/dash/ui";
+import { Avatar, Btn, Faces, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
 import DepenseModal from "@/components/dash/DepenseModal";
+import PayerGroupsModal from "@/components/dash/PayerGroupsModal";
 import RuleGauge from "@/components/dash/RuleGauge";
 
 export default function Repartition() {
   const dash = useDash();
   const data = dash.data;
   const [adding, setAdding] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
   const byPayer = paidByPayer(data);
   const total = byPayer.reduce((a, x) => a + x.amount, 0);
   const rule = ruleOf(data);
   const targets = targetsOf(rule, data, byPayer);
+  // Des organisateurs d'une même famille, réunis pour ne pas se virer de l'argent entre eux
+  const groups = groupsOf(data, byPayer);
+  const rows = groupedPayers(byPayer, groups);
+  const foldedTargets = foldByGroup(targets, rows);
   // Payé sans payeur indiqué (anciennes lignes ajoutées dans un poste, échéances marquées payées…) :
   // hors du partage tant qu'on n'a pas dit qui a payé
   const unassigned = unassignedPayments(data);
   const itemById = new Map(data.items.map((i) => [i.id, i]));
-  const transfers = settle(byPayer.map((x) => ({ member: x.member, diff: x.amount - (targets[x.member.id] || 0) })));
+  const transfers = settle(
+    rows.map((r) => ({ member: { id: r.key, display_name: groupLabel(r), color: r.members[0].color, initial: r.members.length > 1 ? undefined : r.members[0].initial }, diff: r.amount - (foldedTargets[r.key] || 0) })),
+  );
 
   return (
     <>
@@ -43,25 +51,31 @@ export default function Repartition() {
         }
       />
 
-      <div className="d-split-stats">
-        <span>
-          <strong>{euros(total)}</strong>
-          <small>dépensés à ce jour</small>
-        </span>
-      </div>
+      <Link href="/dashboard/budget/repartition/regle" className="d-btn d-btn-lime d-rule-cta">
+        Définir la règle
+      </Link>
 
       <div className="d-split-grid">
         <div className="d-col" style={{ gap: 12 }}>
-          <Section title="Par personne" />
+          <Section
+            title="Par personne"
+            right={
+              byPayer.length > 1 ? (
+                <button type="button" className="d-btn d-btn-ghost" onClick={() => setGroupsOpen(true)}>
+                  Regrouper
+                </button>
+              ) : null
+            }
+          />
           <div className="d-card d-split-list">
-            {byPayer.map((x) => (
-              <div key={x.member.id} className="d-split-row">
-                <Avatar member={x.member} size={34} />
+            {rows.map((r) => (
+              <div key={r.key} className="d-split-row">
+                {r.members.length > 1 ? <Faces members={r.members} size={34} /> : <Avatar member={r.members[0]} size={34} />}
                 <span className="d-split-text">
-                  <strong>{x.member.display_name}</strong>
-                  <small>{pctLabel(x.amount, total)} du total</small>
+                  <strong>{groupLabel(r)}</strong>
+                  <small>{pctLabel(r.amount, total)} du total</small>
                 </span>
-                <strong className="d-split-amount">{euros(x.amount)}</strong>
+                <strong className="d-split-amount">{euros(r.amount)}</strong>
               </div>
             ))}
           </div>
@@ -102,17 +116,20 @@ export default function Repartition() {
         </div>
 
         <div className="d-col" style={{ gap: 12 }}>
-          <Section title="Votre règle de répartition" />
+          <Section
+            title="Votre règle de répartition"
+            right={
+              <Link href="/dashboard/budget/repartition/regle" className="d-btn d-btn-primary">
+                Modifier la règle
+              </Link>
+            }
+          />
           <div className="d-card d-rule">
             <RuleGauge byPayer={byPayer} targets={targets} total={total} />
             <div className="d-rule-summary">
               <span>
                 <strong>{MODES.find((m) => m.key === rule.mode).label}</strong>
-                <small>{ruleSummary(rule, byPayer)}</small>
               </span>
-              <Link href="/dashboard/budget/repartition/regle" className="d-btn d-btn-ghost">
-                Définir la règle
-              </Link>
             </div>
           </div>
 
@@ -149,6 +166,7 @@ export default function Repartition() {
       </button>
 
       {adding ? <DepenseModal onClose={() => setAdding(false)} /> : null}
+      {groupsOpen ? <PayerGroupsModal byPayer={byPayer} groups={groups} onClose={() => setGroupsOpen(false)} /> : null}
     </>
   );
 }

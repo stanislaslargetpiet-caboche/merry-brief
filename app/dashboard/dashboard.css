@@ -828,6 +828,17 @@ button.d-rsvp:hover {
   font-weight: 600;
 }
 
+.d-pill.is-small {
+  min-height: 28px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.d-filters.is-sub {
+  padding-left: 4px;
+  gap: 6px;
+}
+
 .d-badge {
   display: inline-flex;
   align-items: center;
@@ -14426,6 +14437,10 @@ body.d-noscroll {
 }
 
 /* Budget, onglet Répartition (artboard 2b) : le total dépensé, ce que chacun a payé, puis le détail */
+.d-rule-cta {
+  align-self: flex-start;
+}
+
 .d-split-stats {
   align-self: flex-start;
   display: flex;
@@ -14510,6 +14525,11 @@ body.d-noscroll {
 }
 
 @media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-rule-cta {
+    align-self: stretch;
+    justify-content: center;
+  }
+
   .d-split-stats {
     align-self: stretch;
     padding: 14px 16px;
@@ -15270,6 +15290,10 @@ body.d-noscroll {
   gap: 12px;
 }
 
+.d-rule-list.is-readonly li {
+  grid-template-columns: 28px minmax(0, 140px) 72px;
+}
+
 .d-rule-name {
   font-size: 14px;
   font-weight: 500;
@@ -15314,9 +15338,70 @@ body.d-noscroll {
   gap: 2px;
 }
 
+.d-rule-guests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.d-rule-guests > span {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  background: var(--d-panel);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.d-rule-guests strong {
+  font-family: var(--d-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.d-rule-guests small {
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
 .d-rule-pct strong {
   font-size: 14px;
   font-weight: 600;
+}
+
+.d-rule-pct-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.d-rule-pct-input {
+  width: 30px;
+  border: 0;
+  border-bottom: 1px dashed var(--d-border);
+  background: none;
+  padding: 0;
+  text-align: right;
+  font: inherit;
+  color: var(--d-ink);
+  -moz-appearance: textfield;
+}
+
+.d-rule-pct-input::-webkit-inner-spin-button,
+.d-rule-pct-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.d-rule-pct-input:hover {
+  border-bottom-color: #b9b7ae;
+}
+
+.d-rule-pct-input:focus {
+  outline: none;
+  border-bottom-color: var(--d-ink);
 }
 
 .d-rule-pct small {
@@ -15452,14 +15537,54 @@ body.d-noscroll {
   color: var(--pr-sub);
 }
 
+.d-rule-poste-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 14px;
+  border-left: 2px solid var(--d-line);
+}
+
+.d-rule-prorata-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-rule-prorata-chips > span {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  background: var(--d-panel);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.d-rule-prorata-chips strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.d-rule-prorata-chips small {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
 @media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
   .d-rule-modes {
     align-self: stretch;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .d-rule-modes::-webkit-scrollbar {
+    display: none;
   }
 
   .d-rule-modes button {
-    flex: 1;
-    padding: 0 8px;
+    flex: none;
+    padding: 0 14px;
     font-size: 12.5px;
   }
 

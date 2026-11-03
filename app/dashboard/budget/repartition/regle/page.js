@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { paidByPayer } from "@/lib/dash/model";
-import { MODES, guestProrataShares, paidPostes, prorataOptions, rebalance, ruleOf, sharesOf, targetsOf } from "@/lib/dash/partage";
+import { MODES, guestProrataDetail, guestProrataShares, paidPostes, prorataOptions, rebalance, ruleOf, sharesOf, targetsOf } from "@/lib/dash/partage";
 import { euros, parseAmount } from "@/lib/dash/format";
 import { pastel } from "@/lib/dash/theme";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
@@ -28,12 +28,16 @@ export default function Regle() {
   const [shares, setShares] = useState(() => sharesOf(saved, byPayer));
   const [fixed, setFixed] = useState(() => Object.fromEntries(ids.map((id) => [id, saved.fixed[id] ? String(saved.fixed[id]) : ""])));
   const [postes, setPostes] = useState(saved.postes);
+  // Le détail (prorata ou qui le prend) ne s'affiche qu'une fois « Partagé » ou « Pris en charge » cliqué
+  const [openPostes, setOpenPostes] = useState(() => new Set());
   const postesPaid = paidPostes(data);
   const prorata = prorataOptions(data);
 
   const draft = { mode, shares, fixed: Object.fromEntries(ids.map((id) => [id, parseAmount(fixed[id]) || 0])), postes };
   const targets = targetsOf(draft, data, byPayer);
   const fixedSum = ids.reduce((a, id) => a + (parseAmount(fixed[id]) || 0), 0);
+  const guestShares = guestProrataShares(data, byPayer, "tous");
+  const guestDetail = guestProrataDetail(data, "tous");
 
   async function save() {
     await dash.saveLayout("partage", draft);
@@ -58,8 +62,6 @@ export default function Regle() {
           </button>
         ))}
       </nav>
-      {mode === "poste" ? <p className="d-rule-note">Pour un poste : partagé à parts égales, pris par quelqu'un, ou au prorata des invités à ce moment précis (dîner, cocktail, ou toute la liste pour les faire-part).</p> : null}
-
       <div className="d-card d-rule">
         <RuleGauge byPayer={byPayer} targets={targets} total={total} />
 
@@ -80,7 +82,18 @@ export default function Regle() {
                   onChange={(e) => setShares((s) => rebalance(s, ids, x.member.id, Number(e.target.value)))}
                 />
                 <span className="d-rule-pct">
-                  <strong>{shares[x.member.id] || 0} %</strong>
+                  <span className="d-rule-pct-edit">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="d-rule-pct-input"
+                      value={shares[x.member.id] || 0}
+                      aria-label={`Part de ${x.member.display_name} en %`}
+                      onChange={(e) => setShares((s) => rebalance(s, ids, x.member.id, Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)))))}
+                    />
+                    <span aria-hidden="true">%</span>
+                  </span>
                   <small>{euros(targets[x.member.id])}</small>
                 </span>
               </li>
@@ -122,6 +135,8 @@ export default function Regle() {
             <ul className="d-rule-postes">
               {postesPaid.map((g) => {
                 const who = postes[g.key] || "partage";
+                const takenBy = byPayer.some((x) => x.member.id === who) ? who : null;
+                const shared = !takenBy;
                 return (
                   <li key={g.key}>
                     <div className="d-rule-poste">
@@ -129,32 +144,76 @@ export default function Regle() {
                       <strong>{g.name}</strong>
                       <span>{euros(g.paid)}</span>
                     </div>
-                    <div className="d-filters" role="radiogroup" aria-label={`Qui prend ${g.name}`}>
-                      <button type="button" role="radio" aria-checked={who === "partage"} className={`d-pill${who === "partage" ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: "partage" }))}>
+                    <div className="d-filters" role="radiogroup" aria-label={`Comment partager ${g.name}`}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={shared}
+                        className={`d-pill${shared ? " is-on" : ""}`}
+                        style={shared ? { background: pastel("sauge").bg, borderColor: pastel("sauge").ink, color: pastel("sauge").ink } : undefined}
+                        onClick={() => {
+                          setPostes((p) => ({ ...p, [g.key]: "partage" }));
+                          setOpenPostes((s) => new Set(s).add(g.key));
+                        }}
+                      >
                         Partagé
                       </button>
-                      {prorata.map((opt) => (
-                        <button key={opt.key} type="button" role="radio" aria-checked={who === opt.key} className={`d-pill${who === opt.key ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: opt.key }))}>
-                          {opt.label}
-                        </button>
-                      ))}
-                      {byPayer.map((x) => (
-                        <button key={x.member.id} type="button" role="radio" aria-checked={who === x.member.id} className={`d-pill d-pill-person${who === x.member.id ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: x.member.id }))}>
-                          <Avatar member={x.member} size={22} />
-                          {x.member.display_name}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!shared}
+                        className={`d-pill${!shared ? " is-on" : ""}`}
+                        style={!shared ? { background: pastel("peche").bg, borderColor: pastel("peche").ink, color: pastel("peche").ink } : undefined}
+                        onClick={() => {
+                          setPostes((p) => ({ ...p, [g.key]: byPayer[0]?.member.id || "partage" }));
+                          setOpenPostes((s) => new Set(s).add(g.key));
+                        }}
+                      >
+                        Pris en charge par quelqu'un
+                      </button>
                     </div>
-                    {who && who.startsWith("invites:")
-                      ? (() => {
-                          const shares = guestProrataShares(data, byPayer, who.slice("invites:".length));
-                          return (
-                            <div className="d-rule-prorata-note">
-                              Au prorata : {byPayer.map((x) => `${x.member.display_name} ${Math.round(shares[x.member.id] || 0)} %`).join(" · ")}
-                            </div>
-                          );
-                        })()
-                      : null}
+                    {openPostes.has(g.key) ? (
+                    <div className="d-rule-poste-detail">
+                      {shared ? (
+                        <div className="d-filters is-sub" role="radiogroup" aria-label={`Au prorata de quoi pour ${g.name}`}>
+                          <button type="button" role="radio" aria-checked={who === "partage"} className={`d-pill is-small${who === "partage" ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: "partage" }))}>
+                            Parts égales
+                          </button>
+                          {prorata.map((opt) => (
+                            <button key={opt.key} type="button" role="radio" aria-checked={who === opt.key} className={`d-pill is-small${who === opt.key ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: opt.key }))}>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="d-filters is-sub" role="radiogroup" aria-label={`Qui prend ${g.name}`}>
+                          {byPayer.map((x) => (
+                            <button key={x.member.id} type="button" role="radio" aria-checked={who === x.member.id} className={`d-pill d-pill-person is-small${who === x.member.id ? " is-on" : ""}`} onClick={() => setPostes((p) => ({ ...p, [g.key]: x.member.id }))}>
+                              <Avatar member={x.member} size={18} />
+                              {x.member.display_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {who && who.startsWith("invites:")
+                        ? (() => {
+                            const shares = guestProrataShares(data, byPayer, who.slice("invites:".length));
+                            return (
+                              <div className="d-rule-prorata-chips">
+                                {byPayer
+                                  .filter((x) => shares[x.member.id])
+                                  .map((x) => (
+                                    <span key={x.member.id}>
+                                      <strong>{Math.round(shares[x.member.id] || 0)} %</strong>
+                                      <small>{x.member.display_name}</small>
+                                    </span>
+                                  ))}
+                              </div>
+                            );
+                          })()
+                        : null}
+                    </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -162,6 +221,34 @@ export default function Regle() {
           ) : (
             <p className="d-rule-rest">Aucune dépense payée pour l'instant.</p>
           )
+        ) : null}
+
+        {mode === "invites" ? (
+          <>
+            {guestDetail && guestDetail.total ? (
+              <div className="d-rule-guests">
+                {guestDetail.sides.map((s) => (
+                  <span key={s.member.id}>
+                    <strong>{s.count}</strong>
+                    <small>invités côté {s.member.display_name}</small>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <ul className="d-rule-list is-readonly">
+              {byPayer.map((x) => (
+                <li key={x.member.id}>
+                  <Avatar member={x.member} size={28} />
+                  <span className="d-rule-name">{x.member.display_name}</span>
+                  <span className="d-rule-pct">
+                    <strong>{Math.round(guestShares[x.member.id] || 0)} %</strong>
+                    <small>{euros(targets[x.member.id])}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="d-rule-rest">Calculé selon la part des invités de chaque côté dans la liste, mise à jour automatiquement.</p>
+          </>
         ) : null}
       </div>
 
