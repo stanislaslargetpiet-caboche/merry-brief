@@ -24,15 +24,31 @@ function ago(iso) {
   return new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
 
+const collapsedKey = (id) => `merry-note-collapsed-${id}`;
+
 export default function GuestsNote() {
   const dash = useDash();
   const { wedding, members, meId } = dash.data;
   const note = wedding.guests_note || null;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note?.text || "");
+  const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     if (!editing) setDraft(note?.text || "");
   }, [note?.text, editing]);
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(collapsedKey(wedding.id)) === "1");
+    } catch {}
+  }, [wedding.id]);
+  function toggleCollapsed() {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      if (next) localStorage.setItem(collapsedKey(wedding.id), "1");
+      else localStorage.removeItem(collapsedKey(wedding.id));
+    } catch {}
+  }
 
   const p = pastel("jaune");
   const author = note?.updated_by ? members.find((m) => m.id === note.updated_by) : null;
@@ -72,7 +88,7 @@ export default function GuestsNote() {
           placeholder="Règles de remplissage à partager avec les autres organisateurs…"
           maxLength={600}
         />
-      ) : (
+      ) : collapsed ? null : (
         <p className="d-note-text">{note.text}</p>
       )}
       <div className="d-note-foot">
@@ -84,9 +100,16 @@ export default function GuestsNote() {
           <span />
         )}
         {!editing ? (
-          <button type="button" className="d-note-edit" onClick={() => setEditing(true)} aria-label="Modifier la note">
-            <Icon name="pencil" size={13} sw={2.2} />
-          </button>
+          <span style={{ display: "inline-flex", gap: 6 }}>
+            <button type="button" className="d-note-edit" onClick={toggleCollapsed} aria-label={collapsed ? "Afficher la note" : "Réduire la note"} aria-expanded={!collapsed}>
+              <Icon name={collapsed ? "chevDown" : "chevUp"} size={13} sw={2.2} />
+            </button>
+            {!collapsed ? (
+              <button type="button" className="d-note-edit" onClick={() => setEditing(true)} aria-label="Modifier la note">
+                <Icon name="pencil" size={13} sw={2.2} />
+              </button>
+            ) : null}
+          </span>
         ) : null}
       </div>
     </div>

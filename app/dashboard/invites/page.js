@@ -1319,10 +1319,15 @@ export default function Invites() {
         {full ? (
           <div className="d-sheet-head">
             <strong>Liste des invités</strong>
-            <span className="d-small d-muted">{n(shown.length, "invité", "invités")}{selIds.length ? ` · ${n(selIds.length, "sélection", "sélections")}` : ""}</span>
+            {selIds.length ? <span className="d-small d-muted">{n(selIds.length, "sélection", "sélections")}</span> : null}
+            <button type="button" className={`d-group-pick${filterCount ? " is-on" : ""}`} onClick={() => setFiltering(true)}>
+              <Icon name="list" size={14} sw={2.2} />
+              Filtres
+              {filterCount ? <span className="d-filter-count">{filterCount}</span> : null}
+            </button>
             <span className="d-spacer" />
             <span className="d-small d-muted d-sheet-keys">Flèches, Tab et Entrée pour se déplacer · Cmd+Z pour annuler</span>
-            <button type="button" className="d-pill is-dashed" onClick={() => setAddingCol(true)}>
+            <button type="button" className="d-pill is-lime" onClick={() => setAddingCol(true)}>
               <Icon name="plus" size={14} sw={2} />
               Ajouter une colonne
             </button>

@@ -806,6 +806,13 @@ button.d-rsvp:hover {
   border-color: #b9b7ae;
 }
 
+.d-pill.is-lime {
+  border-style: solid;
+  border-color: var(--d-ink);
+  background: var(--d-lime);
+  font-weight: 600;
+}
+
 .d-badge {
   display: inline-flex;
   align-items: center;

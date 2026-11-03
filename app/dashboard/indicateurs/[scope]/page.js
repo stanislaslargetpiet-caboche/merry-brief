@@ -189,7 +189,7 @@ export default function Indicateurs() {
 
       {(sc === "budget" ? [] : kpiCatalog(sc)).map((fam, i, all) => (
         <div key={fam.family} className="d-col" style={{ gap: 10 }}>
-          {all.length > 1 ? <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div> : <p className="d-small d-muted" style={{ margin: 0 }}>Jusqu'à {KPI_MAX} indicateurs en tête de la liste des invités. Chaque coche est enregistrée tout de suite.</p>}
+          {all.length > 1 ? <div style={{ fontSize: 14, fontWeight: 600 }}>{fam.family}</div> : null}
           <div className="d-g3 d-desk-only">
             {fam.items.map((it) => {
               const on = chosen.includes(it.id);
