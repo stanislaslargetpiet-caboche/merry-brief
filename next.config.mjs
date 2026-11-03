@@ -28,9 +28,16 @@ const SECURITY_HEADERS = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
+// Plusieurs sessions Claude Code lancent chacune leur propre `next dev` dans ce même dossier ; sans ceci,
+// elles partagent le même cache .next et se marchent dessus (fichiers manquants, 404 aléatoires). `next dev`
+// passe par PORT (jamais `next build`/`next start`, qui restent sur `.next` pour Vercel) : un dossier de
+// build par port isole chaque session.
+const devPort = process.env.NODE_ENV !== "production" && process.env.PORT;
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  ...(devPort ? { distDir: `.next-dev-${devPort}` } : {}),
   // Navigateurs et robots demandent /favicon.ico sans lire la page : on sert l'icône générée (app/icon.js)
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
