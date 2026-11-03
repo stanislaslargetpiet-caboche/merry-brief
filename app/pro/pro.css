@@ -495,7 +495,7 @@
 
 .p-acc-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   background: var(--d-panel);
   border-radius: 20px;
@@ -648,7 +648,15 @@
 
 @media (max-width: 700px) {
   .p-acc-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 18px 12px;
+  }
+
+  .p-acc-stats b {
+    font-size: 24px;
+  }
+
+  .p-acc-cards {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .p-acc-row {
@@ -2916,6 +2924,10 @@ select.p-input {
   align-items: start;
 }
 
+.p-dispo-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .p-dispo-side {
   display: flex;
   flex-direction: column;
@@ -5155,6 +5167,10 @@ button.p-dem-item {
   height: 8px;
   border-radius: 999px;
   background: var(--d-ink);
+}
+
+.p-metier-row.is-mine .p-metier-icon {
+  background: var(--d-lime);
 }
 
 .p-metier-cost {

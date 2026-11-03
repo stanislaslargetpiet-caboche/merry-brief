@@ -1,33 +1,26 @@
 "use client";
 
-// Accueil de l'espace prestataire (maquettes Vendor-Accueil / -Tel). Refait le 3 nov. 2026 pour
-// suivre le canvas de près, à la demande de Stan : bandeau de 4 chiffres, puis 3 cartes (Crédits,
-// Temps de réponse, Fiche complète) sur ordinateur — une ligne de 3 chiffres sur téléphone — puis un
-// seul flux « Demandes » (nouveaux leads et demandes déjà répondues), à la place des sections séparées
-// (à traiter, à relancer, prochaines dates, ce mois-ci, vos performances, vos crédits) de l'ancienne
-// maquette V1. Les 4 chiffres comptent tous des demandes, pour qu'ils s'additionnent : reçues =
-// live (pas encore répondues) + répondues ; « leads intrants » = celles des live reçues ces 7 derniers jours.
+// Dashboard de l'espace prestataire (maquettes Vendor-Accueil / -Tel, revu après l'audit du 3 nov. 2026) :
+// 3 chiffres qui parlent d'eux-mêmes (à traiter, répondues, réservées), 3 cartes (temps de réponse, coût
+// moyen par réservation, fiche complète) sur ordinateur comme sur téléphone, puis le fil des dernières
+// demandes. Le solde de crédits n'est plus répété ici : il est déjà dans la barre latérale (ou l'en-tête
+// sur téléphone).
 
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { completeness, creditsRoi, guestsText, responseStats, since, weddingWhen } from "@/lib/pro/format";
+import { completeness, creditsRoi, guestsText, isPastClient, responseStats, since, weddingWhen } from "@/lib/pro/format";
 import { Face } from "@/components/pro/ui";
-
-const WEEK_MS = 7 * 24 * 3600 * 1000;
 
 export default function ProHome() {
   const pro = usePro();
   const d = pro.data;
-  const v = d.vendor;
   const fill = completeness(d);
   const clients = d.clients || [];
   const byId = new Map(clients.map((c) => [c.id, c]));
   const requests = d.requests || [];
   const answered = requests.filter((r) => r.answered);
-  const live = requests.filter((r) => !r.answered);
-  const now = Date.now();
-  const incoming = live.filter((r) => now - new Date(r.requested_at).getTime() < WEEK_MS);
-  const credits = d.pro?.credits ?? 0;
+  const todo = requests.filter((r) => !r.answered);
+  const booked = clients.filter((c) => c.stage === "reserve" && !isPastClient(c));
   const resp = responseStats(d);
   const roi = creditsRoi(d);
   // Les demandes les plus récentes, nouvelles ou déjà répondues, comme un fil d'activité
@@ -44,35 +37,20 @@ export default function ProHome() {
 
       <div className="p-acc-stats">
         <div>
-          <b>{requests.length}</b>
-          <span>Demandes reçues</span>
-        </div>
-        <div>
-          <b>{live.length}</b>
-          <span>Demandes live</span>
-        </div>
-        <div>
-          <b className="is-amber">{incoming.length}</b>
-          <span>Leads intrants</span>
+          <b className={todo.length ? "is-amber" : ""}>{todo.length}</b>
+          <span>À traiter</span>
         </div>
         <div>
           <b>{answered.length}</b>
           <span>Répondues</span>
         </div>
+        <div>
+          <b>{booked.length}</b>
+          <span>Réservées</span>
+        </div>
       </div>
 
-      <div className="p-acc-cards p-desk-only">
-        <div className="p-acc-card">
-          <div className="p-acc-card-head">
-            <span>Crédits</span>
-            <Link href="/pro/credits" className="p-link is-small">
-              Détail
-            </Link>
-          </div>
-          <span className="p-acc-card-n">
-            {credits} <small>crédit{credits > 1 ? "s" : ""}</small>
-          </span>
-        </div>
+      <div className="p-acc-cards">
         <div className="p-acc-card">
           <span className="p-acc-card-label">Temps de réponse</span>
           <span className="p-acc-resp">
@@ -81,31 +59,22 @@ export default function ProHome() {
           </span>
         </div>
         <div className="p-acc-card">
+          <span className="p-acc-card-label">Coût moyen par réservation</span>
+          <span className="p-acc-card-n">{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</span>
+        </div>
+        <div className="p-acc-card">
           <div className="p-acc-card-head">
             <span>Fiche complète</span>
-            <Link href="/pro/fiche" className="p-link is-small">
-              Compléter
-            </Link>
+            {fill.pct < 100 ? (
+              <Link href="/pro/fiche" className="p-link is-small">
+                Compléter
+              </Link>
+            ) : null}
           </div>
           <span className="p-acc-card-n">{fill.pct} %</span>
           <span className="p-acc-bar is-ink">
             <span style={{ width: `${fill.pct}%` }} />
           </span>
-        </div>
-      </div>
-
-      <div className="p-acc-perf p-phone-only">
-        <div>
-          <span>Temps de réponse</span>
-          <b>{resp ? `${resp.avgHours} h` : "—"}</b>
-        </div>
-        <div>
-          <span>Coût / résa</span>
-          <b>{roi.perBooking !== null ? `${roi.perBooking} crédits` : "—"}</b>
-        </div>
-        <div>
-          <span>Note Google</span>
-          <b>{v.google_rating ? `${v.google_rating.toLocaleString("fr-FR")}${v.google_review_count ? ` · ${v.google_review_count} avis` : ""}` : "—"}</b>
         </div>
       </div>
 
@@ -120,9 +89,9 @@ export default function ProHome() {
                   <Face names={r.names} />
                   <div className="p-who">
                     <span className="p-who-name">{r.names}</span>
-                    <span className="p-who-meta">{[weddingWhen({ ...c, wedding_date: c.wedding_date || r.wedding_date }), guestsText(c.guests), since(r.requested_at)].filter(Boolean).join(" · ")}</span>
+                    <span className="p-who-meta">{[weddingWhen({ ...c, wedding_date: c.wedding_date || r.wedding_date }), guestsText(c.guests), since(r.requested_at).toLowerCase()].filter(Boolean).join(" · ")}</span>
                   </div>
-                  <span className={`p-chip ${r.answered ? "is-answered" : "is-live"}`}>{r.answered ? "Répondue" : "Nouveau lead"}</span>
+                  <span className={`p-chip ${r.answered ? "is-answered" : "is-live"}`}>{r.answered ? "Répondue" : "À traiter"}</span>
                   <Link href={`/pro/demandes?demande=${r.client_id}`} className={`p-btn ${r.answered ? "p-btn-ghost" : "p-btn-primary"} is-40`}>
                     {r.answered ? "Voir" : "Répondre"}
                   </Link>
@@ -131,11 +100,8 @@ export default function ProHome() {
             })}
           </ul>
         ) : (
-          <p className="p-empty-line">Aucune demande en attente. Les demandes des couples arrivent ici, gratuitement.</p>
+          <p className="p-empty-line">Aucune demande pour l’instant.</p>
         )}
-        <Link href="/pro/demandes" className="p-link p-phone-only p-acc-more">
-          Voir toutes les demandes
-        </Link>
       </section>
     </>
   );

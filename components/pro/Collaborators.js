@@ -12,7 +12,7 @@ import { Popover, BusyDots } from "@/components/dash/ui";
 
 function inviteLink(token) {
   if (typeof window === "undefined" || !token) return "";
-  return `${window.location.origin}/connexion?invitation=${token}`;
+  return `${window.location.origin}/pro?invitation=${token}`;
 }
 
 export default function Collaborators() {
@@ -113,7 +113,6 @@ export default function Collaborators() {
               <span className="d-org-meta">
                 <span className={`d-org-status${m.user_id ? " is-on" : ""}`}>{m.user_id ? "Connecté·e" : "Invitation envoyée"}</span>
                 {m.display_name && m.email ? <span className="p-muted d-org-mail">{m.email}</span> : null}
-                <span className="p-muted"> · {m.role === "gerant" ? "Gérant" : "Peut répondre"}</span>
               </span>
             </span>
             {!m.user_id ? (

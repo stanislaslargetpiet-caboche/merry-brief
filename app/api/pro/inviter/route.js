@@ -47,7 +47,7 @@ export async function POST(req) {
   const vendorName = vendor?.name || "votre établissement";
 
   if (!(await allowUser(sb, "invite_mail", 20, 86400))) return Response.json({ error: "quota" }, { status: 429 });
-  const link = `${publicOrigin(req)}/connexion?invitation=${member.invite_token}`;
+  const link = `${publicOrigin(req)}/pro?invitation=${member.invite_token}`;
 
   const subject = `Rejoignez ${vendorName} sur Merry`;
   const text = `Bonjour,\n\nJe vous invite à rejoindre notre espace prestataire sur Merry pour ${vendorName}.\n\n${link}`;

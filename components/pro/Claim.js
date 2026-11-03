@@ -12,6 +12,11 @@
 // (hors canvas, parcours à part, sans barre de progression, inchangé).
 // /pro?fiche=<id> (lien d'un mail « un couple vous a écrit ») ouvre directement l'écran de confirmation ;
 // /pro?etablissement=<nom> (recherche du site vitrine) préremplit la recherche.
+// /pro?invitation=<jeton> (lien envoyé à un collaborateur) : rejoindre l'équipe de la fiche, connecté ou
+// avec un code reçu à l'adresse invitée (app/api/pro/invitation). Avant le 3 nov. 2026 ce lien menait à
+// l'inscription des couples.
+// Audit du 3 nov. 2026 : un seul titre par étape (la question), plus de phrase d'aide qui la répète, plus
+// de « Corriger une information » ni de légende sous Bienvenue, et Préparation n'annonce que ce qui est vrai.
 //
 // Le mot de passe du canvas (Onb3/Rev2) n'a pas été repris : le compte prestataire reste sans mot de
 // passe, uniquement par code à 6 chiffres (Onb4/Rev3, backend existant) — en ajouter un changerait la
@@ -52,6 +57,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CREATE_FLOW = ["name", "address", "contact", "code"];
 const CLAIM_FLOW = ["search", "confirm", "code"];
 const LOGIN_FLOW = ["login-email", "login-code"];
+const INVITE_FLOW = ["invite", "invite-code"];
 
 // Ce qui manque au formulaire « Créer votre fiche », dans l'ordre des écrans
 function formProblem(f) {
@@ -66,14 +72,14 @@ function formProblem(f) {
 
 // Le jeton du compte déjà connecté accompagne la vérification : la fiche rejoint ce compte au lieu de
 // basculer sur celui de l'adresse qui a reçu le code
-async function call(body) {
+async function call(body, path = "/api/pro/claim") {
   try {
     const headers = { "Content-Type": "application/json" };
-    if (supabase && /verify$/.test(body.action || "")) {
+    if (supabase && /verify$|^accept$/.test(body.action || "")) {
       const { data } = await supabase.auth.getSession();
       if (data?.session?.access_token) headers.authorization = `Bearer ${data.session.access_token}`;
     }
-    const res = await fetch("/api/pro/claim", { method: "POST", headers, body: JSON.stringify(body) });
+    const res = await fetch(path, { method: "POST", headers, body: JSON.stringify(body) });
     const json = await res.json().catch(() => ({}));
     return { status: res.status, ...json };
   } catch {
@@ -105,6 +111,7 @@ const ERRORS = {
   address: "Nous ne trouvons pas cette adresse. Vérifiez le code postal et la ville, puis validez de nouveau le code.",
   create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
   network: "La connexion a échoué. Vérifiez votre réseau, puis réessayez.",
+  bad_link: "Ce lien d’invitation n’est plus valable. Demandez-en un nouveau à la personne qui vous a invité.",
 };
 
 export default function Claim() {
@@ -119,8 +126,8 @@ export default function Claim() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [fixNote, setFixNote] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [invite, setInvite] = useState(null); // { token, vendor_name, email_hint } : lien d'invitation
   const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
   const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
   const [pendingSession, setPendingSession] = useState(null); // posée au clic sur Bienvenue
@@ -141,8 +148,27 @@ export default function Claim() {
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
     // « Connexion » du site : l'adresse mail puis le code, sans passer par la recherche
     if (params.get("connexion") === "1" && !signedIn) startLogin();
-    if (!fiche || demo) return;
     let live = true;
+    const token = params.get("invitation");
+    if (token) {
+      if (demo) {
+        setInvite({ token, vendor_name: "Domaine des Oliviers", email_hint: "c•••@exemple.fr" });
+        setScreen("invite");
+        return undefined;
+      }
+      (async () => {
+        const res = await call({ action: "info", token }, "/api/pro/invitation");
+        if (!live) return;
+        if (res.vendor_name) {
+          setInvite({ token, vendor_name: res.vendor_name, email_hint: res.email_hint });
+          setScreen("invite");
+        } else setNotice(ERRORS[res.error] || ERRORS.bad_link);
+      })();
+      return () => {
+        live = false;
+      };
+    }
+    if (!fiche || demo) return undefined;
     (async () => {
       const res = await call({ action: "lookup", vendorId: fiche });
       if (!live) return;
@@ -217,7 +243,6 @@ export default function Claim() {
     setScreen("confirm");
     setSent(false);
     setError("");
-    setFixNote(false);
   }
 
   async function confirmAndSend() {
@@ -235,6 +260,7 @@ export default function Claim() {
   function backToSearch() {
     setCreating(false);
     setLogging(false);
+    setInvite(null);
     setScreen("search");
     setSent(false);
     setError("");
@@ -277,6 +303,37 @@ export default function Claim() {
       return;
     }
     setScreen("login-code");
+    setSent(true);
+    setCode(["", "", "", "", "", ""]);
+    setTimeout(() => boxes.current[0]?.focus(), 50);
+  }
+
+  // Invitation : déjà connecté, le compte rejoint l'équipe tout de suite ; sinon un code part à l'adresse invitée
+  async function joinTeam() {
+    setError("");
+    if (demo) {
+      window.location.assign("/pro?demo=1");
+      return;
+    }
+    setBusy(true);
+    if (signedIn) {
+      const res = await call({ action: "accept", token: invite.token }, "/api/pro/invitation");
+      if (!res.ok) {
+        setBusy(false);
+        setError(ERRORS[res.error] || ERRORS.link_failed);
+        return;
+      }
+      pro.rememberVendor(res.vendorId);
+      window.location.assign("/pro");
+      return;
+    }
+    const res = await call({ action: "send", token: invite.token }, "/api/pro/invitation");
+    setBusy(false);
+    if (!res.ok) {
+      setError(ERRORS[res.error] || ERRORS.send_failed);
+      return;
+    }
+    setScreen("invite-code");
     setSent(true);
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
@@ -344,6 +401,22 @@ export default function Claim() {
     }
     setBusy(true);
     setError("");
+    if (invite) {
+      const res = demo ? { ok: true } : await call({ action: "verify", token: invite.token, code: c }, "/api/pro/invitation");
+      if (!res.ok) {
+        setBusy(false);
+        setError(ERRORS[res.error] || ERRORS.bad_code);
+        return;
+      }
+      if (demo) {
+        window.location.assign("/pro?demo=1");
+        return;
+      }
+      pro.rememberVendor(res.vendorId);
+      if (res.session && supabase) await supabase.auth.setSession(res.session);
+      window.location.assign("/pro");
+      return;
+    }
     if (demo) {
       // La connexion (pas de fiche précise à préparer) garde le passage direct
       if (logging) {
@@ -452,7 +525,7 @@ export default function Claim() {
   if (preparing === "create") {
     return (
       <Preparation
-        tags={[form.name.trim(), categoryLabel, form.city.trim(), "100 crédits offerts", "Devis sous 48h", "Visites sur rendez-vous"].filter(Boolean)}
+        tags={[form.name.trim(), categoryLabel, form.city.trim(), "100 crédits offerts"].filter(Boolean)}
         results={["Fiche en ligne créée", "100 crédits offerts", "Prête à recevoir des demandes"]}
         lines={["On enregistre votre établissement…", "On prépare votre fiche en ligne…", "On vous met en relation avec des couples…"]}
         onDone={finishPreparing}
@@ -463,7 +536,7 @@ export default function Claim() {
     return (
       <Preparation
         tags={[picked.name, picked.category, picked.city, picked.website, picked.phone].filter(Boolean)}
-        results={["Fiche retrouvée", "Avis Google récupérés", "Photos importées"]}
+        results={["Fiche retrouvée", picked.rating ? "Avis Google récupérés" : null, picked.photo ? "Photos importées" : null].filter(Boolean)}
         lines={["On retrouve votre fiche…", "On récupère vos informations publiques…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}
       />
@@ -476,22 +549,28 @@ export default function Claim() {
     return <Welcome name={picked.name} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
 
-  const flow = logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
+  const flow = invite ? INVITE_FLOW : logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
   const stepIndex = Math.max(0, flow.indexOf(screen));
   const stepTotal = flow.length;
-  const isFirst = screen === "name" || screen === "search" || screen === "login-email";
+  // Le titre est la question de l'étape ; le surtitre dit seulement où l'on en est
   const META = {
-    name: { eyebrow: "Votre établissement", title: "Votre établissement" },
-    address: { eyebrow: "Où êtes-vous", title: "Votre adresse" },
-    contact: { eyebrow: "Votre compte", title: "Comment vous contacter" },
+    name: { eyebrow: "Votre établissement", title: "Comment s’appelle votre établissement ?" },
+    address: { eyebrow: "Votre établissement", title: "Quelle est son adresse ?" },
+    contact: { eyebrow: "Votre compte", title: "Comment peut-on vous contacter ?" },
     search: { eyebrow: "Espace prestataire", title: "Retrouvez votre établissement" },
     confirm: { eyebrow: "Votre fiche", title: picked?.name || "" },
-    "login-email": { eyebrow: "Espace prestataire", title: "Connectez-vous" },
-    "login-code": { eyebrow: "Espace prestataire", title: "Connectez-vous" },
-    code: { eyebrow: "Dernière étape", title: (creating ? form.name.trim() : picked?.name) || "Vérification" },
+    "login-email": { eyebrow: "Connexion", title: "Quelle est l’adresse mail de votre compte ?" },
+    "login-code": { eyebrow: "Connexion", title: "Vérifions que c’est bien vous." },
+    code: { eyebrow: "Dernière étape", title: "Vérifions que c’est bien vous." },
+    invite: { eyebrow: "Invitation", title: `Rejoindre ${invite?.vendor_name || "l’équipe"}` },
+    "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
   const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
-  const goBack = logging
+  const goBack = invite
+    ? screen === "invite-code"
+      ? backTo("invite")
+      : null
+    : logging
     ? screen === "login-code"
       ? backTo("login-email")
       : null
@@ -516,8 +595,7 @@ export default function Claim() {
           <span className="p-brand-logo">Merry</span>
           <span className="p-brand-sub">Espace prestataire</span>
         </div>
-        <div className="p-claim-word">{isFirst ? "Bienvenue." : "C’est à vous."}</div>
-        <div className="p-claim-caption">Merry - Experience Crafting Group</div>
+        <div className="p-claim-word">Bienvenue.</div>
       </aside>
       <div className="p-claim-stage">
         <div className="p-claim-band">
@@ -529,12 +607,17 @@ export default function Claim() {
             ) : (
               <span className="p-claim-back is-empty" />
             )}
-            <div className="p-claim-progress">
-              <span style={{ width: `${Math.round(((stepIndex + 1) / stepTotal) * 100)}%` }} />
-            </div>
-            <span className="p-claim-count">
-              {stepIndex + 1} / {stepTotal}
-            </span>
+            {/* La connexion n'est pas un parcours en étapes : pas de barre de progression */}
+            {logging ? null : (
+              <>
+                <div className="p-claim-progress">
+                  <span style={{ width: `${Math.round(((stepIndex + 1) / stepTotal) * 100)}%` }} />
+                </div>
+                <span className="p-claim-count">
+                  {stepIndex + 1} / {stepTotal}
+                </span>
+              </>
+            )}
           </div>
           <div className="p-claim-band-title">
             <span className="p-claim-eyebrow">{eyebrow}</span>
@@ -545,10 +628,37 @@ export default function Claim() {
           <div className="p-claim-eyebrow p-desk-only">{eyebrow}</div>
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
 
-          {logging ? (
+          {invite ? (
+            screen === "invite" ? (
+              <>
+                <div className="p-claim-channel is-on is-single">
+                  <ProIcon name="mail" size={20} />
+                  <span>
+                    <span className="p-claim-ctitle">{signedIn ? `Connecté avec ${pro.data.user.email}` : "Un code par mail, à l’adresse invitée"}</span>
+                    {signedIn ? null : <span className="p-claim-chint">{invite.email_hint}</span>}
+                  </span>
+                </div>
+                {errorBox}
+                <div className="p-claim-actions">
+                  <button type="button" className="p-claim-submit" onClick={joinTeam} disabled={busy}>
+                    {signedIn ? "Rejoindre l’équipe" : "Recevoir mon code"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {codeBlock(`Le code envoyé à ${invite.email_hint}`, joinTeam)}
+                {errorBox}
+                <div className="p-claim-actions">
+                  <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
+                    Rejoindre l’équipe
+                  </button>
+                </div>
+              </>
+            )
+          ) : logging ? (
             screen === "login-email" ? (
               <>
-                <p className="p-claim-help">L’adresse mail de votre compte Merry : nous y envoyons un code à 6 chiffres.</p>
                 <div className="p-claim-field">
                   <label htmlFor="pro-login">Adresse mail</label>
                   <input
@@ -574,8 +684,7 @@ export default function Claim() {
               </>
             ) : (
               <>
-                <p className="p-claim-help">{`Le code à 6 chiffres envoyé à ${loginEmail.trim()}.`}</p>
-                {codeBlock("Le code reçu par mail", sendLoginCode)}
+                {codeBlock(`Le code envoyé à ${loginEmail.trim()}`, sendLoginCode)}
                 {errorBox}
                 <div className="p-claim-actions is-split">
                   <button type="button" className="p-claim-link" onClick={backToSearch}>
@@ -590,7 +699,6 @@ export default function Claim() {
           ) : creating ? (
             screen === "name" ? (
               <>
-                <p className="p-claim-help">Comment s’appelle votre établissement ?</p>
                 <div className="p-claim-field">
                   <label htmlFor="pro-name" className="p-sr">
                     Nom de l’établissement
@@ -616,7 +724,6 @@ export default function Claim() {
               </>
             ) : screen === "address" ? (
               <>
-                <p className="p-claim-help">Quelle est l’adresse de votre établissement ?</p>
                 <div className="p-claim-field">
                   <label htmlFor="pro-adr" className="p-sr">
                     Adresse
@@ -642,11 +749,10 @@ export default function Claim() {
               </>
             ) : screen === "contact" ? (
               <>
-                <p className="p-claim-help">Comment peut-on vous contacter ?</p>
                 <div className="p-claim-field">
                   <label htmlFor="pro-mail">Adresse mail de l’établissement</label>
                   <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" autoFocus {...field("email")} />
-                  <span className="p-claim-hint">Nous y envoyons un code pour vérifier que c’est bien vous. C’est aussi là qu’arrivent les demandes des couples.</span>
+                  <span className="p-claim-hint">Le code arrive à cette adresse, comme les demandes des couples.</span>
                 </div>
                 <div className="p-claim-field">
                   <label htmlFor="pro-tel">
@@ -663,8 +769,7 @@ export default function Claim() {
               </>
             ) : (
               <>
-                <p className="p-claim-help">Vérifions que c’est bien vous.</p>
-                {codeBlock(`Le code à 6 chiffres envoyé à ${form.email.trim()}`, sendCreateCode)}
+                {codeBlock(`Le code envoyé à ${form.email.trim()}`, sendCreateCode)}
                 {errorBox}
                 <div className="p-claim-actions">
                   <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
@@ -675,10 +780,9 @@ export default function Claim() {
             )
           ) : screen === "search" ? (
             <>
-              <p className="p-claim-help">Merry a peut-être déjà une fiche pour vous. Retrouvez-la pour en prendre la main.</p>
               {myFiches.length ? (
                 <p className="p-claim-help is-notice">
-                  Vous êtes connecté à {myFiches.map((v) => v.name).join(", ")}. <a href="/pro">Aller à mon espace</a> · Pour une autre fiche, cherchez-la ci-dessous ; le code arrive à l’adresse de cette fiche.{" "}
+                  Vous êtes connecté à {myFiches.map((v) => v.name).join(", ")}. <a href="/pro">Aller à mon espace</a> ·{" "}
                   <button type="button" className="p-claim-link" onClick={() => pro.signOut(`/pro${window.location.search}`)}>
                     Changer de compte
                   </button>
@@ -762,13 +866,8 @@ export default function Claim() {
                       </li>
                     ) : null}
                   </ul>
-                  <button type="button" className="p-claim-fix" onClick={() => setFixNote((x) => !x)}>
-                    Corriger une information
-                  </button>
-                  {fixNote ? <p className="p-claim-help is-small">Une fois votre accès ouvert, vous corrigez tout dans Ma fiche.</p> : null}
                 </div>
               </div>
-              <p className="p-claim-intro">Merry a préparé votre fiche à partir d’informations publiques. Vérifiez-la, complétez-la, elle est à vous.</p>
               <div className="p-claim-channel is-on is-single">
                 <ProIcon name="mail" size={20} />
                 <span>
@@ -785,8 +884,7 @@ export default function Claim() {
             </>
           ) : (
             <>
-              <p className="p-claim-help">Vérifions que c’est bien vous.</p>
-              {codeBlock(sent ? `Le code à 6 chiffres reçu à ${picked.email_hint}` : "Nous envoyons un code à 6 chiffres à cette adresse", () => sendCode())}
+              {codeBlock(`Le code envoyé à ${picked.email_hint}`, () => sendCode())}
               {errorBox}
               <div className="p-claim-actions">
                 <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || !picked.email_hint}>

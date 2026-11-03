@@ -4,7 +4,6 @@
 // Prénoms et message masqués ; un déblocage (en crédits) les montre et permet d'envoyer une proposition.
 // La liste reste vide tant que les couples n'ont pas d'écran pour donner leur accord (à dessiner).
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
@@ -73,11 +72,7 @@ export default function Projets() {
 
   return (
     <div className="p-projets">
-      <div className="p-head-text is-8">
-        <h1 className="p-h1 is-page">Projets de mariage.</h1>
-        <p className="p-projets-lead">Des couples de votre région cherchent encore. Présentez-vous.</p>
-        <p className="p-note is-135">Ces couples ont accepté d’être contactés par des prestataires.</p>
-      </div>
+      <h1 className="p-h1 is-page">Projets de mariage.</h1>
       <div role="group" aria-label="Filtres" className="p-filters">
         <Filter options={SEASONS} value={f.season} onChange={(season) => setF((x) => ({ ...x, season }))} />
         <Filter options={SIZES} value={f.size} onChange={(size) => setF((x) => ({ ...x, size }))} />
@@ -294,7 +289,7 @@ function UnlockDialog({ p, onClose }) {
         <h2 id="deb-titre">Débloquer ce projet</h2>
         <CloseBtn onClose={onClose} />
       </div>
-      <p className="p-unlock-text">Vous verrez les prénoms du couple, leur brief complet et leur message, et pourrez leur envoyer une proposition.</p>
+      <p className="p-unlock-text">Vous verrez leur brief complet et pourrez leur écrire.</p>
       <div className="p-unlock-sum">
         <span>Couple · {p.area || "Votre région"}</span>
         <span>{[when(p), g ? `${g} invités` : null, p.budgetLabel || budgetRange(p.budget)].filter(Boolean).join(" · ")}</span>
@@ -311,10 +306,10 @@ function UnlockDialog({ p, onClose }) {
           <span className="p-unlock-after">{priced ? `${balance - cost} crédit${Math.abs(balance - cost) > 1 ? "s" : ""}` : "À définir"}</span>
         </div>
       </div>
-      {!priced ? <p className="p-claim-help is-small">Le nombre de crédits d’un déblocage reste à fixer par Merry.</p> : null}
+      {/* L'achat de crédits est désactivé pour l'instant (audit du 3 nov. 2026) : on écrit à Merry */}
       {priced && !enough ? (
         <p className="p-claim-help is-small">
-          Il vous manque {cost - balance} crédit{cost - balance > 1 ? "s" : ""}. <Link href="/pro/credits">Acheter des crédits</Link>
+          Il vous manque {cost - balance} crédit{cost - balance > 1 ? "s" : ""}. <a href="mailto:bonjour@withmerry.com?subject=Crédits Merry">Écrivez-nous</a>
         </p>
       ) : null}
       <div className="p-unlock-foot">

@@ -40,29 +40,29 @@ function Clients() {
     .filter((c) => stage === "toutes" || c.stage === stage)
     .sort((a, b) => String(a.next_action_on || "9").localeCompare(String(b.next_action_on || "9")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   const open = params.get("client");
-  const current = open === NEW_CLIENT ? NEW_CLIENT : all.find((c) => c.id === open) || null;
+  // Cherché parmi tous les clients : le panneau reste ouvert quand l'étape change, même si le client quitte la liste
+  const current = open === NEW_CLIENT ? NEW_CLIENT : (pro.data.clients || []).find((c) => c.id === open) || null;
   const close = () => router.push("/pro/clients", { scroll: false });
   const openClient = (id) => router.push(`/pro/clients?client=${id}`, { scroll: false });
 
   return (
     <div className={`p-clients${current ? " is-open" : ""}`}>
-      <div className="p-clients-head">
-        <h1 className="p-h1 is-page">Réservations.</h1>
-        <div className="p-clients-tools">
-          <div className="p-search">
-            <ProIcon name="search" size={16} stroke="#6b6a63" />
-            <label htmlFor="q" className="p-sr">
-              Rechercher un client
-            </label>
-            <input id="q" type="search" className="p-input" placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-          <button type="button" className="p-btn p-btn-primary p-phone-wide" onClick={() => openClient(NEW_CLIENT)}>
-            <ProIcon name="plus" size={16} stroke="#ffffff" sw={2} />
-            Ajouter un client
-          </button>
-        </div>
-      </div>
+      {/* En-tête comme Mon profil : le titre seul, puis les onglets, puis les outils de la page */}
+      <h1 className="p-h1 is-page">Réservations.</h1>
       <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
+      <div className="p-clients-tools">
+        <div className="p-search">
+          <ProIcon name="search" size={16} stroke="#6b6a63" />
+          <label htmlFor="q" className="p-sr">
+            Rechercher un client
+          </label>
+          <input id="q" type="search" className="p-input" placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <button type="button" className="p-btn p-btn-primary p-phone-wide" onClick={() => openClient(NEW_CLIENT)}>
+          <ProIcon name="plus" size={16} stroke="#ffffff" sw={2} />
+          Ajouter un client
+        </button>
+      </div>
 
       <div role="group" aria-label="Filtrer par étape" className="p-pills is-scroll">
         <button type="button" aria-pressed={stage === "toutes"} className={`p-pill is-filter${stage === "toutes" ? " is-on" : ""}`} onClick={() => setStage("toutes")}>

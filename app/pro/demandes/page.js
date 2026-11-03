@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { supabase } from "@/lib/supabase";
 import { addDays, euros, isoDate, today } from "@/lib/dash/format";
-import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, seasonOf, since, weddingWhen } from "@/lib/pro/format";
+import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, replyCost, seasonOf, since, weddingWhen } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
@@ -75,10 +75,7 @@ function Demandes() {
 
   return (
     <div className={`p-demandes${current ? " is-open" : ""}`}>
-      <div className="p-head-text is-8 p-dem-title">
-        <h1 className="p-h1 is-page">Demandes.</h1>
-        <p className="p-lead is-14">Les demandes des couples sont gratuites.</p>
-      </div>
+      <h1 className="p-h1 is-page p-dem-title">Demandes.</h1>
       <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
       <div className="p-dem-grid">
         <section aria-label="Liste des demandes" className="p-dem-list">
@@ -121,7 +118,7 @@ function Demandes() {
               })}
             </ul>
           ) : (
-            <p className="p-empty-line">{all.length ? "Aucune demande dans ce filtre." : "Aucune demande pour l’instant. Les couples vous écrivent depuis votre fiche Merry, et c’est gratuit pour vous."}</p>
+            <p className="p-empty-line">{all.length ? "Aucune demande dans ce filtre." : "Aucune demande pour l’instant."}</p>
           )}
         </section>
         {shown ? <Detail key={shown.client_id} r={shown} c={clients.get(shown.client_id) || {}} onBack={() => router.push("/pro/demandes", { scroll: false })} /> : null}
@@ -141,7 +138,8 @@ function Detail({ r, c, onBack }) {
   const fallbacks = (r.dates || []).slice(1).map((t) => ({ t, iso: parseFr(t) }));
   const formulas = [...d.formulas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const names = r.names.replace(" & ", " et ");
-  const [text, setText] = useState(() => (r.answered ? "" : `Bonjour ${names}, merci pour votre message. ${dayIso && !booked && !flexible ? `Le ${dateLong(dayIso).replace(/ \d{4}$/, "")} est libre. ` : ""}`));
+  const [text, setText] = useState(() => (r.answered ? "" : `Bonjour ${names}, merci pour votre message. `));
+  const cost = c.source === "merry" && !c.answered_at ? replyCost(d.vendor?.primary_category) : 0;
   const [mode, setMode] = useState(formulas.length ? "formules" : "pdf");
   const [formulaId, setFormulaId] = useState(formulas[0]?.id || null);
   const [optionIds, setOptionIds] = useState([]);
@@ -185,7 +183,7 @@ function Detail({ r, c, onBack }) {
     if (ok) {
       if (hold && dayIso) await pro.setDay(dayIso, { status: "option", client_id: c.id, expires_on: isoDate(addDays(today(), 14)) });
       await pro.updateRow("pro_clients", "clients", c.id, { stage: c.stage === "nouvelle" ? "devis" : c.stage, next_action: "Relancer", next_action_on: isoDate(addDays(today(), 4)), answered_at: c.answered_at || new Date().toISOString() });
-      pro.setToast({ kind: "ok", text: `Réponse envoyée à ${r.names}. Elle arrive dans leur tableau de bord Merry.` });
+      pro.setToast({ kind: "ok", text: `Réponse envoyée à ${r.names}.` });
       setText("");
       setFile(null);
       // Le fil est relu après l'envoi (démo comme réel) : l'ajouter aussi à la main l'affichait deux fois
@@ -194,7 +192,8 @@ function Detail({ r, c, onBack }) {
     setBusy(false);
   }
 
-  const chips = [r.region, flexible ? r.dates[0].replace(/^Dates flexibles\s*:\s*/i, "Dates flexibles : ") : dayIso ? dateLong(dayIso) : null, guestsText(c.guests), c.budget_label || budgetRange(r.budget), vibes.length ? vibes.map((v, i) => (i ? v.toLowerCase() : v)).join(" ") : null].filter(Boolean);
+  // La date figure déjà dans le bandeau « libre / réservé » : seule une date flexible reste en pastille
+  const chips = [r.region, flexible ? r.dates[0].replace(/^Dates flexibles\s*:\s*/i, "Dates flexibles : ") : null, guestsText(c.guests), c.budget_label || budgetRange(r.budget), vibes.length ? vibes.map((v, i) => (i ? v.toLowerCase() : v)).join(" ") : null].filter(Boolean);
 
   return (
     <section aria-label={`Demande de ${r.names}`} className="p-dem-detail">
@@ -271,14 +270,14 @@ function Detail({ r, c, onBack }) {
             <input type="radio" name="devis" checked={mode === "pdf"} onChange={() => setMode("pdf")} />
             <span>
               <span className="p-radio-t">Joindre un devis</span>
-              <span className="p-radio-s">{file ? file.name : "Un PDF depuis votre ordinateur"}</span>
+              {file ? <span className="p-radio-s">{file.name}</span> : null}
             </span>
           </label>
           <label className={`p-radio${mode === "formules" ? " is-on" : ""}`}>
             <input type="radio" name="devis" checked={mode === "formules"} onChange={() => setMode("formules")} disabled={!formulas.length} />
             <span>
               <span className="p-radio-t">Créer un devis depuis mes formules</span>
-              <span className="p-radio-s">{formulas.length ? "Merry calcule le total" : "Ajoutez d’abord vos formules dans Tarifs"}</span>
+              {formulas.length ? null : <span className="p-radio-s">Ajoutez d’abord vos formules dans Calendrier &amp; Tarifs</span>}
             </span>
           </label>
         </div>
@@ -329,9 +328,6 @@ function Detail({ r, c, onBack }) {
             <span id="opt" className="p-hold-t">
               Poser une option sur cette date
             </span>
-            <span className="p-hold-s">
-              {dateLong(dayIso)}, pour {r.names}
-            </span>
           </span>
           <Switch on={hold} onChange={setHold} labelledBy="opt" />
         </div>
@@ -339,7 +335,7 @@ function Detail({ r, c, onBack }) {
       <div className="p-dem-send">
         <button type="button" className="p-btn p-btn-primary is-big" onClick={send} disabled={busy || (!text.trim() && !(mode === "pdf" && file))}>
           <ProIcon name="send" size={17} stroke="#ffffff" sw={2} />
-          Envoyer
+          {cost ? `Envoyer · ${cost} crédits` : "Envoyer"}
         </button>
       </div>
     </section>

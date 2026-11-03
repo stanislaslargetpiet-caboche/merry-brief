@@ -1,7 +1,7 @@
 "use client";
 
-// Compte (maquette V2e, Mon profil) : connexion (mail/mot de passe), collaborateurs, suppression
-// du compte. Sur le modèle de app/dashboard/reglages/page.js côté couple.
+// Compte (maquette V2e, Mon profil) : adresse mail de connexion, collaborateurs, suppression du compte.
+// Pas de mot de passe : l'espace prestataire se connecte uniquement par code reçu par mail.
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
@@ -16,17 +16,12 @@ export default function Compte() {
   const pro = usePro();
   const live = pro.mode === "live";
   const [email, setEmail] = useState(pro.data.user?.email || "");
-  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function save(e) {
     e.preventDefault();
-    if (password && password.length < 8) {
-      pro.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
-      return;
-    }
     setSaving(true);
     const notes = [];
     const cleanEmail = email.trim();
@@ -35,14 +30,6 @@ export default function Compte() {
       else {
         const { error } = await supabase.auth.updateUser({ email: cleanEmail });
         notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
-      }
-    }
-    if (password) {
-      if (!live) notes.push("en démo, le mot de passe ne change pas");
-      else {
-        const { error } = await supabase.auth.updateUser({ password });
-        notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
-        if (!error) setPassword("");
       }
     }
     setSaving(false);
@@ -61,7 +48,7 @@ export default function Compte() {
     const res = await fetch("/api/compte", { method: "DELETE", headers: { authorization: `Bearer ${s?.session?.access_token || ""}` } }).catch(() => null);
     if (!res?.ok) {
       setDeleting(false);
-      pro.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écris-nous à bonjour@withmerry.com." });
+      pro.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écrivez-nous à bonjour@withmerry.com." });
       return;
     }
     await supabase.auth.signOut();
@@ -78,9 +65,6 @@ export default function Compte() {
         <div className="d-form-grid">
           <Field label="Adresse mail">
             <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-          </Field>
-          <Field label="Nouveau mot de passe">
-            <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Laisser vide pour le garder" />
           </Field>
         </div>
         <div className="d-settings-actions">
@@ -103,7 +87,7 @@ export default function Compte() {
 
       {confirm ? (
         <Modal
-          title="Supprimer ton compte ?"
+          title="Supprimer votre compte ?"
           onClose={() => setConfirm(false)}
           footer={
             <>
@@ -116,7 +100,7 @@ export default function Compte() {
             </>
           }
         >
-          <p className="d-settings-warn">Irréversible : votre fiche et vos crédits sont perdus.</p>
+          <p className="d-settings-warn">Vous ne pourrez plus vous connecter à votre espace prestataire.</p>
         </Modal>
       ) : null}
     </div>
