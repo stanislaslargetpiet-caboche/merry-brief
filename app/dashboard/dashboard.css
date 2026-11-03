@@ -16927,3 +16927,24 @@ button.d-gcard-status.is-open svg {
   font-size: 13.5px;
   color: var(--d-muted);
 }
+
+/* Champs que l'invité remplit lui-même par le formulaire : en gris, étiquetés ; modifiables quand même */
+.d-frow.is-form .d-frow-label,
+.d-frow.is-form .d-frow-value {
+  color: var(--d-muted);
+}
+
+.d-frow.is-form .d-frow-value .d-inline {
+  color: var(--d-muted);
+}
+
+.d-frow.is-form .d-frow-label small {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.d-fiche-hint.is-top {
+  padding: 12px 0 4px;
+}

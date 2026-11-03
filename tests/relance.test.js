@@ -13,9 +13,9 @@ describe("relances : liens", () => {
     expect(mailHref(["a@x.fr", "b@x.fr"], "Objet", "Corps", { bcc: true })).toBe("mailto:?bcc=a%40x.fr%2Cb%40x.fr&subject=Objet&body=Corps");
     expect(mailHref([], "Objet", "Corps")).toBe("");
   });
-  it("ne relance que ceux qui n'ont pas répondu, sans leurs accompagnants", () => {
-    const guests = [{ id: "a" }, { id: "b", plus_one_of: "a" }, { id: "c" }];
-    const idx = new Map([["a", { e: "attente" }], ["b", { e: "attente" }], ["c", { e: "oui" }]]);
+  it("ne relance que ceux qui n'ont pas répondu et qu'on peut joindre, sans leurs accompagnants", () => {
+    const guests = [{ id: "a", email: "a@x.fr" }, { id: "b", plus_one_of: "a", email: "b@x.fr" }, { id: "c", phone: "06" }, { id: "d" }];
+    const idx = new Map([["a", { e: "attente" }], ["b", { e: "attente" }], ["c", { e: "oui" }], ["d", { e: "attente" }]]);
     expect(pendingGuests(guests, idx, [{ id: "e" }]).map((g) => g.id)).toEqual(["a"]);
   });
 });
