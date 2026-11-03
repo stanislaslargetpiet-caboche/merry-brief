@@ -1,4 +1,7 @@
 @font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.woff2) format("woff2"), url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
+/* Climate Crisis ne sert qu'au mot « Merry » (logo) : sous-ensemble de cinq lettres auto-hébergé (1,2 Ko),
+   plutôt que la feuille Google Fonts qui bloquait le rendu depuis une autre origine. */
+@font-face { font-family: "Climate Crisis"; src: url(/fonts/climate-crisis-merry.woff2) format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+004D, U+0065, U+0072, U+0079; }
 
 :root {
   --ink: #1c1c1a;

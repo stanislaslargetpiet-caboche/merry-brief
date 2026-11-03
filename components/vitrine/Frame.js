@@ -105,7 +105,7 @@ export default function Frame({ current, children }) {
         </nav>
         <div className="wv-right">
           <LangSwitch />
-          <a href={SIGNUP} className="wv-btn wv-btn-dark wv-btn-small">
+          <a href={SIGNUP} className="wv-btn wv-btn-dark wv-btn-small" data-track="header_organise">
             J'organise
           </a>
           <Dropdown
@@ -136,6 +136,19 @@ export default function Frame({ current, children }) {
         {children}
       </main>
       <SeoLinks />
+      {/* Téléphone : le bouton principal reste à portée de pouce tout au long de la page (masqué sur la page Prestataires) */}
+      {current !== "pro" && (
+        <aside className="wv-sticky" aria-label="Commencer">
+          <span>
+            <b>Gratuit pour les mariés.</b>
+            <br />
+            Dix minutes pour démarrer.
+          </span>
+          <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="sticky_organise">
+            J'organise
+          </a>
+        </aside>
+      )}
       <footer className="wv-foot">
         <div className="wv-stack" style={{ gap: 12 }}>
           <span className="wv-h2">Merry</span>
