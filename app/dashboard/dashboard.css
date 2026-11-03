@@ -16759,3 +16759,171 @@ button.d-gcard-status.is-open svg {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Fiche d'un invité (app/dashboard/invites/[id]) : une colonne, une liste
+   --------------------------------------------------------------------------- */
+.d-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 640px;
+}
+
+.d-fiche-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-fiche-head .d-title {
+  margin: 0;
+}
+
+.d-fiche-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13.5px;
+}
+
+.d-fiche-link {
+  color: var(--d-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--d-border);
+  text-underline-offset: 3px;
+}
+
+.d-fiche-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.d-fiche-block {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--d-line);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 2px 16px;
+}
+
+.d-fiche-hint {
+  margin: 0;
+  padding: 10px 0 12px;
+  font-size: 12.5px;
+  color: var(--d-muted);
+}
+
+.d-frow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+  padding: 8px 0;
+}
+
+.d-frow + .d-frow,
+.d-fiche-empties,
+.d-frow.is-note {
+  border-top: 1px solid var(--d-line);
+}
+
+.d-frow-label {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 92px;
+  font-size: 13.5px;
+  color: var(--d-muted);
+}
+
+.d-frow.is-moment .d-frow-label {
+  flex: 1 1 auto;
+  color: var(--d-ink);
+  font-weight: 500;
+  font-size: 14.5px;
+}
+
+.d-frow-label small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--d-muted);
+}
+
+.d-frow-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  text-align: right;
+  font-size: 15px;
+}
+
+.d-frow-value .d-inline {
+  max-width: 100%;
+  white-space: normal;
+  text-align: right;
+}
+
+.d-frow.is-empty .d-frow-label {
+  color: var(--d-muted);
+  opacity: 0.8;
+}
+
+.d-frow.is-empty .d-frow-value {
+  font-size: 14px;
+}
+
+.d-frow-action {
+  flex: none;
+  font-size: 13px;
+  color: var(--d-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--d-border);
+  text-underline-offset: 3px;
+}
+
+.d-frow.is-note {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 0 14px;
+}
+
+.d-frow.is-note .d-frow-label {
+  min-width: 0;
+}
+
+.d-frow.is-note .d-guest-note {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .d-fiche {
+    max-width: none;
+  }
+
+  .d-fiche-actions .d-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .d-fiche-block {
+    padding: 2px 14px;
+  }
+}
+
+.d-fiche-remove {
+  font-size: 13.5px;
+  color: var(--d-muted);
+}
