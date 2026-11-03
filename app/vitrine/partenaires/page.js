@@ -1,4 +1,5 @@
 import Frame, { Block } from "@/components/vitrine/Frame";
+import { formatProof, getProof } from "@/lib/vitrine/proof";
 import { DEMO, PRO, PRO_LOGIN } from "@/lib/vitrine/routes";
 import avantApres from "@/lib/vitrine/blocks/pro-avant-apres";
 import criteres from "@/lib/vitrine/blocks/pro-criteres";
@@ -37,10 +38,11 @@ const Cta = () => (
 );
 
 export default async function VitrinePrestataires() {
+  const proof = formatProof(await getProof());
   return (
     <Frame current="pro">
       <section className="wv-sec wv-center" aria-label="Prestataires" style={{ gap: 28 }}>
-        <h1 className="wv-h2" style={{ maxWidth: 1100 }}>
+        <h1 className="wv-h1" style={{ maxWidth: 1100 }}>
           Recevez beaucoup plus de demandes qualifiées.
         </h1>
         <form className="wv-find" action={FICHE} method="get">
@@ -53,7 +55,7 @@ export default async function VitrinePrestataires() {
           </button>
         </form>
         <p className="wv-find-note">
-          Près de 15 000 prestataires sont déjà référencés sur Merry (octobre 2026). Votre fiche existe peut-être déjà. Déjà inscrit ? <a href={PRO_LOGIN}>Connectez-vous</a>.
+          Plus de {proof.number} prestataires sont déjà référencés sur Merry ({proof.month}). Votre fiche existe peut-être déjà. Déjà inscrit ? <a href={PRO_LOGIN}>Connectez-vous</a>.
         </p>
         <Block html={avantApres} className="wv-media wv-media-wide" />
         <p className="wv-lead" style={{ maxWidth: 620 }}>
@@ -84,7 +86,9 @@ export default async function VitrinePrestataires() {
         </h2>
         <div className="wv-cmp" role="table">
           <div className="wv-cmp-row wv-cmp-head" role="row">
-            <span role="columnheader" />
+            <span role="columnheader">
+              <span className="wv-sr">Critère</span>
+            </span>
             <span role="columnheader">Annuaire payant</span>
             <span role="columnheader">Merry</span>
           </div>

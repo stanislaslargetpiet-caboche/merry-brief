@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import "@/app/onboarding.css";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";

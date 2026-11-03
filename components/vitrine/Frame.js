@@ -1,17 +1,13 @@
 // En-tête et pied de page du site vitrine (canvas « 9 - Site vitrine »)
 
-import { headers } from "next/headers";
-import { LOGIN, PRO_LOGIN, SIGNUP, linksFor } from "@/lib/vitrine/routes";
+import { LINKS, LOGIN, PRO_LOGIN, SIGNUP } from "@/lib/vitrine/routes";
 import LangSwitch from "./LangSwitch";
+import Dropdown from "./Dropdown";
 import { PUBLIC_URL, getStats, hasPage, hrefOf } from "@/lib/seo/data";
 import { FRANCE, regionZone } from "@/lib/seo/geo";
 import { tradeOf } from "@/lib/seo/trades";
 
-export async function getLinks() {
-  return linksFor((await headers()).get("host"));
-}
-
-// Bloc HTML/CSS animé repris tel quel du site (sans script)
+// Bloc HTML animé repris du site (sans script) ; ses styles sont dans app/vitrine/blocks.css
 export function Block({ html, className }) {
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
@@ -64,8 +60,8 @@ async function SeoLinks() {
   );
 }
 
-export default async function Frame({ current, children }) {
-  const links = await getLinks();
+export default function Frame({ current, children }) {
+  const links = LINKS;
   // Sur la page Prestataires, « Connexion » ouvre l'espace prestataire (adresse mail puis code)
   const login = current === "pro" ? PRO_LOGIN : LOGIN;
   const item = (key, href, label) => (
@@ -75,12 +71,16 @@ export default async function Frame({ current, children }) {
   );
   return (
     <div className="wv">
+      {/* Lien d'évitement : visible au clavier seulement, mène au contenu en sautant l'en-tête */}
+      <a href="#contenu" className="wv-skip">
+        Aller au contenu
+      </a>
       <header className="wv-head">
-        <a href={links.home} className="wv-logo">
+        <a href={links.home} className="wv-logo" aria-label="Merry, accueil">
           Merry
         </a>
-        <nav className="wv-nav" aria-label="Menu">
-          {item("home", links.home, "Home")}
+        <nav className="wv-nav" aria-label="Navigation principale">
+          {item("home", links.home, "Accueil")}
           {item("pro", links.pro, "Prestataires")}
           <a href={login}>Connexion</a>
         </nav>
@@ -89,23 +89,28 @@ export default async function Frame({ current, children }) {
           <a href={SIGNUP} className="wv-btn wv-btn-dark wv-btn-small">
             J'organise
           </a>
-          <details className="wv-menu">
-            <summary aria-label="Menu">
+          <Dropdown
+            className="wv-menu"
+            summaryLabel="Ouvrir le menu"
+            summary={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
-            </summary>
-            <nav className="wv-menu-list" aria-label="Menu">
-              <a href={links.home}>Home</a>
+            }
+          >
+            <nav className="wv-menu-list" aria-label="Menu mobile">
+              <a href={links.home}>Accueil</a>
               <a href={links.pro}>Prestataires</a>
               <a href={links.about}>À propos</a>
               <a href={login}>Connexion</a>
               <LangSwitch className="wv-lang-menu" />
             </nav>
-          </details>
+          </Dropdown>
         </div>
       </header>
-      {children}
+      <main id="contenu" tabIndex={-1}>
+        {children}
+      </main>
       <SeoLinks />
       <footer className="wv-foot">
         <div className="wv-stack" style={{ gap: 12 }}>

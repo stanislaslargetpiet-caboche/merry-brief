@@ -26,7 +26,11 @@ export function middleware(req) {
   if (host === "app.withmerry.com" && SEO_ONLY.test(pathname)) {
     return NextResponse.redirect(`https://www.withmerry.com${pathname}${search}`, 308);
   }
-  if (!VITRINE_HOSTS.includes(host)) return NextResponse.next();
+  if (!VITRINE_HOSTS.includes(host)) {
+    // Prévisualisation Vercel ou local : les liens du site (adresses publiques) mènent aux pages internes
+    const internal = pathname !== "/" && VITRINE_PAGES[pathname];
+    return internal ? NextResponse.rewrite(new URL(`${internal}${search}`, req.url)) : NextResponse.next();
+  }
   if (pathname === "/home") return NextResponse.redirect(new URL(`/${search}`, req.url), 308);
   const target = VITRINE_PAGES[pathname];
   if (target) return NextResponse.rewrite(new URL(`${target}${search}`, req.url));

@@ -4,6 +4,7 @@
 // (réglage de l'intégration Squarespace), d'où ce menu « Français ▾ » du canvas.
 
 import { useEffect, useRef, useState } from "react";
+import { useAutoClose } from "./Dropdown";
 
 const LANGS = [
   ["fr", "Français"],
@@ -13,12 +14,15 @@ const LANGS = [
 export default function LangSwitch({ className }) {
   const [lang, setLang] = useState("fr");
   const ref = useRef(null);
+  useAutoClose(ref);
 
   useEffect(() => {
     let stop = false;
+    let tries = 0;
     const sync = () => {
       const w = window.Weglot;
-      if (!w?.initialized) return stop || setTimeout(sync, 100);
+      // Weglot s'initialise après le chargement de son script ; on l'attend quelques secondes au plus
+      if (!w?.initialized) return stop || tries++ > 100 || setTimeout(sync, 100);
       setLang(w.getCurrentLang());
       w.on("languageChanged", (next) => setLang(next));
     };

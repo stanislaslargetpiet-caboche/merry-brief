@@ -1,9 +1,13 @@
 /* Système de design v2 (30 oct. 2026) : Alan Sans partout, Climate Crisis pour le seul logo, accent citron */
-@font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
+/* Alan Sans est déclarée une seule fois, dans app/globals.css (woff2, puis ttf en repli) : la redéclarer ici en ttf
+   faisait télécharger les deux fichiers et afficher le plus lourd. */
 /* Site vitrine withmerry.com : canvas « 9 - Site vitrine ». */
 
 .wv { min-height: 100dvh; background: #ffffff; color: #000000; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 500; -webkit-font-smoothing: antialiased; }
 .wv a { color: inherit; }
+.wv main:focus { outline: none; }
+.wv-skip { position: absolute; left: 16px; top: -100px; z-index: 30; padding: 12px 18px; border-radius: 999px; background: #000; color: #fff700; font-weight: 600; text-decoration: none; }
+.wv-skip:focus { top: 16px; }
 .wv button { font: inherit; }
 
 .wv-head { position: sticky; top: 0; z-index: 20; background: #ffffff; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 4vw; box-sizing: border-box; }
@@ -28,14 +32,14 @@
 .wv-lang-menu .wv-lang-list { position: static; min-width: 0; border: 0; padding: 0 0 0 8px; }
 
 .wv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 30px; border-radius: 300px; font-size: 16px; font-weight: 500; text-transform: uppercase; text-decoration: none; white-space: nowrap; box-sizing: border-box; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s; }
-.wv-btn:hover { transform: scaleX(0.94); }
+.wv-btn:hover { transform: scale(0.97); }
 .wv .wv-btn-lime { background: #fff700; color: #000000; }
 .wv .wv-btn-dark { background: #000000; color: #ffffff; }
 .wv-btn-line { border-color: currentColor; background: transparent; }
 .wv-btn-small { min-height: 44px; padding: 0 24px; font-size: 14px; }
 .wv-btns { display: flex; flex-wrap: wrap; gap: 12px; }
 
-.wv-h2 { margin: 0; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(30px, 3.72vw, 56px); line-height: 1.12; }
+.wv-h1, .wv-h2 { margin: 0; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(30px, 3.72vw, 56px); line-height: 1.12; }
 .wv-h3 { margin: 0; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(26px, 3vw, 46px); line-height: 1.15; }
 .wv-h4 { margin: 0; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(20px, 2.28vw, 32px); line-height: 1.2; }
 .wv-lead { margin: 0; font-size: clamp(17px, 2.04vw, 26px); line-height: 1.5; }
