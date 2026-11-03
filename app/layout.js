@@ -25,11 +25,7 @@ export default function RootLayout({ children }) {
         {/* Sans ça, Alan Sans n'est découverte qu'après le CSS : un texte en police de repli
             s'affiche puis « saute » visiblement au chargement de la police. */}
         <link rel="preload" href="/fonts/alan-sans.woff2" as="font" type="font/woff2" crossOrigin="" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Climate Crisis ne sert qu'au logo ; les sites de mariage chargent leurs propres polices (lib/site/model.js) */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font -- mise en page racine de l'App Router : charge pour toutes les pages */}
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Climate+Crisis&display=swap" />
+        {/* Climate Crisis (logo) est auto-hébergée (globals.css) ; les sites de mariage chargent leurs propres polices (lib/site/model.js) */}
       </head>
       <body>
         <PostHogProvider>

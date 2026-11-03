@@ -1,8 +1,16 @@
+import Image from "next/image";
 import Frame, { Block } from "@/components/vitrine/Frame";
 import { LINKS, SIGNUP } from "@/lib/vitrine/routes";
 import { formatProof, getProof } from "@/lib/vitrine/proof";
 import proposition from "@/lib/vitrine/blocks/proposition";
 import carrousel from "@/lib/vitrine/blocks/carrousel";
+
+// Trois étapes, chacune avec un écran du tableau de bord (public/vitrine/etapes, captures 1800 × 1350)
+const STEPS = [
+  ["brief", "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
+  ["prestataires", "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
+  ["pilotage", "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
+];
 
 const FAQ = [
   ["Merry, c’est fait pour quel genre de mariage ?", "Civil, religieux, petit comité ou grand mariage : Merry s’adapte à la taille et au style de ta fête."],
@@ -35,10 +43,10 @@ export default async function VitrineAccueil() {
             Merry : l’assistant qui <b>simplifie</b> l’organisation de ton mariage de A à Z.
           </p>
           <div className="wv-cta">
-            <a href={SIGNUP} className="wv-btn wv-btn-dark">
+            <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="hero_organise">
               J'organise
             </a>
-            <a href={links.pro} className="wv-textlink">
+            <a href={links.pro} className="wv-textlink" data-track="hero_prestataire">
               Je suis prestataire →
             </a>
           </div>
@@ -49,6 +57,36 @@ export default async function VitrineAccueil() {
         <Block html={proposition} className="wv-hero-media" />
       </section>
 
+      <section className="wv-how" aria-labelledby="wv-how-t">
+        <div className="wv-center" style={{ gap: 12 }}>
+          <p className="wv-eyebrow" style={{ alignSelf: "center" }}>
+            Comment ça marche
+          </p>
+          <h2 id="wv-how-t" className="wv-h3" style={{ maxWidth: 800 }}>
+            Dix minutes de questions, et ton mariage a un tableau de bord.
+          </h2>
+        </div>
+        <ol className="wv-how-g">
+          {STEPS.map(([img, title, text], i) => (
+            <li key={img} className="wv-how-card">
+              <div className="wv-how-shot">
+                <Image src={`/vitrine/etapes/${img}.webp`} alt="" width={1800} height={1350} sizes="(max-width: 760px) 92vw, 30vw" loading={i === 0 ? "eager" : "lazy"} />
+              </div>
+              <span className="wv-how-n" aria-hidden="true">
+                {i + 1}
+              </span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="wv-btns" style={{ justifyContent: "center", marginTop: 40 }}>
+          <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="how_organise">
+            J'organise
+          </a>
+        </div>
+      </section>
+
       <section className="wv-sec wv-lime wv-center" aria-label="Fonctionnalités">
         <h2 className="wv-h3" style={{ maxWidth: 900 }}>
           Gagnez du temps sur votre mariage.
@@ -57,15 +95,15 @@ export default async function VitrineAccueil() {
       </section>
 
       <section className="wv-sec wv-split" aria-label="Modèle">
-        <img src="/vitrine/gratuit.webp" alt="" className="wv-photo" width={1600} height={1061} loading="lazy" decoding="async" />
+        <Image src="/vitrine/gratuit.webp" alt="" className="wv-photo" width={1600} height={1061} sizes="(max-width: 760px) 100vw, 46vw" />
         <div className="wv-stack" style={{ gap: 24 }}>
           <h2 className="wv-h3">Tu ne paies rien (oui).</h2>
           <p className="wv-p">Merry est 100 % gratuite pour les organisateurs (pas 99 %). Tes demandes de devis (budget, lieu, questions…) arrivent chez les prestataires. Ils utilisent des crédits pour y répondre.</p>
           <div className="wv-btns">
-            <a href={SIGNUP} className="wv-btn wv-btn-dark">
+            <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="gratuit_organise">
               J'organise
             </a>
-            <a href={links.pro} className="wv-btn wv-btn-line">
+            <a href={links.pro} className="wv-btn wv-btn-line" data-track="gratuit_modele">
               Modèle
             </a>
           </div>
@@ -86,7 +124,7 @@ export default async function VitrineAccueil() {
             ))}
           </div>
         </div>
-        <img src="/vitrine/faq.webp" alt="" className="wv-photo" style={{ minHeight: 640 }} width={1400} height={1953} loading="lazy" decoding="async" />
+        <Image src="/vitrine/faq.webp" alt="" className="wv-photo" style={{ minHeight: 640 }} width={1400} height={1953} sizes="(max-width: 760px) 0px, 34vw" />
       </section>
 
       <section className="wv-guest" aria-label="Invités">
@@ -96,7 +134,7 @@ export default async function VitrineAccueil() {
           ))}
         </div>
         <p>Lucky you ! Tu as juste à entrer les prénoms de ceux qui organisent et la date, ou le code de ton invitation, et tu retrouves la page de la fête, la cagnotte ou la liste de cadeaux, avec toutes les infos pratiques.</p>
-        <a href={links.guests} className="wv-btn wv-btn-lime">
+        <a href={links.guests} className="wv-btn wv-btn-lime" data-track="invite">
           Je suis invité !
         </a>
       </section>

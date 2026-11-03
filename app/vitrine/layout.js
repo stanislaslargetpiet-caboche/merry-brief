@@ -1,5 +1,6 @@
 import { SHARE_IMAGE } from "@/lib/site";
 import Weglot from "@/components/vitrine/Weglot";
+import Track from "@/components/vitrine/Track";
 import "./vitrine.css";
 import "./blocks.css";
 
@@ -35,6 +36,7 @@ export default function VitrineLayout({ children }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION) }} />
       {children}
       <Weglot />
+      <Track />
     </>
   );
 }
