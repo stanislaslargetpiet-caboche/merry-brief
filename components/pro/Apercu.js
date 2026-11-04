@@ -61,7 +61,7 @@ export default function Apercu({ onClose }) {
         <div className="p-apercu-col is-card">
           <span className="p-apercu-label">Dans les résultats</span>
           <VendorCard v={v} picked={false} onToggle={() => {}} onOpen={() => {}} />
-          <p className="p-apercu-note">Exemple de carte dans les résultats d’un couple. « Pourquoi ce lieu » reprend la première phrase de votre présentation.</p>
+          <p className="p-apercu-note">Exemple de carte dans les résultats d’un couple. « {v.category === "lieu" ? "Pourquoi ce lieu" : "Pourquoi ce prestataire"} » reprend la première phrase de votre présentation.</p>
         </div>
         <div className="p-apercu-col">
           <span className="p-apercu-label">Quand un couple ouvre votre fiche</span>
