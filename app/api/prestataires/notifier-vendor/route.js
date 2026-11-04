@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
 import { mailShell } from "@/lib/server/mailShell";
+import { displayName } from "@/lib/server/names";
 
 export const runtime = "nodejs";
 
@@ -71,7 +72,7 @@ export async function POST(req) {
   if (!recipients.size) return Response.json({ error: "no_email" }, { status: 422 });
 
   const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", vendor.wedding_id).maybeSingle();
-  const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ") || "Un couple";
+  const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).map(displayName).join(" et ") || "Un couple";
   const initials = [wedding?.partner1, wedding?.partner2].map((n) => String(n || "").trim()[0] || "").join("").toUpperCase() || "M";
 
   // Le texte du mail vient du couple et l'adresse de sa fiche prestataire : 40 mails par jour et par

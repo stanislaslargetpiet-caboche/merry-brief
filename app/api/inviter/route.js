@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
 import { mailShell } from "@/lib/server/mailShell";
+import { displayName } from "@/lib/server/names";
 
 export const runtime = "nodejs";
 
@@ -45,11 +46,11 @@ export async function POST(req) {
   if (!EMAIL_RE.test(to)) return Response.json({ error: "no_email" }, { status: 422 });
 
   const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", member.wedding_id).maybeSingle();
-  const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ") || "nos proches";
+  const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).map(displayName).join(" et ") || "nos proches";
 
   // Signature : le prénom de l'organisateur qui envoie l'invitation
   const { data: me } = await sb.from("wedding_members").select("display_name").eq("wedding_id", member.wedding_id).eq("user_id", user.user.id).maybeSingle();
-  const sender = String(me?.display_name || user.user.user_metadata?.first_name || "").trim();
+  const sender = displayName(me?.display_name || user.user.user_metadata?.first_name);
 
   // 20 invitations par jour et par personne : de quoi inviter toute une équipe, pas de quoi spammer
   if (!(await allowUser(sb, "invite_mail", 20, 86400))) return Response.json({ error: "quota" }, { status: 429 });

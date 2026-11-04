@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
 import { mailShell } from "@/lib/server/mailShell";
+import { displayName } from "@/lib/server/names";
 
 export const runtime = "nodejs";
 
@@ -37,10 +38,10 @@ export async function POST(req) {
   let couple = "";
   if (member?.wedding_id) {
     const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", member.wedding_id).maybeSingle();
-    couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ");
+    couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).map(displayName).join(" et ");
   }
   const meta = user.user.user_metadata || {};
-  const greeting = couple || [meta.first_name, meta.partner_first_name].map((n) => String(n || "").trim()).filter(Boolean).join(" et ");
+  const greeting = couple || [meta.first_name, meta.partner_first_name].map(displayName).filter(Boolean).join(" et ");
 
   const link = `${publicOrigin(req)}/dashboard`;
   const subject = "Bienvenue sur Merry !";
