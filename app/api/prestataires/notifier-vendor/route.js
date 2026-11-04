@@ -69,7 +69,7 @@ export async function POST(req) {
   if (!(await allowUser(sb, "vendor_mail", 40, 86400))) return Response.json({ error: "quota" }, { status: 429 });
 
   // Deux prénoms : « vous ont écrit » ; le message du couple commence déjà par « Bonjour », on ne le redouble pas
-  const verb = wedding?.partner1 && wedding?.partner2 ? "vous ont écrit" : "vous a écrit";
+  const verb = wedding?.partner1 && wedding?.partner2 ? "t'ont écrit" : "t'a écrit";
   const subject = isRequest ? `${couple} ${verb}` : `${couple} ${verb} sur Merry`;
   const plainParts = [message || `${couple} ${verb} sur Merry.`];
   const [firstDate, ...otherDates] = dates;
@@ -136,7 +136,7 @@ ${tilesBlock}
 
   const footerBlock = (unsubscribe) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px;font-size:12px;color:#9c9a90">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Vous recevez ce mail car votre établissement est référencé sur Merry.</td>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Tu reçois ce mail car ton établissement est référencé sur Merry.</td>
 <td align="right" valign="top"><a href="${esc(unsubscribe)}" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Se désinscrire</a></td>
 </tr></table>
 </td></tr></table>`;

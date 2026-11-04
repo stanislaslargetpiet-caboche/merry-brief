@@ -55,7 +55,7 @@ export async function POST(req) {
   const initials = [wedding?.partner1, wedding?.partner2].map((n) => String(n || "").trim()[0] || "").join("").toUpperCase() || "M";
 
   const subject = sender ? `${sender} t'invite à rejoindre Merry` : "Tu es invité(e) à rejoindre Merry";
-  const text = `${sender ? `${sender} t'invite` : "Tu es invité(e)"} à rejoindre l'équipe qui organise le mariage de ${couple} sur Merry.\n\nEnsemble, vous pourrez gérer les invités, le budget, les prestataires et le rétroplanning — c'est gratuit, du début à la fin.\n\n${link}`;
+  const text = `${sender ? `${sender} t'invite` : "Tu es invité(e)"} à rejoindre l'équipe qui organise le mariage de ${couple} sur Merry.\n\nTu pourras y gérer les invités, le budget, les prestataires et le rétroplanning, et c'est gratuit du début à la fin.\n\n${link}`;
 
   // Reprend à l'identique la planche V23 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
@@ -84,7 +84,7 @@ export async function POST(req) {
 ${logoBlock}
 ${titleBlock}
 ${memberCard}
-<p style="margin:20px 0 0;font-size:15px;line-height:1.6">${sender ? esc(sender) : "On"} t'invite à rejoindre l'équipe qui organise le mariage de ${esc(couple)} sur Merry. Ensemble, vous pourrez gérer les invités, le budget, les prestataires et le rétroplanning — c'est gratuit, du début à la fin.</p>
+<p style="margin:20px 0 0;font-size:15px;line-height:1.6">${sender ? esc(sender) : "On"} t'invite à rejoindre l'équipe qui organise le mariage de ${esc(couple)} sur Merry. Tu pourras y gérer les invités, le budget, les prestataires et le rétroplanning, et c'est gratuit du début à la fin.</p>
 ${ctaBlock}
 <p style="margin:20px 0 0;font-size:13px;color:#9c9a90">Ce lien d'invitation est personnel et à usage unique.</p>
 ${footerBlock}

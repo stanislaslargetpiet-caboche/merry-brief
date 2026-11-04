@@ -40,13 +40,13 @@ export async function POST(req) {
 
   const link = `${publicOrigin(req)}/dashboard`;
   const subject = "Bienvenue sur Merry !";
-  const text = `Bienvenue sur Merry${greeting ? `, ${greeting}` : ""} !\n\nVotre tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.\n\n${link}`;
+  const text = `Bienvenue sur Merry${greeting ? `, ${greeting}` : ""} !\n\nTon tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.\n\n${link}`;
 
   // Reprend à l'identique la planche V22 du canvas (page « 7 - mails ») : logo, titre, tuiles,
   // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
 
   const titleBlock = `<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a;text-align:center">Bienvenue sur Merry${greeting ? `, ${esc(greeting)}` : ""}&nbsp;!</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.6;text-align:center;color:#1c1c1a">Votre tableau de bord est prêt. Invités, budget, prestataires, rétroplanning&nbsp;: tout est là, et c'est gratuit du début à la fin.</p>`;
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;text-align:center;color:#1c1c1a">Ton tableau de bord est prêt. Invités, budget, prestataires, rétroplanning&nbsp;: tout est là, et c'est gratuit du début à la fin.</p>`;
 
   const tile = (label) =>
     `<td width="33%" style="padding:0 4px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #ecebe6;border-radius:12px;border-collapse:separate"><tr><td align="center" style="padding:16px 6px;font-size:13px;font-weight:600;color:#1c1c1a">${label}</td></tr></table></td>`;
@@ -58,11 +58,11 @@ export async function POST(req) {
 
   const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Vous recevez ce mail car vous venez de créer votre mariage sur Merry.</td>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Tu reçois ce mail car tu viens de créer ton mariage sur Merry.</td>
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = "Votre tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.";
+  const preheader = "Ton tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.";
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}

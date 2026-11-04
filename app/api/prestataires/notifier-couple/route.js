@@ -62,7 +62,7 @@ export async function POST(req) {
   const excerpt = full.length > 280 ? `${full.slice(0, 280).trimEnd()}…` : full;
 
   // Proposition depuis « Projets » : le prestataire écrit en premier, il ne « répond » à personne
-  const verb = body.kind === "proposition" ? "vous a écrit" : "vous a répondu";
+  const verb = body.kind === "proposition" ? "t'a écrit" : "t'a répondu";
   const subject = `${vendorName} ${verb}`;
   // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
   const text = `Bonjour,\n\n${vendorName} ${verb} sur Merry.${excerpt ? `\n\n« ${excerpt} »` : ""}\n\nLire le message : ${link}`;
@@ -98,16 +98,16 @@ ${excerptBox}
 <a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Répondre à ${esc(vendorName)}</a>
 </td></tr></table>`;
 
-  const securityBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;background:#f6f5f1;border-radius:12px;border-collapse:separate"><tr><td style="padding:14px 16px;font-size:13px;line-height:1.5;color:#6b6a63">Pour votre sécurité, échangez et réglez toujours vos prestataires depuis Merry. N'envoyez jamais d'argent ou de coordonnées bancaires en dehors de la plateforme.</td></tr></table>`;
+  const securityBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;background:#f6f5f1;border-radius:12px;border-collapse:separate"><tr><td style="padding:14px 16px;font-size:13px;line-height:1.5;color:#6b6a63">Pour ta sécurité, échange avec tes prestataires et règle-les toujours depuis Merry. N'envoie jamais d'argent ou de coordonnées bancaires en dehors de la plateforme.</td></tr></table>`;
 
   const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Un message de votre tableau de bord Mariage.</td>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Un message de ton tableau de bord Mariage.</td>
 <td align="right" valign="top"><a href="${esc(publicOrigin(req))}/dashboard/reglages" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Gérer mes notifications</a></td>
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = excerpt.slice(0, 140) || `Lisez le message de ${vendorName} et répondez directement depuis Merry.`;
+  const preheader = excerpt.slice(0, 140) || `Lis le message de ${vendorName} et réponds directement depuis Merry.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}

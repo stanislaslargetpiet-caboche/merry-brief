@@ -41,7 +41,7 @@ export async function POST(req) {
   if (!EMAIL_RE.test(to)) return Response.json({ error: "no_email" }, { status: 422 });
 
   const { data: vendor } = await sb.schema("catalog").from("vendors").select("name").eq("id", member.vendor_id).maybeSingle();
-  const vendorName = vendor?.name || "votre établissement";
+  const vendorName = vendor?.name || "ton établissement";
 
   if (!(await allowUser(sb, "invite_mail", 20, 86400))) return Response.json({ error: "quota" }, { status: 429 });
   const link = `${publicOrigin(req)}/pro?invitation=${member.invite_token}`;
@@ -55,13 +55,13 @@ export async function POST(req) {
       .slice(0, 2)
       .toUpperCase() || "M";
 
-  const subject = `Rejoignez ${vendorName} sur Merry`;
-  const text = `Vous avez été invité à rejoindre l'équipe ${vendorName} sur Merry.\n\nVous pourrez consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.\n\n${link}`;
+  const subject = `Rejoins ${vendorName} sur Merry`;
+  const text = `On t'invite à rejoindre l'équipe ${vendorName} sur Merry.\n\nTu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.\n\n${link}`;
 
   // Reprend à l'identique la planche V28 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
 
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">Rejoignez ${esc(vendorName)} sur Merry.</h1>`;
+  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">Rejoins ${esc(vendorName)} sur Merry.</h1>`;
 
   const memberCard = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
@@ -76,16 +76,16 @@ export async function POST(req) {
 
   const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Vous recevez ce mail car vous avez été invité à rejoindre ${esc(vendorName)} sur Merry.</td>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Tu reçois ce mail car on t'a invité à rejoindre ${esc(vendorName)} sur Merry.</td>
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = `Vous pourrez consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.`;
+  const preheader = `Tu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${memberCard}
-<p style="margin:20px 0 0;font-size:15px;line-height:1.6">Vous pourrez consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${esc(vendorName)} sur Merry.</p>
+<p style="margin:20px 0 0;font-size:15px;line-height:1.6">Tu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${esc(vendorName)} sur Merry.</p>
 ${ctaBlock}
 <p style="margin:20px 0 0;font-size:13px;color:#9c9a90">Ce lien d'invitation est personnel et à usage unique.</p>
 ${footerBlock}

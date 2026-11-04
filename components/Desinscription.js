@@ -57,14 +57,14 @@ export default function Desinscription() {
         <>
           <h1>Ce lien n’est plus valide.</h1>
           <p className="unsub-text">
-            Écrivez-nous à <a href="mailto:bonjour@withmerry.com">bonjour@withmerry.com</a>, nous retirerons votre adresse.
+            Écris-nous à <a href="mailto:bonjour@withmerry.com">bonjour@withmerry.com</a>, nous retirerons ton adresse.
           </p>
         </>
       ) : null}
       {state.status === "ready" && !state.out ? (
         <>
           <h1>Ne plus recevoir ces mails&nbsp;?</h1>
-          <p className="unsub-text">Vous ne recevrez plus de mail quand un couple vous écrit sur Merry. Ses messages resteront dans votre espace prestataire.</p>
+          <p className="unsub-text">Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.</p>
           <div className="unsub-mail">{state.email}</div>
           <button type="button" className="unsub-btn" disabled={busy} onClick={() => change("desinscrire")}>
             Me désinscrire
@@ -78,13 +78,13 @@ export default function Desinscription() {
             <path d="M8 12l3 3 5-6" fill="none" stroke="#1f6b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h1 className="is-done">C’est noté.</h1>
-          <p className="unsub-text">{state.email} ne recevra plus ces mails. Ses messages restent dans votre espace prestataire.</p>
+          <p className="unsub-text">{state.email} ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.</p>
           <button type="button" className="unsub-btn is-ghost" disabled={busy} onClick={() => change("reabonner")}>
             Me réabonner
           </button>
         </>
       ) : null}
-      {state.failed ? <p className="unsub-text is-error">Ça n’a pas fonctionné. Réessayez dans un instant.</p> : null}
+      {state.failed ? <p className="unsub-text is-error">Ça n’a pas fonctionné. Réessaie dans un instant.</p> : null}
     </main>
   );
 }

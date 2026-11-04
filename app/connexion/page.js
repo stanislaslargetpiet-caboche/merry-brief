@@ -4,7 +4,7 @@ import Link from "next/link";
 import "@/app/onboarding.css";
 
 import { useEffect, useState } from "react";
-import { supabase, sendWelcomeMail } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail, sendWelcomeMail } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { INVITE_KEY, RESET_KEY } from "@/lib/dash/store";
 import { useLang } from "@/lib/lang";
@@ -210,6 +210,7 @@ export default function Connexion() {
         if (password.length < 8) throw new Error(s.errors.passwordTooShort);
         const { error: err } = await supabase.auth.updateUser({ password });
         if (err) throw new Error(/same|different/i.test(err.message || "") ? s.errors.samePassword : s.errors.resetExpired);
+        sendPasswordChangedMail();
         try {
           window.localStorage.removeItem(RESET_KEY);
         } catch {

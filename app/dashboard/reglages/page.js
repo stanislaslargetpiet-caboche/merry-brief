@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
-import { supabase } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import MailPrefs from "@/components/MailPrefs";
@@ -54,7 +54,10 @@ export default function Reglages() {
       else {
         const { error } = await supabase.auth.updateUser({ password });
         notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
-        if (!error) setPassword("");
+        if (!error) {
+          setPassword("");
+          sendPasswordChangedMail();
+        }
       }
     }
     setSaving(false);

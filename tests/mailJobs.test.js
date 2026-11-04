@@ -54,7 +54,7 @@ describe("runMailJobs", () => {
     await runMailJobs(admin, "https://app.withmerry.com");
     await runMailJobs(admin, "https://app.withmerry.com");
     expect(sent).toHaveLength(1);
-    expect(sent[0].subject).toBe("Emma et Lucas attendent votre réponse");
+    expect(sent[0].subject).toBe("Emma et Lucas attendent ta réponse");
     expect(sent[0].html).toContain("/desinscription?");
   });
 
@@ -72,12 +72,12 @@ describe("runMailJobs", () => {
 
   it("annonce une option et la date en clair", async () => {
     await runMailJobs(fakeAdmin({ merry_job_options: [{ date_id: "d1", vendor_id: "v1", day: "2027-06-14", expires_on: inDays(1), names: "Emma et Lucas", emails: ["a@b.fr"] }] }), "https://x.fr");
-    expect(sent[0].subject).toBe("Votre option du 14 juin expire demain");
+    expect(sent[0].subject).toBe("Ton option du 14 juin expire demain");
   });
 
   it("parle de crédits, y compris à zéro", async () => {
     await runMailJobs(fakeAdmin({ merry_job_credits: [{ vendor_id: "v1", credits: 0, cost: 25, emails: ["a@b.fr"] }] }), "https://x.fr");
-    expect(sent[0].subject).toBe("Vous n'avez plus de crédits");
+    expect(sent[0].subject).toBe("Tu n'as plus de crédits");
     expect(sent[0].text).toContain("25 crédits");
     expect(sent[0].text).not.toContain("€");
   });
@@ -88,7 +88,7 @@ describe("runMailJobs", () => {
       { wedding_id: "w1", first_name: "Paul", last_name: "Renard", comes: false },
     ] }), "https://x.fr");
     expect(sent).toHaveLength(1);
-    expect(sent[0].subject).toBe("2 nouvelles réponses à votre formulaire");
+    expect(sent[0].subject).toBe("2 nouvelles réponses à ton formulaire");
     expect(sent[0].text).toContain("Camille Martin : Vient");
   });
 

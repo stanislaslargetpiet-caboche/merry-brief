@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
-import { supabase } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
 import { Pills, ProSubnav } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
@@ -66,7 +66,10 @@ export default function Compte() {
         const { error } = await supabase.auth.updateUser({ password: cleanPassword, data: { merry_password: true } });
         failed = failed || !!error;
         notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
-        if (!error) setPassword("");
+        if (!error) {
+          setPassword("");
+          sendPasswordChangedMail();
+        }
       }
     }
     setSaving(false);

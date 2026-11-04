@@ -54,6 +54,6 @@ describe("notifier-couple", () => {
   it("part quand même sans la fonction SQL", async () => {
     details = { data: null, error: { message: "absente" } };
     expect(await (await call()).json()).toEqual({ ok: true, sent: 1 });
-    expect(sent[0].html).toContain("Le Mas vous a répondu.");
+    expect(sent[0].html).toContain("Le Mas t'a répondu.");
   });
 });

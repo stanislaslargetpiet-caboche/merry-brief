@@ -63,14 +63,14 @@ export async function POST(req) {
       .slice(0, 2)
       .toUpperCase() || "M";
 
-  const subject = `${newMemberName} a rejoint votre mariage sur Merry`;
+  const subject = `${newMemberName} a rejoint ton mariage sur Merry`;
   // Le mail part à toute l'équipe, pas seulement à la personne qui a invité : pas de « votre invitation »
-  const text = `${newMemberName} fait maintenant partie de l'équipe qui organise votre mariage.\n\nVoir mes organisateurs : ${link}`;
+  const text = `${newMemberName} fait maintenant partie de l'équipe qui organise ton mariage.\n\nVoir mes organisateurs : ${link}`;
 
   // Reprend à l'identique la planche V26 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page.
 
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(newMemberName)} a rejoint votre mariage.</h1>`;
+  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(newMemberName)} a rejoint ton mariage.</h1>`;
 
   const memberCard = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
@@ -85,17 +85,17 @@ export async function POST(req) {
 
   const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Vous recevez ce mail car vous organisez ce mariage sur Merry.</td>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Tu reçois ce mail car tu organises ce mariage sur Merry.</td>
 <td align="right" valign="top"><a href="${esc(publicOrigin(req))}/dashboard/reglages" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Gérer mes notifications</a></td>
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = `${newMemberName} fait maintenant partie de l'équipe qui organise votre mariage.`;
+  const preheader = `${newMemberName} fait maintenant partie de l'équipe qui organise ton mariage.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${memberCard}
-<p style="margin:20px 0 0;font-size:15px;line-height:1.6">${esc(newMemberName)} fait maintenant partie de l'équipe et peut consulter et modifier votre tableau de bord Merry&nbsp;: invités, budget, prestataires, rétroplanning.</p>
+<p style="margin:20px 0 0;font-size:15px;line-height:1.6">${esc(newMemberName)} fait maintenant partie de l'équipe et peut consulter et modifier ton tableau de bord Merry&nbsp;: invités, budget, prestataires, rétroplanning.</p>
 ${ctaBlock}
 ${footerBlock}
 </div>`;

@@ -26,10 +26,10 @@ export async function DELETE(req) {
   if (delErr) return Response.json({ error: "echec" }, { status: 500 });
   // La suppression est faite : le mail de confirmation ne peut plus la faire échouer
   if (process.env.RESEND_API_KEY && data.user.email) {
-    const subject = "Votre compte Merry est supprimé";
-    const paras = [...(count ? ["Le mariage et ses données restent accessibles aux autres organisateurs."] : []), "Si cette suppression ne vient pas de vous, répondez à ce mail."];
-    const body = renderMail({ title: `${subject}.`, paras, why: "Vous recevez ce mail pour confirmer la suppression de votre compte." });
-    await sendMail({ to: data.user.email, subject, text: [`${subject}.`, ...paras].join("\n\n"), html: mailShell({ title: subject, preheader: "Votre compte a bien été supprimé.", body }), label: "compte supprimé" }).catch(() => {});
+    const subject = "Ton compte Merry est supprimé";
+    const paras = [...(count ? ["Le mariage et ses données restent accessibles aux autres organisateurs."] : []), "Si cette suppression ne vient pas de toi, réponds à ce mail."];
+    const body = renderMail({ title: `${subject}.`, paras, why: "Tu reçois ce mail pour confirmer la suppression de ton compte." });
+    await sendMail({ to: data.user.email, subject, text: [`${subject}.`, ...paras].join("\n\n"), html: mailShell({ title: subject, preheader: "Ton compte a bien été supprimé.", body }), label: "compte supprimé" }).catch(() => {});
   }
   return Response.json({ ok: true });
 }
