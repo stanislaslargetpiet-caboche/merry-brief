@@ -55,4 +55,18 @@ end $$;
 update public.pro_unlocks set proposed_at = now() - interval '1 hour' where vendor_id = '22222222-2222-2222-2222-222222222222';
 select (public.pro_propose('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Une heure plus tard.') is not null) as proposed_again;
 select count(*) as fiches_chez_le_couple_toujours from public.vendors where wedding_id = '11111111-1111-1111-1111-111111111111' and name = 'Domaine Pro';
+-- Changer de catégorie reclasse la fiche et son unité de prix
+update catalog.vendors set primary_category = 'lieu', categories = array['lieu'], price_unit = 'location' where id = '22222222-2222-2222-2222-222222222222';
+select public.pro_set_category('22222222-2222-2222-2222-222222222222', 'traiteur');
+do $$ begin
+  if not exists (select 1 from catalog.vendors where id = '22222222-2222-2222-2222-222222222222' and primary_category = 'traiteur' and categories = array['traiteur'] and price_unit = 'forfait') then
+    raise exception 'category change did not apply';
+  end if;
+end $$;
+select public.pro_set_category('22222222-2222-2222-2222-222222222222', 'lieu');
+do $$ begin
+  if not exists (select 1 from catalog.vendors where id = '22222222-2222-2222-2222-222222222222' and primary_category = 'lieu' and price_unit = 'location') then
+    raise exception 'category change back did not apply';
+  end if;
+end $$;
 rollback;
