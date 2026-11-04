@@ -51,7 +51,7 @@ const CATEGORIES = [
   ["transport", "Transport"],
   ["officiant", "Officiant de cérémonie"],
 ];
-const EMPTY_FORM = { name: "", category: "lieu", address: "", postal_code: "", city: "", email: "", phone: "", siret: "" };
+const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const CREATE_FLOW = ["name", "address", "contact", "code"];
@@ -345,6 +345,10 @@ export default function Claim() {
   function nextFromName() {
     if (form.name.trim().length < 2) {
       setError("Indiquez le nom de votre établissement.");
+      return;
+    }
+    if (!form.category) {
+      setError("Choisissez votre activité.");
       return;
     }
     setError("");
