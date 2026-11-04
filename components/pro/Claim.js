@@ -138,6 +138,8 @@ export default function Claim() {
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [invite, setInvite] = useState(null); // { token, vendor_name, email_hint } : lien d'invitation
+  const [invitePassword, setInvitePassword] = useState("");
+  const [invitePassword2, setInvitePassword2] = useState("");
   const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
   const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
   const [pendingSession, setPendingSession] = useState(null); // posée au clic sur Bienvenue
@@ -414,7 +416,23 @@ export default function Claim() {
   // Invitation : déjà connecté, le compte rejoint l'équipe tout de suite ; sinon un code part à l'adresse invitée
   async function joinTeam() {
     setError("");
+    if (!signedIn && screen === "invite") {
+      if (invitePassword.length < 8) {
+        setError(PASSWORD_HINT);
+        return;
+      }
+      if (invitePassword !== invitePassword2) {
+        setError("Les deux mots de passe ne sont pas identiques.");
+        return;
+      }
+    }
     if (demo) {
+      if (!signedIn && screen === "invite") {
+        setScreen("invite-code");
+        setSent(true);
+        armResend();
+        return;
+      }
       window.location.assign("/pro?demo=1");
       return;
     }
@@ -549,7 +567,7 @@ export default function Claim() {
     setBusy(true);
     setError("");
     if (invite) {
-      const res = demo ? { ok: true } : await call({ action: "verify", token: invite.token, code: c }, "/api/pro/invitation");
+      const res = demo ? { ok: true } : await call({ action: "verify", token: invite.token, code: c, password: invitePassword }, "/api/pro/invitation");
       if (!res.ok) {
         setBusy(false);
         setError(ERRORS[res.error] || ERRORS.bad_code);
@@ -675,19 +693,26 @@ export default function Claim() {
   if (preparing === "create") {
     return (
       <Preparation
-        tags={[form.name.trim(), categoryLabel, form.city.trim(), "100 crédits offerts"].filter(Boolean)}
-        results={["Fiche en ligne créée", "100 crédits offerts", "Prête à recevoir des demandes"]}
-        lines={["On enregistre votre établissement…", "On prépare votre fiche en ligne…", "On vous met en relation avec des couples…"]}
+        steps={[
+          { label: "Fiche créée", detail: [form.name.trim(), categoryLabel, form.city.trim()].filter(Boolean).join(" · ") },
+          { label: "Adresse placée sur la carte", detail: [form.address.trim(), form.postal_code.trim(), form.city.trim()].filter(Boolean).join(" ") },
+          { label: "Tableau de bord prêt", detail: "100 crédits offerts" },
+        ]}
+        line="On prépare votre espace…"
         onDone={finishPreparing}
       />
     );
   }
   if (preparing === "claim") {
+    const found = [picked.website, picked.rating ? `${String(picked.rating).replace(".", ",")} sur Google` : null, picked.photo ? "photos" : null].filter(Boolean);
     return (
       <Preparation
-        tags={[picked.name, picked.category, picked.city, picked.website, picked.phone].filter(Boolean)}
-        results={["Fiche retrouvée", picked.rating ? "Avis Google récupérés" : null, picked.photo ? "Photos importées" : null].filter(Boolean)}
-        lines={["On retrouve votre fiche…", "On récupère vos informations publiques…", "On prépare votre tableau de bord…"]}
+        steps={[
+          { label: "Fiche retrouvée", detail: [picked.name, picked.category, picked.city].filter(Boolean).join(" · ") },
+          found.length ? { label: "Informations publiques récupérées", detail: found.join(" · ") } : { label: "Fiche rattachée à votre compte", detail: picked.category || "" },
+          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "100 crédits offerts" },
+        ]}
+        line="On prépare votre espace…"
         onDone={finishPreparing}
       />
     );
@@ -853,6 +878,19 @@ export default function Claim() {
                     {signedIn ? null : <span className="p-claim-chint">{invite.email_hint}</span>}
                   </span>
                 </div>
+                {signedIn ? null : (
+                  <>
+                    <div className="p-claim-field">
+                      <label htmlFor="pro-inv-pw">Choisissez votre mot de passe (8 caractères minimum)</label>
+                      <input id="pro-inv-pw" className="p-claim-input" type="password" autoComplete="new-password" value={invitePassword} onChange={(e) => setInvitePassword(e.target.value)} onKeyDown={onEnter(joinTeam)} />
+                    </div>
+                    <div className="p-claim-field">
+                      <label htmlFor="pro-inv-pw2">Confirmer le mot de passe</label>
+                      <input id="pro-inv-pw2" className="p-claim-input" type="password" autoComplete="new-password" value={invitePassword2} onChange={(e) => setInvitePassword2(e.target.value)} onKeyDown={onEnter(joinTeam)} />
+                    </div>
+                    <p className="p-claim-hint">Le code arrive à l’adresse invitée. Vous vous connecterez ensuite avec ce mot de passe.</p>
+                  </>
+                )}
                 {errorBox}
                 <div className="p-claim-actions">
                   <button type="button" className="p-claim-submit" onClick={joinTeam} disabled={busy}>
