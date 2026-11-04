@@ -5799,3 +5799,106 @@ button.p-dem-item {
   margin: 0;
   gap: 28px;
 }
+
+/* Entrée et connexion (canvas Vendor-Entree, Vendor-Login-*, 4 nov. 2026) : page blanche, contenu centré
+   sur l'écran, comme les maquettes Onb et Rev ; le panneau jaune est retiré */
+.p-claim {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.p-claim-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 48px;
+}
+
+.p-claim-header .p-brand-logo {
+  font-size: 26px;
+}
+
+.p-claim-header a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--p-muted);
+  text-decoration: none;
+}
+
+.p-claim-stage {
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding: 0 24px 82px;
+}
+
+.p-claim-band,
+.p-claim-card {
+  width: 560px;
+  max-width: 100%;
+}
+
+.p-claim-card {
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.p-claim-top.is-hidden {
+  display: none;
+}
+
+.p-claim-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.p-claim-stack .p-claim-link {
+  align-self: center;
+}
+
+.p-claim-submit.is-line {
+  background: #ffffff;
+  color: #1c1c1a;
+  box-shadow: inset 0 0 0 1.5px #1c1c1a;
+}
+
+.p-claim-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.p-claim-row-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f5f4f0;
+}
+
+@media (max-width: 860px) {
+  .p-claim-header {
+    padding: 18px 16px;
+  }
+  .p-claim-stage {
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    padding: 0;
+  }
+  .p-claim-band {
+    width: auto;
+    background: #ffffff;
+    padding: 4px 16px 0;
+  }
+  .p-claim-card {
+    width: auto;
+    margin: 0;
+    padding: 20px 16px 32px;
+  }
+}

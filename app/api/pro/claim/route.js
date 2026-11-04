@@ -8,8 +8,10 @@
 //    personne ne gère encore porte déjà cette adresse mail, c'est elle qui est rattachée : pas de doublon.
 // verify et create_verify : si l'écran envoie le jeton d'un prestataire déjà connecté, la fiche rejoint ce
 // compte et aucune nouvelle session n'est renvoyée.
-// Se connecter (un prestataire qui revient) : login_send envoie le code à l'adresse tapée, login_verify ouvre la session ;
-// l'écran retrouve ensuite ses fiches (pro_me). lookup : une fiche par son identifiant (lien d'un mail : /pro?fiche=…).
+// Se connecter : le mot de passe se vérifie côté navigateur (signInWithPassword). login_send et login_verify servent
+// à « Oublié ? » et aux comptes créés avant le 4 nov. 2026 : le code ouvre la session, puis password_set enregistre
+// le mot de passe. firstTime (pas de merry_password dans les métadonnées) déclenche Préparation et Bienvenue.
+// lookup : une fiche par son identifiant (lien d'un mail : /pro?fiche=…).
 // Première fiche rattachée à un compte : les crédits de bienvenue (MERRY_PRO_WELCOME_CREDITS, 100 par défaut) sont versés.
 // Nécessite SUPABASE_SERVICE_ROLE_KEY côté serveur (Vercel > Settings > Environment Variables) pour lire
 // l'adresse de la fiche et la rattacher. Sans clé, la route répond 501 et l'écran le dit.
@@ -26,6 +28,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CATEGORIES = ["lieu", "photographe", "videaste", "traiteur", "dj", "musiciens", "fleuriste", "decoration", "wedding_planner", "patisserie", "beaute", "robe", "transport", "officiant"];
 
 const clean = (v, max) => String(v || "").replace(/\s+/g, " ").trim().slice(0, max);
+const badPassword = (p) => typeof p !== "string" || p.length < 8 || p.length > 72;
+
+// Le code reçu prouve l'accès à l'adresse : le mot de passe peut être posé, comme avec « Oublié ? »
+async function setPassword(admin, user, password) {
+  const { error } = await admin.auth.admin.updateUserById(user.id, { password, user_metadata: { ...(user.user_metadata || {}), merry_password: true } });
+  if (error) console.warn("[merry pro] mot de passe", error.message);
+  return error;
+}
 
 // Les champs de « Créer votre fiche », vérifiés ; null si l'un manque
 function newVendor(raw) {
@@ -138,6 +148,14 @@ export async function POST(req) {
     return Response.json({ results: (data || []).map((r) => ({ ...r, photo: r.photo ? byPath.get(r.photo) || null : null })) });
   }
 
+  if (body.action === "password_set") {
+    const user = await currentUser(admin, req);
+    if (!user) return Response.json({ error: "bad_request" }, { status: 401 });
+    if (badPassword(body.password)) return Response.json({ error: "bad_password" }, { status: 400 });
+    if (await setPassword(admin, user, body.password)) return Response.json({ error: "password_failed" }, { status: 502 });
+    return Response.json({ ok: true });
+  }
+
   if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon, req);
   if (body.action === "login_send" || body.action === "login_verify") return login(body, admin, url, anon, req);
 
@@ -200,6 +218,7 @@ export async function POST(req) {
   if (body.action === "verify") {
     const code = String(body.code || "").replace(/\D/g, "");
     if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+    if (body.password !== undefined && badPassword(body.password)) return Response.json({ error: "bad_password" }, { status: 400 });
     const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
     if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
 
@@ -207,7 +226,9 @@ export async function POST(req) {
     // le compte de cette adresse
     const me = await currentUser(admin, req);
     const owner = me || data.user;
-    return linked(await attach(admin, vendorId, owner, me?.email || email), me ? null : data.session, vendorId);
+    const failed = await attach(admin, vendorId, owner, me?.email || email);
+    if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password);
+    return linked(failed, me ? null : data.session, vendorId);
   }
 
   return Response.json({ error: "bad_request" }, { status: 400 });
@@ -243,6 +264,7 @@ async function create(body, admin, url, anon, req) {
 
   const code = String(body.code || "").replace(/\D/g, "");
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+  if (body.password !== undefined && badPassword(body.password)) return Response.json({ error: "bad_password" }, { status: 400 });
 
   // Une fiche active du catalogue porte déjà cette adresse et personne ne la gère encore : on rattache
   // celle-là (pas de doublon). Une fiche déjà gérée sur Merry n'est jamais reprise : un prestataire
@@ -287,10 +309,12 @@ async function create(body, admin, url, anon, req) {
     vendorId = row.id;
   }
   const me = await currentUser(admin, req);
-  return linked(await attach(admin, vendorId, me || data.user, me?.email || email), me ? null : data.session, vendorId);
+  const failed = await attach(admin, vendorId, me || data.user, me?.email || email);
+  if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password);
+  return linked(failed, me ? null : data.session, vendorId);
 }
 
-// Se connecter avec son adresse : un code, puis l'écran retrouve les fiches du compte
+// Se connecter avec un code : « Oublié ? », ou un compte qui n'a pas encore de mot de passe
 async function login(body, admin, url, anon, req) {
   const email = String(body.email || "").trim().toLowerCase();
   if (!EMAIL_RE.test(email) || email.length > 160) return Response.json({ error: "bad_request" }, { status: 400 });
@@ -311,5 +335,15 @@ async function login(body, admin, url, anon, req) {
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
   const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
   if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
-  return linked(null, data.session);
+  // La première fiche du compte nourrit Préparation et Bienvenue à la première connexion
+  const { data: mine } = await admin.from("pro_members").select("vendor_id").eq("user_id", data.user.id).limit(1);
+  const vendorId = mine?.[0]?.vendor_id;
+  const { data: v } = vendorId ? await admin.schema("catalog").from("vendors").select("id, name, city, primary_category").eq("id", vendorId).maybeSingle() : { data: null };
+  const { data: cat } = v ? await admin.schema("catalog").from("categories").select("label").eq("slug", v.primary_category).maybeSingle() : { data: null };
+  return Response.json({
+    ok: true,
+    firstTime: !data.user.user_metadata?.merry_password,
+    vendor: v ? { id: v.id, name: v.name, city: v.city, category: cat?.label || v.primary_category } : null,
+    session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token },
+  });
 }
