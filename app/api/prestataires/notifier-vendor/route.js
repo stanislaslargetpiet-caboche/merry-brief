@@ -144,7 +144,7 @@ ${titleBlock}
 ${messageBox}
 ${messageParts}
 ${questionsBlock}
-${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-height:1.6">${esc(sign)}</p>` : `<p style="margin-top:20px;font-size:15px;line-height:1.6">Merci beaucoup,<br>${esc(couple)}</p>`}
+${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-height:1.6">${esc(sign)}</p>` : ""}
 ${ctaBlock}
 ${footerBlock}
 </div>`;
