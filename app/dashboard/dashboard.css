@@ -14123,6 +14123,41 @@ body.d-noscroll {
   cursor: pointer;
 }
 
+.d-msg-noaddress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--d-orange-bg);
+  color: var(--d-orange-ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.d-msg-noaddress span {
+  flex: 1 1 240px;
+}
+
+.d-msg-noaddress a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1.5px solid var(--d-ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--d-ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .d-notif-list {
   display: flex;
   flex-direction: column;

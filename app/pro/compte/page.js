@@ -153,7 +153,10 @@ export default function Compte() {
       <Section title="Notifications par mail" />
       <MailPrefs
         live={live}
-        rows={[{ kind: "vendor_message", label: "Un couple m’a écrit" }]}
+        rows={[
+          { kind: "vendor_message", label: "Un couple m’a écrit" },
+          { kind: "vendor_account", label: "Mes options et mes crédits" },
+        ]}
         onError={() => pro.setToast({ kind: "error", text: "Ce réglage n’a pas pu être enregistré." })}
       />
 

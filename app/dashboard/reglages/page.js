@@ -134,6 +134,7 @@ export default function Reglages() {
         rows={[
           { kind: "couple_reply", label: "Un prestataire m'a répondu" },
           { kind: "new_member", label: "Un organisateur a rejoint le mariage" },
+          { kind: "form_reply", label: "Un invité a répondu au formulaire" },
         ]}
         onError={() => dash.setToast({ kind: "error", text: "Ce réglage n'a pas pu être enregistré." })}
       />

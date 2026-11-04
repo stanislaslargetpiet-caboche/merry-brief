@@ -14,6 +14,8 @@ const VERCEL_STABLE_ALIASES = ["merry-brief.vercel.app", "merry-brief-stan-f307.
 export function middleware(req) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const { pathname, search } = req.nextUrl;
+  // Tâches planifiées Vercel : appelées sur le domaine de production, une redirection les perdrait
+  if (pathname.startsWith("/api/interne/")) return NextResponse.next();
   if (VERCEL_STABLE_ALIASES.includes(host)) {
     const target = APP_ONLY.test(pathname) ? "app.withmerry.com" : "www.withmerry.com";
     return NextResponse.redirect(`https://${target}${pathname}${search}`, 308);

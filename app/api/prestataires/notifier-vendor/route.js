@@ -10,11 +10,10 @@ import { allowUser } from "@/lib/server/rate";
 import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
 import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
-import { optedOut, unsubLink } from "@/lib/server/mailOptouts";
+import { unsubLink } from "@/lib/server/mailOptouts";
+import { dropOptedOut, vendorRecipients } from "@/lib/server/vendorRecipients";
 
 export const runtime = "nodejs";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req) {
   if (!process.env.RESEND_API_KEY) return Response.json({ error: "no_mail" }, { status: 501 });
@@ -52,23 +51,12 @@ export async function POST(req) {
   const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
   const origin = publicOrigin(req);
 
-  // adresse → lien : la fiche du catalogue d'un côté, les comptes qui gèrent déjà la fiche de l'autre.
-  // Sans clé service_role ou sans la fonction SQL, on retombe sur la seule adresse de la fiche.
-  const recipients = new Map();
-  const contact = String(vendor.email || "").trim();
-  if (EMAIL_RE.test(contact)) recipients.set(contact.toLowerCase(), `${origin}/pro${catalogId ? `?fiche=${catalogId}` : ""}`);
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const admin = service ? createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
-  if (admin && catalogId) {
-    const { data: members } = await admin.rpc("pro_notify_vendor_members", { v: catalogId });
-    for (const m of members || []) {
-      const email = String(m.to_email || "").trim();
-      if (EMAIL_RE.test(email)) recipients.set(email.toLowerCase(), `${origin}/pro?fiche=${catalogId}&connexion=1`);
-    }
-  }
+  const recipients = await vendorRecipients(admin, { contact: vendor.email, catalogId, origin });
   if (!recipients.size) return Response.json({ error: "no_email" }, { status: 422 });
   if (admin) {
-    for (const email of await optedOut(admin, [...recipients.keys()], "vendor_message")) recipients.delete(email);
+    await dropOptedOut(admin, recipients, "vendor_message");
     if (!recipients.size) return Response.json({ ok: true, sent: 0 });
   }
 
