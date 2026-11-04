@@ -14127,6 +14127,7 @@ body.d-noscroll {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 28px;
 }
 
 .d-notif-list .d-fm-switch-row {
