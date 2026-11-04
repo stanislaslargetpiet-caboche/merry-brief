@@ -35,6 +35,15 @@
         "value": "arial",
         "createdAt": "2026-11-04T15:57:02.417Z",
         "reason": "HTML e-mail transactionnel (Resend) : Arial est le fallback sûr pour Outlook/Gmail, web fonts non fiables en e-mail. Convention déjà en place dans notifier-vendor/notifier-couple avant ce changement."
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "supabase/email-templates/*.html"
+        ],
+        "createdAt": "2026-11-04T16:02:33.126Z",
+        "reason": "Jeton design system Merry ink-faint (#9c9a90), texte tertiaire de pied de page — déjà utilisé à l'identique dans tous les autres mails déjà en prod (notifier-vendor, notifier-couple, V22/V23/V26/V28), non vérifiés par ce hook car en template JS. Vrai écart WCAG AA (~2.8:1), pas un faux positif, mais un vrai fix serait un changement de jeton à l'échelle du système entier, pas une correction isolée sur ces 3 fichiers."
       }
     ]
   }
