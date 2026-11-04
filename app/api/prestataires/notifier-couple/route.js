@@ -117,7 +117,8 @@ ${footerBlock}
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: FROM, to: [to], subject, text, html }),
+      // Identifiant unique : sans lui, Gmail regroupe les messages et replie le bouton derrière « ••• »
+      body: JSON.stringify({ from: FROM, to: [to], subject, text, html, headers: { "X-Entity-Ref-ID": crypto.randomUUID() } }),
     });
     if (res.ok) sent += 1;
     else console.error("[merry] notification couple", res.status, await res.text().catch(() => ""));

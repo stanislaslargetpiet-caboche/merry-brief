@@ -47,6 +47,14 @@ describe("notifier-vendor", () => {
     for (const m of sent) expect(m.text).toContain(`/pro?fiche=${catalogId}&connexion=1`);
   });
 
+  it("donne à chaque envoi un identifiant unique, pour que Gmail ne replie pas le bouton", async () => {
+    members = { data: [{ to_email: "camille@lemas.fr" }] };
+    await call({ message: "Bonjour" });
+    const ids = sent.map((m) => m.headers["X-Entity-Ref-ID"]);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(sent.length);
+  });
+
   it("retombe sur l'adresse de la fiche sans la fonction SQL", async () => {
     members = { data: null, error: { message: "absente" } };
     await call({ message: "Bonjour" });
