@@ -18,6 +18,7 @@ FILES=(
   supabase/prestataires-ajout-manuel-google.sql supabase/prestataires-ajout-manuel-fix-ambiguite.sql
   supabase/prestataires-notifier-couple.sql supabase/site-mariage.sql supabase/site-mariage-moisson.sql
   supabase/site-visites.sql supabase/invites-recherche.sql supabase/note-invites.sql supabase/mise-en-page.sql
+  supabase/pro-fiche-categorie-correction.sql
 )
 for f in "${FILES[@]}"; do
   if ! out=$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f" 2>&1); then

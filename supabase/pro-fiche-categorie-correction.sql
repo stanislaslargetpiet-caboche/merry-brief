@@ -24,6 +24,12 @@ begin
   update catalog.vendors set
     categories     = array(select distinct unnest(array_remove(categories, primary_category) || category)),
     primary_category = category,
+    -- Même règle que le déclencheur de pro_formulas : un lieu se loue, les autres métiers sont au forfait
+    price_unit     = case
+      when price_unit = 'location' and category <> 'lieu' then 'forfait'
+      when price_unit = 'forfait' and category = 'lieu' then 'location'
+      else price_unit
+    end,
     updated_at     = now()
   where id = v;
 end;
@@ -31,7 +37,9 @@ $$;
 revoke all on function public.pro_set_category(uuid, text) from public, anon;
 grant execute on function public.pro_set_category(uuid, text) to authenticated;
 
--- Corrige la seule fiche touchée en production par le défaut « Lieu » : Le cercle du goût (traiteur),
--- créée avant ce correctif sans que la pastille Activité n'ait été changée.
+-- Le cercle du goût : classé lieu par le défaut de « Créer sa fiche », recatégorisé le 4 nov. 2026 sans que son
+-- unité de prix suive (« la location » pour un traiteur). Seule fiche gérée dans ce cas au 4 nov. 2026.
 update catalog.vendors set primary_category = 'traiteur', categories = array['traiteur'], updated_at = now()
 where id = '15f47cc8-c007-4bc5-b1e5-9ffa8ee736ad' and primary_category = 'lieu';
+update catalog.vendors set price_unit = 'forfait', updated_at = now()
+where id = '15f47cc8-c007-4bc5-b1e5-9ffa8ee736ad' and primary_category = 'traiteur' and price_unit = 'location';
