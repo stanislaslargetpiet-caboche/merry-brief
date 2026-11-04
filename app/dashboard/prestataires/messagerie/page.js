@@ -53,7 +53,7 @@ export default function Messagerie() {
 
   // Un prestataire sans adresse ni compte ne saura jamais qu'on lui a écrit : autant le dire au couple
   const [unreachable, setUnreachable] = useState(false);
-  const noEmail = !!current && !String(current.vendor.email || "").trim();
+  const noEmail = !!current && !String(current.vendor.email || "").trim() && !current.messages.some((m) => m.from_vendor);
   useEffect(() => {
     if (!noEmail) {
       setUnreachable(false);
@@ -140,7 +140,7 @@ export default function Messagerie() {
               </div>
               {unreachable ? (
                 <div className="d-msg-noaddress">
-                  <span>{current.vendor.name} n'a pas d'adresse mail sur Merry : il ne sera pas prévenu de votre message.</span>
+                  <span>{current.vendor.name} n'a pas d'adresse mail sur Merry : votre message ne lui sera pas signalé.</span>
                   {current.vendor.phone ? (
                     <a href={`tel:${String(current.vendor.phone).replace(/\s/g, "")}`}>Appeler le {current.vendor.phone}</a>
                   ) : null}
