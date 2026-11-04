@@ -6,17 +6,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { mailShell } from "@/lib/server/mailShell";
+import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 
 export const runtime = "nodejs";
 
-const FROM = process.env.MERRY_MAIL_FROM || "Merry <onboarding@resend.dev>";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
 
 export async function POST(req) {
   if (!process.env.RESEND_API_KEY) return Response.json({ error: "no_mail" }, { status: 501 });
@@ -63,9 +59,6 @@ export async function POST(req) {
 
   // Reprend à l'identique la planche V23 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
-  const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
-<table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
-</td></tr></table>`;
 
   const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${sender ? `${esc(sender)} t'invite à rejoindre Merry.` : "Tu es invité·e à rejoindre Merry."}</h1>`;
 
@@ -98,14 +91,6 @@ ${footerBlock}
 </div>`;
   const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-    body: JSON.stringify({ from: FROM, to: [to], subject, text, html, reply_to: user.user.email || undefined }),
-  });
-  if (!res.ok) {
-    console.error("[merry] envoi invitation", res.status, await res.text().catch(() => ""));
-    return Response.json({ error: "send_failed" }, { status: 502 });
-  }
+  if (!(await sendMail({ to, subject, text, html, replyTo: user.user.email, label: "invitation organisateur" }))) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, to });
 }

@@ -7,18 +7,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { mailShell } from "@/lib/server/mailShell";
+import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 import { optedOut, unsubLink } from "@/lib/server/mailOptouts";
 
 export const runtime = "nodejs";
 
-const FROM = process.env.MERRY_MAIL_FROM || "Merry <onboarding@resend.dev>";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
 
 export async function POST(req) {
   if (!process.env.RESEND_API_KEY) return Response.json({ error: "no_mail" }, { status: 501 });
@@ -149,10 +145,6 @@ ${tilesBlock}
 <a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Lire le message et répondre</a>
 </td></tr></table>`;
 
-  // Logo centré sur une pastille citron plein, repris du design validé avec Stan sur le canvas (V20/V21)
-  const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
-<table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
-</td></tr></table>`;
 
   const footerBlock = (unsubscribe) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px;font-size:12px;color:#9c9a90">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -181,14 +173,7 @@ ${ctaBlock(link)}
 ${footerBlock(admin ? unsubLink(origin, to) : `${origin}/pro`)}
 </div>`;
     const html = mailShell({ title: subject, preheader, body: bodyHtml });
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      // Identifiant unique : sans lui, Gmail regroupe les messages et replie le bouton derrière « ••• »
-      body: JSON.stringify({ from: FROM, to: [to], subject, text, html, headers: { "X-Entity-Ref-ID": crypto.randomUUID() } }),
-    });
-    if (res.ok) sent += 1;
-    else console.error("[merry] notification prestataire", res.status, await res.text().catch(() => ""));
+    if (await sendMail({ to, subject, text, html, label: "notification prestataire" })) sent += 1;
   }
   if (!sent) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, sent });

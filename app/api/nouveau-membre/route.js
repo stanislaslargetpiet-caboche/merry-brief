@@ -8,18 +8,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { mailShell } from "@/lib/server/mailShell";
+import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 import { optedOut } from "@/lib/server/mailOptouts";
 
 export const runtime = "nodejs";
 
-const FROM = process.env.MERRY_MAIL_FROM || "Merry <onboarding@resend.dev>";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
 
 export async function POST(req) {
   if (!process.env.RESEND_API_KEY) return Response.json({ error: "no_mail" }, { status: 501 });
@@ -73,9 +69,6 @@ export async function POST(req) {
 
   // Reprend à l'identique la planche V26 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page.
-  const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
-<table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
-</td></tr></table>`;
 
   const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(newMemberName)} a rejoint votre mariage.</h1>`;
 
@@ -111,13 +104,7 @@ ${footerBlock}
   let sent = 0;
   for (const r of recipients) {
     const to = String(r.to_email).trim();
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: FROM, to: [to], subject, text, html }),
-    });
-    if (res.ok) sent += 1;
-    else console.error("[merry] notification nouveau membre", res.status, await res.text().catch(() => ""));
+    if (await sendMail({ to, subject, text, html, label: "notification nouveau membre" })) sent += 1;
   }
   return Response.json({ ok: true, sent });
 }

@@ -9,13 +9,13 @@
 // Tout le reste (temps passé, pages, erreurs, trafic du site) vient de PostHog, seule source qui le mesure.
 
 import { createClient } from "@supabase/supabase-js";
+import { sendMail } from "@/lib/server/sendMail";
 
 export const runtime = "nodejs";
 
 const POSTHOG_PROJECT_ID = "321035";
 const POSTHOG_API = "https://eu.posthog.com";
 const TO = "stanislas.largetpiet@gmail.com";
-const FROM = process.env.MERRY_MAIL_FROM || "Merry <onboarding@resend.dev>";
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -178,17 +178,8 @@ export async function POST(req) {
   const stats = await gatherStats(admin);
   const dateLabel = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" });
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-    body: JSON.stringify({
-      from: FROM,
-      to: [TO],
-      subject: `Merry · activité du ${dateLabel}`,
-      html: renderEmail(stats, dateLabel),
-    }),
-  });
-  if (!res.ok) return Response.json({ error: "mail_failed", detail: (await res.text()).slice(0, 300) }, { status: 502 });
+  const sent = await sendMail({ to: TO, subject: `Merry · activité du ${dateLabel}`, html: renderEmail(stats, dateLabel), label: "brief quotidien" });
+  if (!sent) return Response.json({ error: "mail_failed" }, { status: 502 });
 
   return Response.json({ ok: true, stats });
 }

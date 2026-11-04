@@ -43,3 +43,25 @@ as $$
 $$;
 revoke all on function public.pro_notify_vendor_members(uuid) from public, anon, authenticated;
 grant execute on function public.pro_notify_vendor_members(uuid) to service_role;
+
+-- Aperçu du dernier message, catégorie et zone du prestataire, pour le mail au couple (planche V20)
+create or replace function public.pro_notify_couple_details(client_id uuid)
+returns table (last_message text, category text, area text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (select m.body from public.vendor_messages m
+           where m.wedding_id = p.wedding_id and m.vendor_id = p.vendor_id and m.from_vendor
+           order by m.sent_at desc limit 1),
+         cat.label,
+         coalesce(v.city, v.region)
+  from public.pro_clients pc
+  join public.vendor_picks p on p.id = pc.pick_id
+  join catalog.vendors v on v.id = pc.vendor_id
+  left join catalog.categories cat on cat.slug = v.primary_category
+  where pc.id = client_id;
+$$;
+revoke all on function public.pro_notify_couple_details(uuid) from public, anon, authenticated;
+grant execute on function public.pro_notify_couple_details(uuid) to service_role;

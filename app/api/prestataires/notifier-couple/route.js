@@ -7,17 +7,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { mailShell } from "@/lib/server/mailShell";
+import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { sendMail } from "@/lib/server/sendMail";
 import { optedOut } from "@/lib/server/mailOptouts";
 
 export const runtime = "nodejs";
 
-const FROM = process.env.MERRY_MAIL_FROM || "Merry <onboarding@resend.dev>";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
 
 export async function POST(req) {
   if (!process.env.RESEND_API_KEY) return Response.json({ error: "no_mail" }, { status: 501 });
@@ -59,11 +55,17 @@ export async function POST(req) {
   const link = `${publicOrigin(req)}/dashboard/prestataires/messagerie`;
   const vendorName = recipients[0].vendor_name || "Un prestataire";
 
+  // Aperçu du message, catégorie et zone (planche V20). Sans la fonction SQL, la carte reste au nom seul.
+  const { data: details } = await admin.rpc("pro_notify_couple_details", { client_id: clientId });
+  const { last_message: lastMessage, category, area } = details?.[0] || {};
+  const full = String(lastMessage || "").trim();
+  const excerpt = full.length > 280 ? `${full.slice(0, 280).trimEnd()}…` : full;
+
   // Proposition depuis « Projets » : le prestataire écrit en premier, il ne « répond » à personne
   const verb = body.kind === "proposition" ? "vous a écrit" : "vous a répondu";
   const subject = `${vendorName} ${verb}`;
   // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
-  const text = `Bonjour,\n\n${vendorName} ${verb} sur Merry.\n\nLire le message : ${link}`;
+  const text = `Bonjour,\n\n${vendorName} ${verb} sur Merry.${excerpt ? `\n\n« ${excerpt} »` : ""}\n\nLire le message : ${link}`;
   const initials =
     String(vendorName)
       .trim()
@@ -73,22 +75,23 @@ export async function POST(req) {
       .slice(0, 2)
       .toUpperCase() || "M";
 
-  // Reprend à l'identique la planche V20 du canvas (page « 7 - mails ») : logo, titre, carte
-  // prestataire, bouton, bandeau sécurité, pied de page. Le mock montre en plus un aperçu du
-  // message et la catégorie/zone du prestataire : pro_notify_couple_payload ne renvoie aujourd'hui
-  // ni l'un ni l'autre, donc la carte reste au nom du prestataire seul tant que ce n'est pas ajouté
-  // côté Supabase.
-  const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
-<table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
-</td></tr></table>`;
+  // Reprend la planche V20 du canvas (page « 7 - mails ») : logo, titre, carte prestataire et aperçu,
+  // bouton, bandeau sécurité, pied de page.
 
   const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(vendorName)} ${verb}.</h1>`;
+
+  const areaPill = area ? `<span style="background:#ebe6fb;color:#4a3d99;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600">${esc(area)}</span>` : "";
+  const subtitle = category || area ? `<div style="margin-top:3px;font-size:12px;line-height:1.6;color:#6b6a63">${category ? `${esc(category)} ` : ""}${areaPill}</div>` : "";
+  const excerptBox = excerpt
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;background:#ffffff;border:1px solid #ecebe6;border-radius:12px;border-collapse:separate"><tr><td style="padding:14px;font-size:14.5px;line-height:1.55;white-space:pre-line;color:#1c1c1a">${esc(excerpt)}</td></tr></table>`
+    : "";
 
   const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
-<td style="padding-left:10px;font-size:15px;font-weight:700">${esc(vendorName)}</td>
+<td style="padding-left:10px;font-size:15px;font-weight:700">${esc(vendorName)}${subtitle}</td>
 </tr></table>
+${excerptBox}
 </td></tr></table>`;
 
   const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px"><tr><td align="center">
@@ -104,7 +107,7 @@ export async function POST(req) {
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = `Lisez le message de ${vendorName} et répondez directement depuis Merry.`;
+  const preheader = excerpt.slice(0, 140) || `Lisez le message de ${vendorName} et répondez directement depuis Merry.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
@@ -118,14 +121,7 @@ ${footerBlock}
   let sent = 0;
   for (const r of recipients) {
     const to = String(r.to_email).trim();
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      // Identifiant unique : sans lui, Gmail regroupe les messages et replie le bouton derrière « ••• »
-      body: JSON.stringify({ from: FROM, to: [to], subject, text, html, headers: { "X-Entity-Ref-ID": crypto.randomUUID() } }),
-    });
-    if (res.ok) sent += 1;
-    else console.error("[merry] notification couple", res.status, await res.text().catch(() => ""));
+    if (await sendMail({ to, subject, text, html, label: "notification couple" })) sent += 1;
   }
   if (!sent) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, sent });
