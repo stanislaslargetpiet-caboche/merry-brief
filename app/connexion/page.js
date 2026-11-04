@@ -192,7 +192,8 @@ export default function Connexion() {
         if (!data.session) setMode("confirm");
         else afterAuth();
       } else if (mode === "forgot") {
-        await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/connexion?reset=1` });
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/connexion?reset=1` });
+        if (err) throw new Error(s.errors.resetRequestFailed);
         setMode("sent");
       } else if (mode === "reset") {
         if (password.length < 8) throw new Error(s.errors.passwordTooShort);
