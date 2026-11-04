@@ -9,6 +9,7 @@ import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import { supabase } from "@/lib/supabase";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
+import MailPrefs from "@/components/MailPrefs";
 
 export default function Reglages() {
   const dash = useDash();
@@ -126,6 +127,16 @@ export default function Reglages() {
           </Btn>
         </div>
       </form>
+
+      <Section title="Notifications par mail" />
+      <MailPrefs
+        live={live}
+        rows={[
+          { kind: "couple_reply", label: "Un prestataire m'a répondu" },
+          { kind: "new_member", label: "Un organisateur a rejoint le mariage" },
+        ]}
+        onError={() => dash.setToast({ kind: "error", text: "Ce réglage n'a pas pu être enregistré." })}
+      />
 
       <Section title="Ton compte" />
       <div className="d-card d-settings d-settings-danger">

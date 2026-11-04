@@ -14123,6 +14123,17 @@ body.d-noscroll {
   cursor: pointer;
 }
 
+.d-notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-notif-list .d-fm-switch-row {
+  width: 100%;
+  text-align: left;
+}
+
 .d-fm-switch-row strong {
   font-weight: 500;
 }

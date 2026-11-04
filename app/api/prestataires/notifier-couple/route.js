@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
 import { mailShell } from "@/lib/server/mailShell";
+import { optedOut } from "@/lib/server/mailOptouts";
 
 export const runtime = "nodejs";
 
@@ -49,8 +50,11 @@ export async function POST(req) {
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: rows, error } = await admin.rpc("pro_notify_couple_payload", { c: clientId });
   if (error) return Response.json({ error: "no_mail" }, { status: 501 });
-  const recipients = (rows || []).filter((r) => EMAIL_RE.test(String(r.to_email || "").trim()));
-  if (!recipients.length) return Response.json({ error: "no_email" }, { status: 422 });
+  const valid = (rows || []).filter((r) => EMAIL_RE.test(String(r.to_email || "").trim()));
+  if (!valid.length) return Response.json({ error: "no_email" }, { status: 422 });
+  const out = await optedOut(admin, valid.map((r) => r.to_email), "couple_reply");
+  const recipients = valid.filter((r) => !out.has(String(r.to_email).trim().toLowerCase()));
+  if (!recipients.length) return Response.json({ ok: true, sent: 0 });
 
   const link = `${publicOrigin(req)}/dashboard/prestataires/messagerie`;
   const vendorName = recipients[0].vendor_name || "Un prestataire";

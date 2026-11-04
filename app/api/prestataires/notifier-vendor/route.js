@@ -9,6 +9,7 @@ import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
 import { mailShell } from "@/lib/server/mailShell";
 import { displayName } from "@/lib/server/names";
+import { optedOut, unsubLink } from "@/lib/server/mailOptouts";
 
 export const runtime = "nodejs";
 
@@ -61,8 +62,8 @@ export async function POST(req) {
   const contact = String(vendor.email || "").trim();
   if (EMAIL_RE.test(contact)) recipients.set(contact.toLowerCase(), `${origin}/pro${catalogId ? `?fiche=${catalogId}` : ""}`);
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (service && catalogId) {
-    const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = service ? createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+  if (admin && catalogId) {
     const { data: members } = await admin.rpc("pro_notify_vendor_members", { v: catalogId });
     for (const m of members || []) {
       const email = String(m.to_email || "").trim();
@@ -70,6 +71,10 @@ export async function POST(req) {
     }
   }
   if (!recipients.size) return Response.json({ error: "no_email" }, { status: 422 });
+  if (admin) {
+    for (const email of await optedOut(admin, [...recipients.keys()], "vendor_message")) recipients.delete(email);
+    if (!recipients.size) return Response.json({ ok: true, sent: 0 });
+  }
 
   const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", vendor.wedding_id).maybeSingle();
   const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).map(displayName).join(" et ") || "Un couple";
@@ -149,10 +154,10 @@ ${tilesBlock}
 <table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
 </td></tr></table>`;
 
-  const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px;font-size:12px;color:#9c9a90">
+  const footerBlock = (unsubscribe) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px;font-size:12px;color:#9c9a90">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 <td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Vous recevez ce mail car votre établissement est référencé sur Merry.</td>
-<td align="right" valign="top"><a href="${esc(publicOrigin(req))}/pro" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Se désinscrire</a></td>
+<td align="right" valign="top"><a href="${esc(unsubscribe)}" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Se désinscrire</a></td>
 </tr></table>
 </td></tr></table>`;
 
@@ -173,7 +178,7 @@ ${otherDatesBlock}
 ${questionsBlock}
 ${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-height:1.6">${esc(sign)}</p>` : ""}
 ${ctaBlock(link)}
-${footerBlock}
+${footerBlock(admin ? unsubLink(origin, to) : `${origin}/pro`)}
 </div>`;
     const html = mailShell({ title: subject, preheader, body: bodyHtml });
     const res = await fetch("https://api.resend.com/emails", {

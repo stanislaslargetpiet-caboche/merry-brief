@@ -20,6 +20,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { clientIp } from "@/lib/server/origin";
 import { allowKey } from "@/lib/server/rate";
+import { sendVendorWelcome } from "@/lib/server/vendorWelcome";
 
 export const runtime = "nodejs";
 
@@ -111,15 +112,27 @@ async function currentUser(admin, req) {
 async function attach(admin, vendorId, user, email) {
   const { data: existing, error: e0 } = await admin.from("pro_vendors").select("vendor_id").eq("vendor_id", vendorId).maybeSingle();
   if (e0) return e0;
+  let welcome = false;
   if (!existing) {
     const { error: e1 } = await admin.from("pro_vendors").insert({ vendor_id: vendorId, credits: WELCOME_CREDITS });
     if (e1 && !/23505/.test(String(e1.code))) return e1;
+    welcome = !e1;
     if (!e1 && WELCOME_CREDITS > 0) {
       await admin.from("pro_ledger").insert({ vendor_id: vendorId, kind: "remboursement", label: `Bienvenue sur Merry : ${WELCOME_CREDITS} crédits offerts`, delta: WELCOME_CREDITS, balance: WELCOME_CREDITS });
     }
   }
   const { error: e2 } = await admin.from("pro_members").upsert({ vendor_id: vendorId, user_id: user.id, email }, { onConflict: "vendor_id,user_id", ignoreDuplicates: true });
-  return e2 || null;
+  if (e2) return e2;
+  if (welcome) {
+    // Le mail ne bloque jamais le rattachement de la fiche
+    try {
+      const { data: vendor } = await admin.schema("catalog").from("vendors").select("name").eq("id", vendorId).maybeSingle();
+      await sendVendorWelcome({ to: user.email || email, vendorName: vendor?.name, credits: WELCOME_CREDITS });
+    } catch (e) {
+      console.warn("[merry] mail bienvenue prestataire", e?.message || e);
+    }
+  }
+  return null;
 }
 
 export async function POST(req) {

@@ -7,9 +7,10 @@ const rows = {
   vendor_picks: { catalog_ref: `catalog:${catalogId}` },
 };
 let members;
+let optouts = [];
 
 function table(name) {
-  const chain = { select: () => chain, eq: () => chain, maybeSingle: async () => ({ data: rows[name] }) };
+  const chain = { select: () => chain, eq: () => chain, in: async () => ({ data: optouts }), maybeSingle: async () => ({ data: rows[name] }) };
   return chain;
 }
 
@@ -22,6 +23,7 @@ vi.mock("@supabase/supabase-js", () => ({
 }));
 
 const { POST } = await import("../app/api/prestataires/notifier-vendor/route.js");
+const { readUnsubLink } = await import("../lib/server/mailOptouts.js");
 
 function call(body) {
   return POST(new Request("https://app.withmerry.com/api/prestataires/notifier-vendor", { method: "POST", headers: { authorization: "Bearer t" }, body: JSON.stringify({ vendorId: "v1", ...body }) }));
@@ -33,6 +35,7 @@ describe("notifier-vendor", () => {
   beforeEach(() => {
     Object.assign(process.env, { RESEND_API_KEY: "k", NEXT_PUBLIC_SUPABASE_URL: "https://x.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s" });
     sent = [];
+    optouts = [];
     vi.stubGlobal("fetch", async (_url, init) => {
       sent.push(JSON.parse(init.body));
       return new Response("{}", { status: 200 });
@@ -45,6 +48,24 @@ describe("notifier-vendor", () => {
     expect(await res.json()).toEqual({ ok: true, sent: 2 });
     expect(sent.map((m) => m.to[0]).sort()).toEqual(["camille@lemas.fr", "contact@lemas.fr"]);
     for (const m of sent) expect(m.text).toContain(`/pro?fiche=${catalogId}&connexion=1`);
+  });
+
+  it("n'écrit pas aux adresses désinscrites, et le lien du mail désinscrit la bonne adresse", async () => {
+    members = { data: [{ to_email: "camille@lemas.fr" }] };
+    optouts = [{ email: "contact@lemas.fr" }];
+    const res = await call({ message: "Bonjour" });
+    expect(await res.json()).toEqual({ ok: true, sent: 1 });
+    expect(sent[0].to).toEqual(["camille@lemas.fr"]);
+    const href = /href="([^"]*desinscription[^"]*)"/.exec(sent[0].html)[1].replace(/&amp;/g, "&");
+    const link = new URL(href);
+    expect(readUnsubLink(link.searchParams.get("e"), link.searchParams.get("t"))).toBe("camille@lemas.fr");
+  });
+
+  it("ne dit pas d'erreur quand toutes les adresses sont désinscrites", async () => {
+    members = { data: [] };
+    optouts = [{ email: "contact@lemas.fr" }];
+    expect(await (await call({ message: "Bonjour" })).json()).toEqual({ ok: true, sent: 0 });
+    expect(sent).toEqual([]);
   });
 
   it("donne à chaque envoi un identifiant unique, pour que Gmail ne replie pas le bouton", async () => {

@@ -14,6 +14,7 @@ import { Icon } from "@/components/dash/icons";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import { CATALOG_CATEGORIES } from "@/lib/dash/catalog";
 import Collaborators from "@/components/pro/Collaborators";
+import MailPrefs from "@/components/MailPrefs";
 
 export default function Compte() {
   const pro = usePro();
@@ -148,6 +149,13 @@ export default function Compte() {
           </Btn>
         </div>
       </form>
+
+      <Section title="Notifications par mail" />
+      <MailPrefs
+        live={live}
+        rows={[{ kind: "vendor_message", label: "Un couple m’a écrit" }]}
+        onError={() => pro.setToast({ kind: "error", text: "Ce réglage n’a pas pu être enregistré." })}
+      />
 
       <Collaborators />
 
