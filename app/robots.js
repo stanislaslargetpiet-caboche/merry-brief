@@ -5,7 +5,7 @@ import { PUBLIC_URL } from "@/lib/seo/data";
 export default function robots() {
   return {
     // /s et /f portent déjà noindex : les interdire ici empêcherait les robots de le lire
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/dashboard", "/pro", "/api", "/connexion", "/vitrine"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/dashboard", "/pro", "/pilotage", "/api", "/connexion", "/vitrine"] }],
     sitemap: `${PUBLIC_URL}/sitemap.xml`,
   };
 }
