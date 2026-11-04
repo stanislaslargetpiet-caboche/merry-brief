@@ -29,6 +29,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
+import { completeness } from "@/lib/pro/format";
 import { Pills } from "./ui";
 import { ProIcon } from "./icons";
 import Preparation from "./Preparation";
@@ -55,6 +56,58 @@ const CATEGORIES = [
 ];
 const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "", password: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// L'écran en cours et les champs saisis survivent à un rechargement, une heure au plus (sessionStorage)
+const SAVED_KEY = "merry-pro-claim-v1";
+const SAVED_MAX_AGE = 60 * 60 * 1000;
+function readSaved() {
+  try {
+    const raw = window.sessionStorage.getItem(SAVED_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.at && Date.now() - s.at < SAVED_MAX_AGE ? s : null;
+  } catch {
+    return null;
+  }
+}
+function writeSaved(s) {
+  try {
+    window.sessionStorage.setItem(SAVED_KEY, JSON.stringify({ ...s, at: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+}
+function clearSaved() {
+  try {
+    window.sessionStorage.removeItem(SAVED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+// Force d'un mot de passe, de 0 (trop court) à 4 : longueur, chiffres et lettres, casse, autre caractère
+const STRENGTH = ["Trop court", "Faible", "Moyen", "Bon", "Fort"];
+function strength(pw) {
+  if (pw.length < 8) return 0;
+  let s = 1;
+  if (pw.length >= 12) s += 1;
+  if (/\d/.test(pw) && /[a-zA-Z]/.test(pw)) s += 1;
+  if ((/[a-z]/.test(pw) && /[A-Z]/.test(pw)) || /[^a-zA-Z0-9]/.test(pw)) s += 1;
+  return Math.min(4, s);
+}
+function PasswordMeter({ value }) {
+  if (!value) return null;
+  const s = strength(value);
+  return (
+    <span className={`p-pw-meter is-${s}`} aria-live="polite">
+      <span className="p-pw-bars" aria-hidden="true">
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className={i <= s ? "is-on" : ""} />
+        ))}
+      </span>
+      <span className="p-pw-label">{STRENGTH[s]}</span>
+    </span>
+  );
+}
 const PASSWORD_HINT = "Le mot de passe compte au moins 8 caractères.";
 const sameName = (a, b) => {
   const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -142,7 +195,9 @@ export default function Claim() {
   const [invitePassword2, setInvitePassword2] = useState("");
   const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
   const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
-  const [pendingSession, setPendingSession] = useState(null); // posée au clic sur Bienvenue
+  const [fill, setFill] = useState(null); // complétude de la fiche, pour Bienvenue
+  const fromPop = useRef(false);
+  const firstScreen = useRef(true);
   const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -167,6 +222,21 @@ export default function Claim() {
     const params = new URLSearchParams(window.location.search);
     const fiche = params.get("fiche");
     const name = params.get("etablissement");
+    const forced = signedIn || (name && name.trim()) || fiche || params.get("invitation") || params.get("connexion") === "1";
+    // Rechargement en plein parcours : on reprend là où on en était, sauf si l'adresse impose un écran
+    const saved = forced ? null : readSaved();
+    if (saved && saved.screen && saved.screen !== "entry") {
+      setCreating(!!saved.creating);
+      setLogging(!!saved.logging);
+      setForm((f) => ({ ...f, ...(saved.form || {}), password: "" }));
+      setQ(saved.q || "");
+      setPicked(saved.picked || null);
+      setDuplicate(saved.duplicate || null);
+      setLoginEmail(saved.loginEmail || "");
+      setFirstLogin(!!saved.firstLogin);
+      setSent(!!saved.sent);
+      setScreen(saved.screen);
+    }
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
     if (signedIn || (name && name.trim()) || fiche || params.get("invitation")) setScreen("search");
     // « Connexion » du site : l'adresse mail puis le code, sans passer par la recherche
@@ -204,6 +274,56 @@ export default function Claim() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (invite) return;
+    writeSaved({ screen, creating, logging, form: { ...form, password: "" }, q, picked, duplicate, loginEmail, firstLogin, sent });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, creating, logging, form, q, picked, duplicate, loginEmail, firstLogin, sent]);
+
+  // Le bouton retour du navigateur revient à l'écran précédent au lieu de quitter /pro
+  useEffect(() => {
+    if (firstScreen.current) {
+      firstScreen.current = false;
+      window.history.replaceState({ claimScreen: screen }, "");
+      return;
+    }
+    if (fromPop.current) {
+      fromPop.current = false;
+      return;
+    }
+    window.history.pushState({ claimScreen: screen }, "");
+  }, [screen]);
+  useEffect(() => {
+    const onPop = (e) => {
+      if (!e.state?.claimScreen) return;
+      fromPop.current = true;
+      setError("");
+      setScreen(e.state.claimScreen);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Complétude de la fiche, pour la barre de Bienvenue (la session est déjà posée)
+  async function loadFill(vid) {
+    if (demo || !vid || !supabase) {
+      setFill(demo ? 40 : null);
+      return;
+    }
+    try {
+      const [fiche, photos, formulas] = await Promise.all([
+        supabase.rpc("pro_fiche", { v: vid }),
+        supabase.rpc("pro_photos", { v: vid }),
+        supabase.from("pro_formulas").select("price_low, price_high").eq("vendor_id", vid),
+      ]);
+      const vendor = (fiche.data || [])[0];
+      if (!vendor) return;
+      setFill(completeness({ vendor: { ...vendor, details: vendor.details || {} }, photos: photos.data || [], formulas: formulas.data || [] }).pct);
+    } catch {
+      setFill(null);
+    }
+  }
 
   // Connecté, mais aucune fiche rattachée à ce compte : on le dit au-dessus de la recherche
   useEffect(() => {
@@ -314,6 +434,7 @@ export default function Claim() {
 
   // Après la connexion, l'espace se recharge ; si l'écran reste là, ce compte n'a pas encore de fiche
   async function afterLogin() {
+    clearSaved();
     await pro.reload();
     setBusy(false);
     setLogging(false);
@@ -357,7 +478,8 @@ export default function Claim() {
     setError("");
     setBusy(true);
     if (!demo) {
-      const res = await call({ action: "password_set", password: newPassword }, undefined, pendingSession?.access_token);
+      const { data: s } = await supabase.auth.getSession();
+      const res = await call({ action: "password_set", password: newPassword }, undefined, s?.session?.access_token);
       if (!res.ok) {
         setBusy(false);
         setError(ERRORS[res.error] || ERRORS.password_failed);
@@ -365,15 +487,17 @@ export default function Claim() {
       }
     }
     if (firstLogin && picked) {
+      await loadFill(picked.id);
       setBusy(false);
       setPreparing("claim");
       return;
     }
+    clearSaved();
     if (demo) {
       window.location.assign("/pro?demo=1");
       return;
     }
-    await supabase.auth.setSession(pendingSession);
+    pro.setHold(false);
     await afterLogin();
   }
 
@@ -579,6 +703,7 @@ export default function Claim() {
       }
       pro.rememberVendor(res.vendorId);
       if (res.session && supabase) await supabase.auth.setSession(res.session);
+      clearSaved();
       window.location.assign("/pro");
       return;
     }
@@ -591,6 +716,7 @@ export default function Claim() {
         setScreen("password");
         return;
       }
+      setFill(40);
       setPreparing(creating ? "create" : "claim");
       return;
     }
@@ -604,18 +730,17 @@ export default function Claim() {
       setError(ERRORS[res.error] || ERRORS.bad_code);
       return;
     }
-    // Création ou revendication : la fiche obtenue s'ouvre ensuite, elle (et pas une autre fiche du compte).
-    // La nouvelle session n'est posée qu'au clic sur Bienvenue : la poser maintenant rechargerait l'espace
-    // et couperait Préparation et Bienvenue en plein milieu.
+    // La session est posée tout de suite : un rechargement pendant Préparation ou Bienvenue mène au
+    // dashboard au lieu de perdre le code. setHold empêche l'espace de se recharger sous les animations.
+    pro.setHold(true);
+    if (res.session && supabase) await supabase.auth.setSession(res.session);
     if (!logging) {
       const vid = res.vendorId || picked?.id;
       if (vid) pro.rememberVendor(vid);
-      setPendingSession(res.session || null);
+      await loadFill(vid);
       setPreparing(creating ? "create" : "claim");
       return;
     }
-    // Code d'une connexion : le mot de passe d'abord, la session n'est posée qu'ensuite
-    setPendingSession(res.session);
     setFirstLogin(!!res.firstTime);
     if (res.vendor) {
       setPicked(res.vendor);
@@ -685,8 +810,8 @@ export default function Claim() {
     setPreparing(null);
   }
 
-  async function goTo(path) {
-    if (pendingSession && supabase) await supabase.auth.setSession(pendingSession);
+  function goTo(path) {
+    clearSaved();
     window.location.assign(demo ? `${path}?demo=1` : path);
   }
 
@@ -718,10 +843,10 @@ export default function Claim() {
     );
   }
   if (welcome === "create") {
-    return <Welcome name={form.name.trim()} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
+    return <Welcome name={form.name.trim()} fill={fill} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
   }
   if (welcome === "claim") {
-    return <Welcome name={picked.name} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
+    return <Welcome name={picked.name} fill={fill} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
 
   const flow = invite ? INVITE_FLOW : logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
@@ -828,6 +953,7 @@ export default function Claim() {
               <div className="p-claim-field">
                 <label htmlFor="pro-new-1">Mot de passe (8 caractères minimum)</label>
                 <input id="pro-new-1" className="p-claim-input" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} onKeyDown={onEnter(savePassword)} autoFocus />
+                <PasswordMeter value={newPassword} />
               </div>
               <div className="p-claim-field">
                 <label htmlFor="pro-new-2">Confirmer le mot de passe</label>
@@ -883,6 +1009,7 @@ export default function Claim() {
                     <div className="p-claim-field">
                       <label htmlFor="pro-inv-pw">Choisissez votre mot de passe (8 caractères minimum)</label>
                       <input id="pro-inv-pw" className="p-claim-input" type="password" autoComplete="new-password" value={invitePassword} onChange={(e) => setInvitePassword(e.target.value)} onKeyDown={onEnter(joinTeam)} />
+                      <PasswordMeter value={invitePassword} />
                     </div>
                     <div className="p-claim-field">
                       <label htmlFor="pro-inv-pw2">Confirmer le mot de passe</label>
@@ -1031,6 +1158,7 @@ export default function Claim() {
                   <div className="p-claim-field">
                     <label htmlFor="pro-new-pw">Mot de passe (8 caractères minimum)</label>
                     <input id="pro-new-pw" className="p-claim-input" type="password" autoComplete="new-password" onKeyDown={onEnter(sendCreateCode)} {...field("password")} />
+                    <PasswordMeter value={form.password} />
                   </div>
                 )}
                 {errorBox}
@@ -1144,6 +1272,7 @@ export default function Claim() {
                 <div className="p-claim-field">
                   <label htmlFor="pro-claim-pw">Choisissez un mot de passe (8 caractères minimum)</label>
                   <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} onKeyDown={onEnter(confirmAndSend)} />
+                  <PasswordMeter value={claimPassword} />
                 </div>
               ) : null}
               {errorBox}
