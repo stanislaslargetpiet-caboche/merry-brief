@@ -9,6 +9,8 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { BusyDots } from "@/components/dash/ui";
+import { useLang } from "@/lib/lang";
+import { INVITES_TEXT } from "@/lib/i18n/vitrine-invites";
 
 function readDemoWedding() {
   try {
@@ -44,14 +46,16 @@ function matchesDemo(w, { code, name1, name2, date }) {
   return w;
 }
 
-function formatDate(iso) {
+function formatDate(iso, lang) {
   if (!iso) return null;
   const d = new Date(`${iso}T00:00:00`);
-  const s = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const s = d.toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export default function InvitesFinder() {
+  const { lang } = useLang();
+  const t = INVITES_TEXT[lang];
   const [view, setView] = useState("home"); // home | code | nom | trouve | non-trouve
   const [code, setCode] = useState("");
   const [name1, setName1] = useState("");
@@ -92,11 +96,9 @@ export default function InvitesFinder() {
     return (
       <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
-          ← Retour
+          {t.back}
         </button>
-        <h1 className="wv-h1">
-          On a trouvé la fête.
-        </h1>
+        <h1 className="wv-h1">{t.foundTitle}</h1>
         <div className="wv-flow-panel">
           <div className="wv-flow-match">
             {found.cover ? (
@@ -112,7 +114,7 @@ export default function InvitesFinder() {
             <div>
               <b>{names}</b>
               <p>
-                {formatDate(found.wedding_date)}
+                {formatDate(found.wedding_date, lang)}
                 {place ? (
                   <>
                     <br />
@@ -123,27 +125,31 @@ export default function InvitesFinder() {
             </div>
           </div>
           <a href={`/s/${found.slug}`} className="wv-btn wv-btn-dark wv-btn-wide">
-            Ouvrir la page de la fête
+            {t.openSite}
           </a>
           <p className="wv-flow-or">
-            Ce n’est pas eux ?{" "}
+            {t.notThem}{" "}
             <button type="button" onClick={() => setView("nom")}>
-              Chercher à nouveau
+              {t.searchAgain}
             </button>
           </p>
         </div>
         <ul className="wv-flow-steps">
           <li>
-            <b>Programme</b>L’heure, le lieu, le déroulé.
+            <b>{t.stepProgram}</b>
+            {t.stepProgramDesc}
           </li>
           <li>
-            <b>Ta réponse</b>Oui ou non, en deux clics, régime compris.
+            <b>{t.stepRsvp}</b>
+            {t.stepRsvpDesc}
           </li>
           <li>
-            <b>Infos pratiques</b>Accès, hébergement, dress code.
+            <b>{t.stepInfo}</b>
+            {t.stepInfoDesc}
           </li>
           <li>
-            <b>Cadeaux</b>La liste ou la cagnotte.
+            <b>{t.stepGifts}</b>
+            {t.stepGiftsDesc}
           </li>
         </ul>
       </section>
@@ -154,30 +160,27 @@ export default function InvitesFinder() {
     return (
       <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
-          ← Retour
+          {t.back}
         </button>
-        <h1 className="wv-h1">On n’a rien trouvé.</h1>
+        <h1 className="wv-h1">{t.notFoundTitle}</h1>
         <div className="wv-flow-panel">
-          <p className="wv-help">
-            Vérifie l’orthographe des prénoms ou du code, majuscules et accents ne comptent pas. Si plusieurs couples
-            portent les mêmes prénoms, ajoute la date de la fête.
-          </p>
+          <p className="wv-help">{t.notFoundHelp}</p>
           <button type="button" className="wv-btn wv-btn-dark wv-btn-wide" onClick={() => setView(code ? "code" : "nom")}>
-            Réessayer
+            {t.retry}
           </button>
           <p className="wv-flow-or">
             {code ? (
               <>
-                Pas de code ?{" "}
+                {t.noCode}{" "}
                 <button type="button" onClick={() => setView("nom")}>
-                  Cherche par prénoms
+                  {t.searchByNames}
                 </button>
               </>
             ) : (
               <>
-                Tu as un code ?{" "}
+                {t.hasCode}{" "}
                 <button type="button" onClick={() => setView("code")}>
-                  Entre-le ici
+                  {t.enterHere}
                 </button>
               </>
             )}
@@ -191,11 +194,9 @@ export default function InvitesFinder() {
     return (
       <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
-          ← Retour
+          {t.back}
         </button>
-        <h1 className="wv-h1">
-          Ton code d’invitation.
-        </h1>
+        <h1 className="wv-h1">{t.codeTitle}</h1>
         <form
           className="wv-flow-panel"
           onSubmit={(e) => {
@@ -204,25 +205,25 @@ export default function InvitesFinder() {
           }}
         >
           <span className="wv-flow-label" id="invite-code-label">
-            Le code de ton faire-part
+            {t.codeLabel}
           </span>
           <input
             className="wv-flow-field"
             aria-labelledby="invite-code-label"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Ex. alice-et-ben-2027"
+            placeholder={t.codePlaceholder}
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
           />
           <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !code.trim()}>
-            {busy ? <BusyDots label="Recherche en cours" /> : "Trouver la fête"}
+            {busy ? <BusyDots label={t.searching} /> : t.findParty}
           </button>
           <p className="wv-flow-or">
-            Pas de code ?{" "}
+            {t.noCode}{" "}
             <button type="button" onClick={() => setView("nom")}>
-              Cherche par prénoms
+              {t.searchByNames}
             </button>
           </p>
         </form>
@@ -234,11 +235,9 @@ export default function InvitesFinder() {
     return (
       <section className="wv-flow" aria-label="Invités">
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
-          ← Retour
+          {t.back}
         </button>
-        <h1 className="wv-h1">
-          Qui se marie ?
-        </h1>
+        <h1 className="wv-h1">{t.namesTitle}</h1>
         <form
           className="wv-flow-panel"
           onSubmit={(e) => {
@@ -248,25 +247,25 @@ export default function InvitesFinder() {
         >
           <div className="wv-flow-two">
             <label>
-              <span className="wv-flow-label">Un prénom</span>
-              <input className="wv-flow-field" value={name1} onChange={(e) => setName1(e.target.value)} placeholder="Alice" />
+              <span className="wv-flow-label">{t.name1Label}</span>
+              <input className="wv-flow-field" value={name1} onChange={(e) => setName1(e.target.value)} placeholder={t.name1Placeholder} />
             </label>
             <label>
-              <span className="wv-flow-label">L’autre prénom</span>
-              <input className="wv-flow-field" value={name2} onChange={(e) => setName2(e.target.value)} placeholder="Ben" />
+              <span className="wv-flow-label">{t.name2Label}</span>
+              <input className="wv-flow-field" value={name2} onChange={(e) => setName2(e.target.value)} placeholder={t.name2Placeholder} />
             </label>
           </div>
           <label>
-            <span className="wv-flow-label">Date de la fête</span>
+            <span className="wv-flow-label">{t.dateLabel}</span>
             <input type="date" className="wv-flow-field" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           <button type="submit" className="wv-btn wv-btn-dark wv-btn-wide" disabled={busy || !name1.trim() || (!name2.trim() && !date)}>
-            {busy ? <BusyDots label="Recherche en cours" /> : "Trouver la fête"}
+            {busy ? <BusyDots label={t.searching} /> : t.findParty}
           </button>
           <p className="wv-flow-or">
-            Tu as un code ?{" "}
+            {t.hasCode}{" "}
             <button type="button" onClick={() => setView("code")}>
-              Entre-le ici
+              {t.enterHere}
             </button>
           </p>
         </form>
@@ -281,17 +280,17 @@ export default function InvitesFinder() {
       <img src="/vitrine/invites-3.webp" alt="" className="wv-ph wv-ph3" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-4.webp" alt="" className="wv-ph wv-ph4" width={1400} height={978} decoding="async" />
       <div className="wv-invites-in">
-        <h1 className="wv-h1">Tu es invité au plus beau jour de leur vie.</h1>
-        <p className="wv-h4">C’est pas rien.</p>
+        <h1 className="wv-h1">{t.homeTitle}</h1>
+        <p className="wv-h4">{t.homeSub}</p>
         <div className="wv-btns" style={{ justifyContent: "center", marginTop: 18 }}>
           <button type="button" className="wv-btn wv-btn-dark" onClick={() => setView("code")}>
-            J'ai un code
+            {t.hasCodeBtn}
           </button>
           <button type="button" className="wv-btn wv-btn-line" onClick={() => setView("nom")}>
-            J'ai un nom
+            {t.hasNameBtn}
           </button>
         </div>
-        <p className="wv-flow-hint">Le code est sur ton faire-part ou dans le message des mariés.</p>
+        <p className="wv-flow-hint">{t.hint}</p>
       </div>
     </section>
   );

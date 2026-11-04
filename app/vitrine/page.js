@@ -1,141 +1,27 @@
-import Image from "next/image";
-import Frame, { Block } from "@/components/vitrine/Frame";
-import { LINKS, SIGNUP } from "@/lib/vitrine/routes";
-import { formatProof, getProof } from "@/lib/vitrine/proof";
-import proposition from "@/lib/vitrine/blocks/proposition";
-import carrousel from "@/lib/vitrine/blocks/carrousel";
+import Frame from "@/components/vitrine/Frame";
+import HomeBody from "@/components/vitrine/HomeBody";
+import { LINKS } from "@/lib/vitrine/routes";
+import { getProof } from "@/lib/vitrine/proof";
+import { ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
 
-// Trois étapes, chacune avec l'écran correspondant (public/vitrine/etapes, 16:9) : le questionnaire « L'essentiel »
-// de l'onboarding, la page Prestataires d'un vrai compte, la liste des invités.
-const STEPS = [
-  ["brief", 1800, 1013, "Raconte-nous ton mariage.", "Date, lieu, nombre d'invités, budget, ambiance. Merry en tire un rétroplanning et une répartition du budget à ta taille."],
-  ["prestataires", 1800, 1013, "Reçois des prestataires qui matchent.", "Lieux, traiteurs, photographes, DJ : plusieurs options, libres à ta date, dans ton budget. C'est toi qui choisis."],
-  ["pilotage", 1800, 1013, "Pilote tout au même endroit.", "Invités, réponses, paiements, documents, site de mariage. À plusieurs, avec tes parents et tes témoins."],
-];
-
-const FAQ = [
-  ["Merry, c’est fait pour quel genre de mariage ?", "Civil, religieux, petit comité ou grand mariage : Merry s’adapte à la taille et au style de ta fête."],
-  ["Merry choisit les prestataires à ma place ?", "Non. On te montre toujours plusieurs options, on te dit ce que chacune coûte, et c’est toi qui choisis."],
-  ["Je peux organiser à plusieurs ?", "Oui. Tu peux inviter ton conjoint, tes parents, tes amis ou tes collègues comme co-organisateurs. Ils accèdent à tout comme toi : invités, budget, rétroplanning et documents."],
-  ["Je peux payer mes prestataires depuis Merry ?", "Tu suis tous tes paiements au même endroit : qui a payé quoi, et ce qu’il reste à régler. Le paiement direct depuis Merry arrive ensuite."],
-  ["Comment mes invités retrouvent la page de la fête ?", "Ils entrent les prénoms de ceux qui organisent et la date, ou ton code d’invitation. Ils retrouvent alors la page de la fête, la cagnotte ou la liste de cadeaux, et toutes les infos pratiques."],
-];
-
-// Données structurées : la FAQ, telle qu'affichée, pour les moteurs de recherche
+// Données structurées : la FAQ, telle qu'affichée, pour les moteurs de recherche (reste en
+// français : lié aux meta title/description qui restent en français, voir lib/i18n/vitrine-frame.js)
 const FAQ_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+  mainEntity: ACCUEIL_FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
 };
 
 export default async function VitrineAccueil() {
   const links = LINKS;
-  const proof = formatProof(await getProof());
+  const { count, at } = await getProof();
+  const proof = { count, at: at.toISOString() };
   return (
     <Frame current="home">
       {/* Première image de la carte animée du haut : chargée dès l'entête plutôt qu'après le CSS */}
       <link rel="preload" as="image" href="/vitrine/blocks/proposition-1.webp" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }} />
-      <section className="wv-hero" aria-label="Accueil">
-        <div className="wv-hero-in">
-          <p className="wv-eyebrow">Gratuit pour les mariés</p>
-          <h1 className="wv-h1">Organiser un mariage devrait être (très) simple.</h1>
-          <p className="wv-lead">
-            Merry : l’assistant qui <b>simplifie</b> l’organisation de ton mariage de A à Z.
-          </p>
-          <div className="wv-cta">
-            <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="hero_organise">
-              J'organise
-            </a>
-            <a href={links.pro} className="wv-textlink" data-track="hero_prestataire">
-              Je suis prestataire →
-            </a>
-          </div>
-          <p className="wv-proof-line">
-            Plus de <span className="wv-proof-hl">{proof.number} prestataires</span> référencés ({proof.month}).
-          </p>
-        </div>
-        <Block html={proposition} className="wv-hero-media" />
-      </section>
-
-      <section className="wv-how" aria-labelledby="wv-how-t">
-        <div className="wv-center">
-          <h2 id="wv-how-t" className="wv-h3">
-            Comment ça marche.
-          </h2>
-        </div>
-        <ol className="wv-how-g">
-          {STEPS.map(([img, w, h, title, text], i) => (
-            <li key={img} className="wv-how-card">
-              <div className="wv-how-shot">
-                <Image src={`/vitrine/etapes/${img}.webp`} alt="" width={w} height={h} sizes="(max-width: 760px) 92vw, 30vw" loading={i === 0 ? "eager" : "lazy"} />
-              </div>
-              <span className="wv-how-n" aria-hidden="true">
-                {i + 1}
-              </span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </li>
-          ))}
-        </ol>
-        <div className="wv-btns" style={{ justifyContent: "center", marginTop: 40 }}>
-          <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="how_organise">
-            J'organise
-          </a>
-        </div>
-      </section>
-
-      <section className="wv-sec wv-lime wv-center" aria-label="Fonctionnalités">
-        <h2 className="wv-h3" style={{ maxWidth: 900 }}>
-          Gagnez du temps sur votre mariage.
-        </h2>
-        <Block html={carrousel} className="wv-car" />
-      </section>
-
-      <section className="wv-sec wv-split" aria-label="Modèle">
-        <Image src="/vitrine/gratuit.webp" alt="" className="wv-photo" width={1600} height={1061} sizes="(max-width: 760px) 100vw, 46vw" />
-        <div className="wv-stack" style={{ gap: 24 }}>
-          <h2 className="wv-h3">Tu ne paies rien (oui).</h2>
-          <p className="wv-p">Merry est 100 % gratuite pour les organisateurs (pas 99 %). Tes demandes de devis (budget, lieu, questions…) arrivent chez les prestataires. Ils utilisent des crédits pour y répondre.</p>
-          <div className="wv-btns">
-            <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="gratuit_organise">
-              J'organise
-            </a>
-            <a href={links.pro} className="wv-btn wv-btn-line" data-track="gratuit_modele">
-              Modèle
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section className="wv-sec wv-faq" aria-labelledby="wv-faq">
-        <div>
-          <h2 id="wv-faq" className="wv-h3">
-            FAQ.
-          </h2>
-          <div className="wv-acc">
-            {FAQ.map(([q, a], i) => (
-              <details key={q} open={i === 0}>
-                <summary>{q}</summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-        <Image src="/vitrine/faq.webp" alt="" className="wv-photo" style={{ minHeight: 640 }} width={1400} height={1953} sizes="(max-width: 760px) 0px, 34vw" />
-      </section>
-
-      <section className="wv-guest" aria-label="Invités">
-        <div className="wv-marquee" aria-hidden="true">
-          {Array.from({ length: 6 }, (_, i) => (
-            <span key={i}>Invité ?</span>
-          ))}
-        </div>
-        <p>Lucky you ! Tu as juste à entrer les prénoms de ceux qui organisent et la date, ou le code de ton invitation, et tu retrouves la page de la fête, la cagnotte ou la liste de cadeaux, avec toutes les infos pratiques.</p>
-        <a href={links.guests} className="wv-btn wv-btn-lime" data-track="invite">
-          Je suis invité !
-        </a>
-      </section>
+      <HomeBody links={links} proof={proof} />
     </Frame>
   );
 }

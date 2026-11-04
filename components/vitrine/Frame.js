@@ -1,16 +1,12 @@
 // En-tête et pied de page du site vitrine (canvas « 9 - Site vitrine »)
 
-import { LINKS, LOGIN, PRO_LOGIN, SIGNUP } from "@/lib/vitrine/routes";
-import LangSwitch from "./LangSwitch";
-import Dropdown from "./Dropdown";
 import { PUBLIC_URL, getStats, hasPage, hrefOf } from "@/lib/seo/data";
 import { FRANCE, regionZone } from "@/lib/seo/geo";
 import { tradeOf } from "@/lib/seo/trades";
+import HeaderChrome from "./HeaderChrome";
+import FooterChrome from "./FooterChrome";
 
-// Bloc HTML animé repris du site (sans script) ; ses styles sont dans app/vitrine/blocks.css
-export function Block({ html, className }) {
-  return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
-}
+export { default as Block } from "./Block";
 
 // Liens vers les pages SEO métier × région, au-dessus du pied de page (canvas « Site 1 · Accueil ») :
 // une colonne par métier, les régions par taille de marché ; seules les pages qui existent sont listées.
@@ -60,108 +56,15 @@ async function SeoLinks() {
   );
 }
 
-// « Connexion » ouvre un choix : l'espace des couples (tableau de bord) ou celui des prestataires
-// (adresse mail puis code). Un seul lien envoyait tout le monde au même endroit.
-const LOGIN_ITEMS = [
-  [LOGIN, "Espace couple"],
-  [PRO_LOGIN, "Espace prestataire"],
-];
-
-function LoginMenu() {
-  return (
-    <Dropdown className="wv-login" summaryLabel="Connexion : choisir son espace" summary="Connexion ▾">
-      <div className="wv-login-list">
-        {LOGIN_ITEMS.map(([href, label]) => (
-          <a key={href} href={href}>
-            {label}
-          </a>
-        ))}
-      </div>
-    </Dropdown>
-  );
-}
-
 export default function Frame({ current, children }) {
-  const links = LINKS;
-  const item = (key, href, label) => (
-    <a href={href} className={current === key ? "on" : undefined} aria-current={current === key ? "page" : undefined}>
-      {label}
-    </a>
-  );
   return (
     <div className="wv">
-      {/* Lien d'évitement : visible au clavier seulement, mène au contenu en sautant l'en-tête */}
-      <a href="#contenu" className="wv-skip">
-        Aller au contenu
-      </a>
-      <header className="wv-head">
-        <a href={links.home} className="wv-logo" aria-label="Merry, accueil">
-          Merry
-        </a>
-        <nav className="wv-nav" aria-label="Navigation principale">
-          {item("home", links.home, "Accueil")}
-          {item("pro", links.pro, "Prestataires")}
-          <LoginMenu />
-        </nav>
-        <div className="wv-right">
-          <LangSwitch />
-          <a href={SIGNUP} className="wv-btn wv-btn-dark wv-btn-small" data-track="header_organise">
-            J'organise
-          </a>
-          <Dropdown
-            className="wv-menu"
-            summaryLabel="Ouvrir le menu"
-            summary={
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
-            }
-          >
-            <nav className="wv-menu-list" aria-label="Menu mobile">
-              <a href={links.home}>Accueil</a>
-              <a href={links.pro}>Prestataires</a>
-              <a href={links.about}>À propos</a>
-              <p className="wv-menu-group">Connexion</p>
-              {LOGIN_ITEMS.map(([href, label]) => (
-                <a key={href} href={href} className="wv-menu-sub">
-                  {label}
-                </a>
-              ))}
-              <LangSwitch className="wv-lang-menu" />
-            </nav>
-          </Dropdown>
-        </div>
-      </header>
+      <HeaderChrome current={current} />
       <main id="contenu" tabIndex={-1}>
         {children}
       </main>
       <SeoLinks />
-      {/* Téléphone : le bouton principal reste à portée de pouce tout au long de la page (masqué sur la page Prestataires) */}
-      {current !== "pro" && (
-        <aside className="wv-sticky" aria-label="Commencer">
-          <span>
-            <b>Gratuit pour les mariés.</b>
-            <br />
-            Dix minutes pour démarrer.
-          </span>
-          <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="sticky_organise">
-            J'organise
-          </a>
-        </aside>
-      )}
-      <footer className="wv-foot">
-        <div className="wv-stack" style={{ gap: 12 }}>
-          <span className="wv-h2">Merry</span>
-          <p className="wv-lead">La vie est la plus belle des fêtes.</p>
-        </div>
-        <div>
-          <p className="wv-quote">“Never miss a party… good for the nerves - like celery.”</p>
-          <p className="wv-quote">F. Scott Fitzgerald</p>
-          <p className="wv-quote wv-foot-links">
-            <a href={links.about}>À propos</a> · <a href={links.pro}>Prestataires</a> · <a href={links.privacy}>Confidentialité</a> · <a href={links.terms}>Conditions d'utilisation</a>
-          </p>
-        </div>
-      </footer>
+      <FooterChrome current={current} />
     </div>
   );
 }

@@ -31,7 +31,7 @@ npm run test:sql   # migrations Supabase sur un PostgreSQL vide + scénarios (sc
 
 Le workflow `.github/workflows/ci.yml` lance lint, tests et build à chaque PR, et rejoue les fichiers `supabase/*.sql` dans l'ordre du README sur un PostgreSQL 16 (avec un substitut minimal des objets Supabase, `scripts/sql/00-supabase-shim.sql`), puis les scénarios `scripts/sql/test-*.sql` (recherche de fête, formulaire invités, quotas, visites). Les 33 fichiers sont rejoués, `catalog.sql` compris : il manquait au dépôt et a été reconstitué le 2 novembre 2026 à partir de tout ce que l'appli et les autres fichiers lisent et écrivent dans le schéma (relançable sans effet sur une base qui a déjà le catalogue).
 
-Chaque page a son filet : `app/error.js` (erreur de rendu, bouton Réessayer), `app/global-error.js`, `app/not-found.js`. Les en-têtes de sécurité (HSTS, nosniff, frame, referrer, permissions) sont dans `next.config.mjs` ; une Content-Security-Policy reste à écrire avec un nonce (Next, Weglot, PostHog, Google Fonts).
+Chaque page a son filet : `app/error.js` (erreur de rendu, bouton Réessayer), `app/global-error.js`, `app/not-found.js`. Les en-têtes de sécurité (HSTS, nosniff, frame, referrer, permissions) sont dans `next.config.mjs` ; une Content-Security-Policy reste à écrire avec un nonce (Next, PostHog, Google Fonts).
 
 ## 3. Déployer sur Vercel (10 minutes)
 

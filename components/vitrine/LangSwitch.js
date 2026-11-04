@@ -1,10 +1,12 @@
 "use client";
 
-// Sélecteur de langue du site vitrine : Weglot traduit la page, mais son propre sélecteur reste masqué
-// (réglage de l'intégration Squarespace), d'où ce menu « Français ▾ » du canvas.
+// Sélecteur de langue du site vitrine : textes traduits en dur dans le code (lib/i18n/vitrine-*),
+// même mécanisme que l'appli (lib/lang.js). Remplace l'ancien sélecteur branché sur Weglot
+// (retiré le 4 nov. 2026, abonnement expiré) — voir notes/journal.md.
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useAutoClose } from "./Dropdown";
+import { useLang } from "@/lib/lang";
 
 const LANGS = [
   ["fr", "Français"],
@@ -12,28 +14,11 @@ const LANGS = [
 ];
 
 export default function LangSwitch({ className }) {
-  const [lang, setLang] = useState("fr");
+  const { lang, setLang } = useLang();
   const ref = useRef(null);
   useAutoClose(ref);
 
-  useEffect(() => {
-    let stop = false;
-    let tries = 0;
-    const sync = () => {
-      const w = window.Weglot;
-      // Weglot s'initialise après le chargement de son script ; on l'attend quelques secondes au plus
-      if (!w?.initialized) return stop || tries++ > 100 || setTimeout(sync, 100);
-      setLang(w.getCurrentLang());
-      w.on("languageChanged", (next) => setLang(next));
-    };
-    sync();
-    return () => {
-      stop = true;
-    };
-  }, []);
-
   const pick = (code) => {
-    window.Weglot?.switchTo(code);
     setLang(code);
     if (ref.current) ref.current.open = false;
   };

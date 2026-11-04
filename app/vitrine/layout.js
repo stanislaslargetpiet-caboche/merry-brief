@@ -1,6 +1,6 @@
 import { SHARE_IMAGE } from "@/lib/site";
-import Weglot from "@/components/vitrine/Weglot";
 import Track from "@/components/vitrine/Track";
+import { LangProvider } from "@/lib/lang";
 import "./vitrine.css";
 import "./blocks.css";
 
@@ -32,11 +32,10 @@ const ORGANIZATION = {
 
 export default function VitrineLayout({ children }) {
   return (
-    <>
+    <LangProvider>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION) }} />
       {children}
-      <Weglot />
       <Track />
-    </>
+    </LangProvider>
   );
 }

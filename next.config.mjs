@@ -5,11 +5,11 @@
 // bloquante, avec un nonce pour les scripts en ligne de Next, une fois la liste confirmée en production.
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.weglot.com https://*.weglot.com https://eu.i.posthog.com https://eu-assets.i.posthog.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.weglot.com",
+  "script-src 'self' 'unsafe-inline' https://eu.i.posthog.com https://eu-assets.i.posthog.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.weglot.com https://*.posthog.com https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com",
+  "connect-src 'self' https://*.posthog.com https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com",
   "frame-src 'self' https://calendly.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
