@@ -7058,6 +7058,56 @@ button.d-group-none {
   color: var(--d-ink);
 }
 
+/* Poste sans prestataire (table « Par poste ») : « Ajouter mon prestataire » (saisie libre) ou
+   « Voir les meilleurs matchs » (onglet Prestataires pré-filtré sur la catégorie du poste) */
+.d-vendor-cta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.d-vendor-add-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.d-vendor-add-link:hover {
+  color: var(--d-ink);
+}
+
+.d-vendor-cta-or {
+  font-size: 12px;
+  color: var(--d-muted);
+}
+
+.d-match-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: var(--d-limetint);
+  color: var(--d-ok-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.d-match-link:hover {
+  background: var(--d-lime);
+}
+
 .d-line-note {
   padding: 12px 16px;
   border-radius: 14px;

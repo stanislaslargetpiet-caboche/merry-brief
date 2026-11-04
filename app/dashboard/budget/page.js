@@ -6,6 +6,7 @@ import { useDash } from "@/lib/dash/store";
 import { budgetTotals, groupFinance, groupItems, itemFinance, kpiItems, lineLabel, paidByPayer, posteName, removePosteMessage, unassignedPayments } from "@/lib/dash/model";
 import { euros, shortDate, todayIso } from "@/lib/dash/format";
 import { POSTE_COLORS, pastel } from "@/lib/dash/theme";
+import { catForIcon } from "@/lib/dash/catalog";
 import { Icon, Tile, guessIcon } from "@/components/dash/icons";
 import { Btn, Donut, KpiBar, OkPill, PersonChip, Section } from "@/components/dash/ui";
 import BudgetHeader from "@/components/dash/BudgetTabs";
@@ -79,6 +80,8 @@ export default function Budget() {
   const kpis = kpiItems(data, "budget");
   const memberById = new Map(members.map((m) => [m.id, m]));
   const vendorById = new Map(vendors.map((v) => [v.id, v]));
+  // Postes à une seule ligne sans prestataire : ceux que « Tout matcher » propose de combler en premier
+  const unmatched = groups.filter((g) => !g.multi && !g.items[0].vendor_id);
 
   // Répartition : qui a déjà payé quoi, et où va l'argent
   const byPayer = paidByPayer(data);
@@ -295,7 +298,24 @@ export default function Budget() {
                   {posteName(it)}
                 </button>
               )}
-              {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : it.note ? <small>{it.note}</small> : line ? <small>Prestataire à choisir</small> : null}
+              {v ? (
+                <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link>
+              ) : it.note ? (
+                <small>{it.note}</small>
+              ) : line ? (
+                <small>Prestataire à choisir</small>
+              ) : (
+                <span className="d-vendor-cta">
+                  <button type="button" className="d-vendor-add-link" onClick={() => setEditing(it)}>
+                    Ajouter mon prestataire
+                  </button>
+                  <span className="d-vendor-cta-or">ou</span>
+                  <Link href={`/dashboard/prestataires?cat=${catForIcon(it.icon || guessIcon(it.label))}`} className="d-match-link">
+                    <Icon name="sparkle" size={11} sw={2.2} />
+                    Voir les meilleurs matchs
+                  </Link>
+                </span>
+              )}
               {line ? null : (
                 <button type="button" className="d-add-line-link" onClick={() => addLine(it.category || it.label)} title="Un autre prestataire dans ce poste : tentiste, foodtruck…">
                   Ajouter une ligne
@@ -417,6 +437,11 @@ export default function Budget() {
         tab="depenses"
         actions={
           <span className="d-desk-only-flex" style={{ gap: 10 }}>
+            {unmatched.length ? (
+              <Btn kind="lime" icon="sparkle" href={`/dashboard/prestataires?cat=${catForIcon(unmatched[0].items[0].icon || guessIcon(unmatched[0].items[0].label))}`}>
+                Tout matcher
+              </Btn>
+            ) : null}
             <Btn kind="strong" icon="download" onClick={exportCsv}>
               Exporter
             </Btn>
