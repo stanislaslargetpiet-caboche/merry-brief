@@ -4,7 +4,7 @@ import Link from "next/link";
 import "@/app/onboarding.css";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, sendWelcomeMail } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { INVITE_KEY, RESET_KEY } from "@/lib/dash/store";
 import { useLang } from "@/lib/lang";
@@ -133,12 +133,9 @@ export default function Connexion() {
       setUser(session.user);
       if (pending && pending === session.user.id) setMode("reset");
       else if (t) showJoin(t);
-      // Retour du lien de confirmation du mail : mail de bienvenue (best-effort, n'attend pas la
-      // réponse) puis direction le tableau de bord
+      // Retour du lien de confirmation, si la confirmation d'adresse est activée dans Supabase
       else if (INITIAL_HASH.includes("type=signup")) {
-        if (session.access_token) {
-          fetch("/api/bienvenue", { method: "POST", headers: { authorization: `Bearer ${session.access_token}` } }).catch(() => {});
-        }
+        sendWelcomeMail(session.access_token);
         window.location.replace(safeNext(params.get("next")));
       }
       else setMode("signedin");
@@ -201,7 +198,10 @@ export default function Connexion() {
         });
         if (err) throw new Error(/registered|already/i.test(err.message) ? s.errors.alreadyRegistered : s.errors.signupFailed);
         if (!data.session) setMode("confirm");
-        else afterAuth();
+        else {
+          if (!token) sendWelcomeMail(data.session.access_token);
+          afterAuth();
+        }
       } else if (mode === "forgot") {
         const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/connexion?reset=1` });
         if (err) throw new Error(s.errors.resetRequestFailed);

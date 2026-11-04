@@ -186,7 +186,8 @@ export default function Claim() {
         live = false;
       };
     }
-    if (!fiche || demo) return undefined;
+    // ?fiche=…&connexion=1 : un collaborateur se connecte avec son adresse, pas celle de la fiche
+    if (!fiche || demo || (params.get("connexion") === "1" && !signedIn)) return undefined;
     (async () => {
       const res = await call({ action: "lookup", vendorId: fiche });
       if (!live) return;
