@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sendMail } from "../lib/server/sendMail.js";
+import { personalFrom, sendMail } from "../lib/server/sendMail.js";
 
 const mail = { to: "a@b.fr", subject: "Objet", text: "t", html: "<p>h</p>", label: "test" };
 
@@ -44,6 +44,14 @@ describe("sendMail", () => {
     await vi.runAllTimersAsync();
     expect(await sent).toBe(false);
     expect(calls).toHaveLength(1);
+  });
+
+  it("personnalise l'expéditeur sans laisser passer de caractère dangereux", () => {
+    process.env.MERRY_MAIL_FROM = "Merry <contact@withmerry.com>";
+    expect(personalFrom("Emma et Lucas")).toBe('"Emma et Lucas via Merry" <contact@withmerry.com>');
+    expect(personalFrom('A"<b@x.fr>\r\nBcc: z')).toBe('"Ab@x.frBcc: z via Merry" <contact@withmerry.com>');
+    expect(personalFrom("")).toBe("Merry <contact@withmerry.com>");
+    delete process.env.MERRY_MAIL_FROM;
   });
 
   it("donne un identifiant différent à chaque mail", async () => {

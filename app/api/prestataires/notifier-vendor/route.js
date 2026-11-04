@@ -161,7 +161,7 @@ ${ctaBlock(link)}
 ${footerBlock(admin ? unsubLink(origin, to) : `${origin}/pro`)}
 </div>`;
     const html = mailShell({ title: subject, preheader, body: bodyHtml });
-    if (await sendMail({ to, subject, text, html, label: "notification prestataire" })) sent += 1;
+    if (await sendMail({ to, subject, text, html, fromName: wedding?.partner1 ? couple : "", label: "notification prestataire" })) sent += 1;
   }
   if (!sent) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, sent });

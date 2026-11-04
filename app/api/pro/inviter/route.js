@@ -92,6 +92,6 @@ ${footerBlock}
 </div>`;
   const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
-  if (!(await sendMail({ to, subject, text, html, replyTo: user.user.email, label: "invitation prestataire" }))) return Response.json({ error: "send_failed" }, { status: 502 });
+  if (!(await sendMail({ to, subject, text, html, replyTo: user.user.email, fromName: vendor?.name, label: "invitation prestataire" }))) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, to });
 }

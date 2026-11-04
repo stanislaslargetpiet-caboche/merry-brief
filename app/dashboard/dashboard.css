@@ -14158,6 +14158,16 @@ body.d-noscroll {
   text-decoration: none;
 }
 
+.d-password-switch {
+  width: 100%;
+  margin-top: 14px;
+  text-align: left;
+}
+
+.d-password-fields {
+  margin-top: 14px;
+}
+
 .d-notif-list {
   display: flex;
   flex-direction: column;

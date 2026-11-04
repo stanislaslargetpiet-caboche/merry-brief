@@ -121,7 +121,7 @@ ${footerBlock}
   let sent = 0;
   for (const r of recipients) {
     const to = String(r.to_email).trim();
-    if (await sendMail({ to, subject, text, html, label: "notification couple" })) sent += 1;
+    if (await sendMail({ to, subject, text, html, fromName: recipients[0].vendor_name, label: "notification couple" })) sent += 1;
   }
   if (!sent) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, sent });

@@ -6,7 +6,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { welcomeMail } from "@/lib/server/welcomeMail";
 import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 
@@ -38,40 +38,8 @@ export async function POST(req) {
   const meta = user.user.user_metadata || {};
   const greeting = couple || [meta.first_name, meta.partner_first_name].map(displayName).filter(Boolean).join(" et ");
 
-  const link = `${publicOrigin(req)}/dashboard`;
-  const subject = "Bienvenue sur Merry !";
-  const text = `Bienvenue sur Merry${greeting ? `, ${greeting}` : ""} !\n\nTon tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.\n\n${link}`;
-
-  // Reprend à l'identique la planche V22 du canvas (page « 7 - mails ») : logo, titre, tuiles,
-  // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
-
-  const titleBlock = `<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a;text-align:center">Bienvenue sur Merry${greeting ? `, ${esc(greeting)}` : ""}&nbsp;!</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.6;text-align:center;color:#1c1c1a">Ton tableau de bord est prêt. Invités, budget, prestataires, rétroplanning&nbsp;: tout est là, et c'est gratuit du début à la fin.</p>`;
-
-  const tile = (label) =>
-    `<td width="33%" style="padding:0 4px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #ecebe6;border-radius:12px;border-collapse:separate"><tr><td align="center" style="padding:16px 6px;font-size:13px;font-weight:600;color:#1c1c1a">${label}</td></tr></table></td>`;
-  const tilesBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${tile("Invités")}${tile("Budget")}${tile("Rétroplanning")}</tr></table>`;
-
-  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td align="center">
-<a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Découvrir mon tableau de bord</a>
-</td></tr></table>`;
-
-  const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-size:12px;color:#9c9a90;line-height:1.5">Merry · withmerry.com<br>Tu reçois ce mail car tu viens de créer ton mariage sur Merry.</td>
-</tr></table>
-</td></tr></table>`;
-
-  const preheader = "Ton tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.";
-  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
-${logoBlock}
-${titleBlock}
-${tilesBlock}
-${ctaBlock}
-<p style="margin:20px 0 0;font-size:14px;color:#6b6a63;text-align:center">Une question&nbsp;? Il suffit de répondre à ce mail.</p>
-${footerBlock}
-</div>`;
-  const html = mailShell({ title: subject, preheader, body: bodyHtml });
+  const origin = publicOrigin(req);
+  const { subject, text, html } = welcomeMail({ greeting, link: `${origin}/dashboard`, assets: `${origin}/mail` });
 
   if (!(await sendMail({ to, subject, text, html, label: "mail bienvenue" }))) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, to });

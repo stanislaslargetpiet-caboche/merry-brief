@@ -15,6 +15,7 @@ import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import { CATALOG_CATEGORIES } from "@/lib/dash/catalog";
 import Collaborators from "@/components/pro/Collaborators";
 import MailPrefs from "@/components/MailPrefs";
+import PasswordFields from "@/components/PasswordFields";
 
 export default function Compte() {
   const pro = usePro();
@@ -36,7 +37,9 @@ export default function Compte() {
     if (ok) pro.setToast({ kind: "ok", text: "Activité mise à jour : Ma fiche s’adapte à votre métier." });
   }
   const [email, setEmail] = useState(pro.data.user?.email || "");
+  const [changePassword, setChangePassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordAgain, setPasswordAgain] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -44,8 +47,12 @@ export default function Compte() {
   async function save(e) {
     e.preventDefault();
     const cleanPassword = password.trim();
-    if (cleanPassword && cleanPassword.length < 8) {
+    if (changePassword && cleanPassword.length < 8) {
       pro.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
+      return;
+    }
+    if (changePassword && cleanPassword !== passwordAgain.trim()) {
+      pro.setToast({ kind: "error", text: "Les deux mots de passe ne sont pas identiques." });
       return;
     }
     setSaving(true);
@@ -60,7 +67,7 @@ export default function Compte() {
         notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
       }
     }
-    if (cleanPassword) {
+    if (changePassword) {
       if (!live) notes.push("en démo, le mot de passe ne change pas");
       else {
         const { error } = await supabase.auth.updateUser({ password: cleanPassword, data: { merry_password: true } });
@@ -68,6 +75,8 @@ export default function Compte() {
         notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
         if (!error) {
           setPassword("");
+          setPasswordAgain("");
+          setChangePassword(false);
           sendPasswordChangedMail();
         }
       }
@@ -142,10 +151,8 @@ export default function Compte() {
           <Field label="Adresse mail">
             <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </Field>
-          <Field label="Nouveau mot de passe" hint="Laissez vide pour ne pas le changer">
-            <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="••••••••" />
-          </Field>
         </div>
+        <PasswordFields on={changePassword} setOn={setChangePassword} password={password} setPassword={setPassword} again={passwordAgain} setAgain={setPasswordAgain} />
         <div className="d-settings-actions">
           <Btn type="submit" disabled={saving}>
             {saving ? "Enregistrement…" : "Enregistrer"}

@@ -10,6 +10,7 @@ import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import MailPrefs from "@/components/MailPrefs";
+import PasswordFields from "@/components/PasswordFields";
 
 export default function Reglages() {
   const dash = useDash();
@@ -19,7 +20,9 @@ export default function Reglages() {
   const me = data.members.find((m) => m.id === data.meId);
   const [name, setName] = useState(me?.display_name || "");
   const [email, setEmail] = useState(dash.user?.email || "");
+  const [changePassword, setChangePassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordAgain, setPasswordAgain] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -31,8 +34,12 @@ export default function Reglages() {
 
   async function save(e) {
     e.preventDefault();
-    if (password && password.length < 8) {
+    if (changePassword && password.length < 8) {
       dash.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
+      return;
+    }
+    if (changePassword && password !== passwordAgain) {
+      dash.setToast({ kind: "error", text: "Les deux mots de passe ne sont pas identiques." });
       return;
     }
     setSaving(true);
@@ -49,13 +56,15 @@ export default function Reglages() {
         notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
       }
     }
-    if (password) {
+    if (changePassword) {
       if (!live) notes.push("en démo, le mot de passe ne change pas");
       else {
         const { error } = await supabase.auth.updateUser({ password });
         notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
         if (!error) {
           setPassword("");
+          setPasswordAgain("");
+          setChangePassword(false);
           sendPasswordChangedMail();
         }
       }
@@ -120,10 +129,8 @@ export default function Reglages() {
           <Field label="Adresse mail">
             <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </Field>
-          <Field label="Nouveau mot de passe">
-            <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Laisser vide pour le garder" />
-          </Field>
         </div>
+        <PasswordFields on={changePassword} setOn={setChangePassword} password={password} setPassword={setPassword} again={passwordAgain} setAgain={setPasswordAgain} />
         <div className="d-settings-actions">
           <Btn type="submit" disabled={saving}>
             {saving ? "Enregistrement…" : "Enregistrer"}
