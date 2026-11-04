@@ -57,17 +57,54 @@ export async function POST(req) {
   const subject = `${vendorName} vous a répondu`;
   // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
   const text = `Bonjour,\n\n${vendorName} vous a répondu sur Merry.\n\nLire le message : ${link}`;
-  // Logo centré sur une pastille citron plein, repris du design validé avec Stan sur le canvas (V20)
+  const initials =
+    String(vendorName)
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0] || "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "M";
+
+  // Reprend à l'identique la planche V20 du canvas (page « 7 - mails ») : logo, titre, carte
+  // prestataire, bouton, bandeau sécurité, pied de page. Le mock montre en plus un aperçu du
+  // message et la catégorie/zone du prestataire : pro_notify_couple_payload ne renvoie aujourd'hui
+  // ni l'un ni l'autre, donc la carte reste au nom du prestataire seul tant que ce n'est pas ajouté
+  // côté Supabase.
   const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
 </td></tr></table>`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:560px">
+
+  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(vendorName)} vous a répondu.</h1>`;
+
+  const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
+<td style="padding-left:10px;font-size:15px;font-weight:700">${esc(vendorName)}</td>
+</tr></table>
+</td></tr></table>`;
+
+  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px"><tr><td align="center">
+<a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Répondre à ${esc(vendorName)}</a>
+</td></tr></table>`;
+
+  const securityBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;background:#f6f5f1;border-radius:12px;border-collapse:separate"><tr><td style="padding:14px 16px;font-size:13px;line-height:1.5;color:#6b6a63">Pour votre sécurité, échangez et réglez toujours vos prestataires depuis Merry. N'envoyez jamais d'argent ou de coordonnées bancaires en dehors de la plateforme.</td></tr></table>`;
+
+  const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">withmerry.com<br>Un message de votre tableau de bord Mariage.</td>
+<td align="right" valign="top"><a href="${esc(publicOrigin(req))}/dashboard/reglages" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Gérer mes notifications</a></td>
+</tr></table>
+</td></tr></table>`;
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
-<p>Bonjour,</p>
-<p>${esc(vendorName)} vous a répondu sur Merry.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr><td align="center">
-<a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message</a>
-</td></tr></table></div>`;
+${titleBlock}
+${messageBox}
+${ctaBlock}
+${securityBlock}
+${footerBlock}
+</div>`;
 
   let sent = 0;
   for (const r of recipients) {

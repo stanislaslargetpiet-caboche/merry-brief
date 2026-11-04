@@ -79,17 +79,15 @@ export async function POST(req) {
   const firstNames = [firstName(wedding?.partner1), firstName(wedding?.partner2)].filter(Boolean).join(" et ") || couple;
 
   // Mise en page en tableaux : Gmail ignore flex et grid (avant le 3 nov. 2026, la pastille du couple
-  // était rognée et « DATE » collé à sa valeur). Plus de phrases grises, à la demande de Stan.
-  const headerBlock = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:16px"><tr>
-<td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:#e9dff3;color:#4a3a5c;font-size:14px;font-weight:700;line-height:40px">${esc(initials)}</td>
-<td style="padding-left:12px;font-size:17px;font-weight:700">${esc(couple)}</td>
-</tr></table>`;
+  // était rognée et « DATE » collé à sa valeur). Reprend à l'identique la planche V21 du canvas
+  // (page « 7 - mails ») : logo, titre, carte message + tuiles, questions, bouton, pied de page —
+  // seules les icônes SVG des tuiles restent absentes (Outlook desktop ne les rend pas).
+  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(couple)} ${esc(verb)}.</h1>`;
 
-  // Message à l'intérieur d'un encadré, comme le message de Diana chez HomeExchange, pour le
-  // distinguer du reste du mail. Tel quel, sans salutation ajoutée : seul le couple écrit ce texte.
-  const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;border-radius:16px;border-collapse:separate"><tr><td style="padding:18px 20px;font-size:16px;line-height:1.5">
-<p style="margin:0;white-space:pre-line">${esc(message || `${couple} ${verb} sur Merry.`)}</p>
-</td></tr></table>`;
+  const headerBlock = `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
+<td style="padding-left:10px;font-size:15px;font-weight:700">${esc(couple)}</td>
+</tr></table>`;
 
   const infoTiles = [
     dates[0] ? { label: "Date", value: dates[0].replace(/^Dates flexibles\s*:\s*/i, "") } : null,
@@ -98,22 +96,34 @@ export async function POST(req) {
   ].filter(Boolean);
 
   const tilesBlock = infoTiles.length
-    ? infoTiles
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>${infoTiles
         .map(
           (t) =>
-            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;background:#ffffff;border:1px solid #ecebe6;border-radius:10px;border-collapse:separate"><tr><td style="padding:10px 14px"><div style="font-size:12px;color:#6b6a63">${esc(t.label)}</div><div style="margin-top:2px;font-size:15px;font-weight:700">${esc(t.value)}</div></td></tr></table>`,
+            `<td width="${Math.floor(100 / infoTiles.length)}%" style="padding-right:8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #ecebe6;border-radius:12px;border-collapse:separate"><tr><td style="padding:10px"><div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;color:#6b6a63;text-transform:uppercase">${esc(t.label)}</div><div style="margin-top:2px;font-size:14px;font-weight:600">${esc(t.value)}</div></td></tr></table></td>`,
         )
-        .join("")
+        .join("")}</tr></table>`
     : "";
+
+  // Carte avatar + nom + tuiles, comme le mock : le texte du couple vient ensuite, en paragraphes
+  // ordinaires sous la carte (jamais à l'intérieur), tel quel sans salutation ajoutée.
+  const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
+${headerBlock}
+${tilesBlock}
+</td></tr></table>`;
+
+  const messageParts = (message || `${couple} ${verb} sur Merry.`)
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;white-space:pre-line">${esc(p)}</p>`)
+    .join("");
 
   const questionsBlock = questions.length
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:1px solid #ecebe6;border-radius:14px;border-collapse:separate"><tr><td style="padding:16px;font-size:15px;line-height:1.5"><div style="font-weight:700;margin-bottom:8px">Leurs questions</div>${questions.map((q) => `<div style="margin-top:6px">– ${esc(q)}</div>`).join("")}</td></tr></table>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#ffffff;border:1px solid #ecebe6;border-radius:12px;border-collapse:separate"><tr><td style="padding:16px"><div style="font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#6b6a63;text-transform:uppercase">Quelques questions</div><div style="margin-top:10px;font-size:14.5px;line-height:1.6">${questions.map((q) => `<div style="margin-top:6px">– ${esc(q)}</div>`).join("")}</div></td></tr></table>`
     : "";
 
-  // Bouton centré et visible sans avoir à faire défiler, sur le modèle du « Reply to Diana » de
-  // HomeExchange : on répond depuis Merry, jamais en répondant directement à ce mail.
-  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td align="center">
-<a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Répondre à ${esc(firstNames)}</a>
+  // Bouton centré et visible sans avoir à faire défiler ; texte et couleur repris du mock (noir plein,
+  // jamais le citron — réservé aux contextes déjà cadrés dans l'accent).
+  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td align="center">
+<a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Lire le message et répondre</a>
 </td></tr></table>`;
 
   // Logo centré sur une pastille citron plein, repris du design validé avec Stan sur le canvas (V20/V21)
@@ -121,15 +131,22 @@ export async function POST(req) {
 <table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
 </td></tr></table>`;
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:560px">
+  const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px;font-size:12px;color:#9c9a90">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="font-size:12px;color:#9c9a90;line-height:1.5">withmerry.com<br>Vous recevez ce mail car votre établissement est référencé sur Merry.</td>
+<td align="right" valign="top"><a href="${esc(publicOrigin(req))}/pro" style="color:#9c9a90;text-decoration:underline;white-space:nowrap;font-size:12px">Se désinscrire</a></td>
+</tr></table>
+</td></tr></table>`;
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
-${headerBlock}
+${titleBlock}
 ${messageBox}
-${tilesBlock}
+${messageParts}
 ${questionsBlock}
-${sign ? `<p style="white-space:pre-line;margin-top:20px">${esc(sign)}</p>` : ""}
+${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-height:1.6">${esc(sign)}</p>` : `<p style="margin-top:20px;font-size:15px;line-height:1.6">Merci beaucoup,<br>${esc(couple)}</p>`}
 ${ctaBlock}
-<p style="margin-top:20px;font-size:13px;color:#8a8a82;text-align:center">Vous recevez ce mail car ${esc(couple)} vous a contacté sur Merry. Pour répondre, utilisez le bouton ci-dessus plutôt que de répondre directement à ce mail.</p>
+${footerBlock}
 </div>`;
 
   const res = await fetch("https://api.resend.com/emails", {
