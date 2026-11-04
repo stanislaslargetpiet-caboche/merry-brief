@@ -57,10 +57,17 @@ export async function POST(req) {
   const subject = `${vendorName} vous a répondu`;
   // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
   const text = `Bonjour,\n\n${vendorName} vous a répondu sur Merry.\n\nLire le message : ${link}`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111">
+  // Logo centré sur une pastille citron plein, repris du design validé avec Stan sur le canvas (V20)
+  const logoBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
+</td></tr></table>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111;max-width:560px">
+${logoBlock}
 <p>Bonjour,</p>
 <p>${esc(vendorName)} vous a répondu sur Merry.</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message</a></p></div>`;
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr><td align="center">
+<a href="${esc(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700">Lire le message</a>
+</td></tr></table></div>`;
 
   let sent = 0;
   for (const r of recipients) {
