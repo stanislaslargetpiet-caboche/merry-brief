@@ -5854,3 +5854,123 @@ button.p-dem-item {
     overflow-y: auto;
   }
 }
+
+/* Bienvenue : entrée en cascade de la coche, du titre, de la barre et des boutons */
+.p-welcome-in {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: p-welcome-in 0.45s ease-out forwards;
+}
+
+.p-welcome-in:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.p-welcome-in:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.p-welcome-in:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.p-welcome-in:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+@keyframes p-welcome-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.p-welcome-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.p-welcome-bar {
+  display: block;
+  width: 360px;
+  max-width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e4e2dc;
+  overflow: hidden;
+}
+
+.p-welcome-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--d-ink, #1c1c1a);
+  animation: p-welcome-bar 0.8s ease-out 0.8s both;
+}
+
+@keyframes p-welcome-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.p-welcome-fill-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.p-welcome-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Force du mot de passe : quatre segments et un mot, sous les champs de création */
+.p-pw-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--p-muted);
+}
+
+.p-pw-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.p-pw-bars span {
+  width: 28px;
+  height: 4px;
+  border-radius: 999px;
+  background: #e4e2dc;
+}
+
+.p-pw-meter.is-1 .is-on {
+  background: #b42318;
+}
+
+.p-pw-meter.is-2 .is-on {
+  background: #8a4b0f;
+}
+
+.p-pw-meter.is-3 .is-on,
+.p-pw-meter.is-4 .is-on {
+  background: #1f6b30;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-welcome-in,
+  .p-welcome-bar span {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
