@@ -17,6 +17,8 @@ Editor)**.
 | Confirm signup | `confirm-signup.html` | `Confirmez votre adresse e-mail` |
 | Reset Password | `reset-password.html` | `Réinitialisez votre mot de passe` |
 | Magic Link | `magic-link-otp.html` | `{{ .Token }} est votre code Merry` |
+| Change Email Address | `change-email.html` | `Confirmez votre nouvelle adresse` |
+| Password changed (Security notifications, à activer) | `password-changed.html` | `Votre mot de passe a été modifié` |
 
 « Magic Link » est le bon template pour le code de connexion : c'est celui
 que Supabase utilise pour `signInWithOtp` (`app/api/pro/invitation/route.js`),

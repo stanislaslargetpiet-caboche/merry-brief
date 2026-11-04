@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { notifyVendor } from "@/lib/dash/vendorMail";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
@@ -49,6 +50,25 @@ export default function Messagerie() {
     if (!current?.unread) return;
     dash.update("vendors", current.vendor.id, { messages_read_at: new Date().toISOString() });
   }, [current?.vendor.id, current?.unread]);
+
+  // Un prestataire sans adresse ni compte ne saura jamais qu'on lui a écrit : autant le dire au couple
+  const [unreachable, setUnreachable] = useState(false);
+  const noEmail = !!current && !String(current.vendor.email || "").trim();
+  useEffect(() => {
+    if (!noEmail) {
+      setUnreachable(false);
+      return undefined;
+    }
+    setUnreachable(true);
+    if (dash.mode !== "live" || !supabase) return undefined;
+    let active = true;
+    supabase.rpc("merry_vendor_reachable", { v: current.vendor.id }).then(({ data: reachable }) => {
+      if (active && reachable === true) setUnreachable(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [noEmail, current?.vendor.id, dash.mode]);
 
   async function send(e) {
     e.preventDefault();
@@ -118,6 +138,14 @@ export default function Messagerie() {
                   </div>
                 ))}
               </div>
+              {unreachable ? (
+                <div className="d-msg-noaddress">
+                  <span>{current.vendor.name} n'a pas d'adresse mail sur Merry : il ne sera pas prévenu de votre message.</span>
+                  {current.vendor.phone ? (
+                    <a href={`tel:${String(current.vendor.phone).replace(/\s/g, "")}`}>Appeler le {current.vendor.phone}</a>
+                  ) : null}
+                </div>
+              ) : null}
               <form className="d-msg-composer" onSubmit={send}>
                 <input type="text" className="d-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Écrire un message…" aria-label="Écrire un message" />
                 <button type="submit" className="d-msg-send" aria-label="Envoyer" disabled={!text.trim() || busy}>
