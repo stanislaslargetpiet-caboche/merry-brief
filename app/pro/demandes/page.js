@@ -10,12 +10,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { supabase } from "@/lib/supabase";
 import { addDays, euros, isoDate, today } from "@/lib/dash/format";
-import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, replyCost, seasonOf, since, weddingWhen } from "@/lib/pro/format";
+import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, readSeenRequests, replyCost, seasonOf, since, stageColor, STAGES, weddingWhen, writeSeenRequests } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
 
-const SEEN_KEY = "merry-pro-vues";
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 // « 19 juin 2027 » → « 2027-06-19 » (dates de repli écrites par le couple)
@@ -25,14 +24,6 @@ function parseFr(text) {
     .match(/(\d{1,2})(?:er)?\s+([a-zéû]+)\s+(\d{4})/);
   const k = m ? MONTHS.indexOf(m[2]) : -1;
   return k >= 0 ? isoDate(new Date(Number(m[3]), k, Number(m[1]))) : null;
-}
-
-function readSeen() {
-  try {
-    return new Set(JSON.parse(window.localStorage.getItem(SEEN_KEY) || "[]"));
-  } catch {
-    return new Set();
-  }
 }
 
 export default function DemandesPage() {
@@ -57,18 +48,14 @@ function Demandes() {
   const current = all.find((r) => r.client_id === wanted) || null;
   const shown = current || list[0] || null;
 
-  useEffect(() => setSeen(readSeen()), []);
+  useEffect(() => setSeen(readSeenRequests()), []);
   // Une demande ouverte est lue
   useEffect(() => {
     if (!shown) return;
     setSeen((s) => {
       if (s.has(shown.client_id)) return s;
       const next = new Set(s).add(shown.client_id);
-      try {
-        window.localStorage.setItem(SEEN_KEY, JSON.stringify([...next]));
-      } catch {
-        /* ignore */
-      }
+      writeSeenRequests(next);
       return next;
     });
   }, [shown]);
@@ -140,10 +127,14 @@ function Detail({ r, c, onBack }) {
   const names = r.names.replace(" & ", " et ");
   const [text, setText] = useState(() => (r.answered ? "" : `Bonjour ${names}, merci pour votre message. `));
   const cost = c.source === "merry" && !c.answered_at ? replyCost(d.vendor?.primary_category) : 0;
+  const [addQuote, setAddQuote] = useState(false);
   const [mode, setMode] = useState(formulas.length ? "formules" : "pdf");
   const [formulaId, setFormulaId] = useState(formulas[0]?.id || null);
   const [optionIds, setOptionIds] = useState([]);
   const [file, setFile] = useState(null);
+  const [manualLabel, setManualLabel] = useState("");
+  const [manualDetail, setManualDetail] = useState("");
+  const [manualTotal, setManualTotal] = useState("");
   // Poser une option reste un choix : rien n'est bloqué dans l'agenda sans que le prestataire l'ait décidé
   const [hold, setHold] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -161,16 +152,22 @@ function Detail({ r, c, onBack }) {
   }, [c.id, r.answered]);
 
   async function send() {
-    if (!text.trim() && mode !== "pdf") return;
+    if (!text.trim() && !(addQuote && mode === "pdf")) return;
     setBusy(true);
     let body = text.trim();
-    if (mode === "formules" && formula) {
+    if (addQuote && mode === "formules" && formula) {
       const lines = [`Devis : ${formula.name}${formula.unit === "par_invite" && c.guests ? ` pour ${c.guests} invités` : ""}, ${season === "low" ? "basse" : "haute"} saison`];
       for (const o of options) lines.push(`– ${o.name}${o.price !== null && o.price !== undefined ? ` : ${euros(o.price)} ${OPTION_UNIT[o.unit]}`.trimEnd() : ""}`);
       if (total !== null) lines.push(`Total : ${euros(total)}`);
       body = [body, lines.join("\n")].filter(Boolean).join("\n\n");
     }
-    if (mode === "pdf" && file) {
+    if (addQuote && mode === "manual" && (manualLabel.trim() || manualDetail.trim() || manualTotal)) {
+      const lines = [`Devis${manualLabel.trim() ? ` : ${manualLabel.trim()}` : ""}`];
+      for (const line of manualDetail.split("\n").map((l) => l.trim()).filter(Boolean)) lines.push(`– ${line}`);
+      if (manualTotal) lines.push(`Total : ${euros(Number(manualTotal))}`);
+      body = [body, lines.join("\n")].filter(Boolean).join("\n\n");
+    }
+    if (addQuote && mode === "pdf" && file) {
       const doc = await pro.addDocument(c.id, file);
       let link = "";
       if (doc && pro.mode === "live" && supabase) {
@@ -207,6 +204,9 @@ function Detail({ r, c, onBack }) {
           <h2>{r.names}</h2>
           <span className="p-dem-received">Demande reçue {since(r.requested_at).toLowerCase().replace(/^(\d)/, "le $1")}</span>
         </div>
+        <span className="p-chip p-dem-status" style={{ background: stageColor(c.stage).bg, color: stageColor(c.stage).ink }}>
+          {STAGES.find((s) => s.key === (c.stage || "nouvelle"))?.label || "Nouvelle demande"}
+        </span>
       </div>
       {dayIso && !flexible ? (
         <div>
@@ -264,63 +264,93 @@ function Detail({ r, c, onBack }) {
         <textarea id="rep" rows={4} className="p-textarea" value={text} onChange={(e) => setText(e.target.value)} />
       </div>
       <div className="p-dem-block is-10">
-        <span className="p-dem-quote-label">Devis</span>
-        <div className="p-radios">
-          <label className={`p-radio${mode === "pdf" ? " is-on" : ""}`}>
-            <input type="radio" name="devis" checked={mode === "pdf"} onChange={() => setMode("pdf")} />
-            <span>
-              <span className="p-radio-t">Joindre un devis</span>
-              {file ? <span className="p-radio-s">{file.name}</span> : null}
-            </span>
-          </label>
-          <label className={`p-radio${mode === "formules" ? " is-on" : ""}`}>
-            <input type="radio" name="devis" checked={mode === "formules"} onChange={() => setMode("formules")} disabled={!formulas.length} />
-            <span>
-              <span className="p-radio-t">Créer un devis depuis mes formules</span>
-              {formulas.length ? null : <span className="p-radio-s">Ajoutez d’abord vos formules dans Calendrier &amp; Tarifs</span>}
-            </span>
-          </label>
+        <div className="p-dem-quote-toggle">
+          <span id="devis" className="p-dem-quote-label">
+            Ajouter un devis ?
+          </span>
+          <Switch on={addQuote} onChange={setAddQuote} labelledBy="devis" />
         </div>
-        {mode === "pdf" ? (
+        {addQuote ? (
           <>
-            <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <button type="button" className="p-dashed" onClick={() => fileRef.current?.click()}>
-              <ProIcon name="file" size={18} />
-              {file ? `Remplacer ${file.name}` : "Choisir le PDF du devis"}
-            </button>
+            <div className="p-radios">
+              <label className={`p-radio${mode === "pdf" ? " is-on" : ""}`}>
+                <input type="radio" name="devis" checked={mode === "pdf"} onChange={() => setMode("pdf")} />
+                <span>
+                  <span className="p-radio-t">Joindre un devis</span>
+                  {file ? <span className="p-radio-s">{file.name}</span> : null}
+                </span>
+              </label>
+              <label className={`p-radio${mode === "formules" ? " is-on" : ""}`}>
+                <input type="radio" name="devis" checked={mode === "formules"} onChange={() => setMode("formules")} disabled={!formulas.length} />
+                <span>
+                  <span className="p-radio-t">Créer un devis depuis mes formules</span>
+                  {formulas.length ? null : <span className="p-radio-s">Ajoutez d’abord vos formules dans Calendrier &amp; Tarifs</span>}
+                </span>
+              </label>
+              <label className={`p-radio${mode === "manual" ? " is-on" : ""}`}>
+                <input type="radio" name="devis" checked={mode === "manual"} onChange={() => setMode("manual")} />
+                <span>
+                  <span className="p-radio-t">Créer un devis à partir de zéro</span>
+                </span>
+              </label>
+            </div>
+            {mode === "pdf" ? (
+              <>
+                <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                <button type="button" className="p-dashed" onClick={() => fileRef.current?.click()}>
+                  <ProIcon name="file" size={18} />
+                  {file ? `Remplacer ${file.name}` : "Choisir le PDF du devis"}
+                </button>
+              </>
+            ) : mode === "formules" ? (
+              <div className="p-quote">
+                <div className="p-field is-8">
+                  <span>Formule</span>
+                  <div className="p-pills is-6">
+                    {formulas.map((f) => (
+                      <button key={f.id} type="button" aria-pressed={formulaId === f.id} className={`p-pill is-36${formulaId === f.id ? " is-on" : ""}`} onClick={() => setFormulaId(f.id)}>
+                        {f.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {d.options.length ? (
+                  <div className="p-quote-options">
+                    <span>Options</span>
+                    {d.options.map((o) => (
+                      <label key={o.id}>
+                        <span>
+                          <input type="checkbox" checked={optionIds.includes(o.id)} onChange={() => setOptionIds((ids) => (ids.includes(o.id) ? ids.filter((x) => x !== o.id) : [...ids, o.id]))} />
+                          {o.name}
+                        </span>
+                        <span className="p-muted">{o.price === null || o.price === undefined ? "Prix à définir" : `${euros(o.price)} ${OPTION_UNIT[o.unit]}`.trim()}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="p-quote-total">
+                  <span>Total calculé, {season === "low" ? "basse" : "haute"} saison</span>
+                  <span>{total === null ? "Prix à définir" : euros(total)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-quote">
+                <div className="p-field">
+                  <span>Nom de la formule</span>
+                  <input className="p-input" value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} placeholder="Ex. Formule sur mesure" />
+                </div>
+                <div className="p-field">
+                  <span>Détail, une ligne par élément</span>
+                  <textarea rows={3} className="p-textarea" value={manualDetail} onChange={(e) => setManualDetail(e.target.value)} placeholder={"Ménage : 300 €\nOption DJ : 450 €"} />
+                </div>
+                <div className="p-field is-8">
+                  <span>Total (€)</span>
+                  <input className="p-input" inputMode="numeric" value={manualTotal} onChange={(e) => setManualTotal(e.target.value.replace(/[^\d]/g, ""))} />
+                </div>
+              </div>
+            )}
           </>
-        ) : (
-          <div className="p-quote">
-            <div className="p-field is-8">
-              <span>Formule</span>
-              <div className="p-pills is-6">
-                {formulas.map((f) => (
-                  <button key={f.id} type="button" aria-pressed={formulaId === f.id} className={`p-pill is-36${formulaId === f.id ? " is-on" : ""}`} onClick={() => setFormulaId(f.id)}>
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {d.options.length ? (
-              <div className="p-quote-options">
-                <span>Options</span>
-                {d.options.map((o) => (
-                  <label key={o.id}>
-                    <span>
-                      <input type="checkbox" checked={optionIds.includes(o.id)} onChange={() => setOptionIds((ids) => (ids.includes(o.id) ? ids.filter((x) => x !== o.id) : [...ids, o.id]))} />
-                      {o.name}
-                    </span>
-                    <span className="p-muted">{o.price === null || o.price === undefined ? "Prix à définir" : `${euros(o.price)} ${OPTION_UNIT[o.unit]}`.trim()}</span>
-                  </label>
-                ))}
-              </div>
-            ) : null}
-            <div className="p-quote-total">
-              <span>Total calculé, {season === "low" ? "basse" : "haute"} saison</span>
-              <span>{total === null ? "Prix à définir" : euros(total)}</span>
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
       {dayIso && !flexible && (!booked || bookedHere) ? (
         <div className="p-hold">
@@ -328,12 +358,13 @@ function Detail({ r, c, onBack }) {
             <span id="opt" className="p-hold-t">
               Poser une option sur cette date
             </span>
+            <span className="p-hold-s">{hold ? `Le ${dateLong(dayIso)} sera bloqué dans votre agenda 14 jours à l'envoi de la réponse.` : "La date reste libre pour les autres couples tant que vous ne posez pas d'option."}</span>
           </span>
           <Switch on={hold} onChange={setHold} labelledBy="opt" />
         </div>
       ) : null}
       <div className="p-dem-send">
-        <button type="button" className="p-btn p-btn-primary is-big" onClick={send} disabled={busy || (!text.trim() && !(mode === "pdf" && file))}>
+        <button type="button" className="p-btn p-btn-primary is-big" onClick={send} disabled={busy || (!text.trim() && !(addQuote && mode === "pdf" && file))}>
           <ProIcon name="send" size={17} stroke="#ffffff" sw={2} />
           {cost ? `Envoyer · ${cost} crédits` : "Envoyer"}
         </button>

@@ -3750,6 +3750,11 @@ button.p-dem-item {
   color: var(--d-muted);
 }
 
+.p-dem-status {
+  flex: none;
+  margin-left: auto;
+}
+
 .p-free {
   display: inline-flex;
   align-items: center;
@@ -3841,6 +3846,14 @@ button.p-dem-item {
 .p-dem-quote-label {
   font-size: 14px;
   font-weight: 600;
+}
+
+.p-dem-quote-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
 }
 
 .p-radios {
@@ -4086,8 +4099,14 @@ button.p-dem-item {
     padding: 0;
     gap: 22px;
   }
+  .p-dem-head {
+    flex-wrap: wrap;
+  }
   .p-dem-head h2 {
     font-size: 20px;
+  }
+  .p-dem-status {
+    margin-left: 62px;
   }
   .p-dem-send .p-btn {
     width: 100%;

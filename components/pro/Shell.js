@@ -10,7 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
-import { collabColor } from "@/lib/pro/format";
+import { collabColor, countUnreadRequests, PRO_SEEN_EVENT } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
@@ -24,9 +24,30 @@ import FeatureDialog from "./FeatureDialog";
 // toujours, il suffit de remettre l'entrée ici quand cet écran couple sera prêt.
 export const PRO_NAV = [
   { href: "/pro", label: "Dashboard", icon: "home", exact: true, match: ["/pro"] },
-  { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"] },
+  { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"], badge: true },
   { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits", "/pro/compte"] },
 ];
+
+// Demandes reçues et pas encore répondues, non relues dans ce navigateur (lecture posée par la page
+// Demandes elle-même dans le localStorage) : sert de pastille sur le bouton Messagerie de la navigation.
+function useUnreadRequests() {
+  const pro = usePro();
+  const requests = pro.data.requests;
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    const recompute = () => setUnread(countUnreadRequests(requests));
+    recompute();
+    window.addEventListener(PRO_SEEN_EVENT, recompute);
+    window.addEventListener("storage", recompute);
+    return () => {
+      window.removeEventListener(PRO_SEEN_EVENT, recompute);
+      window.removeEventListener("storage", recompute);
+    };
+  }, [requests]);
+
+  return unread;
+}
 
 export const PRO_MESSAGERIE_TABS = [
   { href: "/pro/demandes", label: "Demandes" },
@@ -98,6 +119,7 @@ function Frame({ children }) {
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
   const navRef = useRef(null);
   const accent = useAccent();
+  const unread = useUnreadRequests();
 
   useEffect(() => {
     if (pro.mode === "live") syncAccent(pro.data.user);
@@ -160,6 +182,11 @@ function Frame({ children }) {
               <Link key={n.href} href={n.href} className={`d-nav-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
                 <ProIcon name={n.icon} size={18} />
                 {n.label}
+                {n.badge && unread ? (
+                  <span className="d-nav-badge" aria-label={`${unread} non lues`}>
+                    {unread}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
