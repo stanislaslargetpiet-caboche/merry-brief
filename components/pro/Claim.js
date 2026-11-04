@@ -153,6 +153,9 @@ export default function Claim() {
   const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, email: pro.data?.user?.email || "" }));
   const boxes = useRef([]);
+  const screenRef = useRef(null);
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const demo = pro.mode === "demo";
   const signedIn = Boolean(pro.data?.user?.email);
   const myFiches = pro.data?.vendors || []; // connecté à un espace, venu chercher une autre fiche
@@ -238,6 +241,7 @@ export default function Claim() {
     // Démo : aucun code ne part, n'importe quels 6 chiffres ouvrent l'espace de démonstration
     if (demo) {
       setSent(true);
+      armResend();
       setTimeout(() => boxes.current[0]?.focus(), 50);
       return true;
     }
@@ -246,6 +250,7 @@ export default function Claim() {
     setBusy(false);
     if (res.ok) {
       setSent(true);
+      armResend();
       setCode(["", "", "", "", "", ""]);
       setTimeout(() => boxes.current[0]?.focus(), 50);
       return true;
@@ -388,6 +393,7 @@ export default function Claim() {
     if (demo) {
       setScreen("login-code");
       setSent(true);
+      armResend();
       setTimeout(() => boxes.current[0]?.focus(), 50);
       return;
     }
@@ -400,6 +406,7 @@ export default function Claim() {
     }
     setScreen("login-code");
     setSent(true);
+      armResend();
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
   }
@@ -431,11 +438,38 @@ export default function Claim() {
     }
     setScreen("invite-code");
     setSent(true);
+      armResend();
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
   }
 
   const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
+  const onEnter = (fn) => (e) => {
+    if (e.key === "Enter") fn();
+  };
+
+  // Chaque écran place le focus sur son premier champ ou son premier bouton
+  useEffect(() => {
+    const root = screenRef.current;
+    if (!root || root.contains(document.activeElement)) return;
+    root.querySelector("input:not([type=hidden]), button:not(:disabled)")?.focus({ preventScroll: true });
+  }, [screen]);
+
+  // « Renvoyer le code » attend la minute que le serveur impose (throttled, app/api/pro/claim)
+  useEffect(() => {
+    if (!resendAt) return undefined;
+    const t = setInterval(() => {
+      setNow(Date.now());
+      if (Date.now() >= resendAt) clearInterval(t);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [resendAt]);
+  const resendIn = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  function armResend() {
+    const t = Date.now();
+    setNow(t);
+    setResendAt(t + 60000);
+  }
   const formFields = () => ({ ...form, email: undefined, password: undefined });
 
   async function nextFromName() {
@@ -489,6 +523,7 @@ export default function Claim() {
     if (demo) {
       setScreen("code");
       setSent(true);
+      armResend();
       return;
     }
     setBusy(true);
@@ -500,6 +535,7 @@ export default function Claim() {
     }
     setScreen("code");
     setSent(true);
+      armResend();
     setCode(["", "", "", "", "", ""]);
     setTimeout(() => boxes.current[0]?.focus(), 50);
   }
@@ -612,8 +648,8 @@ export default function Claim() {
           />
         ))}
       </div>
-      <button type="button" className="p-claim-resend" onClick={resend} disabled={busy}>
-        {sent ? "Renvoyer le code" : "Envoyer le code"}
+      <button type="button" className="p-claim-resend" onClick={resend} disabled={busy || resendIn > 0}>
+        {resendIn > 0 ? `Renvoyer le code dans ${resendIn} s` : sent ? "Renvoyer le code" : "Envoyer le code"}
       </button>
     </div>
   );
@@ -750,6 +786,7 @@ export default function Claim() {
         <div className="p-claim-card">
           <div className="p-claim-eyebrow p-desk-only">{eyebrow}</div>
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
+          <div className="p-claim-screen" key={screen} ref={screenRef}>
 
           {screen === "entry" ? (
             <div className="p-claim-stack">
@@ -764,7 +801,7 @@ export default function Claim() {
             <>
               <div className="p-claim-field">
                 <label htmlFor="pro-new-1">Mot de passe (8 caractères minimum)</label>
-                <input id="pro-new-1" className="p-claim-input" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus />
+                <input id="pro-new-1" className="p-claim-input" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} onKeyDown={onEnter(savePassword)} autoFocus />
               </div>
               <div className="p-claim-field">
                 <label htmlFor="pro-new-2">Confirmer le mot de passe</label>
@@ -838,7 +875,7 @@ export default function Claim() {
               <>
                 <div className="p-claim-field">
                   <label htmlFor="pro-login">Adresse mail</label>
-                  <input id="pro-login" className="p-claim-input" type="email" autoComplete="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoFocus />
+                  <input id="pro-login" className="p-claim-input" type="email" autoComplete="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} onKeyDown={onEnter(signIn)} autoFocus />
                 </div>
                 <div className="p-claim-field">
                   <span className="p-claim-label-row">
@@ -894,7 +931,7 @@ export default function Claim() {
                   <label htmlFor="pro-name" className="p-sr">
                     Nom de l’établissement
                   </label>
-                  <input id="pro-name" className="p-claim-input" autoComplete="organization" autoFocus {...field("name")} />
+                  <input id="pro-name" className="p-claim-input" autoComplete="organization" autoFocus onKeyDown={onEnter(nextFromName)} {...field("name")} />
                 </div>
                 <p className="p-claim-help">Quelle est votre activité ?</p>
                 <div className="p-claim-cats">
@@ -908,7 +945,7 @@ export default function Claim() {
                   <button type="button" className="p-claim-link p-desk-only" onClick={backToSearch}>
                     J’ai déjà une fiche Merry
                   </button>
-                  <button type="button" className="p-claim-submit" onClick={nextFromName}>
+                  <button type="button" className="p-claim-submit" onClick={nextFromName} disabled={busy}>
                     Suivant
                   </button>
                 </div>
@@ -919,16 +956,16 @@ export default function Claim() {
                   <label htmlFor="pro-adr" className="p-sr">
                     Adresse
                   </label>
-                  <input id="pro-adr" className="p-claim-input" autoComplete="address-line1" autoFocus {...field("address")} />
+                  <input id="pro-adr" className="p-claim-input" autoComplete="address-line1" autoFocus onKeyDown={onEnter(nextFromAddress)} {...field("address")} />
                 </div>
                 <div className="p-claim-row">
                   <div className="p-claim-field is-cp">
                     <label htmlFor="pro-cp">Code postal</label>
-                    <input id="pro-cp" className="p-claim-input" inputMode="numeric" autoComplete="postal-code" maxLength={6} {...field("postal_code")} />
+                    <input id="pro-cp" className="p-claim-input" inputMode="numeric" autoComplete="postal-code" maxLength={6} onKeyDown={onEnter(nextFromAddress)} {...field("postal_code")} />
                   </div>
                   <div className="p-claim-field">
                     <label htmlFor="pro-ville">Ville</label>
-                    <input id="pro-ville" className="p-claim-input" autoComplete="address-level2" {...field("city")} />
+                    <input id="pro-ville" className="p-claim-input" autoComplete="address-level2" onKeyDown={onEnter(nextFromAddress)} {...field("city")} />
                   </div>
                 </div>
                 {errorBox}
@@ -942,19 +979,19 @@ export default function Claim() {
               <>
                 <div className="p-claim-field">
                   <label htmlFor="pro-mail">Adresse mail de l’établissement</label>
-                  <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" autoFocus {...field("email")} />
+                  <input id="pro-mail" className="p-claim-input" type="email" autoComplete="email" autoFocus onKeyDown={onEnter(sendCreateCode)} {...field("email")} />
                   <span className="p-claim-hint">Le code arrive à cette adresse, comme les demandes des couples.</span>
                 </div>
                 <div className="p-claim-field">
                   <label htmlFor="pro-tel">
                     Téléphone <span className="p-claim-opt">(facultatif)</span>
                   </label>
-                  <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" {...field("phone")} />
+                  <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" onKeyDown={onEnter(sendCreateCode)} {...field("phone")} />
                 </div>
                 {signedIn ? null : (
                   <div className="p-claim-field">
                     <label htmlFor="pro-new-pw">Mot de passe (8 caractères minimum)</label>
-                    <input id="pro-new-pw" className="p-claim-input" type="password" autoComplete="new-password" {...field("password")} />
+                    <input id="pro-new-pw" className="p-claim-input" type="password" autoComplete="new-password" onKeyDown={onEnter(sendCreateCode)} {...field("password")} />
                   </div>
                 )}
                 {errorBox}
@@ -1075,7 +1112,7 @@ export default function Claim() {
               {picked.email_hint && !signedIn ? (
                 <div className="p-claim-field">
                   <label htmlFor="pro-claim-pw">Choisissez un mot de passe (8 caractères minimum)</label>
-                  <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} />
+                  <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} onKeyDown={onEnter(confirmAndSend)} />
                 </div>
               ) : null}
               {errorBox}
@@ -1096,6 +1133,7 @@ export default function Claim() {
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
     </div>
