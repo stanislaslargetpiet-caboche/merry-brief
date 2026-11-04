@@ -48,8 +48,27 @@ export async function POST(req) {
   // La lecture passe par les règles d'accès : seul un organisateur du mariage concerné voit cette fiche.
   const { data: vendor } = await sb.from("vendors").select("id, name, email, wedding_id").eq("id", vendorId).maybeSingle();
   if (!vendor) return Response.json({ error: "not_found" }, { status: 404 });
-  const to = String(vendor.email || "").trim();
-  if (!EMAIL_RE.test(to)) return Response.json({ error: "no_email" }, { status: 422 });
+
+  // Le lien ouvre directement la fiche du catalogue à revendiquer, quand on la connaît
+  const { data: pick } = await sb.from("vendor_picks").select("catalog_ref").eq("wedding_id", vendor.wedding_id).eq("vendor_id", vendorId).maybeSingle();
+  const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
+  const origin = publicOrigin(req);
+
+  // adresse → lien : la fiche du catalogue d'un côté, les comptes qui gèrent déjà la fiche de l'autre.
+  // Sans clé service_role ou sans la fonction SQL, on retombe sur la seule adresse de la fiche.
+  const recipients = new Map();
+  const contact = String(vendor.email || "").trim();
+  if (EMAIL_RE.test(contact)) recipients.set(contact.toLowerCase(), `${origin}/pro${catalogId ? `?fiche=${catalogId}` : ""}`);
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (service && catalogId) {
+    const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: members } = await admin.rpc("pro_notify_vendor_members", { v: catalogId });
+    for (const m of members || []) {
+      const email = String(m.to_email || "").trim();
+      if (EMAIL_RE.test(email)) recipients.set(email.toLowerCase(), `${origin}/pro?fiche=${catalogId}&connexion=1`);
+    }
+  }
+  if (!recipients.size) return Response.json({ error: "no_email" }, { status: 422 });
 
   const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", vendor.wedding_id).maybeSingle();
   const couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ") || "Un couple";
@@ -58,21 +77,18 @@ export async function POST(req) {
   // Le texte du mail vient du couple et l'adresse de sa fiche prestataire : 40 mails par jour et par
   // personne, pour que l'expéditeur Merry ne serve pas à envoyer n'importe quoi à n'importe qui
   if (!(await allowUser(sb, "vendor_mail", 40, 86400))) return Response.json({ error: "quota" }, { status: 429 });
-  // Le lien ouvre directement la fiche du catalogue à revendiquer, quand on la connaît
-  const { data: pick } = await sb.from("vendor_picks").select("catalog_ref").eq("wedding_id", vendor.wedding_id).eq("vendor_id", vendorId).maybeSingle();
-  const catalogId = /^catalog:([0-9a-f-]{36})$/i.exec(String(pick?.catalog_ref || ""))?.[1] || null;
-  const link = `${publicOrigin(req)}/pro${catalogId ? `?fiche=${catalogId}` : ""}`;
 
   // Deux prénoms : « vous ont écrit » ; le message du couple commence déjà par « Bonjour », on ne le redouble pas
   const verb = wedding?.partner1 && wedding?.partner2 ? "vous ont écrit" : "vous a écrit";
   const subject = isRequest ? `${couple} ${verb}` : `${couple} ${verb} sur Merry`;
   const plainParts = [message || `${couple} ${verb} sur Merry.`];
-  if (dates.length) plainParts.push(dates[0]);
+  const [firstDate, ...otherDates] = dates;
+  const otherDatesLine = otherDates.length ? `Autres dates possibles : ${otherDates.join(", ")}` : "";
+  if (firstDate) plainParts.push(firstDate);
+  if (otherDatesLine) plainParts.push(otherDatesLine);
   if (budget) plainParts.push(`Notre budget : ${budget} au total.`);
   if (questions.length) plainParts.push(questions.map((q) => `– ${q}`).join("\n"));
   if (sign) plainParts.push(sign);
-  plainParts.push(`Répondre sur Merry : ${link}`);
-  const text = plainParts.join("\n\n");
 
   // Premier prénom de chacun, pour le bouton (« Répondre à Camille et Lou », sur le modèle du
   // « Reply to Diana » de HomeExchange) ; on retombe sur le nom complet si on n'a qu'un prénom.
@@ -91,7 +107,7 @@ export async function POST(req) {
 </tr></table>`;
 
   const infoTiles = [
-    dates[0] ? { label: "Date", value: dates[0].replace(/^Dates flexibles\s*:\s*/i, "") } : null,
+    firstDate ? { label: /^Dates flexibles/i.test(firstDate) ? "Dates flexibles" : "Date", value: firstDate.replace(/^Dates flexibles\s*:\s*/i, "") } : null,
     guests ? { label: "Invités", value: guests } : null,
     budget ? { label: "Budget", value: budget } : null,
   ].filter(Boolean);
@@ -123,7 +139,7 @@ ${tilesBlock}
 
   // Bouton centré et visible sans avoir à faire défiler ; texte et couleur repris du mock (noir plein,
   // jamais le citron — réservé aux contextes déjà cadrés dans l'accent).
-  const ctaBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td align="center">
+  const ctaBlock = (link) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td align="center">
 <a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Lire le message et répondre</a>
 </td></tr></table>`;
 
@@ -142,26 +158,31 @@ ${tilesBlock}
   // Preheader : l'aperçu que Gmail/Apple Mail affichent dans la liste des messages, invisible une
   // fois le mail ouvert.
   const preheader = (message || `${couple} ${verb} sur Merry.`).slice(0, 140);
-  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
+  const otherDatesBlock = otherDatesLine ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6">${esc(otherDatesLine)}</p>` : "";
+
+  let sent = 0;
+  for (const [to, link] of recipients) {
+    const text = [...plainParts, `Répondre sur Merry : ${link}`].join("\n\n");
+    const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${messageBox}
 ${messageParts}
+${otherDatesBlock}
 ${questionsBlock}
 ${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-height:1.6">${esc(sign)}</p>` : ""}
-${ctaBlock}
+${ctaBlock(link)}
 ${footerBlock}
 </div>`;
-  const html = mailShell({ title: subject, preheader, body: bodyHtml });
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-    body: JSON.stringify({ from: FROM, to: [to], subject, text, html }),
-  });
-  if (!res.ok) {
-    console.error("[merry] notification prestataire", res.status, await res.text().catch(() => ""));
-    return Response.json({ error: "send_failed" }, { status: 502 });
+    const html = mailShell({ title: subject, preheader, body: bodyHtml });
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from: FROM, to: [to], subject, text, html }),
+    });
+    if (res.ok) sent += 1;
+    else console.error("[merry] notification prestataire", res.status, await res.text().catch(() => ""));
   }
-  return Response.json({ ok: true, to });
+  if (!sent) return Response.json({ error: "send_failed" }, { status: 502 });
+  return Response.json({ ok: true, sent });
 }

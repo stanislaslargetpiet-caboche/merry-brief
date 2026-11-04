@@ -28,7 +28,7 @@ export async function POST(req) {
   const to = String(user.user.email || "").trim();
   if (!to) return Response.json({ error: "no_email" }, { status: 422 });
 
-  if (!(await allowUser(sb, "welcome_mail", 3, 86400))) return Response.json({ error: "quota" }, { status: 429 });
+  if (!(await allowUser(sb, "welcome_mail", 1, 86400))) return Response.json({ error: "quota" }, { status: 429 });
 
   // Le mariage n'existe pas forcément encore à cet instant (il se crée au premier chargement du
   // tableau de bord à partir du questionnaire d'accueil) : on personnalise quand on peut, sinon
@@ -39,7 +39,8 @@ export async function POST(req) {
     const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", member.wedding_id).maybeSingle();
     couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).join(" et ");
   }
-  const greeting = couple ? `${couple}` : (user.user.user_metadata?.first_name || "").trim();
+  const meta = user.user.user_metadata || {};
+  const greeting = couple || [meta.first_name, meta.partner_first_name].map((n) => String(n || "").trim()).filter(Boolean).join(" et ");
 
   const link = `${publicOrigin(req)}/dashboard`;
   const subject = "Bienvenue sur Merry !";

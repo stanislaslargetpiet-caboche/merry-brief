@@ -55,9 +55,11 @@ export async function POST(req) {
   const link = `${publicOrigin(req)}/dashboard/prestataires/messagerie`;
   const vendorName = recipients[0].vendor_name || "Un prestataire";
 
-  const subject = `${vendorName} vous a répondu`;
+  // Proposition depuis « Projets » : le prestataire écrit en premier, il ne « répond » à personne
+  const verb = body.kind === "proposition" ? "vous a écrit" : "vous a répondu";
+  const subject = `${vendorName} ${verb}`;
   // Plus de phrases grises sous le bouton (demande de Stan, 3 nov. 2026)
-  const text = `Bonjour,\n\n${vendorName} vous a répondu sur Merry.\n\nLire le message : ${link}`;
+  const text = `Bonjour,\n\n${vendorName} ${verb} sur Merry.\n\nLire le message : ${link}`;
   const initials =
     String(vendorName)
       .trim()
@@ -76,7 +78,7 @@ export async function POST(req) {
 <table role="presentation" cellpadding="0" cellspacing="0" style="background:#fff700;border-radius:999px"><tr><td style="padding:10px 24px;font-size:22px;font-weight:800;letter-spacing:-0.01em;color:#1c1c1a">Merry</td></tr></table>
 </td></tr></table>`;
 
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(vendorName)} vous a répondu.</h1>`;
+  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(vendorName)} ${verb}.</h1>`;
 
   const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
