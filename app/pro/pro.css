@@ -5950,3 +5950,24 @@ button.p-dem-item {
     transform: none;
   }
 }
+
+/* Audit du 4 nov. 2026 : cibles tactiles à 44 px sur les écrans d'entrée, liste de résultats bornée */
+.p-claim-cats .p-pill {
+  min-height: 44px;
+}
+
+.p-claim-results .p-btn {
+  min-height: 44px;
+}
+
+.p-claim-code-hint {
+  font-size: 13px;
+  color: var(--p-muted);
+}
+
+@media (min-width: 861px) {
+  .p-claim-results {
+    max-height: 352px;
+    overflow-y: auto;
+  }
+}
