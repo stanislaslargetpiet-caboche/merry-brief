@@ -4,7 +4,7 @@
 // chargement des chiffres du catalogue (getProof) reste côté serveur dans app/vitrine/partenaires/page.js.
 
 import { Block } from "./Frame";
-import { DEMO, PRO, PRO_LOGIN } from "@/lib/vitrine/routes";
+import { DEMO, PRO } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
 import { formatProof } from "@/lib/vitrine/proof";
 import { PARTENAIRES_TEXT, PARTENAIRES_COMPARATIF, PARTENAIRES_FAQ } from "@/lib/i18n/vitrine-partenaires";
@@ -51,7 +51,7 @@ export default function PartenairesBody({ proof: rawProof }) {
           {t.findNotePost} ({proof.month}){t.findNoteEnd}
         </p>
         <div className="wv-btns" style={{ justifyContent: "center" }}>
-          <a href={PRO_LOGIN} className="wv-btn wv-btn-line">
+          <a href={PRO} className="wv-btn wv-btn-line">
             {t.alreadyIn}
           </a>
         </div>

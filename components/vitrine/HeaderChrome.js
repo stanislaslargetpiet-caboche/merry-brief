@@ -5,14 +5,14 @@
 // composant serveur asynchrone).
 
 import { useLang } from "@/lib/lang";
-import { LINKS, LOGIN, PRO_LOGIN, SIGNUP } from "@/lib/vitrine/routes";
+import { LINKS, LOGIN, PRO, SIGNUP } from "@/lib/vitrine/routes";
 import { FRAME_TEXT } from "@/lib/i18n/vitrine-frame";
 import LangSwitch from "./LangSwitch";
 import Dropdown from "./Dropdown";
 
 const LOGIN_ITEMS = (t) => [
   [LOGIN, t.loginCouple],
-  [PRO_LOGIN, t.loginPro],
+  [PRO, t.loginPro],
 ];
 
 function LoginMenu({ t }) {
