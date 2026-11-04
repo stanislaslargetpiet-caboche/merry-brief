@@ -4,7 +4,7 @@ import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
 // (/mariage/*) ; l'appli reste sur app.withmerry.com. Les pages réservées à l'appli renvoient vers
 // app.withmerry.com, et les pages SEO demandées sur app.withmerry.com vers www.withmerry.com.
-const APP_ONLY = /^\/(dashboard|pro|connexion|s|f|api)(\/|$)/;
+const APP_ONLY = /^\/(dashboard|pro|connexion|pilotage|s|f|api)(\/|$)/;
 const SEO_ONLY = /^\/(mariage(\/|$)|sitemap\.xml$)/;
 const VITRINE_PATHS = Object.fromEntries(Object.entries(VITRINE_PAGES).map(([path, page]) => [page.replace(/\/$/, ""), path]));
 // Alias Vercel stables du projet : on n'y laisse jamais traîner de lien, on renvoie vers withmerry.com.
