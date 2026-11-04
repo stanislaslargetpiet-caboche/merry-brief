@@ -5,9 +5,10 @@
 // n'avaient pas d'écran : une seule ligne dans Mes prestataires suffisait jusqu'ici.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { notifyVendor } from "@/lib/dash/vendorMail";
+import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { ago } from "@/components/dash/VendorComments";
 import { Thumb, useIsPhone } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
@@ -25,7 +26,7 @@ function threadsOf(data) {
     if (!vendor) continue;
     const sorted = msgs.slice().sort((a, b) => String(a.sent_at).localeCompare(String(b.sent_at)));
     const last = sorted[sorted.length - 1];
-    out.push({ vendor, messages: sorted, last, unread: last?.from_vendor });
+    out.push({ vendor, messages: sorted, last, unread: isVendorThreadUnread(vendor, data) });
   }
   return out.sort((a, b) => String(b.last.sent_at).localeCompare(String(a.last.sent_at)));
 }
@@ -41,6 +42,13 @@ export default function Messagerie() {
   // Téléphone : un seul panneau à la fois (comme Airbnb), la liste d'abord, le fil une fois un
   // échange choisi. Ordinateur : la liste et le fil côte à côte, le plus récent ouvert d'emblée.
   const current = threads.find((t) => t.vendor.id === openId) || (phone ? null : threads[0]) || null;
+
+  // Un fil lu (affiché à l'écran) pose la date de lecture sur le prestataire : la pastille disparaît,
+  // ici comme sur le bouton Messagerie de la navigation.
+  useEffect(() => {
+    if (!current?.unread) return;
+    dash.update("vendors", current.vendor.id, { messages_read_at: new Date().toISOString() });
+  }, [current?.vendor.id, current?.unread]);
 
   async function send(e) {
     e.preventDefault();
@@ -96,7 +104,7 @@ export default function Messagerie() {
                   <h2>{current.vendor.name}</h2>
                   <span className="d-msg-thread-meta">{current.vendor.category}</span>
                 </div>
-                <Link href={`/dashboard/budget/prestataires/${current.vendor.id}`} className="d-pr-act">
+                <Link href={`/dashboard/prestataires/mes?vendor=${current.vendor.id}`} className="d-pr-act">
                   Voir la fiche
                 </Link>
               </div>

@@ -5,7 +5,8 @@
 // une seule fois par rubrique, dès deux devis reçus ; les rubriques vides ne s'affichent pas.
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
@@ -16,12 +17,23 @@ import { DevisDialog, FichePanel, Heart, PrHead, RowActions, StatusChip, Thumb, 
 export default function Mes() {
   const dash = useDash();
   const data = dash.data;
+  const router = useRouter();
+  const vendorParam = useSearchParams().get("vendor");
   const { picks, toggle, add } = usePicks();
   const [fiche, setFiche] = useState(null);
   const [devis, setDevis] = useState(null);
   const by = picksBy(picks);
   const sections = CATEGORIES.filter((c) => by[c.key].length);
   const next = picks.filter((p) => !p.requested_at && p.checked);
+
+  // Ouvert depuis la Messagerie (« Voir la fiche ») : retrouve le prestataire par son id et ouvre sa fiche
+  useEffect(() => {
+    if (!vendorParam) return;
+    const p = picks.find((p) => p.vendor_id === vendorParam);
+    if (!p) return;
+    setFiche(vendorFromPick(p));
+    router.replace("/dashboard/prestataires/mes");
+  }, [vendorParam, picks, router]);
 
   async function remove(p) {
     await toggle({ id: p.catalog_ref });

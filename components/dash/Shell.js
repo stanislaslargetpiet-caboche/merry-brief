@@ -7,7 +7,7 @@ import { DashProvider, useDash } from "@/lib/dash/store";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
-import { pickStatus } from "@/lib/dash/picks";
+import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { Icon } from "./icons";
 import { Avatar, Popover, PageLoader } from "./ui";
 import Organisers from "./Organisers";
@@ -36,12 +36,13 @@ export default function Shell({ children }) {
   );
 }
 
-// Réponse reçue mais pas encore relue (pickStatus la classe "reponse" tant que le couple n'a pas
-// signé de devis ni renvoyé de message) : sert de pastille sur le bouton Messagerie de la navigation.
+// Réponse d'un prestataire plus récente que la dernière lecture du fil (vendors.messages_read_at) :
+// sert de pastille sur le bouton Messagerie de la navigation.
 function useUnreadMessages() {
   const dash = useDash();
-  const picks = dash.data?.picks || [];
-  return picks.filter((p) => pickStatus(p, dash.data).key === "reponse").length;
+  const data = dash.data;
+  const vendors = data?.vendors || [];
+  return vendors.filter((v) => isVendorThreadUnread(v, data)).length;
 }
 
 function pendingSentence(pending) {
