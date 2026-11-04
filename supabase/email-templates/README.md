@@ -37,3 +37,14 @@ qu'il propose aussi par défaut.
 - **Police** : Alan Sans n'est pas chargée ici (pas de `@font-face` fiable
   dans un mail), ces 3 templates restent sur la police système (Arial),
   comme tous les autres mails transactionnels Merry.
+- **Preheader** : chaque fichier commence par un bloc invisible (`display:none`)
+  qui donne l'aperçu affiché dans la liste des messages (Gmail, Apple Mail…),
+  au lieu du premier bout de texte visible du mail. Les 6 autres mails Merry
+  (ceux qui passent par Resend) ont le même traitement.
+- **Mode sombre** : les 6 mails Resend forcent le mode clair (`<meta name="color-scheme" content="light">`
+  + fond blanc explicite dans tout le document), pour éviter qu'un client en
+  mode sombre inverse le fond sans toucher au texte encre et le rende
+  illisible. Je n'ai pas fait pareil ici : je ne sais pas si l'éditeur HTML de
+  Supabase accepte un document complet (`<!doctype html>…`) ou s'il attend un
+  simple fragment comme ceux-ci — à vérifier en collant un de ces 3 fichiers
+  avant d'y ajouter la même protection.
