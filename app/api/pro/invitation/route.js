@@ -84,10 +84,17 @@ export async function POST(req) {
   if (body.action === "verify") {
     const code = String(body.code || "").replace(/\D/g, "");
     if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+    // Le mot de passe choisi avant le code (canvas Vendor-Invite-MotDePasse) : posé une fois le code vérifié
+    const password = body.password === undefined ? undefined : String(body.password);
+    if (password !== undefined && (password.length < 8 || password.length > 72)) return Response.json({ error: "bad_password" }, { status: 400 });
     const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
     if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
     const e2 = await join(admin, member, data.user);
     if (e2) return Response.json({ error: "link_failed" }, { status: 500 });
+    if (password !== undefined) {
+      const { error: e3 } = await admin.auth.admin.updateUserById(data.user.id, { password, user_metadata: { ...(data.user.user_metadata || {}), merry_password: true } });
+      if (e3) console.warn("[merry pro] mot de passe invité", e3.message);
+    }
     return Response.json({ ok: true, vendorId: member.vendor_id, session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token } });
   }
 
