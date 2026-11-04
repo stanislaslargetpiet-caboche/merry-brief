@@ -133,8 +133,14 @@ export default function Connexion() {
       setUser(session.user);
       if (pending && pending === session.user.id) setMode("reset");
       else if (t) showJoin(t);
-      // Retour du lien de confirmation du mail : direction le tableau de bord
-      else if (INITIAL_HASH.includes("type=signup")) window.location.replace(safeNext(params.get("next")));
+      // Retour du lien de confirmation du mail : mail de bienvenue (best-effort, n'attend pas la
+      // réponse) puis direction le tableau de bord
+      else if (INITIAL_HASH.includes("type=signup")) {
+        if (session.access_token) {
+          fetch("/api/bienvenue", { method: "POST", headers: { authorization: `Bearer ${session.access_token}` } }).catch(() => {});
+        }
+        window.location.replace(safeNext(params.get("next")));
+      }
       else setMode("signedin");
     });
     return undefined;
@@ -169,6 +175,11 @@ export default function Connexion() {
     } catch {
       /* ignore */
     }
+    // Prévient le reste de l'équipe (best-effort, n'attend pas la réponse)
+    supabase.auth.getSession().then(({ data }) => {
+      const at = data?.session?.access_token;
+      if (at) fetch("/api/nouveau-membre", { method: "POST", headers: { authorization: `Bearer ${at}`, "content-type": "application/json" }, body: JSON.stringify({ weddingId: id }) }).catch(() => {});
+    });
     window.location.replace("/dashboard");
   }
 
