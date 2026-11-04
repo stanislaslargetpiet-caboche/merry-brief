@@ -5292,16 +5292,16 @@ button.p-dem-item {
 @keyframes p-prep-pc {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) translate(calc(var(--x) * 1.7), calc(var(--y) * 1.7)) rotate(var(--r)) scale(0.6);
+    transform: translate(-50%, -50%) translate(calc(var(--x) * var(--kx, 1) * 1.7), calc(var(--y) * var(--ky, 1) * 1.7)) rotate(var(--r)) scale(0.6);
   }
   7%,
   33% {
     opacity: 1;
-    transform: translate(-50%, -50%) translate(var(--x), var(--y)) rotate(var(--r));
+    transform: translate(-50%, -50%) translate(calc(var(--x) * var(--kx, 1)), calc(var(--y) * var(--ky, 1))) rotate(var(--r));
   }
   42% {
     opacity: 1;
-    transform: translate(-50%, -50%) translate(calc(var(--y) * -0.6), calc(var(--x) * 0.25)) rotate(calc(var(--r) * -3));
+    transform: translate(-50%, -50%) translate(calc(var(--y) * var(--ky, 1) * -0.6), calc(var(--x) * var(--kx, 1) * 0.25)) rotate(calc(var(--r) * -3));
   }
   52%,
   100% {
@@ -5472,9 +5472,15 @@ button.p-dem-item {
     height: 320px;
   }
 
+  /* Les positions des étiquettes sont pensées pour 680 px : resserrées sur un petit écran, et jamais hors cadre */
   .p-prep-tag {
-    font-size: 13px;
-    padding: 8px 14px;
+    --kx: 0.38;
+    --ky: 0.85;
+    font-size: 12px;
+    padding: 7px 11px;
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .p-prep-ln {
@@ -5900,5 +5906,47 @@ button.p-dem-item {
     width: auto;
     margin: 0;
     padding: 20px 16px 32px;
+  }
+}
+
+/* Passage d'un écran à l'autre : un fondu court plutôt qu'un remplacement sec */
+.p-claim-screen {
+  display: contents;
+}
+
+.p-claim-screen > * {
+  animation: p-claim-in 200ms ease-out both;
+}
+
+@keyframes p-claim-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-claim-screen > *,
+  .p-prep-tag,
+  .p-prep-core,
+  .p-prep-res,
+  .p-prep-ln {
+    animation: none;
+  }
+  .p-claim-progress span {
+    transition: none;
+  }
+  .p-prep-core {
+    opacity: 0.35;
+    transform: scale(2.6);
+  }
+  .p-prep-res,
+  .p-prep-ln2 {
+    opacity: 1;
+    transform: none;
   }
 }
