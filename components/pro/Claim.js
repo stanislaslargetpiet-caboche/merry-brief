@@ -629,6 +629,7 @@ export default function Claim() {
   const codeBlock = (label, resend) => (
     <div className="p-claim-code">
       <span id="code-label">{label}</span>
+      <span className="p-claim-code-hint">Il arrive en moins d’une minute, parfois dans les indésirables.</span>
       <div role="group" aria-labelledby="code-label" className="p-claim-digits">
         {code.map((d, i) => (
           <input
@@ -1063,14 +1064,6 @@ export default function Claim() {
                   Créer ma fiche
                 </button>
               </div>
-              {!signedIn ? (
-                <p className="p-claim-help is-small p-claim-login">
-                  Vous avez déjà un compte ?{" "}
-                  <button type="button" className="p-claim-link" onClick={startLogin}>
-                    Me connecter avec mon adresse mail
-                  </button>
-                </p>
-              ) : null}
             </>
           ) : screen === "confirm" ? (
             <>
