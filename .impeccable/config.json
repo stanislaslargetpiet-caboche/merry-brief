@@ -29,6 +29,12 @@
         ],
         "createdAt": "2026-11-03T14:00:01.217Z",
         "reason": "transactional mail HTML, matches existing app/api/inviter/route.js template verbatim; Arial/Helvetica is a safe system-font fallback for email clients, not a product UI font choice"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-11-04T15:57:02.417Z",
+        "reason": "HTML e-mail transactionnel (Resend) : Arial est le fallback sûr pour Outlook/Gmail, web fonts non fiables en e-mail. Convention déjà en place dans notifier-vendor/notifier-couple avant ce changement."
       }
     ]
   }
