@@ -7,17 +7,18 @@ import { useState } from "react";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
 export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint }) {
-  const d = prev === undefined || prev === null ? null : delta(value, prev);
+  const missing = value === null || value === undefined;
+  const d = missing || prev === undefined || prev === null ? null : delta(value, prev);
   const good = d && (inverse ? d.sens === "baisse" : d.sens === "hausse");
   const bad = d && (inverse ? d.sens === "hausse" : d.sens === "baisse");
   return (
     <div className="pl-tile" title={hint}>
-      <span className="pl-tile-value">{format(value)}</span>
+      <span className="pl-tile-value">{missing ? "–" : format(value)}</span>
       <span className="pl-tile-label">{label}</span>
       {d ? (
         <span className={`pl-tile-delta${good ? " is-good" : bad ? " is-bad" : ""}`}>
           {d.sens === "stable" ? "=" : d.diff > 0 ? "+" : "−"}
-          {d.sens === "stable" ? "" : fmtInt(Math.abs(d.diff))}
+          {d.sens === "stable" ? "" : format(Math.abs(d.diff))}
           {d.pct !== null && d.sens !== "stable" ? ` (${d.pct > 0 ? "+" : ""}${d.pct} %)` : ""}
           <span className="pl-tile-delta-sub"> vs période précédente</span>
         </span>

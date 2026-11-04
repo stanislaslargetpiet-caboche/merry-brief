@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { alignSeries, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
+import { alignSeries, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, Funnel, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { demoData } from "@/lib/server/pilotage/demo";
 
@@ -236,8 +236,8 @@ function Board({ data, jours }) {
               <Tile label="Visiteurs" value={sumBy(siteSplit.current, "visiteurs")} prev={sumBy(siteSplit.previous, "visiteurs")} hint="Personnes distinctes ayant vu au moins une page (PostHog, après accord cookies)" />
               <Tile label="Pages vues" value={sumBy(siteSplit.current, "pages")} prev={sumBy(siteSplit.previous, "pages")} />
               <Tile label="Sessions" value={siteB?.sessions || 0} prev={siteBP?.sessions} />
-              <Tile label="Taux de rebond" value={siteB?.sessions ? Math.round((siteB.rebonds / siteB.sessions) * 100) : 0} prev={siteBP?.sessions ? Math.round((siteBP.rebonds / siteBP.sessions) * 100) : null} format={(v) => `${v} %`} inverse hint="Sessions d'une seule page" />
-              <Tile label="Durée moyenne" value={siteB?.duree || 0} prev={siteBP?.duree} format={fmtDuration} />
+              <Tile label="Taux de rebond" value={pctOf(siteB?.rebonds, siteB?.sessions)} prev={pctOf(siteBP?.rebonds, siteBP?.sessions)} format={(v) => `${v} %`} inverse hint="Sessions d'une seule page" />
+              <Tile label="Durée moyenne" value={Math.round(siteB?.duree || 0)} prev={Math.round(siteBP?.duree || 0)} format={fmtDuration} />
             </div>
             <div className="pl-grid">
               <Card title="Visiteurs par jour" wide>
@@ -278,9 +278,9 @@ function Board({ data, jours }) {
             <>
               <Tile label="Personnes vues (PostHog)" value={ph.app.personnes} prev={ph.app.personnes_prec} hint="Après accord cookies seulement" />
               <Tile label="Sessions" value={appS?.n || 0} prev={appP?.n} />
-              <Tile label="Durée moyenne" value={appS?.duree || 0} prev={appP?.duree} format={fmtDuration} hint={`Médiane ${fmtDuration(appS?.mediane || 0)}`} />
-              <Tile label="Pages par session" value={appS?.pages || 0} prev={appP?.pages} format={(v) => (Math.round(v * 10) / 10).toLocaleString("fr-FR")} />
-              <Tile label="Sessions d'une minute ou plus" value={appS?.n ? Math.round((appS.engagees / appS.n) * 100) : 0} prev={appP?.n ? Math.round((appP.engagees / appP.n) * 100) : null} format={(v) => `${v} %`} />
+              <Tile label="Durée moyenne" value={Math.round(appS?.duree || 0)} prev={Math.round(appP?.duree || 0)} format={fmtDuration} hint={`Médiane ${fmtDuration(appS?.mediane || 0)}`} />
+              <Tile label="Pages par session" value={appS?.pages || 0} prev={appP?.pages} format={(v) => (Math.round(Number(v) * 10) / 10).toLocaleString("fr-FR")} />
+              <Tile label="Sessions d'une minute ou plus" value={pctOf(appS?.engagees, appS?.n)} prev={pctOf(appP?.engagees, appP?.n)} format={(v) => `${v} %`} />
             </>
           ) : null}
         </div>
@@ -337,13 +337,13 @@ function Board({ data, jours }) {
         <div className="pl-tiles">
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
           <Tile label="Organisateurs" value={t.organisateurs} sub={`${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente`} />
-          <Tile label="Invités saisis" value={t.invites} sub={`dans ${fmtInt(t.mariages_avec_invites)} mariage(s)`} />
+          <Tile label="Invités saisis" value={t.invites} sub={t.mariages_avec_invites != null ? `dans ${fmtInt(t.mariages_avec_invites)} mariage(s)` : null} />
           <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={prev("reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" />
           <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} sub={`${fmtInt(t.demandes_devis)} au total`} />
           <Tile label="Messages couple → pro" value={cur("messages_couple")} prev={prev("messages_couple")} />
           <Tile label="Réponses pro → couple" value={cur("messages_pro")} prev={prev("messages_pro")} />
-          <Tile label="Sites de mariage publiés" value={t.sites_publies} sub={`${fmtInt(cur("visites_sites"))} visite(s) sur ${periode}`} />
-          <Tile label="Formulaires publiés" value={t.formulaires_publies} sub={`${fmtInt(t.reponses_formulaires)} réponse(s) reçue(s)`} />
+          <Tile label="Sites de mariage publiés" value={t.sites_publies} sub={sb?.repli ? null : `${fmtInt(cur("visites_sites"))} visite(s) sur ${periode}`} />
+          <Tile label="Formulaires publiés" value={t.formulaires_publies} sub={t.reponses_formulaires != null ? `${fmtInt(t.reponses_formulaires)} réponse(s) reçue(s)` : null} />
           <Tile label="Tâches" value={t.taches} sub={`${fmtPct(t.taches_faites, t.taches)} faites`} />
           <Tile label="Lignes de budget" value={t.lignes_budget} sub={`${fmtInt(t.documents)} document(s)`} />
           <Tile label="Appels IA" value={cur("appels_ia")} prev={prev("appels_ia")} hint="Import d'invités, lecture de devis, comparaison de prestataires" />
@@ -359,7 +359,7 @@ function Board({ data, jours }) {
             <Table
               cols={[
                 { key: "email", label: "Adresse" },
-                { key: "prenoms", label: "Couple", render: (r) => r.prenoms || <span className="pl-muted">sans mariage</span> },
+                { key: "prenoms", label: "Couple", render: (r) => r.prenoms || <span className="pl-muted">{sb?.repli ? "–" : "sans mariage"}</span> },
                 { key: "cree", label: "Créé", render: (r) => fmtDateTime(r.cree) },
                 { key: "derniere_connexion", label: "Dernière connexion", render: (r) => fmtDateTime(r.derniere_connexion) },
               ]}
@@ -382,15 +382,15 @@ function Board({ data, jours }) {
 
       <Section id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire">
         <div className="pl-tiles">
-          <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={`${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés`} />
-          <Tile label="Avec 3 photos ou plus" value={t.catalogue_actifs ? Math.round((t.catalogue_photos3 / t.catalogue_actifs) * 100) : 0} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
-          <Tile label="Avec un email" value={t.catalogue_actifs ? Math.round((t.catalogue_email / t.catalogue_actifs) * 100) : 0} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_email)} fiches`} />
-          <Tile label="Avec un téléphone" value={t.catalogue_actifs ? Math.round((t.catalogue_telephone / t.catalogue_actifs) * 100) : 0} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_telephone)} fiches`} />
-          <Tile label="Fiches revendiquées" value={t.fiches_revendiquees} sub={`${fmtInt(t.fiches_revendiquees_periode)} sur ${periode} · ${fmtInt(t.comptes_pro)} compte(s) pro`} />
-          <Tile label="Crédits en circulation" value={t.credits_en_circulation} sub={`${fmtInt(t.credits_depenses)} dépensés au total`} />
+          <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
+          <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
+          <Tile label="Avec un email" value={pctOf(t.catalogue_email, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_email)} fiches`} />
+          <Tile label="Avec un téléphone" value={pctOf(t.catalogue_telephone, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_telephone)} fiches`} />
+          <Tile label="Fiches revendiquées" value={t.fiches_revendiquees} sub={t.fiches_revendiquees_periode != null ? `${fmtInt(t.fiches_revendiquees_periode)} sur ${periode} · ${fmtInt(t.comptes_pro)} compte(s) pro` : `${fmtInt(t.comptes_pro)} compte(s) pro`} />
+          <Tile label="Crédits en circulation" value={t.credits_en_circulation} sub={t.credits_depenses != null ? `${fmtInt(t.credits_depenses)} dépensés au total` : null} />
           <Tile label="Crédits dépensés" value={t.credits_depenses_periode} hint="Réponses payées en crédits sur la période" />
           <Tile label="Vues de fiches pro" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" />
-          <Tile label="Clients côté pro" value={t.clients_pro} sub={`${fmtInt(t.clients_pro_repondus)} avec une réponse`} />
+          <Tile label="Clients côté pro" value={t.clients_pro} sub={t.clients_pro_repondus != null ? `${fmtInt(t.clients_pro_repondus)} avec une réponse` : null} />
           <Tile label="Ajoutés par les couples" value={t.catalogue_ajoutes_par_couples} hint="Prestataires créés à la main depuis un tableau de bord" />
         </div>
         <div className="pl-grid">
