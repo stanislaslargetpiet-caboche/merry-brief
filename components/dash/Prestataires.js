@@ -1060,7 +1060,8 @@ function factsOf(v) {
 function useFullVendor(base) {
   const dash = useDash();
   const [full, setFull] = useState(null);
-  const catalogId = base.catalogId ? null : /^catalog:(.+)$/.exec(base.id || "")?.[1] || null;
+  const rawCatalogId = base.catalogId || /^catalog:(.+)$/.exec(base.id || "")?.[1] || null;
+  const catalogId = base.photos?.some(Boolean) ? null : rawCatalogId;
   useEffect(() => {
     setFull(null);
     if (!catalogId) return undefined;
