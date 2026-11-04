@@ -6,6 +6,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
+import { mailShell } from "@/lib/server/mailShell";
 
 export const runtime = "nodejs";
 
@@ -67,7 +68,8 @@ export async function POST(req) {
 </tr></table>
 </td></tr></table>`;
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
+  const preheader = "Votre tableau de bord est prêt. Invités, budget, prestataires, rétroplanning : tout est là, et c'est gratuit du début à la fin.";
+  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${tilesBlock}
@@ -75,6 +77,7 @@ ${ctaBlock}
 <p style="margin:20px 0 0;font-size:14px;color:#6b6a63;text-align:center">Une question&nbsp;? Il suffit de répondre à ce mail.</p>
 ${footerBlock}
 </div>`;
+  const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

@@ -7,6 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
+import { mailShell } from "@/lib/server/mailShell";
 
 export const runtime = "nodejs";
 
@@ -97,7 +98,8 @@ export async function POST(req) {
 </tr></table>
 </td></tr></table>`;
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
+  const preheader = `Lisez le message de ${vendorName} et répondez directement depuis Merry.`;
+  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${messageBox}
@@ -105,6 +107,7 @@ ${ctaBlock}
 ${securityBlock}
 ${footerBlock}
 </div>`;
+  const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
   let sent = 0;
   for (const r of recipients) {

@@ -7,6 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
+import { mailShell } from "@/lib/server/mailShell";
 
 export const runtime = "nodejs";
 
@@ -138,7 +139,10 @@ ${tilesBlock}
 </tr></table>
 </td></tr></table>`;
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
+  // Preheader : l'aperçu que Gmail/Apple Mail affichent dans la liste des messages, invisible une
+  // fois le mail ouvert.
+  const preheader = (message || `${couple} ${verb} sur Merry.`).slice(0, 140);
+  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${messageBox}
@@ -148,6 +152,7 @@ ${sign ? `<p style="white-space:pre-line;margin-top:20px;font-size:15px;line-hei
 ${ctaBlock}
 ${footerBlock}
 </div>`;
+  const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

@@ -6,6 +6,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
+import { mailShell } from "@/lib/server/mailShell";
 
 export const runtime = "nodejs";
 
@@ -84,7 +85,8 @@ export async function POST(req) {
 </tr></table>
 </td></tr></table>`;
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
+  const preheader = `${sender ? `${sender} t'invite` : "Tu es invité·e"} à rejoindre l'équipe qui organise le mariage de ${couple} sur Merry.`;
+  const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${logoBlock}
 ${titleBlock}
 ${memberCard}
@@ -93,6 +95,7 @@ ${ctaBlock}
 <p style="margin:20px 0 0;font-size:13px;color:#9c9a90">Ce lien d'invitation est personnel et à usage unique.</p>
 ${footerBlock}
 </div>`;
+  const html = mailShell({ title: subject, preheader, body: bodyHtml });
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
