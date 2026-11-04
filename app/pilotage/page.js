@@ -8,6 +8,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, Funnel, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { demoData } from "@/lib/server/pilotage/demo";
+
+// ?demo=1 (ou pas de Supabase en local) : la page se dessine avec un jeu d'exemple, jamais de vraies mesures
+function readDemoFlag() {
+  try {
+    return new URLSearchParams(window.location.search).get("demo") === "1";
+  } catch {
+    return false;
+  }
+}
 
 const RANGES = [
   { jours: 1, label: "24 h" },
@@ -20,7 +30,7 @@ function useToken() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!supabase) return setState({ status: "noconfig", token: null, email: null });
+      if (readDemoFlag() || !supabase) return setState({ status: "demo", token: null, email: null });
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
       const s = data?.session;
@@ -63,10 +73,10 @@ export default function PilotagePage() {
 
   useEffect(() => {
     if (auth.status === "ok") load(jours);
+    if (auth.status === "demo") setData(demoData(jours));
   }, [auth.status, jours, load]);
 
   if (auth.status === "loading") return <Gate title="Pilotage" text="Un instant…" />;
-  if (auth.status === "noconfig") return <Gate title="Pilotage" text="Supabase n'est pas configuré en local : cette page ne lit que des données réelles." />;
   if (auth.status === "signedout" || error === "connexion")
     return (
       <Gate title="Pilotage" text="Connectez-vous avec le compte Merry autorisé pour lire les indicateurs.">
@@ -86,7 +96,7 @@ export default function PilotagePage() {
               Merry
             </a>
             <span className="pl-title">Pilotage</span>
-            {data ? <span className="pl-generated">généré le {fmtDateTime(data.genere)}</span> : null}
+            {data ? <span className="pl-generated">{data.demo ? "jeu d'exemple, pas de vraies mesures" : `généré le ${fmtDateTime(data.genere)}`}</span> : null}
           </div>
           <div className="pl-top-right">
             <div className="pl-ranges" role="tablist" aria-label="Période">
@@ -96,7 +106,7 @@ export default function PilotagePage() {
                 </button>
               ))}
             </div>
-            <button type="button" className="pl-btn" onClick={() => load(jours)} disabled={busy}>
+            <button type="button" className="pl-btn" onClick={() => load(jours)} disabled={busy || auth.status === "demo"}>
               {busy ? "Chargement…" : "Actualiser"}
             </button>
           </div>
