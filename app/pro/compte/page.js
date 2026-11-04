@@ -62,7 +62,7 @@ export default function Compte() {
     if (cleanPassword) {
       if (!live) notes.push("en démo, le mot de passe ne change pas");
       else {
-        const { error } = await supabase.auth.updateUser({ password: cleanPassword });
+        const { error } = await supabase.auth.updateUser({ password: cleanPassword, data: { merry_password: true } });
         failed = failed || !!error;
         notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
         if (!error) setPassword("");

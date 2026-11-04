@@ -18,9 +18,11 @@
 // Audit du 3 nov. 2026 : un seul titre par étape (la question), plus de phrase d'aide qui la répète, plus
 // de « Corriger une information » ni de légende sous Bienvenue, et Préparation n'annonce que ce qui est vrai.
 //
-// Le mot de passe du canvas (Onb3/Rev2) n'a pas été repris : le compte prestataire reste sans mot de
-// passe, uniquement par code à 6 chiffres (Onb4/Rev3, backend existant) — en ajouter un changerait la
-// façon dont un compte s'authentifie, à trancher avec Stan plutôt qu'à décider seul depuis une maquette.
+// Entrée (canvas Vendor-Entree, 4 nov. 2026) : « Me connecter » (mail et mot de passe) ou « Retrouver ma
+// fiche ». Le mot de passe se choisit à la création et à la revendication ; le code reste la preuve d'accès
+// à l'adresse. Revendication : le code part toujours à l'adresse de la fiche, jamais à une adresse tapée
+// (Rev2 en demande une sur le canvas) : ce serait ouvrir n'importe quelle fiche à n'importe qui.
+// Compte sans mot de passe : code, puis mot de passe, puis Préparation et Bienvenue, une seule fois.
 // Le SIRET (facultatif) n'apparaît plus non plus dans Votre compte, le canvas ne le montre plus : le champ
 // reste accepté par l'API si jamais réintroduit.
 
@@ -51,8 +53,13 @@ const CATEGORIES = [
   ["transport", "Transport"],
   ["officiant", "Officiant de cérémonie"],
 ];
-const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "" };
+const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "", password: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_HINT = "Le mot de passe compte au moins 8 caractères.";
+const sameName = (a, b) => {
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return norm(a) === norm(b);
+};
 
 const CREATE_FLOW = ["name", "address", "contact", "code"];
 const CLAIM_FLOW = ["search", "confirm", "code"];
@@ -72,10 +79,11 @@ function formProblem(f) {
 
 // Le jeton du compte déjà connecté accompagne la vérification : la fiche rejoint ce compte au lieu de
 // basculer sur celui de l'adresse qui a reçu le code
-async function call(body, path = "/api/pro/claim") {
+async function call(body, path = "/api/pro/claim", token = null) {
   try {
     const headers = { "Content-Type": "application/json" };
-    if (supabase && /verify$|^accept$/.test(body.action || "")) {
+    if (token) headers.authorization = `Bearer ${token}`;
+    else if (supabase && /verify$|^accept$/.test(body.action || "")) {
       const { data } = await supabase.auth.getSession();
       if (data?.session?.access_token) headers.authorization = `Bearer ${data.session.access_token}`;
     }
@@ -107,6 +115,8 @@ const ERRORS = {
   setup: "L’espace prestataire n’est pas encore installé sur la base de données (supabase/espace-prestataire.sql).",
   link_failed: "Le code est bon, mais la fiche n’a pas pu être rattachée à votre compte. Réessayez.",
   no_account: "Aucun compte Merry à cette adresse. Retrouvez votre fiche par son nom, ou créez-la : le code arrive à l’adresse de la fiche.",
+  bad_password: PASSWORD_HINT,
+  password_failed: "Le mot de passe n’a pas pu être enregistré. Réessayez dans un instant.",
   not_found: "Cette fiche n’existe plus, ou n’est pas encore publiée. Retrouvez votre établissement par son nom.",
   address: "Nous ne trouvons pas cette adresse. Vérifiez le code postal et la ville, puis validez de nouveau le code.",
   create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
@@ -116,7 +126,7 @@ const ERRORS = {
 
 export default function Claim() {
   const pro = usePro();
-  const [screen, setScreen] = useState("search");
+  const [screen, setScreen] = useState("entry");
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -133,6 +143,13 @@ export default function Claim() {
   const [pendingSession, setPendingSession] = useState(null); // posée au clic sur Bienvenue
   const [logging, setLogging] = useState(false); // « J'ai déjà un compte » : adresse mail puis code
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginFailed, setLoginFailed] = useState(false);
+  const [claimPassword, setClaimPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [firstLogin, setFirstLogin] = useState(false);
+  const [duplicate, setDuplicate] = useState(null);
   const [notice, setNotice] = useState(""); // un mot au-dessus de la recherche (connecté sans fiche, lien périmé…)
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, email: pro.data?.user?.email || "" }));
   const boxes = useRef([]);
@@ -146,6 +163,7 @@ export default function Claim() {
     const fiche = params.get("fiche");
     const name = params.get("etablissement");
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
+    if (signedIn || (name && name.trim()) || fiche || params.get("invitation")) setScreen("search");
     // « Connexion » du site : l'adresse mail puis le code, sans passer par la recherche
     if (params.get("connexion") === "1" && !signedIn) startLogin();
     let live = true;
@@ -183,7 +201,7 @@ export default function Claim() {
 
   // Connecté, mais aucune fiche rattachée à ce compte : on le dit au-dessus de la recherche
   useEffect(() => {
-    if (signedIn && !myFiches.length && !logging && !creating && screen === "search" && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    if (signedIn && !myFiches.length && !logging && !creating && !notice) setNotice(`Connecté avec ${pro.data.user.email}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
@@ -240,12 +258,17 @@ export default function Claim() {
   function choose(found) {
     const r = demo && !found.email_hint ? { ...found, email_hint: "c•••@exemple.fr" } : found;
     setPicked(r);
-    setScreen("confirm");
+    setCreating(false);
+    setScreen(r.claimed && !signedIn ? "managed" : "confirm");
     setSent(false);
     setError("");
   }
 
   async function confirmAndSend() {
+    if (!signedIn && claimPassword.length < 8) {
+      setError(PASSWORD_HINT);
+      return;
+    }
     if (await sendCode()) setScreen("code");
   }
 
@@ -269,10 +292,81 @@ export default function Claim() {
   function startLogin() {
     setLogging(true);
     setCreating(false);
+    setLoginFailed(false);
     setScreen("login-email");
     setSent(false);
     setError("");
     setNotice("");
+  }
+
+  function backToEntry() {
+    backToSearch();
+    setScreen("entry");
+  }
+
+  // Après la connexion, l'espace se recharge ; si l'écran reste là, ce compte n'a pas encore de fiche
+  async function afterLogin() {
+    await pro.reload();
+    setBusy(false);
+    setLogging(false);
+    setScreen("search");
+    setSent(false);
+    setNotice(`Connecté avec ${loginEmail.trim()}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+  }
+
+  async function signIn() {
+    const mail = loginEmail.trim();
+    if (!EMAIL_RE.test(mail) || !loginPassword) {
+      setError("Indiquez votre adresse mail et votre mot de passe.");
+      return;
+    }
+    setError("");
+    setLoginFailed(false);
+    if (demo) {
+      window.location.assign("/pro?demo=1");
+      return;
+    }
+    setBusy(true);
+    const { error: failure } = await supabase.auth.signInWithPassword({ email: mail, password: loginPassword });
+    if (failure) {
+      setBusy(false);
+      setLoginFailed(true);
+      setError(/invalid/i.test(failure.message) ? "Adresse ou mot de passe incorrect." : ERRORS.network);
+      return;
+    }
+    await afterLogin();
+  }
+
+  async function savePassword() {
+    if (newPassword.length < 8) {
+      setError(PASSWORD_HINT);
+      return;
+    }
+    if (newPassword !== newPassword2) {
+      setError("Les deux mots de passe ne sont pas identiques.");
+      return;
+    }
+    setError("");
+    setBusy(true);
+    if (!demo) {
+      const res = await call({ action: "password_set", password: newPassword }, undefined, pendingSession?.access_token);
+      if (!res.ok) {
+        setBusy(false);
+        setError(ERRORS[res.error] || ERRORS.password_failed);
+        return;
+      }
+    }
+    if (firstLogin && picked) {
+      setBusy(false);
+      setPreparing("claim");
+      return;
+    }
+    if (demo) {
+      window.location.assign("/pro?demo=1");
+      return;
+    }
+    await supabase.auth.setSession(pendingSession);
+    await afterLogin();
   }
 
   function backTo(target) {
@@ -289,6 +383,7 @@ export default function Claim() {
       return;
     }
     setError("");
+    setLoginFailed(false);
     if (demo) {
       setScreen("login-code");
       setSent(true);
@@ -340,9 +435,9 @@ export default function Claim() {
   }
 
   const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
-  const formFields = () => ({ ...form, email: undefined });
+  const formFields = () => ({ ...form, email: undefined, password: undefined });
 
-  function nextFromName() {
+  async function nextFromName() {
     if (form.name.trim().length < 2) {
       setError("Indiquez le nom de votre établissement.");
       return;
@@ -352,6 +447,17 @@ export default function Claim() {
       return;
     }
     setError("");
+    if (!demo) {
+      setBusy(true);
+      const found = await search(form.name.trim());
+      setBusy(false);
+      const twin = (found.results || []).find((r) => sameName(r.name, form.name));
+      if (twin) {
+        setDuplicate(twin);
+        setScreen("duplicate");
+        return;
+      }
+    }
     setScreen("address");
   }
 
@@ -373,7 +479,7 @@ export default function Claim() {
   }
 
   async function sendCreateCode() {
-    const problem = formProblem(form);
+    const problem = formProblem(form) || (!signedIn && form.password.length < 8 ? PASSWORD_HINT : "");
     if (problem) {
       setError(problem);
       return;
@@ -424,17 +530,20 @@ export default function Claim() {
     if (demo) {
       // La connexion (pas de fiche précise à préparer) garde le passage direct
       if (logging) {
-        window.location.assign("/pro?demo=1");
+        setFirstLogin(true);
+        setPicked({ id: "demo", name: "Domaine des Oliviers", category: "Lieu de réception", city: "Lourmarin" });
+        setBusy(false);
+        setScreen("password");
         return;
       }
       setPreparing(creating ? "create" : "claim");
       return;
     }
     const res = creating
-      ? await call({ action: "create_verify", email: form.email.trim(), code: c, fields: formFields() })
+      ? await call({ action: "create_verify", email: form.email.trim(), code: c, fields: formFields(), password: signedIn ? undefined : form.password })
       : logging
         ? await call({ action: "login_verify", email: loginEmail.trim(), code: c })
-        : await call({ action: "verify", vendorId: picked.id, code: c });
+        : await call({ action: "verify", vendorId: picked.id, code: c, password: signedIn ? undefined : claimPassword });
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.bad_code);
@@ -450,16 +559,15 @@ export default function Claim() {
       setPreparing(creating ? "create" : "claim");
       return;
     }
-    await supabase.auth.setSession(res.session);
-    await pro.reload();
-    // Toujours là après la connexion : ce compte n'a pas encore de fiche
-    if (logging) {
-      setBusy(false);
-      setLogging(false);
-      setScreen("search");
-      setSent(false);
-      setNotice(`Connecté avec ${loginEmail.trim()}, mais aucune fiche n’est encore rattachée à ce compte. Retrouvez votre établissement ci-dessous, ou créez sa fiche.`);
+    // Code d'une connexion : le mot de passe d'abord, la session n'est posée qu'ensuite
+    setPendingSession(res.session);
+    setFirstLogin(!!res.firstTime);
+    if (res.vendor) {
+      setPicked(res.vendor);
+      pro.rememberVendor(res.vendor.id);
     }
+    setBusy(false);
+    setScreen("password");
   }
 
   function typeDigit(i, raw) {
@@ -563,47 +671,57 @@ export default function Claim() {
     contact: { eyebrow: "Votre compte", title: "Comment peut-on vous contacter ?" },
     search: { eyebrow: "Espace prestataire", title: "Retrouvez votre établissement" },
     confirm: { eyebrow: "Votre fiche", title: picked?.name || "" },
-    "login-email": { eyebrow: "Connexion", title: "Quelle est l’adresse mail de votre compte ?" },
+    entry: { eyebrow: "Espace prestataire", title: "Bienvenue sur Merry." },
+    "login-email": { eyebrow: "Connexion", title: "Heureux de vous revoir." },
+    password: { eyebrow: "Connexion", title: "Choisissez votre mot de passe." },
+    managed: { eyebrow: "Votre fiche existe déjà", title: "Cette fiche a déjà un compte." },
+    duplicate: { eyebrow: "Votre établissement", title: "Est-ce votre fiche ?" },
     "login-code": { eyebrow: "Connexion", title: "Vérifions que c’est bien vous." },
     code: { eyebrow: "Dernière étape", title: "Vérifions que c’est bien vous." },
     invite: { eyebrow: "Invitation", title: `Rejoindre ${invite?.vendor_name || "l’équipe"}` },
     "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
   const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
-  const goBack = invite
+  const noProgress = logging || ["entry", "password", "managed", "duplicate"].includes(screen);
+  const goBack = screen === "entry" || screen === "password"
+    ? null
+    : screen === "managed"
+    ? backTo("search")
+    : screen === "duplicate"
+    ? backTo("name")
+    : invite
     ? screen === "invite-code"
       ? backTo("invite")
       : null
     : logging
     ? screen === "login-code"
       ? backTo("login-email")
-      : null
+      : backToEntry
     : creating
       ? screen === "name"
-        ? null
+        ? backToSearch
         : screen === "address"
           ? backTo("name")
           : screen === "contact"
             ? backTo("address")
             : backTo("contact")
       : screen === "search"
-        ? null
+        ? signedIn
+          ? null
+          : backTo("entry")
         : screen === "confirm"
           ? backTo("search")
           : backTo("confirm");
 
   return (
     <div className="p-claim">
-      <aside className="p-claim-panel">
-        <div className="p-brand">
-          <span className="p-brand-logo">Merry</span>
-          <span className="p-brand-sub">Espace prestataire</span>
-        </div>
-        <div className="p-claim-word">Bienvenue.</div>
-      </aside>
+      <header className="p-claim-header">
+        <span className="p-brand-logo">Merry</span>
+        <a href="https://www.withmerry.com">Retour au site</a>
+      </header>
       <div className="p-claim-stage">
         <div className="p-claim-band">
-          <div className="p-claim-top">
+          <div className={`p-claim-top${goBack || !noProgress ? "" : " is-hidden"}`}>
             {goBack ? (
               <button type="button" className="p-claim-back" aria-label="Étape précédente" onClick={goBack}>
                 <ProIcon name="prev" size={18} sw={2} />
@@ -612,7 +730,7 @@ export default function Claim() {
               <span className="p-claim-back is-empty" />
             )}
             {/* La connexion n'est pas un parcours en étapes : pas de barre de progression */}
-            {logging ? null : (
+            {noProgress ? null : (
               <>
                 <div className="p-claim-progress">
                   <span style={{ width: `${Math.round(((stepIndex + 1) / stepTotal) * 100)}%` }} />
@@ -632,7 +750,61 @@ export default function Claim() {
           <div className="p-claim-eyebrow p-desk-only">{eyebrow}</div>
           <h1 className="p-claim-h1 p-desk-only">{cardTitle}</h1>
 
-          {invite ? (
+          {screen === "entry" ? (
+            <div className="p-claim-stack">
+              <button type="button" className="p-claim-submit" onClick={startLogin}>
+                Me connecter
+              </button>
+              <button type="button" className="p-claim-submit is-line" onClick={backToSearch}>
+                Retrouver ma fiche
+              </button>
+            </div>
+          ) : screen === "password" ? (
+            <>
+              <div className="p-claim-field">
+                <label htmlFor="pro-new-1">Mot de passe (8 caractères minimum)</label>
+                <input id="pro-new-1" className="p-claim-input" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus />
+              </div>
+              <div className="p-claim-field">
+                <label htmlFor="pro-new-2">Confirmer le mot de passe</label>
+                <input id="pro-new-2" className="p-claim-input" type="password" autoComplete="new-password" value={newPassword2} onChange={(e) => setNewPassword2(e.target.value)} onKeyDown={(e) => e.key === "Enter" && savePassword()} />
+              </div>
+              {errorBox}
+              <button type="button" className="p-claim-submit" onClick={savePassword} disabled={busy}>
+                Enregistrer et continuer
+              </button>
+            </>
+          ) : screen === "managed" ? (
+            <>
+              <div className="p-claim-row-fiche">
+                <span className="p-claim-name">{picked.name}</span>
+                <span className="p-claim-meta">{[picked.category, picked.city].filter(Boolean).join(" · ")}</span>
+              </div>
+              <div className="p-claim-stack">
+                <button type="button" className="p-claim-submit" onClick={startLogin}>
+                  Me connecter
+                </button>
+                <button type="button" className="p-claim-link" onClick={backTo("confirm")}>
+                  Je n’ai plus accès au compte
+                </button>
+              </div>
+            </>
+          ) : screen === "duplicate" ? (
+            <>
+              <div className="p-claim-row-fiche">
+                <span className="p-claim-name">{duplicate.name}</span>
+                <span className="p-claim-meta">{[duplicate.category, duplicate.city].filter(Boolean).join(" · ")}</span>
+              </div>
+              <div className="p-claim-stack">
+                <button type="button" className="p-claim-submit" onClick={() => choose(duplicate)}>
+                  Oui, c’est ma fiche
+                </button>
+                <button type="button" className="p-claim-submit is-line" onClick={backTo("address")}>
+                  Non, créer une nouvelle fiche
+                </button>
+              </div>
+            </>
+          ) : invite ? (
             screen === "invite" ? (
               <>
                 <div className="p-claim-channel is-on is-single">
@@ -665,25 +837,39 @@ export default function Claim() {
               <>
                 <div className="p-claim-field">
                   <label htmlFor="pro-login">Adresse mail</label>
+                  <input id="pro-login" className="p-claim-input" type="email" autoComplete="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoFocus />
+                </div>
+                <div className="p-claim-field">
+                  <span className="p-claim-label-row">
+                    <label htmlFor="pro-login-pw">Mot de passe</label>
+                    <button type="button" className="p-claim-link" onClick={sendLoginCode} disabled={busy}>
+                      Oublié ?
+                    </button>
+                  </span>
                   <input
-                    id="pro-login"
+                    id="pro-login-pw"
                     className="p-claim-input"
-                    type="email"
-                    autoComplete="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendLoginCode()}
-                    autoFocus
+                    type="password"
+                    autoComplete="current-password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && signIn()}
                   />
                 </div>
                 {errorBox}
-                <div className="p-claim-actions is-split">
-                  <button type="button" className="p-claim-link" onClick={backToSearch}>
-                    Retrouver ma fiche par son nom
+                <div className="p-claim-stack">
+                  <button type="button" className="p-claim-submit" onClick={signIn} disabled={busy}>
+                    Me connecter
                   </button>
-                  <button type="button" className="p-claim-submit" onClick={sendLoginCode} disabled={busy}>
-                    Recevoir mon code
-                  </button>
+                  {loginFailed ? (
+                    <button type="button" className="p-claim-submit is-line" onClick={sendLoginCode} disabled={busy}>
+                      Recevoir un code par mail
+                    </button>
+                  ) : (
+                    <button type="button" className="p-claim-link" onClick={backToSearch}>
+                      Première connexion ? Retrouver ma fiche
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
@@ -695,7 +881,7 @@ export default function Claim() {
                     Retrouver ma fiche par son nom
                   </button>
                   <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
-                    Me connecter
+                    Valider
                   </button>
                 </div>
               </>
@@ -764,6 +950,12 @@ export default function Claim() {
                   </label>
                   <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" {...field("phone")} />
                 </div>
+                {signedIn ? null : (
+                  <div className="p-claim-field">
+                    <label htmlFor="pro-new-pw">Mot de passe (8 caractères minimum)</label>
+                    <input id="pro-new-pw" className="p-claim-input" type="password" autoComplete="new-password" {...field("password")} />
+                  </div>
+                )}
                 {errorBox}
                 <div className="p-claim-actions">
                   <button type="button" className="p-claim-submit" onClick={sendCreateCode} disabled={busy}>
@@ -879,6 +1071,12 @@ export default function Claim() {
                   <span className="p-claim-chint">{picked.email_hint || "Écrivez-nous depuis l’adresse de votre établissement : nous vous ouvrons l’accès."}</span>
                 </span>
               </div>
+              {picked.email_hint && !signedIn ? (
+                <div className="p-claim-field">
+                  <label htmlFor="pro-claim-pw">Choisissez un mot de passe (8 caractères minimum)</label>
+                  <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} />
+                </div>
+              ) : null}
               {errorBox}
               <div className="p-claim-actions">
                 <button type="button" className="p-claim-submit" onClick={confirmAndSend} disabled={busy || !picked.email_hint}>
