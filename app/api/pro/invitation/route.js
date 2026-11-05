@@ -63,6 +63,12 @@ export async function POST(req) {
     const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
     const { data } = bearer ? await admin.auth.getUser(bearer) : { data: null };
     if (!data?.user) return Response.json({ error: "auth" }, { status: 401 });
+    // Un membre de l'équipe qui ouvre le lien d'un collègue (pour le vérifier, par exemple) ne doit pas
+    // le consommer : sans cette garde, join() retirait l'invitation et la personne invitée trouvait un lien mort.
+    if (String(data.user.email || "").trim().toLowerCase() !== email) {
+      const { data: already } = await admin.from("pro_members").select("id").eq("vendor_id", member.vendor_id).eq("user_id", data.user.id).maybeSingle();
+      if (already) return Response.json({ error: "already_member" }, { status: 409 });
+    }
     const error = await join(admin, member, data.user);
     if (error) return Response.json({ error: "link_failed" }, { status: 500 });
     return Response.json({ ok: true, vendorId: member.vendor_id, session: null });
