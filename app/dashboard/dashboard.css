@@ -7355,10 +7355,7 @@ body.d-noscroll {
 .d-pr-view {
   flex: none;
   display: inline-flex;
-  padding: 3px;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid var(--d-line);
+  gap: 6px;
 }
 
 .d-pr-view button {
@@ -7368,8 +7365,8 @@ body.d-noscroll {
   min-height: 38px;
   padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
   color: var(--d-ink);
   font-size: 13px;
   font-weight: 500;
