@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { normalize, parseAmount } from "@/lib/dash/format";
 import { syncNames } from "@/lib/dash/names";
+import { displayName } from "@/lib/server/names";
 import { applyShift, shiftPlan } from "@/lib/dash/shift";
 import ShiftOption from "./ShiftOption";
 import { Btn, Field, Modal } from "./ui";
@@ -37,7 +38,7 @@ export default function WeddingModal({ onClose }) {
   }
   async function persistAll() {
     const budget = parseAmount(form.budget_total);
-    const names = { partner1: form.partner1.trim() || w.partner1, partner2: form.partner2.trim() || null };
+    const names = { partner1: displayName(form.partner1.trim()) || w.partner1, partner2: displayName(form.partner2.trim()) || null };
     await dash.updateWedding({
       ...names,
       wedding_date: form.wedding_date || null,
