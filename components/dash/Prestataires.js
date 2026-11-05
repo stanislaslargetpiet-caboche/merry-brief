@@ -255,7 +255,7 @@ export function MoreButton({ rec, category, className = "" }) {
 // ---------------------------------------------------------------------------
 
 // Téléphone : plus de place pour deux onglets Trouver / Mes en haut de page, un seul à la fois suffit à
-// l'écran ; l'autre se rejoint par une icône à côté du titre (cœur vers Mes, recherche vers Trouver).
+// l'écran ; l'autre se rejoint par une icône à côté du titre (cœur vers Mes, flèche retour vers Trouver).
 export function PrHead({ on }) {
   const phone = useIsPhone();
   const dash = useDash();
@@ -267,7 +267,7 @@ export function PrHead({ on }) {
         <div className="d-pr-head">
           <h1 className="d-title">{on === "mes" ? "Mes prestataires." : "Prestataires."}</h1>
           <Link href={toMes ? "/dashboard/prestataires/mes" : "/dashboard/prestataires"} className="d-pr-headbtn" aria-label={toMes ? "Mes prestataires" : "Trouver des prestataires"}>
-            <Icon name={toMes ? "heart" : "search"} size={18} sw={2} />
+            <Icon name={toMes ? "heart" : "back"} size={18} sw={2.2} />
             {toMes && count ? <span className="d-pr-headbtn-badge">{count}</span> : null}
           </Link>
         </div>
