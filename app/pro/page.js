@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { completeness, creditsRoi, guestsText, isPastClient, responseStats, since, weddingWhen } from "@/lib/pro/format";
+import { completeness, guestsText, isPastClient, since, weddingWhen } from "@/lib/pro/format";
 import { CreditsCoins, ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
 
@@ -22,8 +22,8 @@ export default function ProHome() {
   const answered = requests.filter((r) => r.answered);
   const todo = requests.filter((r) => !r.answered);
   const booked = clients.filter((c) => c.stage === "reserve" && !isPastClient(c));
-  const resp = responseStats(d);
-  const roi = creditsRoi(d);
+  const credits = d.pro?.credits ?? 0;
+  const views7d = d.stats?.views_7d ?? 0;
   // Les demandes les plus récentes, nouvelles ou déjà répondues, comme un fil d'activité
   const feed = [...requests].sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at)).slice(0, 5);
 
@@ -62,26 +62,17 @@ export default function ProHome() {
 
       <div className="p-acc-cards">
         <div className="p-acc-card">
-          <span className="p-acc-card-label">Temps de réponse</span>
+          <span className="p-acc-card-label">Vues de la fiche (7 jours)</span>
           <span className="p-acc-card-bottom">
-            <span className="p-acc-resp">
-              <span className="p-acc-card-n">{resp ? `${resp.avgHours} h` : "—"}</span>
-              {resp && resp.avgHours <= 4 ? <span className="p-chip-fast">Répond vite</span> : null}
-            </span>
+            <span className="p-acc-card-n">{views7d} vues</span>
           </span>
         </div>
         <div className="p-acc-card">
-          <span className="p-acc-card-label">Coût moyen par réservation</span>
+          <span className="p-acc-card-label">Nombre de crédits restants</span>
           <span className="p-acc-card-bottom">
             <span className="p-acc-card-n p-acc-card-n-credits">
-              {roi.perBooking !== null ? (
-                <>
-                  <CreditsCoins size={22} />
-                  {roi.perBooking} crédits
-                </>
-              ) : (
-                "—"
-              )}
+              <CreditsCoins size={22} />
+              {credits} crédits
             </span>
           </span>
         </div>
