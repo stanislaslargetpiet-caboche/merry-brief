@@ -7734,7 +7734,7 @@ body.d-noscroll {
 .d-pr-specs svg {
   flex: none;
   margin-top: 1px;
-  color: var(--d-ok-ink);
+  color: var(--d-ink);
 }
 
 .d-pr-details {

@@ -357,7 +357,7 @@ export function Specs({ v, venueName }) {
     <ul className="d-pr-specs">
       {rows.map(([icon, text]) => (
         <li key={text}>
-          <Icon name={icon} size={16} sw={1.8} />
+          <Icon name={icon} size={16} sw={2} />
           {text}
         </li>
       ))}
