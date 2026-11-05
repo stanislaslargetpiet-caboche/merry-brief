@@ -120,6 +120,14 @@ export default function Reglages() {
         ))}
       </div>
 
+      <Section title="Votre mariage" />
+      <div className="d-card d-settings">
+        <strong>Date, lieu, budget</strong>
+        <Btn href="/dashboard/brief" kind="ghost">
+          Modifier
+        </Btn>
+      </div>
+
       <Section title="Tes informations" />
       <form className="d-card d-settings" onSubmit={save}>
         <div className="d-form-grid">
