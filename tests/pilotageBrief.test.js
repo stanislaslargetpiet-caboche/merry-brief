@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSante } from "@/lib/pilotage/sante";
-import { buildBrief, morningAlerts, yesterdayRows } from "@/lib/server/pilotage/brief";
+import { buildBrief, costRows, morningAlerts, yesterdayRows } from "@/lib/server/pilotage/brief";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { briefKey, inBriefWindow, parisParts } from "@/lib/server/pilotage/schedule";
 
@@ -32,6 +32,30 @@ describe("santé partagée", () => {
     const data = { vercel: { disponible: true, erreurs: 1, erreurs_production: 1, derniere_production: null }, erreurs: [{ source: "supabase", message: "statement timeout" }] };
     const bad = buildSante(data, 2).filter((s) => s.tone === "bad").map((s) => s.titre);
     expect(bad).toEqual(["1 déploiement(s) de production en échec", "Source en échec : supabase"]);
+  });
+});
+
+describe("coûts dans le mail du matin", () => {
+  const now = new Date("2026-11-05T07:00:00Z");
+  const couts = { disponible: true, lignes: 8, mois: 34.37, mois_par_jour: 6.87, trente_jours: 259.92, trente_par_jour: 8.66 };
+  it("donne le mois en cours et les 30 jours, avec l'équivalent par jour", () => {
+    expect(costRows({ couts }, now)).toEqual([
+      { name: "Dépensé en novembre", status: "34,37 € · 6,87 € par jour" },
+      { name: "30 derniers jours", status: "260 € · 8,66 € par jour" },
+    ]);
+  });
+  it("n'ajoute rien quand le registre est vide ou non lu", () => {
+    expect(costRows({ couts: { ...couts, lignes: 0 } }, now)).toEqual([]);
+    expect(costRows({ couts: { disponible: false, raison: "x" } }, now)).toEqual([]);
+    expect(costRows({}, now)).toEqual([]);
+  });
+  it("le bloc Coûts figure dans le texte et dans le mail, avec ou sans alerte", () => {
+    for (const erreurs of [[], [{ source: "supabase", message: "statement timeout" }]]) {
+      const brief = buildBrief({ couts, erreurs }, now);
+      expect(brief.text).toContain("Coûts :\n- Dépensé en novembre : 34,37 € · 6,87 € par jour");
+      expect(brief.body).toContain("Coûts</h2>");
+    }
+    expect(buildBrief({ erreurs: [] }, now).text).not.toContain("Coûts :");
   });
 });
 
