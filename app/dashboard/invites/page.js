@@ -1153,7 +1153,7 @@ export default function Invites() {
             <Btn kind="strong" icon="download" href="/dashboard/invites/exporter">
               Exporter
             </Btn>
-            <Btn icon="sparkle" href="/dashboard/invites/importer">
+            <Btn kind="lime" icon="sparkle" href="/dashboard/invites/importer">
               Importer une liste
             </Btn>
           </span>
