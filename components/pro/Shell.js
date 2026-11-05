@@ -14,6 +14,7 @@ import { collabColor, countUnreadRequests, PRO_SEEN_EVENT } from "@/lib/pro/form
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
+import Pending from "./Pending";
 import FeatureDialog from "./FeatureDialog";
 
 // Chaque entrée groupe plusieurs pages sous un seul onglet de la barre latérale (maquettes
@@ -83,6 +84,7 @@ function Gate({ children }) {
   // Un lien d'invitation s'ouvre sur l'écran pour rejoindre l'équipe, même pour un compte qui a déjà sa fiche
   const invited = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("invitation");
   if (pro.status === "claim" || (invited && pro.status === "ready")) return <Claim />;
+  if (pro.status === "pending") return <Pending />;
   if (pro.status === "setup" || pro.status === "error") return <Trouble kind={pro.status} error={pro.error} reload={pro.reload} />;
   return <Frame>{children}</Frame>;
 }
