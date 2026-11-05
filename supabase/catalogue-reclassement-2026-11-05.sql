@@ -162,7 +162,7 @@ begin
     ('a3612962', 'wedding_planner', 'videaste'),  -- Sublimyze - Vidéaste de mariage en Grand-Est & Provence
     ('48422fd6', 'wedding_planner', 'videaste'),  -- Vidéaste Mariage - Karim Blondeau
     ('d420471e', 'decoration', 'wedding_planner'),  -- Great Colors Day
-    ('45cb85eb', 'decoration', 'wedding_planner')  -- Voiles Et Paillettes;
+    ('45cb85eb', 'decoration', 'wedding_planner');  -- Voiles Et Paillettes
 
   -- Un préfixe de 8 caractères qui désignerait deux fiches arrête tout avant la moindre modification
   select count(*) into ambigus from _reclassement r where (select count(*) from catalog.vendors v where left(v.id::text, 8) = r.prefixe) > 1;
