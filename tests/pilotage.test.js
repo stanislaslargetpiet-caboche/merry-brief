@@ -95,3 +95,54 @@ describe("dayList", () => {
     expect(dayList(1, Date.parse("2026-11-04T23:30:00Z"))).toEqual(["2026-11-04", "2026-11-05"]);
   });
 });
+
+import { generateKeyPairSync, createVerify } from "node:crypto";
+import { readServiceAccount, signedJwt } from "@/lib/server/pilotage/google";
+import { auditHtml, sampleUrls, sectionOf } from "@/lib/server/pilotage/seo";
+
+describe("compte de service Google", () => {
+  it("lit la clé en JSON ou en base64, refuse le reste", () => {
+    const json = JSON.stringify({ client_email: "a@b.iam.gserviceaccount.com", private_key: "-----BEGIN PRIVATE KEY-----\\nxx\\n-----END PRIVATE KEY-----\\n" });
+    expect(readServiceAccount(json).email).toBe("a@b.iam.gserviceaccount.com");
+    expect(readServiceAccount(Buffer.from(json).toString("base64")).key).toContain("\n");
+    expect(readServiceAccount("")).toBe(null);
+    expect(readServiceAccount("pas du json")).toBe(null);
+    expect(readServiceAccount("{}")).toBe(null);
+  });
+  it("signe un jeton RS256 vérifiable", () => {
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwt = signedJwt({ email: "a@b.iam.gserviceaccount.com", key: privateKey.export({ type: "pkcs8", format: "pem" }) }, 1000);
+    const [h, c, sig] = jwt.split(".");
+    const claims = JSON.parse(Buffer.from(c, "base64url").toString());
+    expect(claims).toMatchObject({ iss: "a@b.iam.gserviceaccount.com", iat: 1000, exp: 4600 });
+    const v = createVerify("RSA-SHA256");
+    v.update(`${h}.${c}`);
+    expect(v.verify(publicKey, Buffer.from(sig, "base64url"))).toBe(true);
+  });
+});
+
+describe("santé du référencement", () => {
+  const page = (extra = "") => `<html><head><title>Lieux de mariage en Provence | Merry</title><meta name="description" content="Des lieux."><link rel="canonical" href="https://www.withmerry.com/mariage/lieux/provence">${extra}</head><body><h1>Lieux</h1></body></html>`;
+  it("ne trouve rien à redire à une page saine", () => {
+    expect(auditHtml(page(), "https://www.withmerry.com/mariage/lieux/provence").problemes).toEqual([]);
+  });
+  it("relève noindex, canonique ailleurs, titre et h1 manquants", () => {
+    expect(auditHtml(page('<meta name="robots" content="noindex, follow">'), "https://www.withmerry.com/mariage/lieux/provence").problemes).toContain("noindex");
+    expect(auditHtml(page(), "https://www.withmerry.com/autre").problemes).toContain("canonique vers une autre adresse");
+    expect(auditHtml("<html><head></head><body></body></html>", "https://x.fr/").problemes).toEqual(["pas de titre", "pas de description", "pas d'adresse canonique", "pas de h1"]);
+  });
+  it("échantillonne sans doublon, stable le même jour et différent le lendemain", () => {
+    const urls = Array.from({ length: 100 }, (_, i) => `u${i}`);
+    const a = sampleUrls(urls, 10, 5);
+    expect(a).toHaveLength(10);
+    expect(new Set(a).size).toBe(10);
+    expect(sampleUrls(urls, 10, 5)).toEqual(a);
+    expect(sampleUrls(urls, 10, 6)).not.toEqual(a);
+    expect(sampleUrls(["a", "b"], 10, 3)).toEqual(["a", "b"]);
+  });
+  it("range les adresses par rubrique", () => {
+    expect(sectionOf("https://www.withmerry.com/mariage/lieux/provence")).toBe("/mariage/lieux");
+    expect(sectionOf("https://www.withmerry.com/partenaires")).toBe("/partenaires");
+    expect(sectionOf("https://www.withmerry.com/")).toBe("/");
+  });
+});
