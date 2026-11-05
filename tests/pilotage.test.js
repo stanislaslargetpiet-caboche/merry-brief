@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignSeries, delta, exceptionTitle, fmtDuration, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
 
 describe("splitSeries", () => {
@@ -84,5 +84,14 @@ describe("allowedEmails", () => {
     expect(set.has("a@b.fr")).toBe(true);
     expect(set.has("c@d.fr")).toBe(true);
     expect(set.has("stanislas.largetpiet@gmail.com")).toBe(false);
+  });
+});
+
+describe("dayList", () => {
+  it("donne 2 × days jours, du plus ancien au plus récent, en heure de Paris", () => {
+    const now = Date.parse("2026-11-05T08:00:00Z");
+    expect(dayList(2, now)).toEqual(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"]);
+    // 23 h 30 UTC le 4 est déjà le 5 à Paris
+    expect(dayList(1, Date.parse("2026-11-04T23:30:00Z"))).toEqual(["2026-11-04", "2026-11-05"]);
   });
 });
