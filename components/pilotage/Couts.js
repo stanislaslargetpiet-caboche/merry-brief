@@ -102,8 +102,8 @@ export default function Couts({ couts, demo, onChange }) {
       ) : (
         <>
           <div className="pl-tiles">
-            <Tile label={`Dépensé en ${MOIS(mois)}`} value={couts.mois} format={eur} sub={`${eur(couts.mois_precedent)} le mois précédent, entier`} />
-            <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} />
+            <Tile label={`Dépensé en ${MOIS(mois)}`} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour (${couts.jours_mois} jours écoulés) · ${eur(couts.mois_precedent)} le mois précédent`} />
+            <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
             <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
           </div>
           <div className="pl-grid">
