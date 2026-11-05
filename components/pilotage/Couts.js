@@ -1,6 +1,6 @@
 "use client";
 
-// Section « Coûts » en tête du pilotage : dépenses du mois, cumul face aux plafonds de l'année 1, par fournisseur,
+// Section « Coûts » en tête du pilotage : dépenses du mois, cumul, par catégorie, par fournisseur,
 // et un petit formulaire pour saisir une dépense. Les données viennent de /api/interne/pilotage (clé `couts`).
 
 import { useState } from "react";
@@ -10,7 +10,6 @@ import { fmtDay } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
 
 const eur = (n) => `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: n < 100 ? 2 : 0 }).format(Number(n) || 0)} €`;
-const pct = (x) => `${Math.round((Number(x) || 0) * 100)} %`;
 const MOIS = (m) => (m ? new Date(`${m}-15T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "Europe/Paris" }) : "");
 
 function today() {
@@ -91,7 +90,7 @@ export default function Couts({ couts, demo, onChange }) {
   };
 
   return (
-    <Section id="couts" title="Coûts" kicker="Registre saisi à la main · plafonds de l'année 1 (9 oct. 2026)">
+    <Section id="couts" title="Coûts" kicker="Registre saisi à la main">
       {!couts?.disponible ? (
         <div className="pl-health-item">
           <Pill tone="neutral">Info</Pill>
@@ -105,26 +104,13 @@ export default function Couts({ couts, demo, onChange }) {
           <div className="pl-tiles">
             <Tile label={`Dépensé en ${MOIS(mois)}`} value={couts.mois} format={eur} sub={`${eur(couts.mois_precedent)} le mois précédent, entier`} />
             <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} />
-            <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${pct(couts.part)} des ${eur(couts.plafond)} de l'année 1`} />
-            <Tile label="Reste sous les plafonds" value={Math.max(0, couts.plafond - couts.total)} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
+            <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
           </div>
           <div className="pl-grid">
-            <Card title="Face aux plafonds de l'année 1" wide note="Plafonds décidés le 9 octobre 2026, hors salaires. Tech via Claude : 5 000 € au plus.">
-              <ul className="pl-budget">
-                {couts.par_categorie.map((c) => (
-                  <li key={c.id}>
-                    <span className="pl-budget-label">{c.label}</span>
-                    <span className="pl-ranked-bar">
-                      <span className={c.part > 1 ? "is-over" : ""} style={{ width: `${Math.min(100, c.part * 100)}%` }} />
-                    </span>
-                    <span className="pl-budget-value">
-                      {eur(c.depense)} <span className="pl-muted">/ {eur(c.plafond)} · {pct(c.part)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <Card title="Par catégorie" note="Cumul depuis la première dépense saisie">
+              <Ranked rows={couts.par_categorie.map((c) => ({ label: c.label, n: c.depense }))} format={eur} empty="Aucune dépense saisie" />
             </Card>
-            <Card title="Par fournisseur" note="Cumul depuis la première dépense saisie">
+            <Card title="Par fournisseur" wide note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_fournisseur} format={eur} empty="Aucune dépense saisie" max={8} />
             </Card>
             <Card title="Dernières dépenses" wide>

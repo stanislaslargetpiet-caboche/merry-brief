@@ -13,11 +13,10 @@ describe("summarizeCouts", () => {
     expect(s.trente_jours).toBe(71.4);
     expect(s.total).toBe(261.4);
   });
-  it("compare chaque catégorie à son plafond", () => {
-    const tech = s.par_categorie.find((c) => c.id === "tech");
-    expect(tech).toMatchObject({ depense: 40, plafond: 5000 });
-    expect(tech.part).toBeCloseTo(0.008);
-    expect(s.plafond).toBe(50000);
+  it("totalise chaque catégorie", () => {
+    expect(s.par_categorie.find((c) => c.id === "tech")).toMatchObject({ depense: 40 });
+    expect(s.par_categorie.find((c) => c.id === "juridique")).toMatchObject({ depense: 190 });
+    expect(s.par_categorie.find((c) => c.id === "divers")).toMatchObject({ depense: 0 });
   });
   it("classe les fournisseurs par montant et les dépenses par date", () => {
     expect(s.par_fournisseur.map((f) => f.label)).toEqual(["Greffe", "Vercel", "Google Cloud"].sort((a, b) => ({ Greffe: 190, Vercel: 40, "Google Cloud": 31.4 }[b] - { Greffe: 190, Vercel: 40, "Google Cloud": 31.4 }[a])));
