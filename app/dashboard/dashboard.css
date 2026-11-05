@@ -9331,6 +9331,13 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+.d-pr-address {
+  font-style: normal;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--d-ink);
+}
+
 /* Demander les devis (7h, 7t) */
 .d-pr-dsec {
   display: flex;

@@ -1431,6 +1431,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
                 </a>
               ) : null}
             </div>
+            {v.address ? <address className="d-pr-address">{v.address}</address> : null}
           </section>
         ) : null}
         <section className="d-pr-fsec">
