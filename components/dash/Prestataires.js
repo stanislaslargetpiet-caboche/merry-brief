@@ -1174,7 +1174,10 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
   // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
   const vf = venueFacts(v, dash.data, { all: true });
   const facts = vf.length ? vf.map((f) => [f.key, f.label, f.value, f.match]) : factsOf(v).map(([icon, k, val]) => [icon, k, val, false]);
-  const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
+  // L'adresse écrite quand on l'a, sinon la position
+  const gmaps = v.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`
+    : v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
   // Une vue de plus sur la fiche du prestataire (« Ce mois-ci » de son espace, supabase/espace-prestataire.sql)
