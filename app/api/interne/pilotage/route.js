@@ -3,14 +3,13 @@
 // Supabase (pilotage_stats, supabase/pilotage.sql), PostHog, Resend, Vercel, Search Console et le site lui-même. Chaque source peut manquer ou
 // échouer sans priver la page des autres : ses erreurs sont rendues telles quelles dans `erreurs`.
 
-import { createClient } from "@supabase/supabase-js";
 import { readSearchConsole } from "@/lib/server/pilotage/google";
 import { readSeoHealth } from "@/lib/server/pilotage/seo";
 import { readPostHog } from "@/lib/server/pilotage/posthog";
 import { readResend } from "@/lib/server/pilotage/resend";
 import { readSupabase } from "@/lib/server/pilotage/supabase";
 import { readVercel } from "@/lib/server/pilotage/vercel";
-import { allowedEmails } from "@/lib/server/pilotage/acces";
+import { requirePilot } from "@/lib/server/pilotage/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,17 +27,9 @@ async function guarded(name, fn, erreurs) {
 }
 
 export async function GET(req) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !service) return Response.json({ error: "indisponible" }, { status: 501 });
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token) return Response.json({ error: "connexion" }, { status: 401 });
-
-  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await admin.auth.getUser(token);
-  const email = String(data?.user?.email || "").toLowerCase();
-  if (error || !email) return Response.json({ error: "connexion" }, { status: 401 });
-  if (!allowedEmails().has(email)) return Response.json({ error: "interdit" }, { status: 403 });
+  const who = await requirePilot(req);
+  if (who.refus) return who.refus;
+  const { admin } = who;
 
   const asked = Number(new URL(req.url).searchParams.get("jours") || 7);
   const days = RANGES.has(asked) ? asked : 7;
