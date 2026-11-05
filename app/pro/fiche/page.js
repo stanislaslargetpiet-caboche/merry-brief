@@ -17,6 +17,12 @@ import Apercu from "@/components/pro/Apercu";
 import { searchAddress } from "@/lib/pro/geo";
 
 const PHOTOS_MIN = 3;
+const DESC_MIN = 300;
+const validMail = (t) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t));
+const validPhone = (t) => {
+  const n = String(t).replace(/\D/g, "");
+  return n.length >= 9 && n.length <= 15;
+};
 
 const CATERER = [
   { value: "libre", label: "Libre" },
@@ -86,8 +92,7 @@ function MaFiche() {
             Description
             <Req />
           </label>
-          <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
-          <Missing when={isEmpty(v.description)} />
+          <TextArea id="desc" rows={4} min={DESC_MIN} value={v.description || ""} onSave={(t) => save({ description: t })} />
         </div>
         <div className="p-grid2">
           <TextField id="site" label="Site internet" value={v.website} onSave={(t) => save({ website: t || null })} />
@@ -98,6 +103,10 @@ function MaFiche() {
               if (address) pro.calcAccess();
             }}
           />
+        </div>
+        <div className="p-grid2">
+          <TextField required id="tel" type="tel" label="Téléphone" value={v.phone} check={validPhone} checkText="Vérifiez ce numéro de téléphone." onSave={(t) => save({ phone: t || null })} />
+          <TextField required id="mail" type="email" label="Mail" value={v.email} check={validMail} checkText="Vérifiez cette adresse mail." onSave={(t) => save({ email: t || null })} />
         </div>
         <TextField id="brochure" label="Lien vers la brochure (PDF)" value={det.brochure_url} onSave={(t) => save({ brochure_url: t || null })} />
       </section>
@@ -332,9 +341,18 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
   );
 }
 
-function TextArea({ id, value, onSave, rows }) {
+// `min` : longueur minimale signalée sous le champ, décomptée pendant la saisie (le texte reste enregistré)
+function TextArea({ id, value, onSave, rows, min }) {
   const [draft, setDraft] = useDraft(value);
-  return <textarea id={id} rows={rows} className="p-textarea" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />;
+  const left = min ? min - draft.trim().length : 0;
+  return (
+    <>
+      <textarea id={id} rows={rows} className="p-textarea" aria-required={min ? true : undefined} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />
+      <Missing when={left > 0}>
+        {min} caractères au minimum : il en manque {left}.
+      </Missing>
+    </>
+  );
 }
 
 // Adresse : recherche en direct (Géoplateforme de l'IGN, gratuite et sans clé — lib/pro/geo.js), à
@@ -410,15 +428,17 @@ function AddressField({ value, onValidated }) {
   );
 }
 
-function TextField({ id, label, value, onSave, required }) {
+// `check` : format attendu d'une valeur déjà saisie (téléphone, mail), signalé sans bloquer
+function TextField({ id, label, value, onSave, required, type, check, checkText }) {
   return (
     <div className="p-field">
       <label htmlFor={id}>
         {label}
         {required ? <Req /> : null}
       </label>
-      <TextInput id={id} value={value} onSave={onSave} required={required} />
+      <TextInput id={id} type={type} value={value} onSave={onSave} required={required} />
       <Missing when={required && isEmpty(value)} />
+      <Missing when={!isEmpty(value) && check && !check(value)}>{checkText}</Missing>
     </div>
   );
 }
