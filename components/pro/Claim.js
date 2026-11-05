@@ -53,6 +53,7 @@ const CATEGORIES = [
   ["robe", "Robes et costumes"],
   ["transport", "Transport"],
   ["officiant", "Officiant de cérémonie"],
+  ["autre", "Autre"],
 ];
 const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "", password: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
