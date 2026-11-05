@@ -3,6 +3,7 @@
 
 import { PUBLIC_URL, hrefOf, num } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
+import ScrollNav from "./ScrollNav";
 
 // Gardés ici pour les appelants existants ; le calcul vit dans lib/seo/model.js
 export { pageDescription, pageModel, pageTitle };
@@ -149,13 +150,13 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
         </div>
 
         {model.tabs.length > 1 && (
-          <nav aria-label="Métiers" className="sm-tabs">
+          <ScrollNav aria-label="Métiers" className="sm-tabs">
             {model.tabs.map((t) => (
               <a key={t.href} href={t.href} className={t.on ? "is-on" : undefined} aria-current={t.on ? "page" : undefined}>
                 {t.label}
               </a>
             ))}
-          </nav>
+          </ScrollNav>
         )}
 
         <section aria-label="Chiffres clés" className="sm-figs">
@@ -168,13 +169,13 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
         </section>
 
         {model.pills.length > 1 && (
-          <nav aria-label={zone.kind === "france" ? "Régions" : "Départements"} className="sm-pills">
+          <ScrollNav aria-label={zone.kind === "france" ? "Régions" : "Départements"} className="sm-pills">
             {model.pills.map((p) => (
               <a key={p.href} href={p.href} className={p.on ? "sm-pill is-on" : "sm-pill"} aria-current={p.on ? "page" : undefined}>
                 {p.label}
               </a>
             ))}
-          </nav>
+          </ScrollNav>
         )}
 
         {vendors.length > 0 && (
