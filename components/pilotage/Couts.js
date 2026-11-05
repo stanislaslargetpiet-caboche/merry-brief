@@ -6,10 +6,10 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
-import { fmtDay } from "@/lib/server/pilotage/shape";
+import { fmtDay, fmtEur } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
 
-const eur = (n) => `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: n < 100 ? 2 : 0 }).format(Number(n) || 0)} €`;
+const eur = fmtEur;
 const MOIS = (m) => (m ? new Date(`${m}-15T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "Europe/Paris" }) : "");
 
 function today() {
