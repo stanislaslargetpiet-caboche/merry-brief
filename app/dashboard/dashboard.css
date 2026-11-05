@@ -10096,6 +10096,12 @@ body.d-noscroll {
   font-weight: 600;
 }
 
+.d-pr-box-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .d-pr-box-title {
   padding: 14px 0 4px;
 }
@@ -10233,9 +10239,8 @@ body.d-noscroll {
 }
 
 .d-pr-status.is-todo {
-  background: #ffffff;
-  color: var(--pr-grey-ink);
-  border: 1px solid var(--d-border);
+  background: var(--d-orange-bg);
+  color: var(--d-orange-ink);
 }
 
 .d-pr-empty {
@@ -11084,6 +11089,21 @@ body.d-noscroll {
 
   .d-pr-line-meta {
     font-size: 12.5px;
+  }
+
+  /* Mes prestataires : le nom, plus petit et sur deux lignes au plus, sans la ville en gris dessous */
+  .d-pr-box.is-mes .d-pr-line-meta {
+    display: none;
+  }
+
+  .d-pr-box.is-mes .d-pr-line-open.is-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.3;
   }
 
   .d-pr-line-text {

@@ -11,7 +11,7 @@ import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { useDash } from "@/lib/dash/store";
 import { CATEGORIES } from "@/lib/dash/catalog";
 import { pickStatus, picksBy } from "@/lib/dash/picks";
-import { Icon } from "@/components/dash/icons";
+import { DuoIcon, Icon } from "@/components/dash/icons";
 import { DevisDialog, FichePanel, Heart, PrHead, RowActions, StatusChip, Thumb, usePicks, vendorFromPick } from "@/components/dash/Prestataires";
 
 export default function Mes() {
@@ -58,7 +58,10 @@ export default function Mes() {
           return (
             <section key={c.key} className="d-pr-box is-mes">
               <div className="d-pr-box-head">
-                <h3>{c.group}</h3>
+                <h3>
+                  <DuoIcon name={GROUP_ICON[c.key] || "autre"} size={22} />
+                  {c.group}
+                </h3>
                 {quotes > 1 ? (
                   <Link href={`/dashboard/prestataires/comparer?cat=${c.key}`} className="d-pr-arrowlink is-13 d-desk-only">
                     Comparer les {quotes} devis
@@ -116,6 +119,9 @@ export default function Mes() {
     </>
   );
 }
+
+// Icône de chaque métier dans l'en-tête de son bloc (bibliothèque d'icônes du canvas)
+const GROUP_ICON = { lieu: "lieu", traiteur: "traiteur", dj: "musique", fleuriste: "fleurs", photographe: "photo", autre: "autre" };
 
 function MesRow({ p, status, onCheck, onRemove, onFiche }) {
   const v = p.data || {};
