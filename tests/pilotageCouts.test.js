@@ -13,6 +13,11 @@ describe("summarizeCouts", () => {
     expect(s.trente_jours).toBe(71.4);
     expect(s.total).toBe(261.4);
   });
+  it("donne l'équivalent par jour, sur les jours écoulés du mois et sur 30 jours", () => {
+    expect(s.jours_mois).toBe(5);
+    expect(s.mois_par_jour).toBe(10.28);
+    expect(s.trente_par_jour).toBe(2.38);
+  });
   it("totalise chaque catégorie", () => {
     expect(s.par_categorie.find((c) => c.id === "tech")).toMatchObject({ depense: 40 });
     expect(s.par_categorie.find((c) => c.id === "juridique")).toMatchObject({ depense: 190 });
