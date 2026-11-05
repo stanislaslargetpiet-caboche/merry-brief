@@ -7355,7 +7355,10 @@ body.d-noscroll {
 .d-pr-view {
   flex: none;
   display: inline-flex;
-  gap: 6px;
+  border: 1px solid var(--d-border);
+  border-radius: 999px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .d-pr-view button {
@@ -7365,8 +7368,8 @@ body.d-noscroll {
   min-height: 38px;
   padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid var(--d-border);
-  background: #ffffff;
+  border: 0;
+  background: transparent;
   color: var(--d-ink);
   font-size: 13px;
   font-weight: 500;
@@ -7374,7 +7377,6 @@ body.d-noscroll {
 }
 
 .d-pr-view button.is-on {
-  border-color: var(--d-ink);
   background: var(--d-ink);
   color: #ffffff;
   font-weight: 600;
