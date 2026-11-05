@@ -182,3 +182,17 @@
 @media (prefers-reduced-motion: reduce) {
   .pl-pill-link, .pl-chip { transition: none; }
 }
+
+/* Coûts : plafonds de l'année 1 et saisie d'une dépense */
+.pl-budget { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pl-budget li { display: grid; grid-template-columns: 110px minmax(80px, 1fr) minmax(0, auto); gap: 12px; align-items: center; font-size: 14px; }
+.pl-budget-label { font-weight: 600; }
+.pl-budget-value { font-variant-numeric: tabular-nums; text-align: right; }
+.pl-budget .pl-ranked-bar > span.is-over { background: var(--error-text); }
+@media (max-width: 640px) { .pl-budget li { grid-template-columns: 1fr; gap: 4px; } .pl-budget-value { text-align: left; } }
+.pl-form { display: grid; gap: 10px; }
+.pl-form label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.pl-form input, .pl-form select { font: inherit; font-size: 14px; color: var(--ink); min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); min-width: 0; }
+.pl-form .pl-btn { justify-self: start; }
+.pl-form-err { font-size: 13px; color: var(--error-text); }
+.pl-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--ink-muted); text-decoration: underline; cursor: pointer; }

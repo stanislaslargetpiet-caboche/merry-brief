@@ -5,6 +5,7 @@
 // que les mettre en forme. Chaque chiffre de période est comparé à la période précédente de même longueur.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Couts from "@/components/pilotage/Couts";
 import PilotNav from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
@@ -22,6 +23,7 @@ function readDemoFlag() {
 }
 
 const SECTIONS = [
+  { id: "couts", label: "Coûts" },
   { id: "sante", label: "Santé" },
   { id: "site", label: "Site" },
   { id: "referencement", label: "Référencement" },
@@ -149,13 +151,13 @@ export default function PilotagePage() {
         <div className="pl-hero">
           <h1>Pilotage</h1>
           <p className="pl-lede">
-            Site, appli, prestataires, mails, référencement et bugs de Merry, relus à l'ouverture.
+            Coûts, site, appli, prestataires, mails, référencement et bugs de Merry, relus à l'ouverture.
             {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
           </p>
         </div>
         {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
         {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
-        {data ? <Board data={data} jours={jours} /> : null}
+        {data ? <Board data={data} jours={jours} reload={() => load(jours, true)} /> : null}
       </div>
     </div>
   );
@@ -215,7 +217,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours }) {
+function Board({ data, jours, reload }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -266,6 +268,8 @@ function Board({ data, jours }) {
 
   return (
     <>
+      <Couts couts={data.couts} demo={demo} onChange={reload} />
+
       <Section id="sante" title="Santé" kicker="À regarder d'abord" right={demo ? null : <SendBrief />}>
         <div className="pl-health">
           {sante.map((s, i) => (
