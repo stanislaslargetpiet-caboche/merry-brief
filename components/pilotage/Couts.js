@@ -107,13 +107,13 @@ export default function Couts({ couts, demo, onChange }) {
             <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
           </div>
           <div className="pl-grid">
-            <Card title="Par catégorie" note="Cumul depuis la première dépense saisie">
+            <Card fold="open" title="Par catégorie" note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_categorie.map((c) => ({ label: c.label, n: c.depense }))} format={eur} empty="Aucune dépense saisie" />
             </Card>
-            <Card title="Par fournisseur" wide note="Cumul depuis la première dépense saisie">
+            <Card fold="open" title="Par fournisseur" wide note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_fournisseur} format={eur} empty="Aucune dépense saisie" max={8} />
             </Card>
-            <Card title="Dernières dépenses" wide>
+            <Card fold="open" title="Dernières dépenses" wide>
               <Table
                 empty="Aucune dépense saisie : ajoute la première ci-dessous"
                 rows={couts.recentes}
@@ -131,7 +131,7 @@ export default function Couts({ couts, demo, onChange }) {
                 ]}
               />
             </Card>
-            <Card title="Ajouter une dépense" note="En euros : convertis à la main une facture en dollars. Les coûts par appel de Google Places se lisent dans Google Cloud Console, Facturation > Rapports.">
+            <Card fold="closed" title="Ajouter une dépense" note="En euros : convertis à la main une facture en dollars. Les coûts par appel de Google Places se lisent dans Google Cloud Console, Facturation > Rapports.">
               {demo ? <div className="pl-empty">Indisponible dans le jeu d'exemple</div> : <Ajout onDone={onChange} />}
             </Card>
           </div>

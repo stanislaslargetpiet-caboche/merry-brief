@@ -54,7 +54,9 @@ export default function PilotNav({ sections, offsetRef, ready }) {
     if (!target) return;
     event.preventDefault();
     setActive(id);
-    target.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+    // Une section repliée s'ouvre d'abord ; le défilement attend que la page ait repris sa hauteur
+    window.dispatchEvent(new CustomEvent("pilotage:open", { detail: id }));
+    requestAnimationFrame(() => target.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }));
     try {
       window.history.replaceState(null, "", `#${id}`);
     } catch {
