@@ -16,7 +16,7 @@ import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexib
 import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
-import { Icon } from "./icons";
+import { DuoIcon, Icon } from "./icons";
 import { BusyDots, trapTab, useIsPhone } from "./ui";
 
 export { useIsPhone };
@@ -313,16 +313,17 @@ export function CategoryTabs({ value, onChange }) {
   );
 }
 
-export function ViewToggle({ view, onChange }) {
+// compact (téléphone) : les deux icônes seules
+export function ViewToggle({ view, onChange, compact = false }) {
   return (
-    <div role="group" aria-label="Affichage" className="d-pr-view">
-      <button type="button" aria-pressed={view === "liste"} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
-        <Icon name="list" size={15} sw={2} />
-        Liste
+    <div role="group" aria-label="Affichage" className={`d-pr-view${compact ? " is-compact" : ""}`}>
+      <button type="button" aria-pressed={view === "liste"} aria-label={compact ? "Liste" : undefined} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
+        <DuoIcon name="liste" size={18} stroke={view === "liste" ? "#ffffff" : undefined} />
+        {compact ? null : "Liste"}
       </button>
-      <button type="button" aria-pressed={view === "carte"} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
-        <Icon name="map" size={15} sw={2} />
-        Carte
+      <button type="button" aria-pressed={view === "carte"} aria-label={compact ? "Carte" : undefined} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
+        <DuoIcon name="map" size={18} stroke={view === "carte" ? "#ffffff" : undefined} />
+        {compact ? null : "Carte"}
       </button>
     </div>
   );
@@ -357,7 +358,7 @@ export function Specs({ v, venueName }) {
     <ul className="d-pr-specs">
       {rows.map(([icon, text]) => (
         <li key={text}>
-          <Icon name={icon} size={16} sw={1.8} />
+          <DuoIcon name={icon} size={18} />
           {text}
         </li>
       ))}
@@ -475,7 +476,7 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
             <Price v={v} />
             {onMap && mapPoint(v) ? (
               <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
-                <Icon name="map" size={14} sw={2} />
+                <DuoIcon name="map" size={16} />
                 Carte
               </button>
             ) : null}
@@ -1055,7 +1056,7 @@ export function MiniMap({ v, height = 220, width = 600 }) {
         {({ toScreen }) => (
           <span className="d-pr-pin is-active is-static" style={toScreen(p)}>
             <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: (v.photos || []).find(Boolean) ? `url("${(v.photos || []).find(Boolean)}")` : undefined }} />
-            {v.price ? euros(v.price) : v.name}
+            <span className="d-pr-pin-label">{v.price ? euros(v.price) : v.name}</span>
           </span>
         )}
       </MapCanvas>
@@ -1173,7 +1174,10 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
   // Lieux : les faits avec leur icône, en lime quand ils répondent à un critère du couple
   const vf = venueFacts(v, dash.data, { all: true });
   const facts = vf.length ? vf.map((f) => [f.key, f.label, f.value, f.match]) : factsOf(v).map(([icon, k, val]) => [icon, k, val, false]);
-  const gmaps = v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
+  // L'adresse écrite quand on l'a, sinon la position
+  const gmaps = v.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`
+    : v.lat !== undefined && v.lat !== null && v.lng !== undefined && v.lng !== null ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null;
   const guests = guestsLabel(dash.data);
   const guestsN = Number(String(guests).match(/\d+/)?.[0] || 0);
   // Une vue de plus sur la fiche du prestataire (« Ce mois-ci » de son espace, supabase/espace-prestataire.sql)
@@ -1419,7 +1423,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
             <div className="d-pr-maplinks">
               {onMap ? (
                 <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
-                  <Icon name="map" size={14} sw={2} />
+                  <DuoIcon name="map" size={16} />
                   Voir sur la carte
                 </button>
               ) : null}
@@ -1430,6 +1434,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
                 </a>
               ) : null}
             </div>
+            {v.address ? <address className="d-pr-address">{v.address}</address> : null}
           </section>
         ) : null}
         <section className="d-pr-fsec">
