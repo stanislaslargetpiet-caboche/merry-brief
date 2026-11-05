@@ -169,3 +169,37 @@ describe("clé du compte de service, telle qu'on la colle", () => {
     expect(parseServiceAccount('{"client_email":"a@b","private_key":"xx"}').erreur).toMatch(/BEGIN PRIVATE KEY/);
   });
 });
+
+import { isTimeout, readSupabase } from "@/lib/server/pilotage/supabase";
+
+describe("lecture Supabase du pilotage", () => {
+  const timeout = { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } };
+  const ok = { data: { totaux: { comptes: 27 } }, error: null };
+  const fake = (...answers) => {
+    const calls = [];
+    return { calls, rpc: async (fn, args) => (calls.push([fn, args]), answers[Math.min(calls.length, answers.length) - 1]) };
+  };
+
+  it("reconnaît un dépassement de délai", () => {
+    expect(isTimeout(timeout.error)).toBe(true);
+    expect(isTimeout({ code: "XX", message: "canceling statement due to statement timeout" })).toBe(true);
+    expect(isTimeout({ code: "42883", message: "function does not exist" })).toBe(false);
+    expect(isTimeout(null)).toBe(false);
+  });
+  it("réessaie après un dépassement et rend la lecture qui aboutit", async () => {
+    const admin = fake(timeout, timeout, ok);
+    expect(await readSupabase(admin, 7, { pause: 0 })).toEqual(ok.data);
+    expect(admin.calls).toHaveLength(3);
+    expect(admin.calls[0]).toEqual(["pilotage_stats", { days: 7 }]);
+  });
+  it("renonce après trois essais en rendant l'erreur de la base", async () => {
+    const admin = fake(timeout);
+    await expect(readSupabase(admin, 7, { pause: 0 })).rejects.toThrow(/statement timeout/);
+    expect(admin.calls).toHaveLength(3);
+  });
+  it("ne réessaie pas une autre erreur", async () => {
+    const admin = fake({ data: null, error: { code: "42501", message: "permission denied" } });
+    await expect(readSupabase(admin, 7, { pause: 0 })).rejects.toThrow(/permission denied/);
+    expect(admin.calls).toHaveLength(1);
+  });
+});

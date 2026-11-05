@@ -7,7 +7,7 @@ import { readSearchConsole } from "@/lib/server/pilotage/google";
 import { readSeoHealth } from "@/lib/server/pilotage/seo";
 import { readPostHog } from "@/lib/server/pilotage/posthog";
 import { readResend } from "@/lib/server/pilotage/resend";
-import { readSupabase } from "@/lib/server/pilotage/supabase";
+import { readSupabase, readSupabaseCached } from "@/lib/server/pilotage/supabase";
 import { readVercel } from "@/lib/server/pilotage/vercel";
 import { requirePilot } from "@/lib/server/pilotage/auth";
 
@@ -33,13 +33,15 @@ export async function GET(req) {
 
   const asked = Number(new URL(req.url).searchParams.get("jours") || 7);
   const days = RANGES.has(asked) ? asked : 7;
+  // « Actualiser » demande une lecture neuve (?frais=1) ; sinon Supabase est lu par le cache de cinq minutes
+  const fresh = new URL(req.url).searchParams.get("frais") === "1";
   const erreurs = [];
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 45000);
 
   try {
     const [supabase, posthog, resend, vercel, google, seo] = await Promise.all([
-      guarded("supabase", () => readSupabase(admin, days), erreurs),
+      guarded("supabase", () => (fresh ? readSupabase(admin, days) : readSupabaseCached(days)), erreurs),
       process.env.POSTHOG_PERSONAL_API_KEY
         ? guarded("posthog", () => readPostHog(days, { signal: controller.signal }), erreurs)
         : { disponible: false, raison: "POSTHOG_PERSONAL_API_KEY manquante" },

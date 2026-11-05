@@ -53,11 +53,11 @@ export default function PilotagePage() {
   // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
   // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
   const load = useCallback(
-    async (j) => {
+    async (j, frais = false) => {
       if (auth.status !== "ok") return;
       setBusy(true);
       setError(null);
-      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
+      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}${frais ? "&frais=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
       try {
         const { data: sess } = await supabase.auth.getSession();
         let res = await call(sess?.session?.access_token || auth.token);
@@ -114,7 +114,7 @@ export default function PilotagePage() {
                 </button>
               ))}
             </div>
-            <button type="button" className="pl-btn" onClick={() => load(jours)} disabled={busy || auth.status === "demo"}>
+            <button type="button" className="pl-btn" onClick={() => load(jours, true)} disabled={busy || auth.status === "demo"}>
               {busy ? "Chargement…" : "Actualiser"}
             </button>
           </div>
