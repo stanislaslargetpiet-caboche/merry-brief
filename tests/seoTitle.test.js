@@ -11,11 +11,15 @@ describe("seoTitle", () => {
     expect(seoTitle("Fleuristes de mariage dans la Côte-d'Or")).toBe("Fleuristes de mariage dans la Côte-d'Or : tarifs | Merry");
     expect(seoTitle("Traiteurs de mariage dans les Alpes-de-Haute-Provence")).toBe("Traiteurs de mariage dans les Alpes-de-Haute-Provence | Merry");
   });
+  it("ne promet pas de tarifs pour un métier sans prix, et lâche la marque en dernier recours", () => {
+    expect(seoTitle("Wedding planners en Bretagne", { priced: false })).toBe("Wedding planners en Bretagne : sélection et devis | Merry");
+    expect(seoTitle("Robes de mariée et costumes dans les Alpes-de-Haute-Provence", { priced: false })).toBe("Robes de mariée et costumes dans les Alpes-de-Haute-Provence");
+  });
   it("tient dans la limite pour tous les métiers et toutes les zones", () => {
     const zones = [FRANCE, ...REGIONS.map((r) => regionZone(r.name)), ...DEPARTMENTS.map((d) => zoneOf(d.slug))];
     const trop = [];
     for (const trade of TRADES) for (const zone of zones) {
-      const t = seoTitle(`${trade.title} ${zone.in}`);
+      const t = seoTitle(`${trade.title} ${zone.in}`, { priced: trade.priced !== false });
       if (t.length > TITLE_MAX) trop.push(`${t.length} ${t}`);
     }
     expect(trop).toEqual([]);
