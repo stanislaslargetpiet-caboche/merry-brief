@@ -15,6 +15,9 @@ import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 import { plusFor } from "@/lib/vendorPlus";
+import { searchAddress } from "@/lib/pro/geo";
+
+const PHOTOS_MIN = 3;
 
 const CATERER = [
   { value: "libre", label: "Libre" },
@@ -79,13 +82,11 @@ function MaFiche() {
         </div>
         <div className="p-grid2">
           <TextField id="site" label="Site internet" value={v.website} onSave={(t) => save({ website: t || null })} />
-          <TextField
-            id="adresse"
-            label="Adresse"
+          <AddressField
             value={v.address}
-            onSave={async (t) => {
-              await save({ address: t || null });
-              if (t) pro.calcAccess();
+            onValidated={async ({ address, postal_code, city }) => {
+              await save({ address, ...(postal_code ? { postal_code } : {}), ...(city ? { city } : {}) });
+              if (address) pro.calcAccess();
             }}
           />
         </div>
@@ -175,6 +176,7 @@ function PhotosSection() {
   return (
     <section className="p-sec" id="photos">
       <h2 className="p-sec-title">Photos</h2>
+      {photos.length < PHOTOS_MIN ? <p className="p-hint is-warn">Ajoutez au moins {PHOTOS_MIN} photos pour publier votre fiche.</p> : null}
       <ul className="p-photos">
         {photos.map((ph, i) => {
           const label = i === 0 ? "la photo de couverture" : `la photo ${i + 1}`;
@@ -204,7 +206,14 @@ function PhotosSection() {
               >
                 <ProIcon name="grip" size={16} fill="#1c1c1a" stroke="none" />
               </button>
-              <button type="button" className="p-photo-btn is-remove" aria-label={`Retirer ${label}`} onClick={() => pro.removePhoto(ph.path)}>
+              <button
+                type="button"
+                className="p-photo-btn is-remove"
+                aria-label={`Retirer ${label}`}
+                disabled={photos.length <= PHOTOS_MIN}
+                title={photos.length <= PHOTOS_MIN ? `Au moins ${PHOTOS_MIN} photos sont requises` : undefined}
+                onClick={() => pro.removePhoto(ph.path)}
+              >
                 <ProIcon name="trash" size={15} sw={2} />
               </button>
             </li>
@@ -407,6 +416,75 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
 function TextArea({ id, value, onSave, rows }) {
   const [draft, setDraft] = useDraft(value);
   return <textarea id={id} rows={rows} className="p-textarea" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />;
+}
+
+// Adresse : recherche en direct (Géoplateforme de l'IGN, gratuite et sans clé — lib/pro/geo.js), à
+// valider dans la liste plutôt que tapée au hasard. Sans suggestion choisie, le texte tapé reste
+// enregistré tel quel à la perte du focus (adresse déjà connue, Google My Business absent du catalogue…).
+function AddressField({ value, onValidated }) {
+  const [draft, setDraft] = useDraft(value);
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [validated, setValidated] = useState(!!value);
+
+  useEffect(() => {
+    if (draft.trim().length < 4) {
+      setResults([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      searchAddress(draft, { signal: ctrl.signal })
+        .then(setResults)
+        .catch(() => {});
+    }, 300);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [draft]);
+
+  const pick = (r) => {
+    setDraft(r.address);
+    setValidated(true);
+    setOpen(false);
+    setResults([]);
+    onValidated({ address: r.address, postal_code: r.postal_code, city: r.city });
+  };
+
+  return (
+    <div className="p-field p-address">
+      <label htmlFor="adresse">Adresse</label>
+      <input
+        id="adresse"
+        className="p-input"
+        autoComplete="off"
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setValidated(false);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 150);
+          if (draft.trim() !== (value || "").trim()) onValidated({ address: draft.trim() || null });
+        }}
+      />
+      {open && results.length ? (
+        <ul className="p-address-list" role="listbox" aria-label="Suggestions d’adresse">
+          {results.map((r) => (
+            <li key={r.label}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(r)}>
+                {r.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!validated && draft.trim() ? <p className="p-hint">Choisissez une suggestion pour vérifier l’adresse.</p> : null}
+    </div>
+  );
 }
 
 function TextField({ id, label, value, onSave }) {

@@ -826,7 +826,7 @@ export default function Claim() {
           { label: "Adresse placée sur la carte", detail: [form.address.trim(), form.postal_code.trim(), form.city.trim()].filter(Boolean).join(" ") },
           { label: "Tableau de bord prêt", detail: "100 crédits offerts" },
         ]}
-        line="On prépare votre espace…"
+        lines={["On enregistre votre fiche…", "On la place sur la carte…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}
       />
     );
@@ -840,7 +840,7 @@ export default function Claim() {
           found.length ? { label: "Informations publiques récupérées", detail: found.join(" · ") } : { label: "Fiche rattachée à votre compte", detail: picked.category || "" },
           { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "100 crédits offerts" },
         ]}
-        line="On prépare votre espace…"
+        lines={["On retrouve votre fiche…", "On récupère ses informations…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}
       />
     );

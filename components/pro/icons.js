@@ -46,6 +46,17 @@ const PATHS = {
   shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/><path d="m8.8 12 2.2 2.2 4.4-4.6"/>',
 };
 
+// Icônes du design system v2.2 (4 nov. 2026, Design System « Merry », tokens.json → icons) : remplissage
+// citron plein + trait encre, embarqués dans le tracé (pas de fill/stroke passés par ProIcon). Reprendre
+// ces tracés tels quels plutôt que redessiner — voir https://claude.ai/artifact/UgqTTob2YDYeQFtfFNhQ5n.
+const DS_PATHS = {
+  messagerie: '<path d="M4 5h16v11H8.5L4 20z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
+  confirmer: '<circle cx="12" cy="12" r="9" fill="#dff3e1" stroke="#1f6b30" stroke-width="2"/><path d="M8 12l3 3 5-6" fill="none" stroke="#1f6b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  // Hors bibliothèque (18 icônes, pas de concept « à traiter ») : même structure que Confirmer — cercle
+  // + tracé encre — avec la couleur sémantique d'attente plutôt que l'accent, pour rester cohérent.
+  a_traiter: '<circle cx="12" cy="12" r="9" fill="#ffe6cc" stroke="#8a4b0f" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="#8a4b0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+
 export function ProIcon({ name, size = 18, stroke = "#1c1c1a", sw = 1.8, fill = "none", className, style }) {
   return (
     <svg
@@ -60,7 +71,7 @@ export function ProIcon({ name, size = 18, stroke = "#1c1c1a", sw = 1.8, fill = 
       aria-hidden="true"
       className={className}
       style={style}
-      dangerouslySetInnerHTML={{ __html: PATHS[name] || PATHS.plus }}
+      dangerouslySetInnerHTML={{ __html: DS_PATHS[name] || PATHS[name] || PATHS.plus }}
     />
   );
 }

@@ -521,6 +521,17 @@
   color: var(--d-muted);
 }
 
+.p-acc-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--d-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .p-acc-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2129,6 +2140,41 @@
   max-width: 280px;
 }
 
+.p-address {
+  position: relative;
+}
+
+.p-address-list {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #ffffff;
+  border: 1.5px solid var(--d-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(28, 28, 26, 0.12);
+}
+
+.p-address-list li button {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  font-size: 14.5px;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.p-address-list li button:hover {
+  background: var(--d-ground, #f5f4f0);
+}
+
 .p-field > label,
 .p-field > span {
   font-size: 13px;
@@ -2175,6 +2221,10 @@ select.p-input {
   margin: 0;
   font-size: 13px;
   color: var(--d-muted);
+}
+
+.p-hint.is-warn {
+  color: var(--danger);
 }
 
 .p-start {
@@ -5197,151 +5247,9 @@ button.p-dem-item {
   }
 }
 
-/* ---------- Préparation (onboarding et revendication, entre le code validé et l'arrivée) ---------- */
-
-.p-prep {
-  width: 100%;
-  min-height: 100dvh;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-  color: var(--d-ink, #1c1c1a);
-  position: relative;
-  overflow: hidden;
-  /* Rendu hors de .d-root : ces variables n'existent pas encore */
-  --d-ink: #1c1c1a;
-  --d-lime: #fff700;
-}
-
-.p-prep-head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  padding: 28px 48px;
-}
-
-.p-prep-stage {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 0 16px 48px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.p-prep2-halo {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 120px;
-  height: 120px;
-  margin: -60px 0 0 -60px;
-  border-radius: 999px;
-  background: var(--d-lime);
-  opacity: 0.25;
-  animation: p-prep2-halo 3s ease forwards;
-}
-
-@keyframes p-prep2-halo {
-  33% {
-    transform: scale(1.8);
-  }
-  66% {
-    transform: scale(2.6);
-  }
-  100% {
-    transform: scale(3.4);
-    opacity: 0.3;
-  }
-}
-
-.p-prep2-steps {
-  position: relative;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 420px;
-  max-width: 100%;
-  text-align: left;
-}
-
-.p-prep2-step {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  opacity: 0.35;
-  animation: p-prep2-step 0.4s ease forwards;
-  animation-delay: var(--at);
-}
-
-@keyframes p-prep2-step {
-  to {
-    opacity: 1;
-  }
-}
-
-.p-prep2-check {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1.5px solid var(--d-ink);
-  background: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transform: scale(0.8);
-  animation: p-prep2-check 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
-  animation-delay: var(--at);
-}
-
-@keyframes p-prep2-check {
-  to {
-    transform: none;
-    background: var(--d-lime);
-  }
-}
-
-.p-prep2-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.p-prep2-label {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.p-prep2-detail {
-  font-size: 13px;
-  color: #6b6a63;
-}
-
-.p-prep2-line {
-  position: relative;
-  margin: 10px 0 0;
-  font-size: 20px;
-  text-align: center;
-}
-
-@media (max-width: 700px) {
-  .p-prep2-line {
-    font-size: 17px;
-  }
-}
+/* Préparation (onboarding et revendication, entre le code validé et l'arrivée) : mêmes animations que
+   l'onboarding couple (.ob-prep-* dans app/onboarding.css, importé par components/pro/Preparation.js).
+   Rien à styler ici. */
 
 .p-ledger {
   width: 100%;

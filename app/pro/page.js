@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
 import { completeness, creditsRoi, guestsText, isPastClient, responseStats, since, weddingWhen } from "@/lib/pro/format";
-import { CreditsCoins } from "@/components/pro/icons";
+import { CreditsCoins, ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
 
 export default function ProHome() {
@@ -38,14 +38,23 @@ export default function ProHome() {
 
       <div className="p-acc-stats">
         <div>
+          <span className="p-acc-icon">
+            <ProIcon name="a_traiter" size={20} />
+          </span>
           <b className={todo.length ? "is-amber" : ""}>{todo.length}</b>
           <span>À traiter</span>
         </div>
         <div>
+          <span className="p-acc-icon">
+            <ProIcon name="messagerie" size={20} />
+          </span>
           <b>{answered.length}</b>
           <span>Répondues</span>
         </div>
         <div>
+          <span className="p-acc-icon">
+            <ProIcon name="confirmer" size={20} />
+          </span>
           <b>{booked.length}</b>
           <span>Réservées</span>
         </div>
