@@ -38,6 +38,7 @@ import { Pills } from "./ui";
 import { ProIcon } from "./icons";
 import Preparation from "./Preparation";
 import Welcome from "./Welcome";
+import { PendingScreen } from "./Pending";
 
 const CONTACT = "bonjour@withmerry.com";
 
@@ -475,13 +476,11 @@ export default function Claim() {
       return;
     }
     trackEvent("pro_completed", { flow: "claim" });
-    // La session est posée tout de suite : un rechargement mène au dashboard au lieu de perdre la demande
-    pro.setHold(true);
+    // La session est posée, puis l'espace se recharge : la fiche est en attente, il affiche l'écran d'attente
+    // (Pending.js) et non le dashboard
     if (res.session && supabase) await supabase.auth.setSession(res.session);
-    if (res.vendorId) pro.rememberVendor(res.vendorId);
-    await loadFill(res.vendorId || picked.id);
-    setBusy(false);
-    setScreen("demande");
+    clearSaved();
+    pro.reload();
   }
 
   function startCreate() {
@@ -930,18 +929,20 @@ export default function Claim() {
         steps={[
           { label: "Fiche retrouvée", detail: [picked.name, picked.category, picked.city].filter(Boolean).join(" · ") },
           found.length ? { label: "Informations publiques récupérées", detail: found.join(" · ") } : { label: "Fiche rattachée à votre compte", detail: picked.category || "" },
-          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "Crédits offerts après vérification" },
+          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "100 crédits offerts" },
         ]}
         lines={["On retrouve votre fiche…", "On récupère ses informations…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}
       />
     );
   }
+  // Démo : la demande envoyée mène à l'écran d'attente, comme en vrai (Pending.js)
+  if (screen === "demande") return <PendingScreen name={picked?.name} city={picked?.city} onSignOut={() => goTo("/pro?revendiquer=1")} />;
   if (welcome === "create") {
     return <Welcome name={form.name.trim()} fill={fill} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
   }
   if (welcome === "claim") {
-    return <Welcome name={picked.name} fill={fill} pending primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
+    return <Welcome name={picked.name} fill={fill} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
 
   const flow = invite ? INVITE_FLOW : logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
@@ -955,7 +956,6 @@ export default function Claim() {
     search: { eyebrow: "Espace prestataire", title: "Retrouvez votre établissement" },
     coords: { eyebrow: "Vos coordonnées", title: hasHint.email || hasHint.phone ? "Ces coordonnées sont-elles les vôtres ?" : "Quelles sont les coordonnées de votre établissement ?" },
     account: { eyebrow: "Votre compte", title: "Comment peut-on vous contacter ?" },
-    demande: { eyebrow: "Votre demande", title: "Votre demande est prise en compte." },
     entry: { eyebrow: "Espace prestataire", title: "Bienvenue sur Merry." },
     "login-email": { eyebrow: "Connexion", title: "Heureux de vous revoir." },
     password: { eyebrow: "Connexion", title: "Choisissez votre mot de passe." },
@@ -967,7 +967,7 @@ export default function Claim() {
     "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
   const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
-  const noProgress = logging || ["entry", "password", "managed", "duplicate", "demande"].includes(screen) || (screen === "invite" && !!invite?.already);
+  const noProgress = logging || ["entry", "password", "managed", "duplicate"].includes(screen) || (screen === "invite" && !!invite?.already);
   // Changer de compte sans perdre le lien d'invitation
   const switchAccount = () => pro.signOut(`/pro?invitation=${invite.token}`);
   const goBack = screen === "entry" || screen === "password" || screen === "demande"
@@ -1443,18 +1443,7 @@ export default function Claim() {
                 </button>
               </div>
             </>
-          ) : (
-            <>
-              <p className="p-claim-lead">Nous vérifions que la fiche est bien à vous. Nous vous joignons par mail ou par téléphone dans l’heure.</p>
-              {ficheRow}
-              <p className="p-claim-help">En attendant, vous pouvez compléter votre fiche.</p>
-              <div className="p-claim-actions">
-                <button type="button" className="p-claim-submit" onClick={() => setPreparing("claim")}>
-                  Continuer
-                </button>
-              </div>
-            </>
-          )}
+          ) : null}
           </div>
         </div>
       </div>
