@@ -56,7 +56,16 @@ export async function POST(req) {
 
   if (body.action === "info") {
     const { data: v } = await admin.schema("catalog").from("vendors").select("name").eq("id", member.vendor_id).maybeSingle();
-    return Response.json({ vendor_name: v?.name || "cet établissement", email_hint: emailHint(email) });
+    // Le lien ouvert par un membre déjà dans l'équipe, connecté avec une autre adresse : l'écran le dit
+    // d'emblée au lieu de proposer « Rejoindre l'équipe » puis de refuser (retour de Stan, 5 nov. 2026)
+    let alreadyMember = false;
+    const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    const { data: who } = bearer ? await admin.auth.getUser(bearer) : { data: null };
+    if (who?.user && String(who.user.email || "").trim().toLowerCase() !== email) {
+      const { data: already } = await admin.from("pro_members").select("id").eq("vendor_id", member.vendor_id).eq("user_id", who.user.id).maybeSingle();
+      alreadyMember = !!already;
+    }
+    return Response.json({ vendor_name: v?.name || "cet établissement", email_hint: emailHint(email), already_member: alreadyMember });
   }
 
   if (body.action === "accept") {

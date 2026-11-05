@@ -251,10 +251,11 @@ export default function Claim() {
         return undefined;
       }
       (async () => {
-        const res = await call({ action: "info", token }, "/api/pro/invitation");
+        const { data: s } = supabase ? await supabase.auth.getSession() : { data: null };
+        const res = await call({ action: "info", token }, "/api/pro/invitation", s?.session?.access_token);
         if (!live) return;
         if (res.vendor_name) {
-          setInvite({ token, vendor_name: res.vendor_name, email_hint: res.email_hint });
+          setInvite({ token, vendor_name: res.vendor_name, email_hint: res.email_hint, already: !!res.already_member });
           setScreen("invite");
         } else setNotice(ERRORS[res.error] || ERRORS.bad_link);
       })();
@@ -867,11 +868,13 @@ export default function Claim() {
     duplicate: { eyebrow: "Votre établissement", title: "Est-ce votre fiche ?" },
     "login-code": { eyebrow: "Connexion", title: "Vérifions que c’est bien vous." },
     code: { eyebrow: "Dernière étape", title: "Vérifions que c’est bien vous." },
-    invite: { eyebrow: "Invitation", title: `Rejoindre ${invite?.vendor_name || "l’équipe"}` },
+    invite: { eyebrow: "Invitation", title: invite?.already ? "Cette invitation est pour un collègue." : `Rejoindre ${invite?.vendor_name || "l’équipe"}` },
     "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
   const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
-  const noProgress = logging || ["entry", "password", "managed", "duplicate"].includes(screen);
+  const noProgress = logging || ["entry", "password", "managed", "duplicate"].includes(screen) || (screen === "invite" && !!invite?.already);
+  // Changer de compte sans perdre le lien d'invitation
+  const switchAccount = () => pro.signOut(`/pro?invitation=${invite.token}`);
   const goBack = screen === "entry" || screen === "password"
     ? null
     : screen === "managed"
@@ -997,6 +1000,25 @@ export default function Claim() {
             </>
           ) : invite ? (
             screen === "invite" ? (
+              invite.already ? (
+                <>
+                  <div className="p-claim-channel is-on is-single">
+                    <ProIcon name="mail" size={20} />
+                    <span>
+                      <span className="p-claim-ctitle">Elle est destinée à {invite.email_hint}</span>
+                      <span className="p-claim-chint">Vous êtes connecté avec {pro.data?.user?.email}, déjà membre de {invite.vendor_name}. Le lien reste valable pour la personne invitée.</span>
+                    </span>
+                  </div>
+                  <div className="p-claim-stack">
+                    <button type="button" className="p-claim-submit" onClick={() => window.location.assign("/pro")}>
+                      Ouvrir mon espace
+                    </button>
+                    <button type="button" className="p-claim-link" onClick={switchAccount}>
+                      Me déconnecter pour l’accepter avec une autre adresse
+                    </button>
+                  </div>
+                </>
+              ) : (
               <>
                 <div className="p-claim-channel is-on is-single">
                   <ProIcon name="mail" size={20} />
@@ -1025,7 +1047,13 @@ export default function Claim() {
                     {signedIn ? "Rejoindre l’équipe" : "Recevoir mon code"}
                   </button>
                 </div>
+                {signedIn ? (
+                  <button type="button" className="p-claim-link" onClick={switchAccount}>
+                    Ce n’est pas vous ? Changer de compte
+                  </button>
+                ) : null}
               </>
+              )
             ) : (
               <>
                 {codeBlock(`Le code envoyé à ${invite.email_hint}`, joinTeam)}
