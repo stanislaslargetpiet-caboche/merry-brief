@@ -41,7 +41,7 @@ describe("coûts dans le mail du matin", () => {
   it("donne le mois en cours et les 30 jours, avec l'équivalent par jour", () => {
     expect(costRows({ couts }, now)).toEqual([
       { name: "Dépensé en novembre", status: "34,37 € · 6,87 € par jour" },
-      { name: "30 derniers jours", status: "259,92 € · 8,66 € par jour" },
+      { name: "30 derniers jours", status: "260 € · 8,66 € par jour" },
     ]);
   });
   it("n'ajoute rien quand le registre est vide ou non lu", () => {
