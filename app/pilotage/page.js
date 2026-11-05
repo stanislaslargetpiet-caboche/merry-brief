@@ -50,13 +50,21 @@ export default function PilotagePage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
+  // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
   const load = useCallback(
     async (j) => {
-      if (!auth.token) return;
+      if (auth.status !== "ok") return;
       setBusy(true);
       setError(null);
+      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
       try {
-        const res = await fetch(`/api/interne/pilotage?jours=${j}`, { headers: { authorization: `Bearer ${auth.token}` }, cache: "no-store" });
+        const { data: sess } = await supabase.auth.getSession();
+        let res = await call(sess?.session?.access_token || auth.token);
+        if (res.status === 401) {
+          const { data: fresh } = await supabase.auth.refreshSession();
+          if (fresh?.session?.access_token) res = await call(fresh.session.access_token);
+        }
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error === "interdit" ? "interdit" : body.error === "connexion" ? "connexion" : `erreur ${res.status}`);
@@ -68,7 +76,7 @@ export default function PilotagePage() {
         setBusy(false);
       }
     },
-    [auth.token],
+    [auth.status, auth.token],
   );
 
   useEffect(() => {
