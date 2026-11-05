@@ -11,7 +11,7 @@ import { useDash } from "@/lib/dash/store";
 import { notifyVendor } from "@/lib/dash/vendorMail";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { ago } from "@/components/dash/VendorComments";
-import { Thumb, useIsPhone } from "@/components/dash/Prestataires";
+import { Thumb, useIsPhone, usePicks } from "@/components/dash/Prestataires";
 import { Icon } from "@/components/dash/icons";
 import { PageHeader } from "@/components/dash/ui";
 
@@ -37,6 +37,9 @@ export default function Messagerie() {
   const data = dash.data;
   const phone = useIsPhone();
   const threads = useMemo(() => threadsOf(data), [data]);
+  // Photo de couverture du prestataire : celle de sa carte dans « Mes prestataires » (liens redemandés au catalogue)
+  const { picks } = usePicks();
+  const coverOf = (vendor) => ({ ...vendor, photos: picks.find((p) => p.vendor_id === vendor.id)?.data?.photos || [] });
   const [openId, setOpenId] = useState(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,6 +51,9 @@ export default function Messagerie() {
   // ici comme sur le bouton Messagerie de la navigation.
   useEffect(() => {
     if (!current?.unread) return;
+    // Base sans la colonne (supabase/vendors-messages-read-at.sql pas encore collé) : l'écriture ne pourrait
+    // qu'échouer et afficher une erreur à chaque ouverture ; la pastille reste en attendant.
+    if (dash.mode === "live" && !("messages_read_at" in current.vendor)) return;
     dash.update("vendors", current.vendor.id, { messages_read_at: new Date().toISOString() });
   }, [current?.vendor.id, current?.unread]);
 
@@ -97,7 +103,7 @@ export default function Messagerie() {
             {threads.map((t) => (
               <li key={t.vendor.id}>
                 <button type="button" className={`d-msg-item${current?.vendor.id === t.vendor.id ? " is-on" : ""}`} onClick={() => setOpenId(t.vendor.id)}>
-                  <Thumb v={t.vendor} size={48} />
+                  <Thumb v={coverOf(t.vendor)} size={48} />
                   <div className="d-msg-item-main">
                     <span className="d-msg-item-name">
                       <span className="d-msg-item-name-text">
