@@ -32,8 +32,11 @@ const clean = (v, max) => String(v || "").replace(/\s+/g, " ").trim().slice(0, m
 const badPassword = (p) => typeof p !== "string" || p.length < 8 || p.length > 72;
 
 // Le code reçu prouve l'accès à l'adresse : le mot de passe peut être posé, comme avec « Oublié ? »
-async function setPassword(admin, user, password) {
-  const { error } = await admin.auth.admin.updateUserById(user.id, { password, user_metadata: { ...(user.user_metadata || {}), merry_password: true } });
+// consent : le compte vient d'être créé sous la mention « vous acceptez nos conditions » ; on garde la date
+async function setPassword(admin, user, password, consent = false) {
+  const meta = { ...(user.user_metadata || {}), merry_password: true };
+  if (consent && !meta.merry_cgu_at) meta.merry_cgu_at = new Date().toISOString();
+  const { error } = await admin.auth.admin.updateUserById(user.id, { password, user_metadata: meta });
   if (error) console.warn("[merry pro] mot de passe", error.message);
   return error;
 }
@@ -240,7 +243,7 @@ export async function POST(req) {
     const me = await currentUser(admin, req);
     const owner = me || data.user;
     const failed = await attach(admin, vendorId, owner, me?.email || email);
-    if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password);
+    if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password, true);
     return linked(failed, me ? null : data.session, vendorId);
   }
 
@@ -323,7 +326,7 @@ async function create(body, admin, url, anon, req) {
   }
   const me = await currentUser(admin, req);
   const failed = await attach(admin, vendorId, me || data.user, me?.email || email);
-  if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password);
+  if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password, true);
   return linked(failed, me ? null : data.session, vendorId);
 }
 

@@ -29,6 +29,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
+import { SITE_URL } from "@/lib/site";
 import { completeness } from "@/lib/pro/format";
 import { Pills } from "./ui";
 import { ProIcon } from "./icons";
@@ -94,6 +95,23 @@ function strength(pw) {
   if (/\d/.test(pw) && /[a-zA-Z]/.test(pw)) s += 1;
   if ((/[a-z]/.test(pw) && /[A-Z]/.test(pw)) || /[^a-zA-Z0-9]/.test(pw)) s += 1;
   return Math.min(4, s);
+}
+// Mention affichée là où un compte se crée (création, revendication, invitation) : même phrase que
+// l'inscription des couples, au vouvoiement. La date d'acceptation est gardée avec le compte (merry_cgu_at).
+function Consent() {
+  return (
+    <p className="p-claim-hint p-claim-consent">
+      En créant votre compte, vous acceptez nos{" "}
+      <a href={`${SITE_URL}/cgu`} target="_blank" rel="noopener noreferrer">
+        conditions d’utilisation
+      </a>{" "}
+      et notre{" "}
+      <a href={`${SITE_URL}/confidentialite`} target="_blank" rel="noopener noreferrer">
+        politique de confidentialité
+      </a>
+      .
+    </p>
+  );
 }
 function PasswordMeter({ value }) {
   if (!value) return null;
@@ -1040,6 +1058,7 @@ export default function Claim() {
                       <input id="pro-inv-pw2" className="p-claim-input" type="password" autoComplete="new-password" value={invitePassword2} onChange={(e) => setInvitePassword2(e.target.value)} onKeyDown={onEnter(joinTeam)} />
                     </div>
                     <p className="p-claim-hint">Le code arrive à l’adresse invitée. Vous vous connecterez ensuite avec ce mot de passe.</p>
+                    <Consent />
                   </>
                 )}
                 {errorBox}
@@ -1189,6 +1208,7 @@ export default function Claim() {
                     <label htmlFor="pro-new-pw">Mot de passe (8 caractères minimum)</label>
                     <input id="pro-new-pw" className="p-claim-input" type="password" autoComplete="new-password" onKeyDown={onEnter(sendCreateCode)} {...field("password")} />
                     <PasswordMeter value={form.password} />
+                    <Consent />
                   </div>
                 )}
                 {errorBox}
@@ -1303,6 +1323,7 @@ export default function Claim() {
                   <label htmlFor="pro-claim-pw">Choisissez un mot de passe (8 caractères minimum)</label>
                   <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} onKeyDown={onEnter(confirmAndSend)} />
                   <PasswordMeter value={claimPassword} />
+                  <Consent />
                 </div>
               ) : null}
               {errorBox}
