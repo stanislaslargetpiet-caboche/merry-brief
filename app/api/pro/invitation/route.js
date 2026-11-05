@@ -107,7 +107,7 @@ export async function POST(req) {
     const e2 = await join(admin, member, data.user);
     if (e2) return Response.json({ error: "link_failed" }, { status: 500 });
     if (password !== undefined) {
-      const { error: e3 } = await admin.auth.admin.updateUserById(data.user.id, { password, user_metadata: { ...(data.user.user_metadata || {}), merry_password: true } });
+      const { error: e3 } = await admin.auth.admin.updateUserById(data.user.id, { password, user_metadata: { ...(data.user.user_metadata || {}), merry_password: true, merry_cgu_at: data.user.user_metadata?.merry_cgu_at || new Date().toISOString() } });
       if (e3) console.warn("[merry pro] mot de passe invité", e3.message);
     }
     return Response.json({ ok: true, vendorId: member.vendor_id, session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token } });

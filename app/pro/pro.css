@@ -5947,3 +5947,13 @@ button.p-dem-item {
     transform: none;
   }
 }
+
+/* Mention CGU sous les champs de création de compte */
+.p-claim-consent {
+  margin: 6px 0 0;
+}
+
+.p-claim-consent a {
+  color: inherit;
+  text-decoration: underline;
+}
