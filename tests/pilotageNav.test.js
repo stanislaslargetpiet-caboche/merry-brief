@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeSection } from "@/components/pilotage/PilotNav";
+import { activeSection } from "@/lib/pilotage/nav";
 
 const tops = (...v) => v.map((top, i) => ({ id: `s${i}`, top }));
 

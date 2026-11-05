@@ -5,17 +5,9 @@
 // page, c'est la dernière. Un clic défile en douceur jusqu'à la section (sans animation si le système la réduit).
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { activeSection } from "@/lib/pilotage/nav";
 
 const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-// Section en cours d'après la position des sections : fonction pure, testée (tests/pilotageNav.test.js)
-export function activeSection(tops, offset, atBottom) {
-  if (!tops.length) return null;
-  if (atBottom) return tops[tops.length - 1].id;
-  let current = tops[0].id;
-  for (const t of tops) if (t.top - offset <= 0) current = t.id;
-  return current;
-}
 
 export default function PilotNav({ sections, offsetRef, ready }) {
   const [active, setActive] = useState(sections[0]?.id || null);
