@@ -226,6 +226,7 @@ Sans cette clé, rien n'est envoyé (le code ne fait aucun appel réseau vers Po
 - `lib/analytics.js` initialise PostHog une fois (`components/PostHogProvider.js`, chargé dans `app/layout.js`). Les clics et les pages vues sont suivis automatiquement (autocapture de PostHog), ainsi que le replay de session ; le contenu tapé dans les champs (email, mot de passe, budget…) n'est jamais enregistré (`maskAllInputs`).
 - `lib/dash/store.js` identifie la personne (`posthog.identify`, avec son email et son prénom) dès que le tableau de bord est chargé, et réinitialise (`posthog.reset`) à la déconnexion.
 - `components/Brief.js` envoie un événement `onboarding_step_viewed` à chaque écran de l'onboarding (avec `step` et `step_key` : `fete`, `equipe`, `essentiel`, `compte`), puis `onboarding_completed` ou `onboarding_signup_failed`.
+- `components/pro/Claim.js` fait de même pour l'entrée dans l'espace prestataire : `pro_step_viewed` à chaque écran, avec `flow` (`entry`, `login`, `claim`, `create`, `invite`) et `step_key` (le nom de l'écran : `entry`, `login-email`, `search`, `confirm`, `name`, `address`, `contact`, `code`, `password`, `managed`, `duplicate`, `preparation`, `bienvenue`), puis `pro_completed` (avec `flow`), `pro_code_failed` (avec `error`) et `pro_login_failed`. `lib/pro/store.js` identifie le prestataire connecté (avec `pro: true` et le nom de la fiche) et réinitialise à la déconnexion.
 
 **Pour lire les résultats dans PostHog** :
 
