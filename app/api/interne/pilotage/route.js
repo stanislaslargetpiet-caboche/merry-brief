@@ -1,8 +1,9 @@
 // Indicateurs de pilotage de Merry (page /pilotage), réservés aux adresses de PILOTAGE_EMAILS (celles de Stan par
 // défaut). La page envoie le jeton de session Supabase ; la route vérifie l'adresse puis lit, en parallèle,
-// Supabase (pilotage_stats, supabase/pilotage.sql), PostHog, Resend, Vercel, Search Console et le site lui-même. Chaque source peut manquer ou
+// Supabase (pilotage_stats, supabase/pilotage.sql), PostHog, Resend, Vercel, Search Console, le site lui-même et le registre des coûts. Chaque source peut manquer ou
 // échouer sans priver la page des autres : ses erreurs sont rendues telles quelles dans `erreurs`.
 
+import { readCouts } from "@/lib/server/pilotage/couts";
 import { readSearchConsole } from "@/lib/server/pilotage/google";
 import { readSeoHealth } from "@/lib/server/pilotage/seo";
 import { readPostHog } from "@/lib/server/pilotage/posthog";
@@ -40,7 +41,7 @@ export async function GET(req) {
   const timer = setTimeout(() => controller.abort(), 45000);
 
   try {
-    const [supabase, posthog, resend, vercel, google, seo] = await Promise.all([
+    const [supabase, posthog, resend, vercel, google, seo, couts] = await Promise.all([
       guarded("supabase", () => (fresh ? readSupabase(admin, days) : readSupabaseCached(days)), erreurs),
       process.env.POSTHOG_PERSONAL_API_KEY
         ? guarded("posthog", () => readPostHog(days, { signal: controller.signal }), erreurs)
@@ -49,10 +50,11 @@ export async function GET(req) {
       guarded("vercel", () => readVercel(days, { signal: controller.signal }), erreurs),
       guarded("google", () => readSearchConsole(days, { signal: controller.signal }), erreurs),
       guarded("seo", () => readSeoHealth({ signal: controller.signal }), erreurs),
+      guarded("couts", () => readCouts(admin), erreurs),
     ]);
     if (posthog?.erreurs?.length) erreurs.push(...posthog.erreurs);
     return Response.json(
-      { ok: true, jours: days, genere: new Date().toISOString(), supabase, posthog, resend, vercel, google, seo, erreurs },
+      { ok: true, jours: days, genere: new Date().toISOString(), supabase, posthog, resend, vercel, google, seo, couts, erreurs },
       { headers: { "cache-control": "private, no-store" } },
     );
   } finally {
