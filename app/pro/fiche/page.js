@@ -4,7 +4,7 @@
 // tout de suite dans le catalogue que lisent les couples. ?apercu=1 ouvre l'aperçu côté couples (V2b, V2n).
 // Audit du 3 nov. 2026 : seuls restent les champs que les couples voient vraiment (places debout, fin de
 // soirée, adresse exacte, zone, rayon et taille d'équipe retirés ; import de vidéo retiré, seul un lien
-// est montré aux couples).
+// est montré aux couples). Bloc « Plus d'informations » retiré pour tous les métiers le 5 nov. 2026 (demande de Stan).
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,10 +14,15 @@ import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
-import { plusFor } from "@/lib/vendorPlus";
 import { searchAddress } from "@/lib/pro/geo";
 
 const PHOTOS_MIN = 3;
+const DESC_MIN = 300;
+const validMail = (t) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t));
+const validPhone = (t) => {
+  const n = String(t).replace(/\D/g, "");
+  return n.length >= 9 && n.length <= 15;
+};
 
 const CATERER = [
   { value: "libre", label: "Libre" },
@@ -25,10 +30,16 @@ const CATERER = [
   { value: "liste", label: "Liste de traiteurs" },
 ];
 const catererOf = (det) => (det.caterer_mode ? det.caterer_mode : det.caterer_imposed === false ? "libre" : det.caterer_imposed === true ? "impose" : "");
-const hasPlus = (category) => {
-  const { choices, toggles, text } = plusFor(category);
-  return choices.length > 0 || toggles.length > 0 || text.length > 0;
-};
+// Champs obligatoires (demande de Stan le 5 nov. 2026) : tout sauf site internet, brochure et vidéo.
+// Un champ vide est signalé, astérisque et message, sans bloquer l'enregistrement ni la fiche.
+const isEmpty = (x) => x === null || x === undefined || x === "" || (Array.isArray(x) && !x.length);
+const Req = () => (
+  <span className="p-req" aria-hidden="true">
+    {" "}
+    *
+  </span>
+);
+const Missing = ({ when, children = "Ce champ est obligatoire." }) => (when ? <p className="p-hint is-warn">{children}</p> : null);
 
 export default function MaFichePage() {
   return (
@@ -77,8 +88,11 @@ function MaFiche() {
       <section className="p-sec" id="presentation">
         <h2 className="p-sec-title">Présentation</h2>
         <div className="p-field">
-          <label htmlFor="desc">Description</label>
-          <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
+          <label htmlFor="desc">
+            Description
+            <Req />
+          </label>
+          <TextArea id="desc" rows={4} min={DESC_MIN} value={v.description || ""} onSave={(t) => save({ description: t })} />
         </div>
         <div className="p-grid2">
           <TextField id="site" label="Site internet" value={v.website} onSave={(t) => save({ website: t || null })} />
@@ -90,6 +104,13 @@ function MaFiche() {
             }}
           />
         </div>
+        <div className="p-grid2">
+          <TextField required id="tel" type="tel" label="Téléphone" value={v.phone} check={validPhone} checkText="Vérifiez ce numéro de téléphone." onSave={(t) => save({ phone: t || null })} />
+          <div>
+            <TextField required id="mail" type="email" label="Mail" value={v.email} check={validMail} checkText="Vérifiez cette adresse mail." onSave={(t) => save({ email: t || null })} />
+            <MailCheck email={v.email} />
+          </div>
+        </div>
         <TextField id="brochure" label="Lien vers la brochure (PDF)" value={det.brochure_url} onSave={(t) => save({ brochure_url: t || null })} />
       </section>
 
@@ -97,17 +118,21 @@ function MaFiche() {
         <section className="p-sec" id="lieu">
           <h2 className="p-sec-title">Le lieu</h2>
           <div className="p-grid2">
-            <NumberField id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
-            <NumberField id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
+            <NumberField required id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
+            <NumberField required id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
           </div>
           <div className="p-field is-8">
-            <span id="trait">Traiteur</span>
+            <span id="trait">
+              Traiteur
+              <Req />
+            </span>
             <Pills
               label="Traiteur"
               options={CATERER}
               value={catererOf(det)}
               onChange={(mode) => save({ caterer_mode: mode, caterer_imposed: mode !== "libre" })}
             />
+            <Missing when={!catererOf(det)}>Choisissez une réponse.</Missing>
           </div>
         </section>
       ) : null}
@@ -124,12 +149,12 @@ function MaFiche() {
           </div>
           <p className="p-hint">Estimés depuis l’adresse de la section Présentation ; modifiables à la main.</p>
           <div className="p-access">
-            <TextField id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
-            <MinutesField id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
+            <TextField required id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
+            <MinutesField required id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
           </div>
           <div className="p-access">
-            <TextField id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
-            <MinutesField id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
+            <TextField required id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
+            <MinutesField required id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
           </div>
           <div className="p-toggles">
             <div className="p-toggle">
@@ -141,13 +166,6 @@ function MaFiche() {
               <Switch on={det.accessible === true || (det.accessible === undefined && v.accessible === true)} labelledBy="pmr" onChange={(on) => save({ accessible: on })} />
             </div>
           </div>
-        </section>
-      ) : null}
-
-      {hasPlus(v.primary_category) ? (
-        <section className="p-sec" id="plus">
-          <h2 className="p-sec-title">Plus d’informations</h2>
-          <PlusInfosSection category={v.primary_category} />
         </section>
       ) : null}
 
@@ -175,7 +193,10 @@ function PhotosSection() {
 
   return (
     <section className="p-sec" id="photos">
-      <h2 className="p-sec-title">Photos</h2>
+      <h2 className="p-sec-title">
+        Photos
+        <Req />
+      </h2>
       {photos.length < PHOTOS_MIN ? <p className="p-hint is-warn">Ajoutez au moins {PHOTOS_MIN} photos pour publier votre fiche.</p> : null}
       <ul className="p-photos">
         {photos.map((ph, i) => {
@@ -292,93 +313,79 @@ function VideoSection() {
   );
 }
 
-// ---------- Plus d'informations : questions propres à chaque métier (lib/vendorPlus.js) ----------
+// ---------- Mail de contact : vérifié par un code à 6 chiffres (app/api/pro/contact) ----------
 
-function PlusInfosSection({ category }) {
+const MAIL_ERRORS = {
+  bad_code: "Ce code n’est pas le bon.",
+  expired: "Ce code n’est plus valable : demandez-en un nouveau.",
+  wait: "Trop de codes demandés : réessayez dans une heure.",
+  no_email: "Enregistrez d’abord une adresse mail valide.",
+};
+
+// Rien ne s'affiche tant que supabase/pro-fiche-mail-verifie.sql n'est pas en place (colonne absente)
+function MailCheck({ email }) {
   const pro = usePro();
-  const v = pro.data.vendor;
-  const det = v.details || {};
-  const save = (patch) => pro.saveFiche(patch);
-  const { choices, toggles, text } = plusFor(category);
+  const [step, setStep] = useState("idle");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const mail = String(email || "").trim().toLowerCase();
 
-  return (
-    <div className="p-plus">
-      {choices.map((c) => (
-        <PlusChoiceRow key={c.key} choice={c} value={det[c.key]} onChange={(val) => save({ [c.key]: val })} />
-      ))}
-      {toggles.map((t) => (
-        <div key={t.key} className="p-plus-row is-toggle">
-          <span id={`plus-${t.key}`} className="p-plus-q">
-            {t.question}
-          </span>
-          <Switch on={det[t.key] === true} labelledBy={`plus-${t.key}`} onChange={(on) => save({ [t.key]: on })} />
-        </div>
-      ))}
-      {text.map((t) => (
-        <div key={t.key} className="p-plus-row is-text">
-          <TextField id={`plus-${t.key}`} label={t.question} value={det[t.key]} onSave={(val) => save({ [t.key]: val || null })} />
-        </div>
-      ))}
-    </div>
-  );
-}
+  // Une autre adresse : le code demandé pour la précédente ne sert plus
+  useEffect(() => {
+    setStep("idle");
+    setCode("");
+    setError(null);
+  }, [mail]);
 
-// Choix à pastilles d'une question « Plus d'informations », avec un bouton pour ajouter sa propre réponse
-function PlusChoiceRow({ choice: c, value, onChange }) {
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const list = value || [];
-  const extra = list.filter((v) => !c.options.some((o) => o.value === v));
-  const isOn = (v) => list.includes(v);
-  const toggle = (v) => onChange(isOn(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const addCustom = () => {
-    const t = draft.trim();
-    setAdding(false);
-    setDraft("");
-    if (!t || isOn(t)) return;
-    onChange([...list, t]);
+  if (!pro.data.pro || !("email_verified" in pro.data.pro) || !validMail(mail)) return null;
+  if (pro.data.pro.email_verified === mail) return <p className="p-hint p-verified">Adresse vérifiée</p>;
+
+  const run = async (action) => {
+    setBusy(true);
+    setError(null);
+    const res = await pro.verifyMail(action, code);
+    setBusy(false);
+    if (res.error) setError(MAIL_ERRORS[res.error] || "La vérification n’a pas abouti : réessayez.");
+    else if (res.sent) {
+      setCode("");
+      setStep("code");
+    }
   };
 
   return (
-    <div className="p-plus-row">
-      <span id={`plus-${c.key}`} className="p-plus-q">
-        {c.question}
-      </span>
-      <div className="p-pills" role="group" aria-label={c.question}>
-        {c.options.map((o) => (
-          <button key={o.value} type="button" className={`p-pill${isOn(o.value) ? " is-on" : ""}`} onClick={() => toggle(o.value)}>
-            {o.label}
+    <div className="p-verify">
+      {step === "code" ? (
+        <>
+          <label htmlFor="mail-code" className="p-hint">
+            Code reçu à cette adresse
+          </label>
+          <div className="p-verify-row">
+            <input
+              id="mail-code"
+              className="p-input"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              autoFocus
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && code.length === 6 && run("verify")}
+            />
+            <button type="button" className="p-btn p-btn-ghost" disabled={busy || code.length !== 6} onClick={() => run("verify")}>
+              {busy ? <BusyDots /> : "Valider"}
+            </button>
+          </div>
+          <button type="button" className="p-verify-again" disabled={busy} onClick={() => run("send")}>
+            Renvoyer le code
           </button>
-        ))}
-        {extra.map((v) => (
-          <button key={v} type="button" className="p-pill is-on" onClick={() => toggle(v)}>
-            {v}
-          </button>
-        ))}
-        {adding ? (
-          <input
-            autoFocus
-            type="text"
-            className="p-pill-input"
-            value={draft}
-            placeholder="Votre réponse…"
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={addCustom}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "Escape") {
-                setDraft("");
-                setAdding(false);
-              }
-            }}
-          />
-        ) : (
-          <button type="button" className="p-pill p-pill-add" onClick={() => setAdding(true)}>
-            <ProIcon name="plus" size={13} sw={2.4} />
-            Autre
-          </button>
-        )}
-      </div>
+        </>
+      ) : (
+        <button type="button" className="p-btn p-btn-ghost p-start" disabled={busy} onClick={() => run("send")}>
+          {busy ? <BusyDots /> : "Vérifier cette adresse"}
+        </button>
+      )}
+      <Missing when={!!error}>{error}</Missing>
     </div>
   );
 }
@@ -397,7 +404,7 @@ function useDraft(value) {
   return [draft, setDraft];
 }
 
-function TextInput({ id, value, onSave, placeholder, type = "text", className = "p-input" }) {
+function TextInput({ id, value, onSave, placeholder, type = "text", className = "p-input", required }) {
   const [draft, setDraft] = useDraft(value);
   return (
     <input
@@ -406,6 +413,7 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
       className={className}
       value={draft}
       placeholder={placeholder}
+      aria-required={required || undefined}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => String(draft) !== String(value ?? "") && onSave(typeof draft === "string" ? draft.trim() : draft)}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
@@ -413,9 +421,18 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
   );
 }
 
-function TextArea({ id, value, onSave, rows }) {
+// `min` : longueur minimale signalée sous le champ, décomptée pendant la saisie (le texte reste enregistré)
+function TextArea({ id, value, onSave, rows, min }) {
   const [draft, setDraft] = useDraft(value);
-  return <textarea id={id} rows={rows} className="p-textarea" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />;
+  const left = min ? min - draft.trim().length : 0;
+  return (
+    <>
+      <textarea id={id} rows={rows} className="p-textarea" aria-required={min ? true : undefined} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />
+      <Missing when={left > 0}>
+        {min} caractères au minimum : il en manque {left}.
+      </Missing>
+    </>
+  );
 }
 
 // Adresse : recherche en direct (Géoplateforme de l'IGN, gratuite et sans clé — lib/pro/geo.js), à
@@ -454,7 +471,10 @@ function AddressField({ value, onValidated }) {
 
   return (
     <div className="p-field p-address">
-      <label htmlFor="adresse">Adresse</label>
+      <label htmlFor="adresse">
+        Adresse
+        <Req />
+      </label>
       <input
         id="adresse"
         className="p-input"
@@ -483,36 +503,51 @@ function AddressField({ value, onValidated }) {
         </ul>
       ) : null}
       {!validated && draft.trim() ? <p className="p-hint">Choisissez une suggestion pour vérifier l’adresse.</p> : null}
+      <Missing when={isEmpty(value)} />
     </div>
   );
 }
 
-function TextField({ id, label, value, onSave }) {
+// `check` : format attendu d'une valeur déjà saisie (téléphone, mail), signalé sans bloquer
+function TextField({ id, label, value, onSave, required, type, check, checkText }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>{label}</label>
-      <TextInput id={id} value={value} onSave={onSave} />
+      <label htmlFor={id}>
+        {label}
+        {required ? <Req /> : null}
+      </label>
+      <TextInput id={id} type={type} value={value} onSave={onSave} required={required} />
+      <Missing when={required && isEmpty(value)} />
+      <Missing when={!isEmpty(value) && check && !check(value)}>{checkText}</Missing>
     </div>
   );
 }
 
-function NumberField({ id, label, value, onSave }) {
+function NumberField({ id, label, value, onSave, required }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>{label}</label>
-      <TextInput id={id} type="number" value={value ?? ""} onSave={onSave} />
+      <label htmlFor={id}>
+        {label}
+        {required ? <Req /> : null}
+      </label>
+      <TextInput id={id} type="number" value={value ?? ""} onSave={onSave} required={required} />
+      <Missing when={required && isEmpty(value)} />
     </div>
   );
 }
 
-function MinutesField({ id, value, onSave }) {
+function MinutesField({ id, value, onSave, required }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>Trajet</label>
+      <label htmlFor={id}>
+        Trajet
+        {required ? <Req /> : null}
+      </label>
       <div className="p-input p-unit">
-        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} />
+        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} required={required} />
         <span>min</span>
       </div>
+      <Missing when={required && isEmpty(value)} />
     </div>
   );
 }

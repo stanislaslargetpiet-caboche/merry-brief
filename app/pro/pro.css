@@ -58,6 +58,23 @@
   color: rgba(28, 28, 26, 0.72);
 }
 
+/* Nom de la fiche affichée, en pastille blanche sous « Espace prestataire » */
+.p-brand-vendor {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--d-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .p-brand.is-small {
   gap: 3px;
   padding: 0;
@@ -2212,6 +2229,48 @@ select.p-input {
 }
 
 .p-hint.is-warn {
+  color: var(--danger);
+}
+
+/* Vérification du mail de contact (Ma fiche > Présentation) */
+.p-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.p-verify-row {
+  display: flex;
+  gap: 8px;
+}
+
+.p-verify-row .p-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  letter-spacing: 0.2em;
+}
+
+.p-verify-again {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.p-verified {
+  margin-top: 8px;
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
+/* Astérisque des champs obligatoires de Ma fiche */
+.p-req {
   color: var(--danger);
 }
 
