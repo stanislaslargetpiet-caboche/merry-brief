@@ -916,30 +916,47 @@ h1.question {
   color: var(--muted);
 }
 
+.ob-months-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ob-year-select {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
 .ob-toggle {
   display: inline-flex;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--ground);
+  gap: 8px;
 }
 
 .ob-toggle button {
   min-width: 110px;
   padding: 6px 16px;
   border-radius: 999px;
-  border: none;
-  background: none;
+  border: 1px solid var(--ink);
+  background: #ffffff;
   font-size: 14px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--ink);
   cursor: pointer;
 }
 
 .ob-toggle button[aria-pressed="true"] {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(28, 28, 26, 0.15);
+  background: var(--ink);
+  border-color: var(--ink);
   font-weight: 700;
-  color: var(--ink);
+  color: #ffffff;
 }
 
 .ob-months {

@@ -9,6 +9,7 @@ import LangSwitch from "@/components/LangSwitch";
 import "@/app/onboarding.css";
 import { trackEvent } from "@/lib/analytics";
 import { searchPlaces } from "@/lib/places";
+import { displayName } from "@/lib/server/names";
 
 /* ------------------------------------------------------------------ */
 /*  Onboarding V2 (source : canvas « Merry · Carte brief », page        */
@@ -27,7 +28,7 @@ const STEP_KEYS = ["fete", "equipe", "essentiel", "compte"];
 
 // Bornes des jauges : la valeur maximale vaut « et plus ».
 const GUESTS = { max: 300, step: 10 };
-const BUDGET = { max: 100000, step: 1000 };
+const BUDGET = { max: 100000, step: 5000 };
 const MAX_VIBES = 3;
 
 const EMPTY = {
@@ -56,12 +57,21 @@ const STORAGE_KEY = "merry-brief-draft-v4";
 const PENDING_KEY = "merry-brief-pending";
 
 // Les 12 prochains mois, à partir du mois suivant : « 2027-06 »
-function nextMonths() {
+// Nombre d'années proposées dans le menu déroulant du sélecteur de mois flexible.
+const FLEX_YEARS_AHEAD = 3;
+
+function monthsOfYear(year) {
   const now = new Date();
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() + 1 + i, 1);
-    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, month: d.getMonth(), year: d.getFullYear() };
+  const startMonth = year === now.getFullYear() ? now.getMonth() + 1 : 0;
+  return Array.from({ length: Math.max(0, 12 - startMonth) }, (_, i) => {
+    const month = startMonth + i;
+    return { key: `${year}-${String(month + 1).padStart(2, "0")}`, month, year };
   });
+}
+
+function flexYearOptions() {
+  const current = new Date().getFullYear();
+  return Array.from({ length: FLEX_YEARS_AHEAD + 1 }, (_, i) => current + i);
 }
 
 // Durée de l'écran « on prépare ton tableau de bord », entre l'essentiel et le compte.
@@ -306,7 +316,9 @@ function Preparing({ s, chips, onDone }) {
 export default function Brief() {
   const { lang } = useLang();
   const s = BRIEF_TEXT[lang];
-  const months = useMemo(nextMonths, []);
+  const yearOptions = useMemo(flexYearOptions, []);
+  const [flexYear, setFlexYear] = useState(() => new Date().getFullYear());
+  const months = useMemo(() => monthsOfYear(flexYear), [flexYear]);
 
   const [step, setStep] = useState(0);
   const [data, setData] = useState(EMPTY);
@@ -424,8 +436,8 @@ export default function Brief() {
       budget_max: data.budget_unknown ? null : data.budget_max,
       budget: budgetCode(data.budget_min, data.budget_max, data.budget_unknown),
       vibes: data.vibes,
-      first_name: data.first_name.trim(),
-      partner_first_name: data.partner_first_name.trim(),
+      first_name: displayName(data.first_name.trim()),
+      partner_first_name: displayName(data.partner_first_name.trim()),
       email: data.email.trim().toLowerCase(),
       source: typeof window !== "undefined" ? window.location.search.slice(0, 200) || null : null,
     };
@@ -540,7 +552,14 @@ export default function Brief() {
                 <input className="ob-input" type="date" aria-label={t.precise} value={data.wedding_date} onChange={(e) => set("wedding_date", e.target.value)} />
               ) : (
                 <>
-                  <p className="ob-help">{t.monthsHelp}</p>
+                  <div className="ob-months-head">
+                    <p className="ob-help">{t.monthsHelp}</p>
+                    <select className="ob-year-select" aria-label={t.yearLabel} value={flexYear} onChange={(e) => setFlexYear(Number(e.target.value))}>
+                      {yearOptions.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="ob-months">
                     {months.map((m) => (
                       <button key={m.key} type="button" className="ob-month" aria-pressed={data.flex_months.includes(m.key)} onClick={() => toggleIn("flex_months", m.key)}>
@@ -644,7 +663,7 @@ export default function Brief() {
   /* ------------------------------ rendu ------------------------------- */
 
   const isLast = step === TOTAL - 1;
-  const names = [data.first_name.trim(), data.partner_first_name.trim()].filter(Boolean).join(lang === "fr" ? " et " : " and ");
+  const names = [displayName(data.first_name.trim()), displayName(data.partner_first_name.trim())].filter(Boolean).join(lang === "fr" ? " et " : " and ");
   const finished = status === "done" || status === "confirm";
   const n = step + 1;
 
