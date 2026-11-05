@@ -439,7 +439,7 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
           </button>
         ) : (
           <button type="button" className="d-pr-maplistbtn" onClick={onList}>
-            <DuoIcon name="list" size={18} stroke="#ffffff" />
+            <DuoIcon name="liste" size={18} stroke="#ffffff" />
             Liste
           </button>
         )}

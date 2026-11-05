@@ -98,6 +98,7 @@ const DUO_ICONS = {
   parking: '<rect x="4" y="4" width="16" height="16" rx="3" fill="FILL"/><path d="M10 16V8h3a2.5 2.5 0 0 1 0 5h-3"/>',
   chef: '<path d="M7 14v6h10v-6M7 14a4 4 0 0 1-1-7.9A4.5 4.5 0 0 1 12 4a4.5 4.5 0 0 1 6 2.1A4 4 0 0 1 17 14z" fill="FILL"/>',
   map: '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z" fill="FILL"/><path d="M9 4v14M15 6v14"/>',
+  liste: '<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.9" fill="FILL"/><circle cx="5" cy="12" r="1.9" fill="FILL"/><circle cx="5" cy="18" r="1.9" fill="FILL"/>',
   filtrer: '<path d="M4 5h16M7 12h10M10 19h4"/><circle cx="14" cy="5" r="2.1" fill="FILL"/><circle cx="10" cy="12" r="2.1" fill="FILL"/><circle cx="13" cy="19" r="2.1" fill="FILL"/>',
   dossier: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="FILL"/><path d="M3.5 11h17"/>',
 };

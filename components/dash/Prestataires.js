@@ -317,7 +317,7 @@ export function ViewToggle({ view, onChange }) {
   return (
     <div role="group" aria-label="Affichage" className="d-pr-view">
       <button type="button" aria-pressed={view === "liste"} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
-        <DuoIcon name="list" size={18} stroke={view === "liste" ? "#ffffff" : undefined} />
+        <DuoIcon name="liste" size={18} stroke={view === "liste" ? "#ffffff" : undefined} />
         Liste
       </button>
       <button type="button" aria-pressed={view === "carte"} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
