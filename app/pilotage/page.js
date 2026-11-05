@@ -23,8 +23,8 @@ function readDemoFlag() {
 }
 
 const SECTIONS = [
-  { id: "couts", label: "Coûts" },
   { id: "sante", label: "Santé" },
+  { id: "couts", label: "Coûts" },
   { id: "site", label: "Site" },
   { id: "referencement", label: "Référencement" },
   { id: "appli", label: "Appli" },
@@ -155,6 +155,16 @@ export default function PilotagePage() {
             {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
           </p>
         </div>
+        {data ? (
+          <div className="pl-folds">
+            <button type="button" className="pl-chip" onClick={() => window.dispatchEvent(new CustomEvent("pilotage:all", { detail: true }))}>
+              Tout déplier
+            </button>
+            <button type="button" className="pl-chip" onClick={() => window.dispatchEvent(new CustomEvent("pilotage:all", { detail: false }))}>
+              Tout replier
+            </button>
+          </div>
+        ) : null}
         {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
         {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
         {data ? <Board data={data} jours={jours} reload={() => load(jours, true)} /> : null}
@@ -268,8 +278,6 @@ function Board({ data, jours, reload }) {
 
   return (
     <>
-      <Couts couts={data.couts} demo={demo} onChange={reload} />
-
       <Section id="sante" title="Santé" kicker="À regarder d'abord" right={demo ? null : <SendBrief />}>
         <div className="pl-health">
           {sante.map((s, i) => (
@@ -284,7 +292,9 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section id="site" title="Site vitrine" kicker={`withmerry.com · ${periode}`}>
+      <Couts couts={data.couts} demo={demo} onChange={reload} />
+
+      <Section defaultOpen={false} id="site" title="Site vitrine" kicker={`withmerry.com · ${periode}`}>
         {ph ? (
           <>
             <div className="pl-tiles">
@@ -298,22 +308,22 @@ function Board({ data, jours, reload }) {
               <Card title="Visiteurs par jour" wide>
                 <DayBars series={site} keys={["visiteurs", "pages"]} labels={["Visiteurs", "Pages vues"]} days={jours} />
               </Card>
-              <Card title="D'où viennent les sessions">
+              <Card fold="open" title="D'où viennent les sessions">
                 <Ranked rows={ph.site.sources} label="source" />
               </Card>
-              <Card title="Pages les plus vues">
+              <Card fold="closed" title="Pages les plus vues">
                 <Ranked rows={ph.site.pages.map((p) => ({ label: p.chemin, n: p.vues, sub: `${fmtInt(p.visiteurs)} visiteurs` }))} />
               </Card>
-              <Card title="Pages d'entrée">
+              <Card fold="closed" title="Pages d'entrée">
                 <Ranked rows={ph.site.entrees.map((p) => ({ label: p.chemin, n: p.n }))} />
               </Card>
-              <Card title="Appareils et pays">
+              <Card fold="closed" title="Appareils et pays">
                 <Ranked rows={ph.site.appareils} max={4} />
                 <div style={{ height: 10 }} />
                 <Ranked rows={ph.site.pays} max={5} />
               </Card>
               {ph.site.utm.length ? (
-                <Card title="Campagnes (utm)">
+                <Card fold="closed" title="Campagnes (utm)">
                   <Ranked rows={ph.site.utm.map((u) => ({ label: `${u.source}${u.campagne ? ` · ${u.campagne}` : ""}`, n: u.n }))} />
                 </Card>
               ) : null}
@@ -324,7 +334,7 @@ function Board({ data, jours, reload }) {
         )}
       </Section>
 
-      <Section id="referencement" title="Référencement" kicker={`Google · ${periode}`} right={demo ? null : <RefreshSeo />}>
+      <Section defaultOpen={false} id="referencement" title="Référencement" kicker={`Google · ${periode}`} right={demo ? null : <RefreshSeo />}>
         <div className="pl-tiles">
           {gsc ? (
             <>
@@ -353,10 +363,10 @@ function Board({ data, jours, reload }) {
               <Card title="Impressions par jour">
                 <DayBars series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} height={80} />
               </Card>
-              <Card title="Appareils (clics)">
+              <Card fold="closed" title="Appareils (clics)">
                 <Ranked rows={gsc.appareils} max={4} empty="Pas encore de clic" />
               </Card>
-              <Card title="Requêtes qui amènent du monde" wide>
+              <Card fold="closed" title="Requêtes qui amènent du monde" wide>
                 <Table
                   cols={[
                     { key: "requete", label: "Requête" },
@@ -370,10 +380,10 @@ function Board({ data, jours, reload }) {
                   empty="Google n'a encore remonté aucune requête pour cette période"
                 />
               </Card>
-              <Card title="Pages qui ressortent">
+              <Card fold="closed" title="Pages qui ressortent">
                 <Ranked rows={gsc.pages.map((p) => ({ label: p.page, n: p.impressions, sub: `${fmtInt(p.clics)} clic(s)` }))} empty="Aucune page vue dans les résultats" />
               </Card>
-              <Card title="Sitemaps vus par Google" wide>
+              <Card fold="closed" title="Sitemaps vus par Google" wide>
                 <Table
                   cols={[
                     { key: "chemin", label: "Sitemap", render: (r) => <span className="pl-mono">{r.chemin}</span> },
@@ -401,17 +411,17 @@ function Board({ data, jours, reload }) {
               <Card title="Sessions venues d'un moteur, par jour" wide={!gsc}>
                 <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} height={80} />
               </Card>
-              <Card title="Pages d'entrée depuis un moteur">
+              <Card fold="closed" title="Pages d'entrée depuis un moteur">
                 <Ranked rows={ph.seo.entrees.map((p) => ({ label: p.chemin, n: p.n, sub: `${(Math.round(p.pages * 10) / 10).toLocaleString("fr-FR")} page(s) vue(s)` }))} empty="Aucune arrivée depuis un moteur sur la période" />
               </Card>
-              <Card title="Moteurs">
+              <Card fold="closed" title="Moteurs">
                 <Ranked rows={ph.seo.moteurs} max={6} empty="Aucune arrivée depuis un moteur" />
               </Card>
             </>
           ) : null}
           {seo ? (
             <>
-              <Card title="Pages relues aujourd'hui" wide note="Un échantillon du sitemap, différent chaque jour, relu comme le ferait un moteur : réponse, titre, description, adresse canonique, noindex, h1.">
+              <Card fold="closed" title="Pages relues aujourd'hui" wide note="Un échantillon du sitemap, différent chaque jour, relu comme le ferait un moteur : réponse, titre, description, adresse canonique, noindex, h1.">
                 <Table
                   cols={[
                     { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
@@ -423,7 +433,7 @@ function Board({ data, jours, reload }) {
                   max={13}
                 />
               </Card>
-              <Card title="Contenu du sitemap" note={`robots.txt : ${seo.robots.statut === 200 ? "lisible" : `réponse ${seo.robots.statut}`}, sitemap ${seo.robots.sitemap_declare ? "déclaré" : "non déclaré"}.`}>
+              <Card fold="closed" title="Contenu du sitemap" note={`robots.txt : ${seo.robots.statut === 200 ? "lisible" : `réponse ${seo.robots.statut}`}, sitemap ${seo.robots.sitemap_declare ? "déclaré" : "non déclaré"}.`}>
                 <Ranked rows={seo.sitemap.sections} max={12} empty="Sitemap vide" />
               </Card>
             </>
@@ -431,7 +441,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`}>
+      <Section defaultOpen={false} id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`}>
         <div className="pl-tiles">
           <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} />
           <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} />
@@ -450,7 +460,7 @@ function Board({ data, jours, reload }) {
           <Card title="Nouveaux comptes par jour" wide>
             <DayBars series={sb?.series} keys={["inscriptions", "mariages"]} labels={["Comptes", "Mariages créés"]} days={jours} />
           </Card>
-          <Card title="Entonnoir d'onboarding" note="Personnes distinctes ayant vu chaque écran, puis comptes créés. PostHog ne compte que les visiteurs qui acceptent les cookies.">
+          <Card fold="open" title="Entonnoir d'onboarding" note="Personnes distinctes ayant vu chaque écran, puis comptes créés. PostHog ne compte que les visiteurs qui acceptent les cookies.">
             {ph ? (
               <Funnel
                 steps={[
@@ -471,11 +481,11 @@ function Board({ data, jours, reload }) {
               <Card title="Sessions et personnes par jour" wide>
                 <DayBars series={appMerged} keys={["sessions", "personnes"]} labels={["Sessions", "Personnes"]} days={jours} />
               </Card>
-              <Card title="Appareils">
+              <Card fold="closed" title="Appareils">
                 <Ranked rows={ph.app.appareils} max={4} />
                 <p className="pl-note">Le téléphone est attendu autour de 80 % de l'usage.</p>
               </Card>
-              <Card title="Pages les plus vues" wide>
+              <Card fold="closed" title="Pages les plus vues" wide>
                 <Table
                   cols={[
                     { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
@@ -487,7 +497,7 @@ function Board({ data, jours, reload }) {
                   max={14}
                 />
               </Card>
-              <Card title="Où le temps passe" note="Temps entre un événement et le suivant dans la même session, plafonné à 30 minutes ; le dernier écran d'une session n'est pas compté.">
+              <Card fold="closed" title="Où le temps passe" note="Temps entre un événement et le suivant dans la même session, plafonné à 30 minutes ; le dernier écran d'une session n'est pas compté.">
                 <Ranked rows={ph.app.temps.map((p) => ({ label: p.chemin, n: p.total, sub: `${fmtDuration(p.moyenne)} par passage` }))} format={fmtDuration} max={10} />
               </Card>
             </>
@@ -495,7 +505,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section id="produit" title="Ce que les couples font" kicker={`Supabase · ${periode}`}>
+      <Section defaultOpen={false} id="produit" title="Ce que les couples font" kicker={`Supabase · ${periode}`}>
         <div className="pl-tiles">
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
           <Tile label="Organisateurs" value={t.organisateurs} sub={`${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente`} />
@@ -517,7 +527,7 @@ function Board({ data, jours, reload }) {
           <Card title="Réponses RSVP et visites des sites">
             <DayBars series={sb?.series} keys={["reponses_rsvp", "visites_sites"]} labels={["Réponses", "Visites"]} days={jours} height={80} />
           </Card>
-          <Card title="Derniers comptes" wide>
+          <Card fold="closed" title="Derniers comptes" wide>
             <Table
               cols={[
                 { key: "email", label: "Adresse" },
@@ -528,7 +538,7 @@ function Board({ data, jours, reload }) {
               rows={sb?.derniers_comptes}
             />
           </Card>
-          <Card title="Dernières demandes de devis">
+          <Card fold="closed" title="Dernières demandes de devis">
             <Table
               cols={[
                 { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -542,7 +552,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire">
+      <Section defaultOpen={false} id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire">
         <div className="pl-tiles">
           <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
           <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
@@ -556,7 +566,7 @@ function Board({ data, jours, reload }) {
           <Tile label="Ajoutés par les couples" value={t.catalogue_ajoutes_par_couples} hint="Prestataires créés à la main depuis un tableau de bord" />
         </div>
         <div className="pl-grid">
-          <Card title="Catalogue par métier" wide>
+          <Card fold="open" title="Catalogue par métier" wide>
             <Table
               cols={[
                 { key: "label", label: "Métier" },
@@ -572,7 +582,7 @@ function Board({ data, jours, reload }) {
               max={20}
             />
           </Card>
-          <Card title="Fiches revendiquées">
+          <Card fold="closed" title="Fiches revendiquées">
             <Table
               cols={[
                 { key: "nom", label: "Fiche", render: (r) => `${r.nom || "?"}${r.categorie ? ` · ${r.categorie}` : ""}` },
@@ -587,7 +597,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section id="mails" title="Mails" kicker={`Resend · ${periode}`}>
+      <Section defaultOpen={false} id="mails" title="Mails" kicker={`Resend · ${periode}`}>
         {rs ? (
           <>
             <div className="pl-tiles">
@@ -598,10 +608,10 @@ function Board({ data, jours, reload }) {
               <Tile label="Désinscriptions" value={t.desinscriptions_mail} inverse />
             </div>
             <div className="pl-grid">
-              <Card title="Par type de mail" wide>
+              <Card fold="open" title="Par type de mail" wide>
                 <Ranked rows={rs.sujets.map((s) => ({ label: s.sujet, n: s.n }))} />
               </Card>
-              <Card title="Derniers envois">
+              <Card fold="closed" title="Derniers envois">
                 <Table
                   cols={[
                     { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -632,7 +642,7 @@ function Board({ data, jours, reload }) {
         )}
       </Section>
 
-      <Section id="bugs" title="Bugs et performance" kicker={`PostHog et Vercel · ${periode}`}>
+      <Section defaultOpen={false} id="bugs" title="Bugs et performance" kicker={`PostHog et Vercel · ${periode}`}>
         {ph ? (
           <>
             <div className="pl-tiles">
@@ -645,7 +655,7 @@ function Board({ data, jours, reload }) {
               <Card title="Erreurs par jour" wide>
                 <DayBars series={bugs} keys={["exceptions", "rage"]} labels={["Erreurs", "Clics de rage"]} days={jours} height={80} />
               </Card>
-              <Card title="Web vitals (p75)" note="LCP sous 2,5 s, INP sous 200 ms et CLS sous 0,1 sont les seuils de Google.">
+              <Card fold="open" title="Web vitals (p75)" note="LCP sous 2,5 s, INP sous 200 ms et CLS sous 0,1 sont les seuils de Google.">
                 {ph.bugs.vitals.length ? (
                   <Table
                     cols={[
@@ -660,7 +670,7 @@ function Board({ data, jours, reload }) {
                   <div className="pl-empty">Pas de mesure : active « Web vitals » dans PostHog (Autocapture) pour les voir ici.</div>
                 )}
               </Card>
-              <Card title="Dernières erreurs" wide>
+              <Card fold="closed" title="Dernières erreurs" wide>
                 <Table
                   cols={[
                     { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -676,11 +686,11 @@ function Board({ data, jours, reload }) {
                   Détail et replay de chaque session dans <a href="https://eu.posthog.com/project/321035/error_tracking">PostHog, Error tracking</a>.
                 </p>
               </Card>
-              <Card title="Clics de rage">
+              <Card fold="closed" title="Clics de rage">
                 <Ranked rows={ph.bugs.rage.map((r) => ({ label: `${r.hote || ""}${r.chemin || ""}`, n: r.n, sub: fmtDay(r.dernier) }))} empty="Aucun clic de rage" />
               </Card>
               {vc ? (
-                <Card title="Déploiements Vercel" wide>
+                <Card fold="closed" title="Déploiements Vercel" wide>
                   <Table
                     cols={[
                       { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -694,7 +704,7 @@ function Board({ data, jours, reload }) {
                   />
                 </Card>
               ) : (
-                <Card title="Déploiements Vercel" wide>
+                <Card fold="closed" title="Déploiements Vercel" wide>
                   <div className="pl-empty">
                     {data.vercel?.raison || "Non disponible"}. Crée un jeton sur vercel.com/account/tokens (portée stan-f307), ajoute-le sur Vercel en variable
                     VERCEL_API_TOKEN (Production), redéploie : la liste et les échecs de build apparaissent ici.

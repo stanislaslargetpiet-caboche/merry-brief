@@ -3,7 +3,7 @@
 // Briques de la page de pilotage : tuiles, barres par jour, tableaux, entonnoir. Encre et greige, un seul aplat
 // citron pour la période courante ; aucune couleur décorative (DESIGN.md).
 
-import { useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
 export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint }) {
@@ -178,27 +178,112 @@ export function Funnel({ steps }) {
   );
 }
 
-export function Section({ id, title, kicker, children, right }) {
+// Sections et cartes repliables : l'état de chacune est gardé dans le navigateur (localStorage, clé pl-fold), le
+// menu du haut ouvre la section visée, et « Tout déplier » / « Tout replier » agissent sur toute la page.
+const FOLD_KEY = "pl-fold";
+const SectionContext = createContext("");
+
+function readFold(key) {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(FOLD_KEY) || "{}")[key];
+    return typeof v === "boolean" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeFold(key, open) {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(FOLD_KEY) || "{}");
+    all[key] = open;
+    window.localStorage.setItem(FOLD_KEY, JSON.stringify(all));
+  } catch {
+    /* navigation privée : l'état ne dure que le temps de la page */
+  }
+}
+
+// `onEvent` : réaction aux ordres de la page (ouvrir une section précise, tout déplier, tout replier)
+function useFold(key, defaultOpen, { id, isSection, enabled = true }) {
+  const [open, setOpenState] = useState(defaultOpen);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const saved = readFold(key);
+    const target = typeof window !== "undefined" && window.location.hash === `#${id}`;
+    setOpenState(target ? true : saved ?? defaultOpen);
+    const onOpen = (e) => {
+      if (isSection && e.detail === id) setOpenState(true);
+    };
+    const onAll = (e) => {
+      if (e.detail) {
+        setOpenState(true);
+        writeFold(key, true);
+      } else if (isSection) {
+        setOpenState(false);
+        writeFold(key, false);
+      }
+    };
+    window.addEventListener("pilotage:open", onOpen);
+    window.addEventListener("pilotage:all", onAll);
+    return () => {
+      window.removeEventListener("pilotage:open", onOpen);
+      window.removeEventListener("pilotage:all", onAll);
+    };
+  }, [key, id, defaultOpen, isSection, enabled]);
+  const set = (next) => {
+    setOpenState(next);
+    writeFold(key, next);
+  };
+  return [open, set];
+}
+
+export function Section({ id, title, kicker, children, right, defaultOpen = true }) {
+  const [open, setOpen] = useFold(`section:${id}`, defaultOpen, { id, isSection: true });
   return (
-    <section className="pl-section" id={id}>
+    <section className={`pl-section${open ? "" : " is-folded"}`} id={id}>
       <header className="pl-section-head">
         <div>
           {kicker ? <span className="pl-kicker">{kicker}</span> : null}
-          <h2>{title}</h2>
+          <h2>
+            <button type="button" className="pl-fold" aria-expanded={open} aria-controls={`${id}-corps`} onClick={() => setOpen(!open)}>
+              <span className="pl-chev" aria-hidden="true" />
+              {title}
+            </button>
+          </h2>
         </div>
-        {right}
+        {open ? right : null}
       </header>
-      {children}
+      <div id={`${id}-corps`} hidden={!open}>
+        <SectionContext.Provider value={id}>{children}</SectionContext.Provider>
+      </div>
     </section>
   );
 }
 
-export function Card({ title, children, wide, note }) {
+// `fold` : "open" ou "closed" rend la carte repliable, dans l'état indiqué la première fois
+export function Card({ title, children, wide, note, fold }) {
+  const section = useContext(SectionContext);
+  const key = `card:${section}/${title}`;
+  const foldable = Boolean(fold && title);
+  const [open, setOpen] = useFold(key, fold !== "closed", { id: key, isSection: false, enabled: foldable });
+  const shown = !foldable || open;
   return (
-    <div className={`pl-card${wide ? " is-wide" : ""}`}>
-      {title ? <h3>{title}</h3> : null}
-      {children}
-      {note ? <p className="pl-note">{note}</p> : null}
+    <div className={`pl-card${wide ? " is-wide" : ""}${shown ? "" : " is-folded"}`}>
+      {title ? (
+        <h3>
+          {foldable ? (
+            <button type="button" className="pl-fold" aria-expanded={open} onClick={() => setOpen(!open)}>
+              <span className="pl-chev" aria-hidden="true" />
+              {title}
+            </button>
+          ) : (
+            title
+          )}
+        </h3>
+      ) : null}
+      <div hidden={!shown}>
+        {children}
+        {note ? <p className="pl-note">{note}</p> : null}
+      </div>
     </div>
   );
 }
