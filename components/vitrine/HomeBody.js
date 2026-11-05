@@ -4,10 +4,10 @@
 // chargement des chiffres du catalogue (getProof) reste côté serveur dans app/vitrine/page.js.
 
 import Image from "next/image";
-import { Block } from "./Frame";
+import Block from "./Block";
 import { SIGNUP } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
-import { formatProof } from "@/lib/vitrine/proof";
+import { formatProof } from "@/lib/vitrine/proofFormat";
 import { ACCUEIL_TEXT, ACCUEIL_STEPS, ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
 import proposition, { en as propositionEn } from "@/lib/vitrine/blocks/proposition";
 import carrousel, { en as carrouselEn } from "@/lib/vitrine/blocks/carrousel";
