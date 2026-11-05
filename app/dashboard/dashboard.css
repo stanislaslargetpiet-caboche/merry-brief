@@ -7357,7 +7357,7 @@ body.d-noscroll {
   display: inline-flex;
   padding: 3px;
   border-radius: 999px;
-  background: var(--d-panel);
+  background: #ffffff;
   border: 1px solid var(--d-line);
 }
 
@@ -7377,8 +7377,9 @@ body.d-noscroll {
 }
 
 .d-pr-view button.is-on {
-  border-color: var(--d-border);
-  background: #ffffff;
+  border-color: var(--d-ink);
+  background: var(--d-ink);
+  color: #ffffff;
   font-weight: 600;
 }
 
