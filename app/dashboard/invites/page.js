@@ -947,11 +947,8 @@ export default function Invites() {
     writeCells(list).then((n) => ok(n ? `${n} cellule${n > 1 ? "s" : ""} collée${n > 1 ? "s" : ""}.` : "Rien à coller ici."));
   };
 
-  // Un filtre actif (menu Filtres ou recherche) : les indicateurs portent alors sur ce qui est affiché,
-  // pas sur l'ensemble des invités, pour rester cohérents avec la liste.
-  const filterActive = filterCount > 0 || q.length > 0;
-  const statsData = filterActive ? { ...data, guests: filtered } : data;
-  const stats = kpiItems(statsData, "invites");
+  // Les indicateurs portent toujours sur l'ensemble des invités : ni la recherche ni les filtres ne les font bouger.
+  const stats = kpiItems(data, "invites");
 
   // Colonnes du tableau : largeur et ordre au choix de chacun (gardés dans le navigateur)
   const columnDefs = [
