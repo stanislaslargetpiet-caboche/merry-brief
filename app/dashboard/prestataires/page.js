@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters, TOP_PICKS } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
@@ -229,7 +229,7 @@ export default function Trouver() {
       ) : (
         <>
           <div className="d-pr-intro">
-            <h2>Recommandations</h2>
+            <h2>{list.length >= TOP_PICKS ? `Notre top ${TOP_PICKS}` : "Recommandations"}</h2>
             {loading || searching ? (
               <p className="d-pr-intro-loading">
                 <BusyDots label="Recherche en cours" />
