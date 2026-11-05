@@ -11079,7 +11079,11 @@ body.d-noscroll {
   .d-pr-mes-top {
     display: flex;
     gap: 12px;
-    padding: 14px 0 10px;
+    padding: 12px 0 12px;
+  }
+
+  .d-pr-box.is-mes .d-pr-line-name {
+    gap: 6px;
   }
 
   .d-pr-mes-top .d-pr-line-main {

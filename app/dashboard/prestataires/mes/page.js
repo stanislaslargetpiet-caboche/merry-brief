@@ -144,9 +144,7 @@ function MesRow({ p, status, onCheck, onRemove, onFiche }) {
             <button type="button" className="d-pr-line-open is-name" onClick={onFiche}>
               {v.name}
             </button>
-            <span className="d-desk-only-inline">
-              <StatusChip k={status.key} />
-            </span>
+            <StatusChip k={status.key} />
           </div>
           {v.area ? <div className="d-pr-line-meta">{v.area}</div> : null}
           {line ? <div className="d-pr-line-text d-desk-only">{line}</div> : null}
@@ -154,12 +152,11 @@ function MesRow({ p, status, onCheck, onRemove, onFiche }) {
         <div className="d-pr-line-acts d-desk-only-flex">{acts}</div>
         <Heart on onClick={onRemove} label={`Retirer ${v.name} de mes prestataires`} size={18} className="d-pr-heart is-bare is-row" />
       </div>
-      <div className="d-pr-mes-rest d-mob-only-flex">
-        <div className="d-pr-line-acts">
-          <StatusChip k={status.key} />
-          {acts}
+      {todo ? null : (
+        <div className="d-pr-mes-rest d-mob-only-flex">
+          <div className="d-pr-line-acts">{acts}</div>
         </div>
-      </div>
+      )}
     </li>
   );
 }
