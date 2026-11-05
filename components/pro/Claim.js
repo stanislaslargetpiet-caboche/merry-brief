@@ -175,6 +175,7 @@ const ERRORS = {
   create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
   network: "La connexion a échoué. Vérifiez votre réseau, puis réessayez.",
   bad_link: "Ce lien d’invitation n’est plus valable. Demandez-en un nouveau à la personne qui vous a invité.",
+  already_member: "Vous faites déjà partie de cette équipe. Ce lien est réservé à la personne invitée : il reste valable pour elle.",
 };
 
 export default function Claim() {

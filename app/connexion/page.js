@@ -406,6 +406,13 @@ export default function Connexion() {
             <Link href="/">{s.footnoteLink}</Link>
           </p>
         ) : null}
+        {/* Un prestataire arrivé ici par erreur : sa porte est /pro (tests du 5 nov. 2026) */}
+        {(mode === "login" || mode === "forgot") && !token ? (
+          <p className="cx-foot">
+            {s.proLead}
+            <a href="/pro">{s.proLink}</a>
+          </p>
+        ) : null}
       </main>
     </div>
   );
