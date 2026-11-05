@@ -92,6 +92,14 @@ const DUO_ICONS = {
   cloche: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="FILL"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   upload: '<path d="M5 15v4.5h14V15" fill="none"/><path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9"/>',
   autre: '<rect x="4" y="4" width="16" height="16" rx="4" fill="FILL"/><path d="M8.5 12h7M12 8.5v7"/>',
+  seat: '<path d="M5 11h14v3H5z" fill="FILL"/><path d="M7 11V5.5A1.5 1.5 0 0 1 8.5 4h7A1.5 1.5 0 0 1 17 5.5V11M7 14v6M17 14v6"/>',
+  train: '<rect x="5.5" y="3.5" width="13" height="13" rx="3" fill="FILL"/><path d="M5.5 10.5h13M9 20l-1.5 1.5M15 20l1.5 1.5M9 13.5h.01M15 13.5h.01"/>',
+  plane: '<path d="M10.5 13.5 4 11l1.5-1.5 7 1L17 6a1.6 1.6 0 0 1 2.3 2.3L14.8 13l1 7-1.5 1.5-2.5-6.5L9 17.8V20l-1.2 1.2-1.6-3.4L3 16.2 4.2 15H6.4z" fill="FILL"/>',
+  parking: '<rect x="4" y="4" width="16" height="16" rx="3" fill="FILL"/><path d="M10 16V8h3a2.5 2.5 0 0 1 0 5h-3"/>',
+  chef: '<path d="M7 14v6h10v-6M7 14a4 4 0 0 1-1-7.9A4.5 4.5 0 0 1 12 4a4.5 4.5 0 0 1 6 2.1A4 4 0 0 1 17 14z" fill="FILL"/>',
+  map: '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z" fill="FILL"/><path d="M9 4v14M15 6v14"/>',
+  liste: '<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.9" fill="FILL"/><circle cx="5" cy="12" r="1.9" fill="FILL"/><circle cx="5" cy="18" r="1.9" fill="FILL"/>',
+  filtrer: '<path d="M4 5h16M7 12h10M10 19h4"/><circle cx="14" cy="5" r="2.1" fill="FILL"/><circle cx="10" cy="12" r="2.1" fill="FILL"/><circle cx="13" cy="19" r="2.1" fill="FILL"/>',
   dossier: '<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="FILL"/><path d="M3.5 11h17"/>',
 };
 
@@ -115,8 +123,12 @@ export function Icon({ name, size = 18, stroke = "currentColor", sw = 1.8, class
   );
 }
 
+// Noms de la grille d'icônes de Prestataires (trait Icon) → leur version bicolore
+const DUO_ALIAS = { bed: "lit", pin: "adresse", list: "filtrer" };
+
 export function DuoIcon({ name, size = 20, fill = "var(--d-lime)", stroke = "#1c1c1a", sw = 1.6 }) {
-  const inner = (Object.hasOwn(DUO_ICONS, name) ? DUO_ICONS[name] : DUO_ICONS.autre).replaceAll("FILL", fill);
+  const key = DUO_ALIAS[name] || name;
+  const inner = (Object.hasOwn(DUO_ICONS, key) ? DUO_ICONS[key] : DUO_ICONS.autre).replaceAll("FILL", fill);
   return (
     <svg
       width={size}

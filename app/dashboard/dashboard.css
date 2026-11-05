@@ -7230,11 +7230,11 @@ body.d-noscroll {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   border: 0;
-  background: var(--d-panel);
+  background: var(--d-lime);
   color: var(--d-ink);
 }
 
@@ -7355,10 +7355,10 @@ body.d-noscroll {
 .d-pr-view {
   flex: none;
   display: inline-flex;
-  padding: 3px;
+  border: 1px solid var(--d-border);
   border-radius: 999px;
-  background: var(--d-panel);
-  border: 1px solid var(--d-line);
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .d-pr-view button {
@@ -7368,7 +7368,7 @@ body.d-noscroll {
   min-height: 38px;
   padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid transparent;
+  border: 0;
   background: transparent;
   color: var(--d-ink);
   font-size: 13px;
@@ -7377,8 +7377,8 @@ body.d-noscroll {
 }
 
 .d-pr-view button.is-on {
-  border-color: var(--d-border);
-  background: #ffffff;
+  background: var(--d-ink);
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -7733,7 +7733,7 @@ body.d-noscroll {
 .d-pr-specs svg {
   flex: none;
   margin-top: 1px;
-  color: var(--d-ok-ink);
+  color: var(--d-ink);
 }
 
 .d-pr-details {
@@ -9329,6 +9329,13 @@ body.d-noscroll {
 .d-pr-where {
   font-size: 13px;
   color: var(--d-muted);
+}
+
+.d-pr-address {
+  font-style: normal;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--d-ink);
 }
 
 /* Demander les devis (7h, 7t) */
@@ -12236,6 +12243,30 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+.d-pr-tabrow.is-phone {
+  flex-wrap: nowrap;
+  margin: 4px 0 0;
+}
+
+.d-pr-tabrow.is-phone .d-pr-tabs {
+  flex: 1;
+}
+
+.d-pr-ctlrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.d-pr-ctlrow-end {
+  margin-left: auto;
+}
+
+.d-pr-view.is-compact button {
+  padding: 0 12px;
+}
+
 .d-pr-count {
   flex: none;
   display: inline-flex;
@@ -12243,10 +12274,10 @@ body.d-noscroll {
   height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  background: var(--d-panel);
+  background: var(--d-lime);
   font-size: 13px;
   font-weight: 500;
-  color: var(--d-muted);
+  color: var(--d-ink);
   white-space: nowrap;
 }
 

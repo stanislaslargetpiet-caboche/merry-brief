@@ -6,12 +6,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
-import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, countLabel, mapPoint, rank, sampleClusters, TOP_PICKS } from "@/lib/dash/catalog";
 import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
 import { cityFilter } from "@/lib/dash/filters";
-import { Icon } from "@/components/dash/icons";
+import { DuoIcon, Icon } from "@/components/dash/icons";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { BusyDots } from "@/components/dash/ui";
 import { FiltersPanel, SearchSummary, activeFilters, inPrice } from "@/components/dash/Filtres";
@@ -196,21 +196,19 @@ export default function Trouver() {
       <FiltersNote rec={rec} />
       {phone ? (
         <>
-          <div className="d-pr-pillrow">
-            <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)}>
-              <Icon name="list" size={14} sw={2} />
-              Filtres
+          <div className="d-pr-tabrow is-phone">
+            <CategoryTabs value={cat} onChange={changeCat} />
+          </div>
+          <div className="d-pr-ctlrow">
+            <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)} aria-label={filtersCount ? `Filtres, ${filtersCount} actifs` : "Filtres"}>
+              <DuoIcon name="list" size={18} stroke={filtersCount ? "#ffffff" : undefined} />
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
-            <ResultCount n={searching ? null : resultCount} />
-            {CATEGORIES.map((cg) => (
-              <button key={cg.key} type="button" className={`d-pr-pill${cat === cg.key ? " is-on" : ""}`} onClick={() => changeCat(cg.key)}>
-                {cg.tab}
-              </button>
-            ))}
+            {searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : <ResultCount n={resultCount} />}
+            <span className="d-pr-ctlrow-end">
+              <ViewToggle view={view} onChange={changeView} compact />
+            </span>
           </div>
-          {searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
-          <ViewToggle view={view} onChange={changeView} />
         </>
       ) : (
         <>
@@ -229,7 +227,7 @@ export default function Trouver() {
       ) : (
         <>
           <div className="d-pr-intro">
-            <h2>Recommandations</h2>
+            <h2>{list.length >= TOP_PICKS ? `Notre top ${TOP_PICKS}` : "Recommandations"}</h2>
             {loading || searching ? (
               <p className="d-pr-intro-loading">
                 <BusyDots label="Recherche en cours" />
@@ -390,7 +388,7 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
 
   const filtersBtn = (
     <button type="button" className={`d-pr-filters-btn is-float${filtersCount ? " is-on" : ""}`} onClick={onFilters} aria-haspopup="dialog">
-      <Icon name="list" size={16} sw={2} />
+      <DuoIcon name="list" size={18} />
       Filtres
       {filtersCount ? <span className="d-pr-filters-badge">{filtersCount}</span> : null}
     </button>
@@ -436,12 +434,12 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
         </div>
         {sheet === "full" ? (
           <button type="button" className="d-pr-maplistbtn" onClick={() => setSheet("peek")}>
-            <Icon name="map" size={16} sw={2} />
+            <DuoIcon name="map" size={18} stroke="#ffffff" />
             Carte
           </button>
         ) : (
           <button type="button" className="d-pr-maplistbtn" onClick={onList}>
-            <Icon name="list" size={16} sw={2} />
+            <DuoIcon name="liste" size={18} stroke="#ffffff" />
             Liste
           </button>
         )}
