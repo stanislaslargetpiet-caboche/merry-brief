@@ -7230,11 +7230,11 @@ body.d-noscroll {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   border: 0;
-  background: var(--d-panel);
+  background: var(--d-lime);
   color: var(--d-ink);
 }
 
