@@ -4,7 +4,8 @@
 // réservée aux adresses de PILOTAGE_EMAILS. Les données viennent de /api/interne/pilotage ; la page ne fait
 // que les mettre en forme. Chaque chiffre de période est comparé à la période précédente de même longueur.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PilotNav from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, Funnel, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
@@ -18,6 +19,17 @@ function readDemoFlag() {
     return false;
   }
 }
+
+const SECTIONS = [
+  { id: "sante", label: "Santé" },
+  { id: "site", label: "Site" },
+  { id: "referencement", label: "Référencement" },
+  { id: "appli", label: "Appli" },
+  { id: "produit", label: "Produit" },
+  { id: "prestataires", label: "Prestataires" },
+  { id: "mails", label: "Mails" },
+  { id: "bugs", label: "Bugs" },
+];
 
 const RANGES = [
   { jours: 1, label: "24 h" },
@@ -49,6 +61,21 @@ export default function PilotagePage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const rootRef = useRef(null);
+  const barRef = useRef(null);
+
+  // Le menu fixe a une hauteur qui change (une ou deux rangées selon la largeur) : la page la mesure pour que
+  // les sections s'arrêtent juste dessous quand on clique sur une pastille
+  useEffect(() => {
+    const bar = barRef.current;
+    const root = rootRef.current;
+    if (!bar || !root || typeof ResizeObserver === "undefined") return undefined;
+    const apply = () => root.style.setProperty("--bar-h", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  });
 
   // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
   // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
@@ -96,20 +123,16 @@ export default function PilotagePage() {
   if (error === "interdit") return <Gate title="Réservé" text={`Le compte ${auth.email || ""} n'a pas accès au pilotage.`} />;
 
   return (
-    <div className="pl-root">
-      <div className="pl-wrap">
-        <header className="pl-top">
-          <div className="pl-top-left">
-            <a className="pl-logo" href="/dashboard">
-              Merry
-            </a>
-            <span className="pl-title">Pilotage</span>
-            {data ? <span className="pl-generated">{data.demo ? "jeu d'exemple, pas de vraies mesures" : `généré le ${fmtDateTime(data.genere)}`}</span> : null}
-          </div>
-          <div className="pl-top-right">
-            <div className="pl-ranges" role="tablist" aria-label="Période">
+    <div className="pl-root" ref={rootRef}>
+      <header className="pl-bar" ref={barRef}>
+        <div className="pl-bar-in">
+          <a className="pl-logo" href="/dashboard">
+            Merry
+          </a>
+          <div className="pl-actions">
+            <div className="pl-ranges" role="group" aria-label="Période">
               {RANGES.map((r) => (
-                <button key={r.jours} type="button" role="tab" aria-selected={jours === r.jours} className={jours === r.jours ? "is-on" : ""} disabled={busy} onClick={() => setJours(r.jours)}>
+                <button key={r.jours} type="button" aria-pressed={jours === r.jours} className={`pl-chip${jours === r.jours ? " is-on" : ""}`} disabled={busy} onClick={() => setJours(r.jours)}>
                   {r.label}
                 </button>
               ))}
@@ -118,17 +141,17 @@ export default function PilotagePage() {
               {busy ? "Chargement…" : "Actualiser"}
             </button>
           </div>
-        </header>
-        <nav className="pl-nav" aria-label="Sections">
-          <a href="#sante">Santé</a>
-          <a href="#site">Site</a>
-          <a href="#referencement">Référencement</a>
-          <a href="#appli">Appli</a>
-          <a href="#produit">Produit</a>
-          <a href="#prestataires">Prestataires</a>
-          <a href="#mails">Mails</a>
-          <a href="#bugs">Bugs</a>
-        </nav>
+          {data ? <PilotNav sections={SECTIONS} offsetRef={barRef} ready={Boolean(data)} /> : null}
+        </div>
+      </header>
+      <div className="pl-wrap">
+        <div className="pl-hero">
+          <h1>Pilotage</h1>
+          <p className="pl-lede">
+            Site, appli, prestataires, mails, référencement et bugs de Merry, relus à l'ouverture.
+            {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
+          </p>
+        </div>
         {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
         {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
         {data ? <Board data={data} jours={jours} /> : null}
