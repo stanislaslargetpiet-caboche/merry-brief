@@ -11,7 +11,7 @@ import { project, unproject } from "@/lib/dash/provenceMap";
 import { chosenVenue } from "@/lib/dash/picks";
 import { searchWishes } from "@/lib/dash/criteria";
 import { cityFilter } from "@/lib/dash/filters";
-import { Icon } from "@/components/dash/icons";
+import { DuoIcon, Icon } from "@/components/dash/icons";
 import VendorSearchBar from "@/components/dash/VendorSearchBar";
 import { BusyDots } from "@/components/dash/ui";
 import { FiltersPanel, SearchSummary, activeFilters, inPrice } from "@/components/dash/Filtres";
@@ -198,7 +198,7 @@ export default function Trouver() {
         <>
           <div className="d-pr-pillrow">
             <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)} aria-label={filtersCount ? `Filtres, ${filtersCount} actifs` : "Filtres"}>
-              <Icon name="list" size={14} sw={2} />
+              <DuoIcon name="list" size={18} stroke={filtersCount ? "#ffffff" : undefined} />
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
             {CATEGORIES.map((cg) => (
@@ -388,7 +388,7 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
 
   const filtersBtn = (
     <button type="button" className={`d-pr-filters-btn is-float${filtersCount ? " is-on" : ""}`} onClick={onFilters} aria-haspopup="dialog">
-      <Icon name="list" size={16} sw={2} />
+      <DuoIcon name="list" size={18} />
       Filtres
       {filtersCount ? <span className="d-pr-filters-badge">{filtersCount}</span> : null}
     </button>
@@ -434,12 +434,12 @@ function MapView({ focusId, list, rec, onArea, cat, source, phone, isPicked, onT
         </div>
         {sheet === "full" ? (
           <button type="button" className="d-pr-maplistbtn" onClick={() => setSheet("peek")}>
-            <Icon name="map" size={16} sw={2} />
+            <DuoIcon name="map" size={18} stroke="#ffffff" />
             Carte
           </button>
         ) : (
           <button type="button" className="d-pr-maplistbtn" onClick={onList}>
-            <Icon name="list" size={16} sw={2} />
+            <DuoIcon name="list" size={18} stroke="#ffffff" />
             Liste
           </button>
         )}

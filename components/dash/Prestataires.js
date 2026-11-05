@@ -16,7 +16,7 @@ import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexib
 import { isOff, searchWishes, venueFacts } from "@/lib/dash/criteria";
 import { MAP_BG, PRICE_BARS, project } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
-import { Icon } from "./icons";
+import { DuoIcon, Icon } from "./icons";
 import { BusyDots, trapTab, useIsPhone } from "./ui";
 
 export { useIsPhone };
@@ -317,11 +317,11 @@ export function ViewToggle({ view, onChange }) {
   return (
     <div role="group" aria-label="Affichage" className="d-pr-view">
       <button type="button" aria-pressed={view === "liste"} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
-        <Icon name="list" size={15} sw={2} />
+        <DuoIcon name="list" size={18} stroke={view === "liste" ? "#ffffff" : undefined} />
         Liste
       </button>
       <button type="button" aria-pressed={view === "carte"} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
-        <Icon name="map" size={15} sw={2} />
+        <DuoIcon name="map" size={18} stroke={view === "carte" ? "#ffffff" : undefined} />
         Carte
       </button>
     </div>
@@ -357,7 +357,7 @@ export function Specs({ v, venueName }) {
     <ul className="d-pr-specs">
       {rows.map(([icon, text]) => (
         <li key={text}>
-          <Icon name={icon} size={16} sw={2} />
+          <DuoIcon name={icon} size={18} />
           {text}
         </li>
       ))}
@@ -475,7 +475,7 @@ export function VendorCard({ v, picked, onToggle, onOpen, onMap, venueName }) {
             <Price v={v} />
             {onMap && mapPoint(v) ? (
               <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
-                <Icon name="map" size={14} sw={2} />
+                <DuoIcon name="map" size={16} />
                 Carte
               </button>
             ) : null}
@@ -1419,7 +1419,7 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
             <div className="d-pr-maplinks">
               {onMap ? (
                 <button type="button" className="d-pr-maplink" onClick={() => onMap(v)}>
-                  <Icon name="map" size={14} sw={2} />
+                  <DuoIcon name="map" size={16} />
                   Voir sur la carte
                 </button>
               ) : null}

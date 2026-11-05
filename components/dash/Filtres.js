@@ -12,7 +12,7 @@ import { REGIONS } from "@/lib/dash/filters";
 import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList } from "@/lib/dash/criteria";
 import { PRICE_BARS } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
-import { Icon } from "./icons";
+import { DuoIcon, Icon } from "./icons";
 import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, ResultCount, VENUE, styleCriteria } from "./Prestataires";
 
 export const PRICE_MAX = 100000;
@@ -33,7 +33,7 @@ export function SearchSummary({ price, onOpen, busy, count }) {
   return (
     <div className="d-pr-summary">
       <button type="button" className={`d-pr-filters-btn${n ? " is-on" : ""}`} onClick={onOpen} aria-haspopup="dialog">
-        <Icon name="list" size={16} sw={2} />
+        <DuoIcon name="list" size={18} />
         Filtres
         {n ? <span className="d-pr-filters-badge" aria-label={`${n} filtres actifs`}>{n}</span> : null}
       </button>
