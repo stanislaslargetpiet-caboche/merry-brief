@@ -197,9 +197,8 @@ export default function Trouver() {
       {phone ? (
         <>
           <div className="d-pr-pillrow">
-            <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)}>
+            <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)} aria-label={filtersCount ? `Filtres, ${filtersCount} actifs` : "Filtres"}>
               <Icon name="list" size={14} sw={2} />
-              Filtres
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
             {CATEGORIES.map((cg) => (
