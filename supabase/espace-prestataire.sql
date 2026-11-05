@@ -791,8 +791,12 @@ grant execute on function public.pro_propose(uuid, uuid, text) to authenticated;
 -- I (suite). Les chiffres du mois sur l'accueil
 -- ---------------------------------------------------------------------------
 
-create or replace function public.pro_stats(v uuid)
-returns table (views integer, picks integer, requests integer)
+-- create or replace ne peut pas changer les colonnes de retour d'une fonction existante (ajout de
+-- views_7d) : il faut la supprimer d'abord. Vérifié par un essai annulé (rollback) le 5 nov. 2026.
+drop function if exists public.pro_stats(uuid);
+
+create function public.pro_stats(v uuid)
+returns table (views integer, picks integer, requests integer, views_7d integer)
 language sql
 stable
 security definer
@@ -801,7 +805,9 @@ as $$
   select
     (select count(*)::int from public.pro_views x where x.vendor_id = v and x.viewed_at >= date_trunc('month', now())),
     (select count(*)::int from public.vendor_picks p where p.catalog_ref = 'catalog:' || v::text and p.created_at >= date_trunc('month', now())),
-    (select count(*)::int from public.vendor_picks p where p.catalog_ref = 'catalog:' || v::text and p.requested_at >= date_trunc('month', now()))
+    (select count(*)::int from public.vendor_picks p where p.catalog_ref = 'catalog:' || v::text and p.requested_at >= date_trunc('month', now())),
+    -- Fenêtre glissante de 7 jours (dashboard, carte « Vues de la fiche »), distincte du compteur du mois ci-dessus
+    (select count(*)::int from public.pro_views x where x.vendor_id = v and x.viewed_at >= now() - interval '7 days')
   where public.is_pro_member(v);
 $$;
 revoke all on function public.pro_stats(uuid) from public, anon;
