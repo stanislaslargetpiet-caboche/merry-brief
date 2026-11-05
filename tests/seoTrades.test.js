@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildStats, allPages } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
 import { TRADES, tradeOf, tradeOfCategory } from "@/lib/seo/trades";
-import { regionZone, zoneOf } from "@/lib/seo/geo";
+import { FRANCE, regionZone, zoneOf } from "@/lib/seo/geo";
 
 // Un catalogue réduit : des wedding planners et des lieux en Bretagne
 const stats = {
@@ -16,8 +16,8 @@ const stats = {
 };
 
 describe("métiers des pages SEO", () => {
-  it("neuf métiers, chacun avec son adresse et ses catégories du catalogue, sans doublon", () => {
-    expect(TRADES.map((t) => t.slug)).toEqual(["lieux", "traiteurs", "dj", "fleuristes", "photographes", "wedding-planners", "coiffure-maquillage", "decoration", "robes-costumes"]);
+  it("dix métiers, chacun avec son adresse et ses catégories du catalogue, sans doublon", () => {
+    expect(TRADES.map((t) => t.slug)).toEqual(["lieux", "traiteurs", "dj", "fleuristes", "photographes", "wedding-planners", "coiffure-maquillage", "decoration", "robes-costumes", "officiants"]);
     const cats = TRADES.flatMap((t) => t.catalog);
     expect(new Set(cats).size).toBe(cats.length);
     expect(tradeOfCategory("beaute").slug).toBe("coiffure-maquillage");
@@ -46,6 +46,21 @@ describe("métiers des pages SEO", () => {
     expect(pageDescription(trade, zone, model.stat)).toBe("21 wedding planners en Bretagne. Compare-les et demande tes devis sur Merry, gratuitement.");
     // Les onglets proposent les autres métiers présents dans la zone
     expect(model.tabs.map((t) => t.label)).toEqual(["Lieux", "Wedding planners"]);
+  });
+
+  it("les officiants n'ont qu'une page nationale tant qu'aucune zone n'atteint huit fiches", () => {
+    const few = { at: stats.at, stats: buildStats(["12", "15", "21", "22", "36", "38", "41", "49", "67"].map((department) => ({ primary_category: "officiant", department, price_unit: null, n: 1, prices: [] }))) };
+    expect(allPages(few).map((p) => p.href)).toEqual(["/mariage/officiants"]);
+    const trade = tradeOf("officiants");
+    const model = pageModel(trade, FRANCE, few);
+    expect(pageTitle(trade, FRANCE)).toBe("Officiants de cérémonie en France");
+    expect(model.figures[0]).toEqual({ value: "9", label: "officiants de cérémonie" });
+    expect(model.pills).toEqual([]);
+  });
+
+  it("les boutiques de robes : on les contacte, on ne leur demande pas de devis", () => {
+    const trade = tradeOf("robes-costumes");
+    expect(pageDescription(trade, FRANCE, { n: 612, median: null })).toBe("612 boutiques de robes et de costumes en France. Compare-les et contacte-les sur Merry, gratuitement.");
   });
 
   it("un métier avec prix garde son chiffre et sa question", () => {

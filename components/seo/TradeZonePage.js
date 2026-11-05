@@ -78,7 +78,7 @@ function VendorCard({ v, trade }) {
             </span>
           )}
           <a href={SIGNUP} className="sm-link">
-            Demander un devis
+            {trade.quote === false ? "Contacter la boutique" : "Demander un devis"}
           </a>
         </div>
       </div>
@@ -188,9 +188,11 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
                 <VendorCard key={v.id} v={v} trade={trade} />
               ))}
             </div>
-            <a href={SIGNUP} className="sm-btn sm-btn-line sm-more">
-              Voir les {num(stat.n)} {trade.many}
-            </a>
+            {stat.n > vendors.length && (
+              <a href={SIGNUP} className="sm-btn sm-btn-line sm-more">
+                Voir les {num(stat.n)} {trade.many}
+              </a>
+            )}
           </section>
         )}
 

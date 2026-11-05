@@ -14,6 +14,8 @@ describe("seoTitle", () => {
   it("ne promet pas de tarifs pour un métier sans prix, et lâche la marque en dernier recours", () => {
     expect(seoTitle("Wedding planners en Bretagne", { priced: false })).toBe("Wedding planners en Bretagne : sélection et devis | Merry");
     expect(seoTitle("Robes de mariée et costumes dans les Alpes-de-Haute-Provence", { priced: false })).toBe("Robes de mariée et costumes dans les Alpes-de-Haute-Provence");
+    expect(seoTitle("Robes de mariée et costumes à Paris", { priced: false, quote: false })).toBe("Robes de mariée et costumes à Paris : sélection | Merry");
+    expect(seoTitle("Officiants de cérémonie en France", { priced: false })).toBe("Officiants de cérémonie en France : sélection et devis | Merry");
   });
   it("tient dans la limite pour tous les métiers et toutes les zones", () => {
     const zones = [FRANCE, ...REGIONS.map((r) => regionZone(r.name)), ...DEPARTMENTS.map((d) => zoneOf(d.slug))];
