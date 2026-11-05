@@ -106,7 +106,10 @@ function MaFiche() {
         </div>
         <div className="p-grid2">
           <TextField required id="tel" type="tel" label="Téléphone" value={v.phone} check={validPhone} checkText="Vérifiez ce numéro de téléphone." onSave={(t) => save({ phone: t || null })} />
-          <TextField required id="mail" type="email" label="Mail" value={v.email} check={validMail} checkText="Vérifiez cette adresse mail." onSave={(t) => save({ email: t || null })} />
+          <div>
+            <TextField required id="mail" type="email" label="Mail" value={v.email} check={validMail} checkText="Vérifiez cette adresse mail." onSave={(t) => save({ email: t || null })} />
+            <MailCheck email={v.email} />
+          </div>
         </div>
         <TextField id="brochure" label="Lien vers la brochure (PDF)" value={det.brochure_url} onSave={(t) => save({ brochure_url: t || null })} />
       </section>
@@ -307,6 +310,83 @@ function VideoSection() {
         </div>
       ) : null}
     </>
+  );
+}
+
+// ---------- Mail de contact : vérifié par un code à 6 chiffres (app/api/pro/contact) ----------
+
+const MAIL_ERRORS = {
+  bad_code: "Ce code n’est pas le bon.",
+  expired: "Ce code n’est plus valable : demandez-en un nouveau.",
+  wait: "Trop de codes demandés : réessayez dans une heure.",
+  no_email: "Enregistrez d’abord une adresse mail valide.",
+};
+
+// Rien ne s'affiche tant que supabase/pro-fiche-mail-verifie.sql n'est pas en place (colonne absente)
+function MailCheck({ email }) {
+  const pro = usePro();
+  const [step, setStep] = useState("idle");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const mail = String(email || "").trim().toLowerCase();
+
+  // Une autre adresse : le code demandé pour la précédente ne sert plus
+  useEffect(() => {
+    setStep("idle");
+    setCode("");
+    setError(null);
+  }, [mail]);
+
+  if (!pro.data.pro || !("email_verified" in pro.data.pro) || !validMail(mail)) return null;
+  if (pro.data.pro.email_verified === mail) return <p className="p-hint p-verified">Adresse vérifiée</p>;
+
+  const run = async (action) => {
+    setBusy(true);
+    setError(null);
+    const res = await pro.verifyMail(action, code);
+    setBusy(false);
+    if (res.error) setError(MAIL_ERRORS[res.error] || "La vérification n’a pas abouti : réessayez.");
+    else if (res.sent) {
+      setCode("");
+      setStep("code");
+    }
+  };
+
+  return (
+    <div className="p-verify">
+      {step === "code" ? (
+        <>
+          <label htmlFor="mail-code" className="p-hint">
+            Code reçu à cette adresse
+          </label>
+          <div className="p-verify-row">
+            <input
+              id="mail-code"
+              className="p-input"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              autoFocus
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && code.length === 6 && run("verify")}
+            />
+            <button type="button" className="p-btn p-btn-ghost" disabled={busy || code.length !== 6} onClick={() => run("verify")}>
+              {busy ? <BusyDots /> : "Valider"}
+            </button>
+          </div>
+          <button type="button" className="p-verify-again" disabled={busy} onClick={() => run("send")}>
+            Renvoyer le code
+          </button>
+        </>
+      ) : (
+        <button type="button" className="p-btn p-btn-ghost p-start" disabled={busy} onClick={() => run("send")}>
+          {busy ? <BusyDots /> : "Vérifier cette adresse"}
+        </button>
+      )}
+      <Missing when={!!error}>{error}</Missing>
+    </div>
   );
 }
 

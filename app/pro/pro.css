@@ -2232,6 +2232,43 @@ select.p-input {
   color: var(--danger);
 }
 
+/* Vérification du mail de contact (Ma fiche > Présentation) */
+.p-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.p-verify-row {
+  display: flex;
+  gap: 8px;
+}
+
+.p-verify-row .p-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  letter-spacing: 0.2em;
+}
+
+.p-verify-again {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.p-verified {
+  margin-top: 8px;
+  color: var(--d-ink);
+  font-weight: 600;
+}
+
 /* Astérisque des champs obligatoires de Ma fiche */
 .p-req {
   color: var(--danger);
