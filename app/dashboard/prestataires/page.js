@@ -34,6 +34,8 @@ import {
   ToConfirm,
   MAP_MIN_SCALE,
   MoreButton,
+  RankDivider,
+  ResultCount,
   useIsPhone,
   usePicks,
   useRecommendations,
@@ -93,7 +95,7 @@ export default function Trouver() {
   const venueName = cityWish?.name || venuePick?.data?.name || dash.data.wedding.venue || null;
   // Zone de la carte (« Rechercher dans cette zone ») : remplace la région du brief tant qu'elle est choisie
   const [bbox, setBbox] = useState(null);
-  const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox);
+  const rec = useRecommendations(cat, cat === "lieu" ? null : venuePick?.data?.lat ? { lat: venuePick.data.lat, lng: venuePick.data.lng } : null, bbox, price);
   const { vendors, source, loading } = rec;
   const wishes = cat === "lieu" ? searchWishes(dash.data) : null;
   const list = useMemo(() => rank(vendors, wishes, cat).filter((v) => inPrice(v, price)), [vendors, wishes, cat, price]);
@@ -102,6 +104,8 @@ export default function Trouver() {
     const t = setTimeout(() => setSearching(false), 450);
     return () => clearTimeout(t);
   }, [searching, loading]);
+  // Décompte de la pastille : celui du catalogue (tous les résultats, pas seulement ceux déjà chargés)
+  const resultCount = loading ? null : source === "catalogue" ? rec.total ?? list.length : list.length;
   const pending = picks.filter((p) => !p.requested_at);
   const filtersCount = activeFilters(dash.data, price);
   const c = catOf(cat);
@@ -198,6 +202,7 @@ export default function Trouver() {
               Filtres
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
+            <ResultCount n={searching ? null : resultCount} />
             {CATEGORIES.map((cg) => (
               <button key={cg.key} type="button" className={`d-pr-pill${cat === cg.key ? " is-on" : ""}`} onClick={() => changeCat(cg.key)}>
                 {cg.tab}
@@ -209,7 +214,7 @@ export default function Trouver() {
         </>
       ) : (
         <>
-          <SearchSummary price={price} busy={searching} onOpen={() => setFilters(true)} />
+          <SearchSummary price={price} busy={searching} count={resultCount} onOpen={() => setFilters(true)} />
           <div className="d-pr-tabrow">
             <CategoryTabs value={cat} onChange={changeCat} />
             <div className="d-pr-tabrow-right">
@@ -236,6 +241,7 @@ export default function Trouver() {
           <div className={`d-pr-grid${searching ? " is-loading" : ""}`} aria-busy={searching || undefined}>
             {list.map((v, i) => (
               <Fragment key={v.id}>
+                <RankDivider index={i} total={list.length} category={cat} />
                 <ConfirmDivider list={list} index={i} category={cat} />
                 <VendorCard v={v} picked={isPicked(v)} onToggle={() => toggle(v)} onOpen={() => openFiche(v)} onMap={showOnMap} venueName={venueName} />
               </Fragment>
