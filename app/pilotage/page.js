@@ -122,6 +122,7 @@ export default function PilotagePage() {
         <nav className="pl-nav" aria-label="Sections">
           <a href="#sante">Santé</a>
           <a href="#site">Site</a>
+          <a href="#referencement">Référencement</a>
           <a href="#appli">Appli</a>
           <a href="#produit">Produit</a>
           <a href="#prestataires">Prestataires</a>
@@ -155,6 +156,8 @@ function Board({ data, jours }) {
   const ph = data.posthog?.disponible ? data.posthog : null;
   const rs = data.resend?.disponible ? data.resend : null;
   const vc = data.vercel?.disponible ? data.vercel : null;
+  const gsc = data.google?.disponible ? data.google : null;
+  const seo = data.seo?.disponible ? data.seo : null;
   const periode = LABEL_PERIODE[jours] || `${jours} jours`;
 
   const joursList = useMemo(() => (sb?.series?.length ? sb.series.map((r) => r.jour) : dayList(jours)), [sb, jours]);
@@ -213,7 +216,24 @@ function Board({ data, jours }) {
   if (t.catalogue_sans_photo > 0) sante.push({ tone: "neutral", titre: `${fmtInt(t.catalogue_sans_photo)} prestataire(s) actifs sans photo`, detail: "ils passent derrière les autres dans les propositions" });
   if (sb?.repli) sante.push({ tone: "warn", titre: "Supabase en mode réduit", detail: "pilotage_stats n'existe pas encore : colle supabase/pilotage.sql dans le SQL Editor pour le catalogue par métier, les fiches pro, les RSVP et les demandes détaillées" });
   if (sb && sbSplit.current.length === 0) sante.push({ tone: "warn", titre: "Série Supabase vide", detail: "pilotage_stats n'a rien renvoyé pour la période" });
+  if (seo) {
+    if (seo.sitemap.statut !== 200 || !seo.sitemap.urls) sante.push({ tone: "bad", titre: "Sitemap illisible", detail: `réponse ${seo.sitemap.statut}, ${fmtInt(seo.sitemap.urls)} adresse(s) : Google ne peut pas découvrir les pages` });
+    if (seo.robots.statut !== 200 || seo.robots.bloque_tout) sante.push({ tone: "bad", titre: "robots.txt en défaut", detail: seo.robots.bloque_tout ? "il interdit tout le site aux moteurs" : `réponse ${seo.robots.statut}` });
+    if (seo.pages_en_defaut) sante.push({ tone: "warn", titre: `${seo.pages_en_defaut} page(s) du site avec un défaut de référencement`, detail: "sur l'échantillon du jour : voir la section Référencement" });
+  }
+  if (!gsc && data.google) sante.push({ tone: "neutral", titre: "Search Console non lue", detail: data.google.raison || "à configurer" });
   for (const e of data.erreurs || []) sante.push({ tone: "bad", titre: `Source en échec : ${e.source}`, detail: e.message });
+
+  const gscSeries = alignSeries(joursList, gsc?.series, ["clics", "impressions", "position"]);
+  const gscSplit = splitSeries(gscSeries, jours);
+  const organic = alignSeries(joursList, ph?.seo?.series, ["sessions"]);
+  const organicSplit = splitSeries(organic, jours);
+  const avgPos = (rows) => {
+    const seen = rows.filter((r) => r.impressions > 0);
+    const imp = sumBy(seen, "impressions");
+    return imp ? Math.round((seen.reduce((a, r) => a + r.position * r.impressions, 0) / imp) * 10) / 10 : null;
+  };
+  const sitemapGsc = gsc?.sitemaps?.[0] || null;
 
   const appS = ph?.app?.sessions;
   const appP = ph?.app?.sessions_prec;
@@ -275,6 +295,113 @@ function Board({ data, jours }) {
         ) : (
           <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la section Santé"}.</div>
         )}
+      </Section>
+
+      <Section id="referencement" title="Référencement" kicker={`Google · ${periode}`}>
+        <div className="pl-tiles">
+          {gsc ? (
+            <>
+              <Tile label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" />
+              <Tile label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" />
+              <Tile label="Taux de clic" value={pctOf(sumBy(gscSplit.current, "clics"), sumBy(gscSplit.current, "impressions"))} prev={pctOf(sumBy(gscSplit.previous, "clics"), sumBy(gscSplit.previous, "impressions"))} format={(v) => `${v} %`} />
+              <Tile label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" />
+              <Tile label="Pages indexées" value={sitemapGsc ? sitemapGsc.indexes : null} sub={sitemapGsc ? `sur ${fmtInt(sitemapGsc.soumis)} soumises dans le sitemap` : "sitemap pas encore soumis à Google"} />
+            </>
+          ) : null}
+          {ph ? <Tile label="Sessions venues d'un moteur" value={sumBy(organicSplit.current, "sessions")} prev={sumBy(organicSplit.previous, "sessions")} hint="PostHog : première page de la session ouverte depuis Google, Bing, Qwant… (après accord cookies)" /> : null}
+          {seo ? (
+            <>
+              <Tile label="Pages dans le sitemap" value={seo.sitemap.urls} sub={seo.sitemap.statut === 200 ? "sitemap.xml lisible" : `réponse ${seo.sitemap.statut}`} />
+              <Tile label="Pages en défaut" value={seo.pages_en_defaut} sub={`sur ${fmtInt(seo.pages.length)} relues aujourd'hui`} inverse />
+              <Tile label="Temps de réponse" value={seo.lenteur_ms} format={(v) => `${fmtInt(v)} ms`} sub="moyenne de l'échantillon, depuis le serveur" />
+            </>
+          ) : null}
+        </div>
+        <div className="pl-grid">
+          {gsc ? (
+            <>
+              <Card title="Clics par jour">
+                <DayBars series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} height={80} />
+              </Card>
+              <Card title="Impressions par jour">
+                <DayBars series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} height={80} />
+              </Card>
+              <Card title="Appareils (clics)">
+                <Ranked rows={gsc.appareils} max={4} empty="Pas encore de clic" />
+              </Card>
+              <Card title="Requêtes qui amènent du monde" wide>
+                <Table
+                  cols={[
+                    { key: "requete", label: "Requête" },
+                    { key: "clics", label: "Clics", num: true, render: (r) => fmtInt(r.clics) },
+                    { key: "impressions", label: "Impressions", num: true, render: (r) => fmtInt(r.impressions) },
+                    { key: "ctr", label: "Taux de clic", num: true, render: (r) => `${Math.round(r.ctr * 100)} %` },
+                    { key: "position", label: "Position", num: true, render: (r) => (Math.round(r.position * 10) / 10).toLocaleString("fr-FR") },
+                  ]}
+                  rows={gsc.requetes}
+                  max={15}
+                  empty="Google n'a encore remonté aucune requête pour cette période"
+                />
+              </Card>
+              <Card title="Pages qui ressortent">
+                <Ranked rows={gsc.pages.map((p) => ({ label: p.page, n: p.impressions, sub: `${fmtInt(p.clics)} clic(s)` }))} empty="Aucune page vue dans les résultats" />
+              </Card>
+              <Card title="Sitemaps vus par Google" wide>
+                <Table
+                  cols={[
+                    { key: "chemin", label: "Sitemap", render: (r) => <span className="pl-mono">{r.chemin}</span> },
+                    { key: "soumis", label: "Soumises", num: true, render: (r) => fmtInt(r.soumis) },
+                    { key: "indexes", label: "Indexées", num: true, render: (r) => fmtInt(r.indexes) },
+                    { key: "erreurs", label: "Erreurs", num: true },
+                    { key: "lu", label: "Dernière lecture", render: (r) => (r.en_attente ? "en attente" : fmtDateTime(r.lu)) },
+                  ]}
+                  rows={gsc.sitemaps}
+                  empty="Aucun sitemap soumis : dans Search Console, Sitemaps, ajoute https://www.withmerry.com/sitemap.xml"
+                />
+              </Card>
+            </>
+          ) : (
+            <Card title="Search Console" wide>
+              <div className="pl-empty">{data.google?.raison || "Non lue"}.</div>
+              <p className="pl-note">
+                Trois gestes : valider withmerry.com dans Search Console (enregistrement TXT chez Squarespace), y ajouter le compte de service comme utilisateur, coller sa clé JSON sur Vercel en
+                GOOGLE_SERVICE_ACCOUNT_JSON. Les clics, impressions, positions, requêtes et pages indexées apparaissent ici ensuite, avec deux à trois jours de décalage.
+              </p>
+            </Card>
+          )}
+          {ph ? (
+            <>
+              <Card title="Sessions venues d'un moteur, par jour" wide={!gsc}>
+                <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} height={80} />
+              </Card>
+              <Card title="Pages d'entrée depuis un moteur">
+                <Ranked rows={ph.seo.entrees.map((p) => ({ label: p.chemin, n: p.n, sub: `${(Math.round(p.pages * 10) / 10).toLocaleString("fr-FR")} page(s) vue(s)` }))} empty="Aucune arrivée depuis un moteur sur la période" />
+              </Card>
+              <Card title="Moteurs">
+                <Ranked rows={ph.seo.moteurs} max={6} empty="Aucune arrivée depuis un moteur" />
+              </Card>
+            </>
+          ) : null}
+          {seo ? (
+            <>
+              <Card title="Pages relues aujourd'hui" wide note="Un échantillon du sitemap, différent chaque jour, relu comme le ferait un moteur : réponse, titre, description, adresse canonique, noindex, h1.">
+                <Table
+                  cols={[
+                    { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
+                    { key: "statut", label: "Réponse", num: true, render: (r) => <Pill tone={r.statut === 200 ? "ok" : "bad"}>{r.statut || "–"}</Pill> },
+                    { key: "ms", label: "Temps", num: true, render: (r) => `${fmtInt(r.ms)} ms` },
+                    { key: "problemes", label: "Défauts", render: (r) => (r.problemes.length ? r.problemes.join(", ") : <span className="pl-muted">aucun</span>) },
+                  ]}
+                  rows={[...seo.pages].sort((a, b) => b.problemes.length - a.problemes.length)}
+                  max={13}
+                />
+              </Card>
+              <Card title="Contenu du sitemap" note={`robots.txt : ${seo.robots.statut === 200 ? "lisible" : `réponse ${seo.robots.statut}`}, sitemap ${seo.robots.sitemap_declare ? "déclaré" : "non déclaré"}.`}>
+                <Ranked rows={seo.sitemap.sections} max={12} empty="Sitemap vide" />
+              </Card>
+            </>
+          ) : null}
+        </div>
       </Section>
 
       <Section id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`}>
