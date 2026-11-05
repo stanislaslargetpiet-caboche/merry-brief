@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cleanPhone, validPhone, validateDemande } from "@/lib/server/proDemande";
 import { demandeLines, demandeMail } from "@/lib/server/demandeMail";
 import { buildSante } from "@/lib/pilotage/sante";
+import { demandeRecueMail, demandeRefuseeMail } from "@/lib/server/demandeVendorMails";
 
 const account = { email: "Camille@Exemple.fr ", password: "motdepasse", phone: "06 12 34 56 78" };
 const both = { hasEmail: true, hasPhone: true };
@@ -93,5 +94,21 @@ describe("Santé : demandes en attente", () => {
     expect(buildSante({ ...base, demandes: recent }, 7)[0]).toMatchObject({ tone: "warn" });
     expect(buildSante({ ...base, demandes: old }, 7)[0]).toMatchObject({ tone: "bad" });
     expect(buildSante({ ...base, demandes: { disponible: true, en_attente: [] } }, 7).some((s) => /demande/.test(s.titre))).toBe(false);
+  });
+});
+
+describe("mails au demandeur", () => {
+  it("accusé de réception : nom de la fiche, délai d'une heure", () => {
+    const m = demandeRecueMail({ vendorName: "Château La Tour Vaucros" });
+    expect(m.subject).toBe("Ta demande est bien reçue");
+    expect(m.text).toContain("Château La Tour Vaucros");
+    expect(m.text).toContain("dans l'heure");
+  });
+  it("refus : explique, donne un moyen de répondre, échappe le HTML", () => {
+    const m = demandeRefuseeMail({ vendorName: "<i>X</i>" });
+    expect(m.subject).toBe("Ta demande d'accès n'a pas pu être validée");
+    expect(m.text).toContain("SIRET");
+    expect(m.html).toContain("&lt;i&gt;X&lt;/i&gt;");
+    expect(m.html).not.toContain("<i>X</i>");
   });
 });

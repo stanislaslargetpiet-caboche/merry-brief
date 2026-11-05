@@ -28,6 +28,7 @@ import { clientIp } from "@/lib/server/origin";
 import { allowKey } from "@/lib/server/rate";
 import { sendVendorWelcome } from "@/lib/server/vendorWelcome";
 import { sendDemandeAlert } from "@/lib/server/demandeMail";
+import { sendDemandeRecue } from "@/lib/server/demandeVendorMails";
 import { cleanEmail, validateDemande, welcomeCredits } from "@/lib/server/proDemande";
 
 export const runtime = "nodejs";
@@ -323,6 +324,12 @@ async function requestAccess(body, admin, url, anon, req) {
     await sendDemandeAlert({ vendor: { name: vendor.name, city: vendor.city, category: cat?.label || vendor.primary_category }, claim });
   } catch (err) {
     console.warn("[merry pro] alerte demande d'accès", err?.message || err);
+  }
+  // Accusé de réception au demandeur
+  try {
+    await sendDemandeRecue({ to: accountEmail, vendorName: vendor.name });
+  } catch (err) {
+    console.warn("[merry pro] mail demande reçue", err?.message || err);
   }
   return linked(null, me ? null : session, vendorId);
 }
