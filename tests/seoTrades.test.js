@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStats, allPages } from "@/lib/seo/data";
+import { buildStats, allPages, cleanName } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
 import { TRADES, tradeOf, tradeOfCategory } from "@/lib/seo/trades";
 import { FRANCE, regionZone, zoneOf } from "@/lib/seo/geo";
@@ -56,6 +56,12 @@ describe("métiers des pages SEO", () => {
     expect(pageTitle(trade, FRANCE)).toBe("Officiants de cérémonie en France");
     expect(model.figures[0]).toEqual({ value: "9", label: "officiants de cérémonie" });
     expect(model.pills).toEqual([]);
+  });
+
+  it("les noms d'officiants perdent leur descriptif", () => {
+    expect(cleanName("Emy Cérémonies - Officiante de cérémonie en Isère/Rhône Alpes")).toBe("Emy Cérémonies");
+    expect(cleanName("Les Bulles de Bonheur - Laetitia GOUX - Officiante de Cérémonie laïque")).toBe("Les Bulles de Bonheur");
+    expect(cleanName("Un vent d'amour")).toBe("Un vent d'amour");
   });
 
   it("les boutiques de robes : on les contacte, on ne leur demande pas de devis", () => {
