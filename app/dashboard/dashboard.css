@@ -9276,50 +9276,6 @@ body.d-noscroll {
   line-height: 1.6;
 }
 
-.d-pr-plus {
-  display: flex;
-  flex-direction: column;
-}
-
-.d-pr-plus-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 0;
-}
-
-.d-pr-plus-row + .d-pr-plus-row {
-  border-top: 1px solid var(--d-line);
-}
-
-.d-pr-plus-row h3 {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 600;
-}
-
-.d-pr-plus-row p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.d-pr-plus-row ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 6px 16px;
-}
-
-.d-pr-plus-row li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
 .d-pr-reviews {
   display: flex;
   flex-wrap: wrap;

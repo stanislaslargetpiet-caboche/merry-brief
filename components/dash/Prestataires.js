@@ -1372,30 +1372,6 @@ export function FichePanel({ v: base, index, total, list, onClose, onRequest, on
             {v.matchScore !== undefined ? <span className="d-pr-ai-note">Analyse Merry d'après votre brief et vos envies, à confirmer avec {v.category === "lieu" ? "le lieu" : "le prestataire"}.</span> : null}
           </section>
         ) : null}
-        {v.plus?.length ? (
-          <section className="d-pr-fsec">
-            <h2>Plus d’informations</h2>
-            <div className="d-pr-plus">
-              {v.plus.map((a) => (
-                <div key={a.question} className="d-pr-plus-row">
-                  <h3>{a.question}</h3>
-                  {a.kind === "choices" ? (
-                    <ul>
-                      {a.labels.map((l) => (
-                        <li key={l}>
-                          <Icon name="check" size={14} sw={2.4} stroke="#1c1c1a" style={{ flex: "none", marginTop: 2 }} />
-                          <span>{l}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{a.value}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
         {v.rating ? (
           <section className="d-pr-reviews">
             <div>
