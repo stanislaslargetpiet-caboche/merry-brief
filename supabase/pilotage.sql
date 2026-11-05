@@ -85,28 +85,37 @@ begin
     left join ia a on a.jour = j.jour
     left join mails ml on ml.jour = j.jour
   ),
+  -- Un seul parcours du catalogue (157 000 fiches) : tout ce qui en dépend se déduit de cette agrégation.
+  -- Neuf parcours séparés dépassaient les 8 s accordées à l'API. created_by_wedding reste à part : il a son index,
+  -- et le lire dans ce parcours le ralentit de plusieurs secondes.
+  cat as materialized (
+    select v.primary_category as categorie, v.status,
+           count(*)::int as n,
+           count(*) filter (where coalesce(v.photos_count, 0) >= 3)::int as photos3,
+           count(*) filter (where coalesce(v.photos_count, 0) = 0)::int as sans_photo,
+           count(*) filter (where nullif(v.email, '') is not null)::int as email,
+           count(*) filter (where nullif(v.phone, '') is not null)::int as telephone
+    from catalog.vendors v
+    group by v.primary_category, v.status
+  ),
+  rev as (
+    select v.primary_category as categorie, count(*)::int as n
+    from public.pro_vendors p join catalog.vendors v on v.id = p.vendor_id
+    where v.status = 'active'
+    group by v.primary_category
+  ),
   catalogue as (
     select jsonb_agg(jsonb_build_object(
       'categorie', c.slug, 'label', c.label,
-      'actifs', coalesce(s.actifs, 0), 'candidats', coalesce(s.candidats, 0),
-      'photos3', coalesce(s.photos3, 0), 'sans_photo', coalesce(s.sans_photo, 0),
-      'email', coalesce(s.email, 0), 'telephone', coalesce(s.telephone, 0),
-      'revendiques', coalesce(s.revendiques, 0)
-    ) order by coalesce(s.actifs, 0) desc) as rows
+      'actifs', coalesce(a.n, 0), 'candidats', coalesce(k.n, 0),
+      'photos3', coalesce(a.photos3, 0), 'sans_photo', coalesce(a.sans_photo, 0),
+      'email', coalesce(a.email, 0), 'telephone', coalesce(a.telephone, 0),
+      'revendiques', coalesce(r.n, 0)
+    ) order by coalesce(a.n, 0) desc) as rows
     from catalog.categories c
-    left join (
-      select v.primary_category,
-             count(*) filter (where v.status = 'active')::int as actifs,
-             count(*) filter (where v.status = 'candidate')::int as candidats,
-             count(*) filter (where v.status = 'active' and coalesce(v.photos_count, 0) >= 3)::int as photos3,
-             count(*) filter (where v.status = 'active' and coalesce(v.photos_count, 0) = 0)::int as sans_photo,
-             count(*) filter (where v.status = 'active' and nullif(v.email, '') is not null)::int as email,
-             count(*) filter (where v.status = 'active' and nullif(v.phone, '') is not null)::int as telephone,
-             count(*) filter (where v.status = 'active' and p.vendor_id is not null)::int as revendiques
-      from catalog.vendors v
-      left join public.pro_vendors p on p.vendor_id = v.id
-      group by v.primary_category
-    ) s on s.primary_category = c.slug
+    left join cat a on a.categorie = c.slug and a.status = 'active'
+    left join cat k on k.categorie = c.slug and k.status = 'candidate'
+    left join rev r on r.categorie = c.slug
   ),
   derniers_comptes as (
     select jsonb_agg(jsonb_build_object('email', u.email, 'cree', u.created_at, 'derniere_connexion', u.last_sign_in_at,
@@ -168,13 +177,13 @@ begin
       'demandes_devis', (select count(*) from public.quote_requests),
       'messages', (select count(*) from public.vendor_messages),
       'commentaires_prestataires', (select count(*) from public.vendor_comments),
-      'catalogue_actifs', (select count(*) from catalog.vendors where status = 'active'),
-      'catalogue_candidats', (select count(*) from catalog.vendors where status = 'candidate'),
-      'catalogue_fermes', (select count(*) from catalog.vendors where status = 'closed'),
-      'catalogue_photos3', (select count(*) from catalog.vendors where status = 'active' and coalesce(photos_count, 0) >= 3),
-      'catalogue_sans_photo', (select count(*) from catalog.vendors where status = 'active' and coalesce(photos_count, 0) = 0),
-      'catalogue_email', (select count(*) from catalog.vendors where status = 'active' and nullif(email, '') is not null),
-      'catalogue_telephone', (select count(*) from catalog.vendors where status = 'active' and nullif(phone, '') is not null),
+      'catalogue_actifs', (select coalesce(sum(n), 0) from cat where status = 'active'),
+      'catalogue_candidats', (select coalesce(sum(n), 0) from cat where status = 'candidate'),
+      'catalogue_fermes', (select coalesce(sum(n), 0) from cat where status = 'closed'),
+      'catalogue_photos3', (select coalesce(sum(photos3), 0) from cat where status = 'active'),
+      'catalogue_sans_photo', (select coalesce(sum(sans_photo), 0) from cat where status = 'active'),
+      'catalogue_email', (select coalesce(sum(email), 0) from cat where status = 'active'),
+      'catalogue_telephone', (select coalesce(sum(telephone), 0) from cat where status = 'active'),
       'catalogue_ajoutes_par_couples', (select count(*) from catalog.vendors where created_by_wedding is not null),
       'fiches_revendiquees', (select count(*) from public.pro_vendors),
       'fiches_revendiquees_periode', (select count(*) from public.pro_vendors where claimed_at >= cur),

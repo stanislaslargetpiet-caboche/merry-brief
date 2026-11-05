@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { alignSeries, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, Funnel, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { demoData } from "@/lib/server/pilotage/demo";
 
@@ -149,7 +149,7 @@ function Board({ data, jours }) {
   const vc = data.vercel?.disponible ? data.vercel : null;
   const periode = LABEL_PERIODE[jours] || `${jours} jours`;
 
-  const joursList = useMemo(() => (sb?.series || []).map((r) => r.jour), [sb]);
+  const joursList = useMemo(() => (sb?.series?.length ? sb.series.map((r) => r.jour) : dayList(jours)), [sb, jours]);
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
   const site = useMemo(() => alignSeries(joursList, ph?.site?.series, ["visiteurs", "pages", "sessions"]), [joursList, ph]);
   const siteSplit = useMemo(() => splitSeries(site, jours), [site, jours]);
