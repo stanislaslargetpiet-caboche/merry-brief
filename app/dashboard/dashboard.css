@@ -12243,10 +12243,10 @@ body.d-noscroll {
   height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  background: var(--d-panel);
+  background: var(--d-lime);
   font-size: 13px;
   font-weight: 500;
-  color: var(--d-muted);
+  color: var(--d-ink);
   white-space: nowrap;
 }
 
