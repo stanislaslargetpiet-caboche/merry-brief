@@ -1,4 +1,10 @@
 // Espace prestataire : revendiquer sa fiche du catalogue (maquette V0, « Vérifions que c'est bien vous »).
+// request : demande d'accès (depuis le 5 nov. 2026, écrans V0g2 à V0h3), sans code : le prestataire confirme ou
+//    corrige les coordonnées de la fiche, le compte est créé, la fiche lui est rattachée « en_attente » sans
+//    crédit, et une alerte part à l'équipe pour vérifier à la main dans l'heure (lib/server/proDemande.js,
+//    supabase/pro-demande-acces.sql ; la décision se prend dans /pilotage > Demandes).
+// Les actions send et verify ci-dessous (code à 6 chiffres envoyé à l'adresse de la fiche, qui ouvre une
+// session et rattache la fiche) ne sont plus appelées par l'écran ; elles restent pour d'anciens liens.
 // 1. send   : Supabase envoie un code à 6 chiffres à l'adresse mail de la fiche (jamais montrée en entier)
 // 2. verify : le code ouvre une session pour cette adresse, et rattache la fiche au compte (pro_members)
 // Créer sa fiche (maquette V0c), pour un établissement absent du catalogue :
@@ -21,6 +27,8 @@ import { createClient } from "@supabase/supabase-js";
 import { clientIp } from "@/lib/server/origin";
 import { allowKey } from "@/lib/server/rate";
 import { sendVendorWelcome } from "@/lib/server/vendorWelcome";
+import { sendDemandeAlert } from "@/lib/server/demandeMail";
+import { cleanEmail, validateDemande, welcomeCredits } from "@/lib/server/proDemande";
 
 export const runtime = "nodejs";
 
@@ -80,7 +88,7 @@ async function geocode(f) {
   return { lat, lng, department: hit.properties.depcode || ctx[0] || null, region: ctx[2] || ctx[1] || null };
 }
 
-const WELCOME_CREDITS = Math.max(0, Number(process.env.MERRY_PRO_WELCOME_CREDITS ?? 100) || 0);
+const WELCOME_CREDITS = welcomeCredits();
 
 // Un code par mail coûte un envoi et peut servir à importuner un établissement : par adresse IP
 // (20 par heure), par fiche (5 par heure) et par adresse mail (5 par heure). Renvoie la réponse à
@@ -111,16 +119,18 @@ async function currentUser(admin, req) {
   return data?.user || null;
 }
 
-// Rattache la fiche au compte ; la première fois, les crédits de bienvenue sont versés (une seule fois par fiche)
-async function attach(admin, vendorId, user, email) {
+// Rattache la fiche au compte ; la première fois, les crédits de bienvenue sont versés (une seule fois par fiche).
+// pending : demande d'accès pas encore vérifiée (action « request ») : fiche « en_attente », 0 crédit, pas de
+// mail de bienvenue ; tout cela est fait à la validation (lib/server/proDemande.js).
+async function attach(admin, vendorId, user, email, { pending = false } = {}) {
   const { data: existing, error: e0 } = await admin.from("pro_vendors").select("vendor_id").eq("vendor_id", vendorId).maybeSingle();
   if (e0) return e0;
   let welcome = false;
   if (!existing) {
-    const { error: e1 } = await admin.from("pro_vendors").insert({ vendor_id: vendorId, credits: WELCOME_CREDITS });
+    const { error: e1 } = await admin.from("pro_vendors").insert(pending ? { vendor_id: vendorId, credits: 0, verification: "en_attente" } : { vendor_id: vendorId, credits: WELCOME_CREDITS });
     if (e1 && !/23505/.test(String(e1.code))) return e1;
-    welcome = !e1;
-    if (!e1 && WELCOME_CREDITS > 0) {
+    welcome = !e1 && !pending;
+    if (!e1 && !pending && WELCOME_CREDITS > 0) {
       await admin.from("pro_ledger").insert({ vendor_id: vendorId, kind: "remboursement", label: `Bienvenue sur Merry : ${WELCOME_CREDITS} crédits offerts`, delta: WELCOME_CREDITS, balance: WELCOME_CREDITS });
     }
   }
@@ -172,6 +182,7 @@ export async function POST(req) {
     return Response.json({ ok: true });
   }
 
+  if (body.action === "request") return requestAccess(body, admin, url, anon, req);
   if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon, req);
   if (body.action === "login_send" || body.action === "login_verify") return login(body, admin, url, anon, req);
 
@@ -248,6 +259,72 @@ export async function POST(req) {
   }
 
   return Response.json({ error: "bad_request" }, { status: 400 });
+}
+
+// Demande d'accès à une fiche (écrans V0g2, V0g, V0h3) : aucun code. Le compte est créé (ou le compte connecté
+// réutilisé), la fiche lui est rattachée « en_attente » sans crédit, la demande est gardée avec les coordonnées
+// d'origine de la fiche, et l'équipe reçoit une alerte pour vérifier à la main dans l'heure. Une fiche déjà
+// gérée (même en attente) n'est jamais reprise : un refus la libère.
+async function requestAccess(body, admin, url, anon, req) {
+  const vendorId = String(body.vendorId || "");
+  if (!UUID_RE.test(vendorId)) return Response.json({ error: "bad_request" }, { status: 400 });
+  const { data: vendor } = await admin.schema("catalog").from("vendors").select("id, name, city, primary_category, email, phone, status").eq("id", vendorId).maybeSingle();
+  if (!vendor || vendor.status !== "active") return Response.json({ error: "not_found" }, { status: 404 });
+  const { data: taken } = await admin.from("pro_vendors").select("vendor_id").eq("vendor_id", vendorId).maybeSingle();
+  if (taken) return Response.json({ error: "already_managed" }, { status: 409 });
+
+  const ficheEmail = cleanEmail(vendor.email);
+  const fichePhone = String(vendor.phone || "").trim();
+  const me = await currentUser(admin, req);
+  const checked = validateDemande(body, { hasEmail: EMAIL_RE.test(ficheEmail), hasPhone: fichePhone.replace(/\D/g, "").length >= 8 }, Boolean(me));
+  if (!checked.ok) return Response.json({ error: checked.error }, { status: 400 });
+  const { email: e, phone: p, account } = checked.value;
+  const accountEmail = me?.email || account.email;
+
+  const limited = await throttled(admin, req, [`claim-vendor:${vendorId}`, `claim-email:${accountEmail}`]);
+  if (limited) return limited;
+
+  let user = me;
+  let session = null;
+  if (!me) {
+    const { data: created, error: ce } = await admin.auth.admin.createUser({
+      email: account.email,
+      password: account.password,
+      email_confirm: true,
+      user_metadata: { merry_password: true, merry_cgu_at: new Date().toISOString() },
+    });
+    if (ce || !created?.user) return Response.json({ error: /already|registered|exists/i.test(ce?.message || "") ? "account_exists" : "account_failed" }, { status: ce && /already|registered|exists/i.test(ce.message) ? 409 : 502 });
+    user = created.user;
+    const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: s } = await auth.auth.signInWithPassword({ email: account.email, password: account.password });
+    session = s?.session || null;
+  }
+
+  const failed = await attach(admin, vendorId, user, accountEmail, { pending: true });
+  if (failed) return linked(failed, null, vendorId);
+
+  const claim = {
+    vendor_id: vendorId,
+    user_id: user.id,
+    account_email: accountEmail,
+    account_phone: account.phone,
+    fiche_email: ficheEmail || null,
+    fiche_phone: fichePhone || null,
+    email_choice: e.choice,
+    email_given: e.given,
+    phone_choice: p.choice,
+    phone_given: p.given,
+  };
+  const { error: ci } = await admin.from("pro_claims").insert(claim);
+  if (ci) console.warn("[merry pro] demande d'accès non enregistrée", ci.message);
+  // L'alerte ne bloque jamais la demande
+  try {
+    const { data: cat } = await admin.schema("catalog").from("categories").select("label").eq("slug", vendor.primary_category).maybeSingle();
+    await sendDemandeAlert({ vendor: { name: vendor.name, city: vendor.city, category: cat?.label || vendor.primary_category }, claim });
+  } catch (err) {
+    console.warn("[merry pro] alerte demande d'accès", err?.message || err);
+  }
+  return linked(null, me ? null : session, vendorId);
 }
 
 // session : null quand le prestataire était déjà connecté (rien à changer côté navigateur)
