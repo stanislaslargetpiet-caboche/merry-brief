@@ -151,7 +151,28 @@ function Gate({ title, text, children }) {
 
 const LABEL_PERIODE = { 1: "24 h", 7: "7 jours", 30: "30 jours" };
 
+// Vide les caches des pages /mariage/… et du sitemap : à utiliser après un enrichissement du catalogue
+function RefreshSeo() {
+  const [state, setState] = useState("idle"); // idle | busy | done | error
+  const run = async () => {
+    setState("busy");
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch("/api/interne/seo-rafraichir", { method: "POST", headers: { authorization: `Bearer ${sess?.session?.access_token || ""}` } });
+      setState(res.ok ? "done" : "error");
+    } catch {
+      setState("error");
+    }
+  };
+  return (
+    <button type="button" className="pl-btn" onClick={run} disabled={state === "busy"} title="Les comptes, les prestataires mis en avant et le sitemap sont recalculés à la prochaine visite de chaque page">
+      {state === "busy" ? "Rafraîchissement…" : state === "done" ? "Pages SEO rafraîchies" : state === "error" ? "Échec, réessayer" : "Rafraîchir les pages SEO"}
+    </button>
+  );
+}
+
 function Board({ data, jours }) {
+  const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
   const rs = data.resend?.disponible ? data.resend : null;
@@ -297,7 +318,7 @@ function Board({ data, jours }) {
         )}
       </Section>
 
-      <Section id="referencement" title="Référencement" kicker={`Google · ${periode}`}>
+      <Section id="referencement" title="Référencement" kicker={`Google · ${periode}`} right={demo ? null : <RefreshSeo />}>
         <div className="pl-tiles">
           {gsc ? (
             <>
