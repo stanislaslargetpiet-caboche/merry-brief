@@ -254,27 +254,23 @@ export function MoreButton({ rec, category, className = "" }) {
 // En-tête : « Prestataires. » et les deux onglets
 // ---------------------------------------------------------------------------
 
-// Téléphone : même titre sur les deux pages, et un seul bloc à deux moitiés (Trouver / Mes prestataires)
-// pour passer de l'une à l'autre ; le nombre de prestataires gardés est sur « Mes prestataires ».
+// Téléphone : plus de place pour deux onglets Trouver / Mes en haut de page, un seul à la fois suffit à
+// l'écran ; l'autre se rejoint par une icône à côté du titre (cœur vers Mes, recherche vers Trouver).
 export function PrHead({ on }) {
   const phone = useIsPhone();
   const dash = useDash();
   if (phone) {
+    const toMes = on !== "mes";
     const count = (dash.data?.picks || []).length;
     return (
-      <div className="d-itabs-head">
+      <div className="d-itabs-head is-compact">
         <div className="d-pr-head">
-          <h1 className="d-title">Prestataires.</h1>
+          <h1 className="d-title">{on === "mes" ? "Mes prestataires." : "Prestataires."}</h1>
+          <Link href={toMes ? "/dashboard/prestataires/mes" : "/dashboard/prestataires"} className="d-pr-headbtn" aria-label={toMes ? "Mes prestataires" : "Trouver des prestataires"}>
+            <Icon name={toMes ? "heart" : "search"} size={18} sw={2} />
+            {toMes && count ? <span className="d-pr-headbtn-badge">{count}</span> : null}
+          </Link>
         </div>
-        <nav aria-label="Prestataires" className="d-pr-phoneseg">
-          <Link href="/dashboard/prestataires" className={on === "trouver" ? "is-on" : ""} aria-current={on === "trouver" ? "page" : undefined}>
-            Trouver
-          </Link>
-          <Link href="/dashboard/prestataires/mes" className={on === "mes" ? "is-on" : ""} aria-current={on === "mes" ? "page" : undefined}>
-            Mes prestataires
-            {count ? <span className="d-pr-phoneseg-count">{count}</span> : null}
-          </Link>
-        </nav>
       </div>
     );
   }

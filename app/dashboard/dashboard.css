@@ -7224,47 +7224,6 @@ body.d-noscroll {
   font-weight: 600;
 }
 
-.d-pr-phoneseg {
-  display: flex;
-  border: 1px solid var(--d-border);
-  border-radius: 999px;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.d-pr-phoneseg a {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  color: var(--d-ink);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.d-pr-phoneseg a.is-on {
-  background: var(--d-ink);
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.d-pr-phoneseg-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--d-lime);
-  color: var(--d-ink);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .d-pr-headbtn {
   position: relative;
   flex: none;
