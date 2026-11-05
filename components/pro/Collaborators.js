@@ -3,7 +3,7 @@
 // Collaborateurs de l'espace prestataire (maquette V1, Compte) : sur le modèle des organisateurs
 // côté couple (components/dash/Organisers.js), via pro_members avec jeton d'invitation.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { uid } from "@/lib/dash/format";
 import { collabColor } from "@/lib/pro/format";
@@ -27,6 +27,23 @@ export default function Collaborators() {
   const [sending, setSending] = useState(null);
   const [sent, setSent] = useState({});
   const [menu, setMenu] = useState(null);
+  const sectionRef = useRef(null);
+
+  // Les liens de la barre latérale (#collaborateurs, #inviter) amènent ici ; « Inviter » ouvre le formulaire
+  useEffect(() => {
+    const show = (invite) => {
+      // Saut direct, après le premier rendu : un défilement animé n'aboutit pas toujours à l'arrivée sur la page
+      setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ block: "start" });
+        if (invite) document.getElementById("collab-name")?.focus({ preventScroll: true });
+      }, 60);
+    };
+    const hash = window.location.hash;
+    if (hash === "#collaborateurs" || hash === "#inviter") show(hash === "#inviter");
+    const onEvent = (e) => show(!!e.detail?.invite);
+    window.addEventListener("merry:collab", onEvent);
+    return () => window.removeEventListener("merry:collab", onEvent);
+  }, []);
 
   async function add(e) {
     e.preventDefault();
@@ -95,7 +112,7 @@ export default function Collaborators() {
   };
 
   return (
-    <section className="p-card p-options">
+    <section className="p-card p-options" id="collaborateurs" ref={sectionRef} style={{ scrollMarginTop: 24 }}>
       <h2 className="p-options-title">Collaborateurs</h2>
       <ul className="d-org-list">
         {members.map((m) => (

@@ -245,6 +245,12 @@ function Frame({ children }) {
 
 // Collaborateurs dans la barre latérale (maquette Compte), sur le modèle de la carte « Organisateurs »
 // du tableau de bord des couples (components/dash/Shell.js) : avatars, invitation en attente, bouton d'invitation
+// Déjà sur Compte, le lien ne change rien à l'écran : l'événement fait défiler jusqu'à la section
+// (et place le curseur dans le formulaire pour « Inviter »). Depuis une autre page, l'ancre s'en charge.
+function showCollab(invite) {
+  window.dispatchEvent(new CustomEvent("merry:collab", { detail: { invite } }));
+}
+
 function CollabTeam() {
   const pro = usePro();
   const members = pro.data.members || [];
@@ -253,10 +259,10 @@ function CollabTeam() {
   const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${pending[0].display_name || pending[0].email} n’a pas encore rejoint.`) : null;
   return (
     <div className="d-team">
-      <Link href="/pro/compte" className="d-team-title" style={{ textDecoration: "none", color: "inherit" }}>
+      <Link href="/pro/compte#collaborateurs" onClick={() => showCollab(false)} className="d-team-title" style={{ textDecoration: "none", color: "inherit" }}>
         Collaborateurs
       </Link>
-      <Link href="/pro/compte" className="d-team-faces" aria-label="Voir les collaborateurs">
+      <Link href="/pro/compte#collaborateurs" onClick={() => showCollab(false)} className="d-team-faces" aria-label="Voir les collaborateurs">
         {members.slice(0, 5).map((m, i) => (
           <span key={m.id} style={{ marginLeft: i ? -9 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
             <span
@@ -284,7 +290,7 @@ function CollabTeam() {
         </span>
       </Link>
       {note ? <div className="d-team-note">{note}</div> : null}
-      <Link href="/pro/compte" className="d-btn d-btn-primary d-btn-small d-btn-block">
+      <Link href="/pro/compte#inviter" onClick={() => showCollab(true)} className="d-btn d-btn-primary d-btn-small d-btn-block">
         Inviter un collaborateur
       </Link>
     </div>
