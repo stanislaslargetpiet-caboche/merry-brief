@@ -8388,6 +8388,17 @@ body.d-noscroll {
   min-height: 34px;
 }
 
+/* Un nom très long (lieu à rallonge) reste sur une ligne et se termine par « … » au lieu de déborder */
+.d-pr-opt {
+  max-width: 100%;
+}
+
+.d-pr-opt-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .d-pr-opt.is-on {
   border-color: var(--d-ink);
   background: var(--d-ink);

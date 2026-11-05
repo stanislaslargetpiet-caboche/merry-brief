@@ -773,7 +773,7 @@ export function Choice({ on, children, onClick, role = "button", small }) {
   return (
     <button type="button" {...props} className={`d-pr-opt${on ? " is-on" : ""}${small ? " is-small" : ""}`} onClick={onClick}>
       {on && role !== "radio" ? <Icon name="check" size={13} sw={2.6} stroke="#ffffff" /> : null}
-      {children}
+      <span className="d-pr-opt-text">{children}</span>
     </button>
   );
 }
