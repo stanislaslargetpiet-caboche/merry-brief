@@ -38,47 +38,51 @@ export default function ProHome() {
 
       <div className="p-acc-stats">
         <div>
-          <span className="p-acc-icon">
+          <span className="p-acc-top">À traiter</span>
+          <span className="p-acc-value">
             <ProIcon name="a_traiter" size={20} />
+            <b className={todo.length ? "is-amber" : ""}>{todo.length}</b>
           </span>
-          <b className={todo.length ? "is-amber" : ""}>{todo.length}</b>
-          <span>À traiter</span>
         </div>
         <div>
-          <span className="p-acc-icon">
+          <span className="p-acc-top">Répondues</span>
+          <span className="p-acc-value">
             <ProIcon name="messagerie" size={20} />
+            <b>{answered.length}</b>
           </span>
-          <b>{answered.length}</b>
-          <span>Répondues</span>
         </div>
         <div>
-          <span className="p-acc-icon">
+          <span className="p-acc-top">Réservées</span>
+          <span className="p-acc-value">
             <ProIcon name="confirmer" size={20} />
+            <b>{booked.length}</b>
           </span>
-          <b>{booked.length}</b>
-          <span>Réservées</span>
         </div>
       </div>
 
       <div className="p-acc-cards">
         <div className="p-acc-card">
           <span className="p-acc-card-label">Temps de réponse</span>
-          <span className="p-acc-resp">
-            <span className="p-acc-card-n">{resp ? `${resp.avgHours} h` : "—"}</span>
-            {resp && resp.avgHours <= 4 ? <span className="p-chip-fast">Répond vite</span> : null}
+          <span className="p-acc-card-bottom">
+            <span className="p-acc-resp">
+              <span className="p-acc-card-n">{resp ? `${resp.avgHours} h` : "—"}</span>
+              {resp && resp.avgHours <= 4 ? <span className="p-chip-fast">Répond vite</span> : null}
+            </span>
           </span>
         </div>
         <div className="p-acc-card">
           <span className="p-acc-card-label">Coût moyen par réservation</span>
-          <span className="p-acc-card-n p-acc-card-n-credits">
-            {roi.perBooking !== null ? (
-              <>
-                <CreditsCoins size={18} />
-                {roi.perBooking} crédits
-              </>
-            ) : (
-              "—"
-            )}
+          <span className="p-acc-card-bottom">
+            <span className="p-acc-card-n p-acc-card-n-credits">
+              {roi.perBooking !== null ? (
+                <>
+                  <CreditsCoins size={22} />
+                  {roi.perBooking} crédits
+                </>
+              ) : (
+                "—"
+              )}
+            </span>
           </span>
         </div>
         <div className="p-acc-card">
@@ -90,9 +94,11 @@ export default function ProHome() {
               </Link>
             ) : null}
           </div>
-          <span className="p-acc-card-n">{fill.pct} %</span>
-          <span className="p-acc-bar is-ink">
-            <span style={{ width: `${fill.pct}%` }} />
+          <span className="p-acc-card-bottom">
+            <span className="p-acc-card-n">{fill.pct} %</span>
+            <span className="p-acc-bar is-ink">
+              <span style={{ width: `${fill.pct}%` }} />
+            </span>
           </span>
         </div>
       </div>
