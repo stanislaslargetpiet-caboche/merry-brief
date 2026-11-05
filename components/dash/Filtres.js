@@ -13,7 +13,7 @@ import { BRIEF_KEYS, BUDGET_RANGES, GUEST_RANGES, VIBES, criteriaList } from "@/
 import { PRICE_BARS } from "@/lib/dash/provenceMap";
 import { euros, toDate, withArticle } from "@/lib/dash/format";
 import { Icon } from "./icons";
-import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, VENUE, styleCriteria } from "./Prestataires";
+import { ACCESS, CATERER, Choice, CloseBtn, EMPTY_WISHES, Layer, MaxRow, OtherNumber, ResultCount, VENUE, styleCriteria } from "./Prestataires";
 
 export const PRICE_MAX = 100000;
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -26,7 +26,7 @@ export function activeFilters(data, price) {
 }
 
 // La ligne de résumé : ce qui compte pour la recherche, en court
-export function SearchSummary({ price, onOpen, busy }) {
+export function SearchSummary({ price, onOpen, busy, count }) {
   const data = useDash().data;
   const n = activeFilters(data, price);
   // Le bouton Filtres seul : les critères se lisent et se changent dans le panneau
@@ -37,7 +37,7 @@ export function SearchSummary({ price, onOpen, busy }) {
         Filtres
         {n ? <span className="d-pr-filters-badge" aria-label={`${n} filtres actifs`}>{n}</span> : null}
       </button>
-      {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
+      {busy ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : <ResultCount n={count} />}
     </div>
   );
 }

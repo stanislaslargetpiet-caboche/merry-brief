@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadCatalogVendor, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot } from "@/lib/dash/catalog";
+import { CATEGORIES, catOf, freshCovers, initialsOf, inWords, loadCatalogVendor, loadRecommendations, mapPoint, pageSize, SAMPLE_BY_ID, snapshot, TOP_PICKS } from "@/lib/dash/catalog";
 import { BEST_SCORE, coupleContext, contextKey, MIN_SCORE, scoreVendors } from "@/lib/dash/match";
 import { cityFilter, hardFilters } from "@/lib/dash/filters";
 import { budgetLabel, chosenVenue, coupleNames, dateLong, defaultMessage, flexibleDates, signature, splitSignature, guestsLabel, legendFor, monthYear, periodLabel, pickStatus, picksBy, QUESTIONS, requestBody, STATUS, summary } from "@/lib/dash/picks";
@@ -133,7 +133,7 @@ function withMatch(v, m) {
   return { ...v, matchScore: m.score, why: m.why || v.why, story: m.story || v.story, checks: m.checks?.length ? m.checks : v.checks };
 }
 
-export function useRecommendations(category, near, bbox = null) {
+export function useRecommendations(category, near, bbox = null, price = null) {
   const dash = useDash();
   const data = dash.data;
   // Lieu retiré des critères : on cherche partout
@@ -148,34 +148,38 @@ export function useRecommendations(category, near, bbox = null) {
   // directement des envies enregistrées, pas de searchWishes (qui les vide si « lieu » est écarté)
   const city = category === "lieu" ? cityFilter(wishes) : cityFilter(data.wishes?.wishes);
   const ctxKey = AI_MATCH ? contextKey(coupleContext(data), category) : "";
-  const filterKey = JSON.stringify([filters.map((f) => [f.col, f.op, f.value]), city]);
+  const filterKey = JSON.stringify([filters.map((f) => [f.col, f.op, f.value]), city, price]);
   const key = [dash.mode, category, places.join("|"), near ? `${near.lat},${near.lng}` : "", bbox ? Object.values(bbox).map((x) => x.toFixed(3)).join(",") : "", filterKey, ctxKey].join("/");
   const step = pageSize(category);
-  const empty = { vendors: [], tier: "confirmed", offset: 0, done: false, source: null, center: null, loading: true, loadingMore: false, ai: null, filtersMissing: false };
+  const empty = { vendors: [], tier: "confirmed", offset: 0, done: false, source: null, center: null, loading: true, loadingMore: false, ai: null, filtersMissing: false, total: null };
   const [state, setState] = useState(empty);
   const keyRef = useRef(key);
   keyRef.current = key;
   const dataRef = useRef(data);
   dataRef.current = data;
-  const args = { mode: dash.mode, category, places, region, near, bbox, filters, city };
+  const args = { mode: dash.mode, category, places, region, near, bbox, filters, city, price };
 
-  // Une page : on lit les lieux confirmés, puis les « à confirmer », jusqu'à en avoir assez à montrer
+  // Une page : on lit les lieux confirmés, puis les « à confirmer », jusqu'à en avoir assez à montrer.
+  // La première page n'est que les trois meilleurs (classés par complétude) ; « Voir plus » en déroule step à la fois.
   const fetchPage = async (from) => {
+    const want = from.vendors.length ? step : TOP_PICKS;
+    let total = null;
     let { tier, offset } = from;
     const seen = new Set(from.vendors.map((v) => v.id));
     const got = [];
     let res = null;
     let done = false;
     let filtersMissing = from.filtersMissing;
-    for (let guard = 0; got.length < step && guard < 6; guard++) {
-      res = await loadRecommendations({ ...args, offset, limit: step, tier });
+    for (let guard = 0; got.length < want && guard < 6; guard++) {
+      res = await loadRecommendations({ ...args, offset, limit: want, tier });
+      if (res.total !== undefined && total === null) total = res.total;
       filtersMissing = filtersMissing || !!res.filtersMissing;
       if (res.source !== "catalogue") {
         got.push(...res.vendors);
         done = true;
         break;
       }
-      offset += step;
+      offset += want;
       // Deuxième passe : seulement ceux à qui il manque une information (les autres sont déjà là)
       got.push(...res.vendors.filter((v) => !seen.has(v.id) && (tier === "confirmed" || v.unknown?.length)));
       for (const v of res.vendors) seen.add(v.id);
@@ -199,7 +203,7 @@ export function useRecommendations(category, near, bbox = null) {
         .filter((v) => v.matchScore === undefined || v.matchScore >= MIN_SCORE)
         .sort((a, b) => (b.unknown?.length ? 0 : 1) - (a.unknown?.length ? 0 : 1) || (b.matchScore ?? -1) - (a.matchScore ?? -1));
     }
-    return { page, tier, offset, done, source: res?.source || null, center: res?.center || null, ai, filtersMissing };
+    return { page, tier, offset, done, source: res?.source || null, center: res?.center || null, ai, filtersMissing, total };
   };
 
   useEffect(() => {
@@ -207,7 +211,7 @@ export function useRecommendations(category, near, bbox = null) {
     setState((s) => ({ ...s, loading: true }));
     fetchPage(empty).then((r) => {
       if (!live) return;
-      setState({ ...empty, vendors: r.page, tier: r.tier, offset: r.offset, done: r.done, source: r.source, center: r.center, ai: r.ai, filtersMissing: r.filtersMissing, loading: false });
+      setState({ ...empty, vendors: r.page, tier: r.tier, offset: r.offset, done: r.done, source: r.source, center: r.center, ai: r.ai, filtersMissing: r.filtersMissing, total: r.total, loading: false });
     });
     return () => {
       live = false;
@@ -230,7 +234,7 @@ export function useRecommendations(category, near, bbox = null) {
 
   // « Meilleur match » (comparaison par l'IA) : le premier, s'il correspond vraiment
   const vendors = state.vendors.map((v, i) => (v.matchScore === undefined ? v : { ...v, best: i === 0 && v.matchScore >= BEST_SCORE }));
-  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore: !state.done, ai: state.ai, filtersMissing: state.filtersMissing, filters, city, more };
+  return { vendors, source: state.source, center: state.center, loading: state.loading, loadingMore: state.loadingMore, hasMore: !state.done, ai: state.ai, filtersMissing: state.filtersMissing, total: state.total, filters, city, more };
 }
 
 // « Voir plus de lieux » : page suivante du catalogue
@@ -502,6 +506,27 @@ export function ConfirmDivider({ list, index, category = "lieu" }) {
       <strong>À confirmer avec {who}</strong>
       {index === 0 ? <span className="d-small d-muted">Aucun{category === "lieu" ? " lieu" : ""} ne tient tous vos critères d’après ce que nous savons : ceux-ci peuvent y répondre, à vérifier avec {who}.</span> : null}
     </div>
+  );
+}
+
+// Après les trois meilleurs : le reste, du plus complet au moins complet
+export function RankDivider({ index, total, category = "lieu" }) {
+  if (index !== TOP_PICKS || total <= TOP_PICKS) return null;
+  return (
+    <div className="d-pr-tier" role="presentation">
+      <strong>Tous les {catOf(category).many}</strong>
+      <span>Du plus complet au moins complet : photos, description, informations renseignées.</span>
+    </div>
+  );
+}
+
+// Petite pastille « 34 résultats », à côté du bouton Filtres
+export function ResultCount({ n }) {
+  if (n === null || n === undefined) return null;
+  return (
+    <span className="d-pr-count" aria-live="polite">
+      {n} résultat{n > 1 ? "s" : ""}
+    </span>
   );
 }
 
