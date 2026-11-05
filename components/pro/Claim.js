@@ -30,6 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePro } from "@/lib/pro/store";
 import { SITE_URL } from "@/lib/site";
+import { trackEvent } from "@/lib/analytics";
 import { completeness } from "@/lib/pro/format";
 import { Pills } from "./ui";
 import { ProIcon } from "./icons";
@@ -326,6 +327,14 @@ export default function Claim() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // Entonnoir PostHog du parcours, sur le modèle de l'onboarding des couples (onboarding_step_viewed) :
+  // un événement par écran, avec le parcours suivi. Rien ne part sans l'accord du bandeau cookies.
+  const flowName = invite ? "invite" : logging ? "login" : creating ? "create" : screen === "entry" ? "entry" : "claim";
+  useEffect(() => {
+    trackEvent("pro_step_viewed", { flow: preparing || welcome || flowName, step_key: preparing ? "preparation" : welcome ? "bienvenue" : screen });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, preparing, welcome]);
+
   // Complétude de la fiche, pour la barre de Bienvenue (la session est déjà posée)
   async function loadFill(vid) {
     if (demo || !vid || !supabase) {
@@ -455,6 +464,7 @@ export default function Claim() {
 
   // Après la connexion, l'espace se recharge ; si l'écran reste là, ce compte n'a pas encore de fiche
   async function afterLogin() {
+    trackEvent("pro_completed", { flow: "login" });
     clearSaved();
     await pro.reload();
     setBusy(false);
@@ -482,6 +492,7 @@ export default function Claim() {
       setBusy(false);
       setLoginFailed(true);
       setError(/invalid/i.test(failure.message) ? "Adresse ou mot de passe incorrect." : ERRORS.network);
+      trackEvent("pro_login_failed", { reason: /invalid/i.test(failure.message) ? "bad_password" : "network" });
       return;
     }
     await afterLogin();
@@ -510,6 +521,7 @@ export default function Claim() {
     if (firstLogin && picked) {
       await loadFill(picked.id);
       setBusy(false);
+      trackEvent("pro_completed", { flow: "login", first_login: true });
       setPreparing("claim");
       return;
     }
@@ -716,12 +728,14 @@ export default function Claim() {
       if (!res.ok) {
         setBusy(false);
         setError(ERRORS[res.error] || ERRORS.bad_code);
+        trackEvent("pro_code_failed", { flow: "invite", error: res.error || "bad_code" });
         return;
       }
       if (demo) {
         window.location.assign("/pro?demo=1");
         return;
       }
+      trackEvent("pro_completed", { flow: "invite" });
       pro.rememberVendor(res.vendorId);
       if (res.session && supabase) await supabase.auth.setSession(res.session);
       clearSaved();
@@ -749,8 +763,10 @@ export default function Claim() {
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.bad_code);
+      trackEvent("pro_code_failed", { flow: flowName, error: res.error || "bad_code" });
       return;
     }
+    if (!logging) trackEvent("pro_completed", { flow: flowName });
     // La session est posée tout de suite : un rechargement pendant Préparation ou Bienvenue mène au
     // dashboard au lieu de perdre le code. setHold empêche l'espace de se recharger sous les animations.
     pro.setHold(true);
