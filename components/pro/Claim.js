@@ -1,9 +1,11 @@
 "use client";
 
-// Revendiquer sa fiche (maquettes V0-Rev1 à V0-Rev4) : retrouver son établissement dans le catalogue
-// Merry, confirmer que c'est bien le sien, puis prouver que c'est bien soi avec un code reçu à l'adresse
-// mail de la fiche. Sert aussi de connexion : un prestataire qui revient refait ces étapes et retrouve
-// son espace.
+// Revendiquer sa fiche (maquettes V0f, V0g2, V0g, V0h3 puis V0h2 et V0i) : retrouver son établissement dans le
+// catalogue Merry, confirmer ou corriger les coordonnées de la fiche, créer son compte avec un téléphone, puis
+// la demande attend une vérification à la main (mail ou rappel dans l'heure, décision de Stan le 5 nov. 2026) :
+// aucun code n'est envoyé pour une revendication. Le prestataire entre tout de suite dans son espace, fiche
+// « en attente » et sans crédit jusqu'à la validation (pilotage > Demandes). Sert aussi de connexion : un
+// prestataire qui revient retrouve son espace.
 // Créer sa fiche (maquettes V0-Onb1 à V0-Onb4) : l'établissement n'est pas dans le catalogue, un écran par
 // groupe d'informations (nom et activité, adresse, contact), puis le code reçu à cette adresse crée la
 // fiche. Chaque étape a sa propre barre de progression, conforme au canvas du 3 nov. 2026 (avant cette
@@ -20,8 +22,8 @@
 //
 // Entrée (canvas Vendor-Entree, 4 nov. 2026) : « Me connecter » (mail et mot de passe) ou « Retrouver ma
 // fiche ». Le mot de passe se choisit à la création et à la revendication ; le code reste la preuve d'accès
-// à l'adresse. Revendication : le code part toujours à l'adresse de la fiche, jamais à une adresse tapée
-// (Rev2 en demande une sur le canvas) : ce serait ouvrir n'importe quelle fiche à n'importe qui.
+// à l'adresse pour la création, la connexion et « Oublié ? ». Revendication : la preuve est le contrôle à la
+// main, auprès des coordonnées d'ORIGINE de la fiche (jamais celles que le demandeur vient de saisir).
 // Compte sans mot de passe : code, puis mot de passe, puis Préparation et Bienvenue, une seule fois.
 // Le SIRET (facultatif) n'apparaît plus non plus dans Votre compte, le canvas ne le montre plus : le champ
 // reste accepté par l'API si jamais réintroduit.
@@ -59,6 +61,8 @@ const CATEGORIES = [
 ];
 const EMPTY_FORM = { name: "", category: "", address: "", postal_code: "", city: "", email: "", phone: "", siret: "", password: "" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^(\+|00)?\d{8,15}$/;
+const cleanPhone = (v) => String(v || "").replace(/[\s.\-()]/g, "");
 // L'écran en cours et les champs saisis survivent à un rechargement, une heure au plus (sessionStorage)
 const SAVED_KEY = "merry-pro-claim-v1";
 const SAVED_MAX_AGE = 60 * 60 * 1000;
@@ -135,7 +139,12 @@ const sameName = (a, b) => {
 };
 
 const CREATE_FLOW = ["name", "address", "contact", "code"];
-const CLAIM_FLOW = ["search", "confirm", "code"];
+// Fiches d'exemple de la démo (/pro?demo=1&revendiquer=1) : une avec ses coordonnées, une sans
+const DEMO_FICHES = [
+  { id: "demo-1", name: "Le Clos des Amandiers", category: "Lieu de réception", city: "Lourmarin", postal_code: "84160", address: "", email_hint: "c•••@closdesamandiers.fr", phone_hint: "06 •• •• •• 78", claimed: false, photo: null },
+  { id: "demo-2", name: "Le Clos des Oliviers", category: "Lieu de réception", city: "Lauris", postal_code: "84360", address: "", email_hint: null, phone_hint: null, claimed: false, photo: null },
+];
+const CLAIM_FLOW = ["search", "coords", "account"];
 const LOGIN_FLOW = ["login-email", "login-code"];
 const INVITE_FLOW = ["invite", "invite-code"];
 
@@ -195,6 +204,14 @@ const ERRORS = {
   create_failed: "Le code est bon, mais la fiche n’a pas pu être créée. Réessayez dans un instant.",
   network: "La connexion a échoué. Vérifiez votre réseau, puis réessayez.",
   bad_link: "Ce lien d’invitation n’est plus valable. Demandez-en un nouveau à la personne qui vous a invité.",
+  already_managed: "Cette fiche a déjà un compte, ou une demande est en cours de vérification. Si c’est la vôtre, écrivez-nous : nous vous ouvrons l’accès.",
+  account_exists: "Un compte existe déjà à cette adresse. Connectez-vous, puis retrouvez votre fiche.",
+  account_failed: "Le compte n’a pas pu être créé. Réessayez dans un instant.",
+  coords_email: "Confirmez l’adresse mail de la fiche, ou saisissez la bonne.",
+  coords_phone: "Confirmez le téléphone de la fiche, ou saisissez le bon.",
+  account_email: "Entrez une adresse mail valide.",
+  account_phone: "Entrez un numéro de téléphone où l’on peut vous joindre.",
+  request_failed: "La demande n’a pas pu partir. Réessayez dans un instant.",
   already_member: "Vous faites déjà partie de cette équipe. Ce lien est réservé à la personne invitée : il reste valable pour elle.",
 };
 
@@ -224,6 +241,10 @@ export default function Claim() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginFailed, setLoginFailed] = useState(false);
   const [claimPassword, setClaimPassword] = useState("");
+  const [coordChoice, setCoordChoice] = useState({ email: null, phone: null }); // "oui" | "non" | null, par coordonnée de la fiche
+  const [coordGiven, setCoordGiven] = useState({ email: "", phone: "" }); // la bonne coordonnée, quand la fiche se trompe ou n'en a pas
+  const [claimEmail, setClaimEmail] = useState("");
+  const [claimPhone, setClaimPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPassword2, setNewPassword2] = useState("");
   const [firstLogin, setFirstLogin] = useState(false);
@@ -256,6 +277,10 @@ export default function Claim() {
       setLoginEmail(saved.loginEmail || "");
       setFirstLogin(!!saved.firstLogin);
       setSent(!!saved.sent);
+      setCoordChoice(saved.coordChoice || { email: null, phone: null });
+      setCoordGiven(saved.coordGiven || { email: "", phone: "" });
+      setClaimEmail(saved.claimEmail || "");
+      setClaimPhone(saved.claimPhone || "");
       setScreen(saved.screen);
     }
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
@@ -299,9 +324,9 @@ export default function Claim() {
 
   useEffect(() => {
     if (invite) return;
-    writeSaved({ screen, creating, logging, form: { ...form, password: "" }, q, picked, duplicate, loginEmail, firstLogin, sent });
+    writeSaved({ screen, creating, logging, form: { ...form, password: "" }, q, picked, duplicate, loginEmail, firstLogin, sent, coordChoice, coordGiven, claimEmail, claimPhone });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, creating, logging, form, q, picked, duplicate, loginEmail, firstLogin, sent]);
+  }, [screen, creating, logging, form, q, picked, duplicate, loginEmail, firstLogin, sent, coordChoice, coordGiven, claimEmail, claimPhone]);
 
   // Le bouton retour du navigateur revient à l'écran précédent au lieu de quitter /pro
   useEffect(() => {
@@ -371,7 +396,8 @@ export default function Claim() {
     let live = true;
     setSearching(true);
     const timer = setTimeout(async () => {
-      const r = await search(t);
+      // Démo : deux fiches d'exemple (avec et sans coordonnées), comme sur le canvas
+      const r = demo ? { results: DEMO_FICHES.filter((f) => f.name.toLowerCase().includes(t.toLowerCase())) } : await search(t);
       if (!live) return;
       setResults(r.results);
       setSetupMissing(!!r.setup);
@@ -381,53 +407,81 @@ export default function Claim() {
       live = false;
       clearTimeout(timer);
     };
-  }, [q]);
-
-  // Renvoie true si le code est parti (ou en démo) : sert à passer à l'écran suivant seulement si besoin
-  async function sendCode(target = picked) {
-    setError("");
-    if (!target?.email_hint) {
-      setError(ERRORS.no_email);
-      return false;
-    }
-    // Démo : aucun code ne part, n'importe quels 6 chiffres ouvrent l'espace de démonstration
-    if (demo) {
-      setSent(true);
-      armResend();
-      setTimeout(() => boxes.current[0]?.focus(), 50);
-      return true;
-    }
-    setBusy(true);
-    const res = await call({ action: "send", vendorId: target.id });
-    setBusy(false);
-    if (res.ok) {
-      setSent(true);
-      armResend();
-      setCode(["", "", "", "", "", ""]);
-      setTimeout(() => boxes.current[0]?.focus(), 50);
-      return true;
-    }
-    setError(ERRORS[res.error] || ERRORS.send_failed);
-    return false;
-  }
+  }, [q, demo]);
 
   // Un résultat choisi, ou l'arrivée par lien : toujours l'écran de confirmation d'abord, le code ne part
   // que sur un clic explicite (un lien reçu ou forgé ne doit pas envoyer un mail à lui seul)
   function choose(found) {
-    const r = demo && !found.email_hint ? { ...found, email_hint: "c•••@exemple.fr" } : found;
+    const r = found;
     setPicked(r);
     setCreating(false);
-    setScreen(r.claimed && !signedIn ? "managed" : "confirm");
+    setScreen(r.claimed ? "managed" : "coords");
+    setCoordChoice({ email: null, phone: null });
+    setCoordGiven({ email: "", phone: "" });
     setSent(false);
     setError("");
   }
 
-  async function confirmAndSend() {
-    if (!signedIn && claimPassword.length < 8) {
-      setError(PASSWORD_HINT);
+  // Coordonnées de la fiche (V0g2) : chaque coordonnée connue se confirme ou se corrige, celle que la fiche
+  // n'a pas se saisit. Rien ne part ici : la demande est vérifiée à la main, auprès des coordonnées d'origine.
+  const hasHint = { email: Boolean(picked?.email_hint), phone: Boolean(picked?.phone_hint) };
+  const givenOk = (k) => (k === "email" ? EMAIL_RE.test(coordGiven.email.trim()) : PHONE_RE.test(cleanPhone(coordGiven.phone)));
+  const coordReady = ["email", "phone"].every((k) => (hasHint[k] ? coordChoice[k] === "oui" || (coordChoice[k] === "non" && givenOk(k)) : givenOk(k)));
+  const setChoice = (k, v) => {
+    setError("");
+    setCoordChoice((c) => ({ ...c, [k]: v }));
+  };
+  const setGiven = (k, v) => setCoordGiven((g) => ({ ...g, [k]: v }));
+
+  function nextFromCoords() {
+    if (!coordReady) {
+      setError("Confirmez ou corrigez chaque coordonnée pour continuer.");
       return;
     }
-    if (await sendCode()) setScreen("code");
+    setError("");
+    setScreen("account");
+  }
+
+  // Envoie la demande (V0g) : le compte est créé, la fiche lui est rattachée « en attente », l'équipe est prévenue
+  async function submitRequest() {
+    if (!signedIn && !EMAIL_RE.test(claimEmail.trim())) return setError(ERRORS.account_email);
+    if (!signedIn && claimPassword.length < 8) return setError(PASSWORD_HINT);
+    if (!PHONE_RE.test(cleanPhone(claimPhone))) return setError(ERRORS.account_phone);
+    setError("");
+    if (demo) {
+      setFill(40);
+      setScreen("demande");
+      return;
+    }
+    setBusy(true);
+    const token = signedIn && supabase ? (await supabase.auth.getSession()).data?.session?.access_token || null : null;
+    const res = await call(
+      {
+        action: "request",
+        vendorId: picked.id,
+        coords: {
+          email: { choice: hasHint.email ? coordChoice.email : null, given: coordGiven.email.trim() },
+          phone: { choice: hasHint.phone ? coordChoice.phone : null, given: coordGiven.phone.trim() },
+        },
+        account: { email: claimEmail.trim(), password: claimPassword, phone: claimPhone.trim() },
+      },
+      "/api/pro/claim",
+      token,
+    );
+    if (!res.ok) {
+      setBusy(false);
+      setError(ERRORS[res.error] || ERRORS.request_failed);
+      trackEvent("pro_request_failed", { flow: "claim", error: res.error || "unknown" });
+      return;
+    }
+    trackEvent("pro_completed", { flow: "claim" });
+    // La session est posée tout de suite : un rechargement mène au dashboard au lieu de perdre la demande
+    pro.setHold(true);
+    if (res.session && supabase) await supabase.auth.setSession(res.session);
+    if (res.vendorId) pro.rememberVendor(res.vendorId);
+    await loadFill(res.vendorId || picked.id);
+    setBusy(false);
+    setScreen("demande");
   }
 
   function startCreate() {
@@ -757,9 +811,7 @@ export default function Claim() {
     }
     const res = creating
       ? await call({ action: "create_verify", email: form.email.trim(), code: c, fields: formFields(), password: signedIn ? undefined : form.password })
-      : logging
-        ? await call({ action: "login_verify", email: loginEmail.trim(), code: c })
-        : await call({ action: "verify", vendorId: picked.id, code: c, password: signedIn ? undefined : claimPassword });
+      : await call({ action: "login_verify", email: loginEmail.trim(), code: c });
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.bad_code);
@@ -840,6 +892,12 @@ export default function Claim() {
       {/Écrivez-nous/.test(error) ? <a href={`mailto:${CONTACT}?subject=Accès à ma fiche Merry${picked ? ` : ${picked.name}` : ""}`}>{CONTACT}</a> : null}
     </p>
   ) : null;
+  const ficheRow = picked ? (
+    <div className="p-claim-row-fiche">
+      <span className="p-claim-name">{picked.name}</span>
+      <span className="p-claim-meta">{[picked.category, picked.city].filter(Boolean).join(" · ")}</span>
+    </div>
+  ) : null;
   const categoryLabel = CATEGORIES.find(([slug]) => slug === form.category)?.[1];
 
   function finishPreparing() {
@@ -872,7 +930,7 @@ export default function Claim() {
         steps={[
           { label: "Fiche retrouvée", detail: [picked.name, picked.category, picked.city].filter(Boolean).join(" · ") },
           found.length ? { label: "Informations publiques récupérées", detail: found.join(" · ") } : { label: "Fiche rattachée à votre compte", detail: picked.category || "" },
-          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "100 crédits offerts" },
+          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "Crédits offerts après vérification" },
         ]}
         lines={["On retrouve votre fiche…", "On récupère ses informations…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}
@@ -883,7 +941,7 @@ export default function Claim() {
     return <Welcome name={form.name.trim()} fill={fill} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
   }
   if (welcome === "claim") {
-    return <Welcome name={picked.name} fill={fill} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
+    return <Welcome name={picked.name} fill={fill} pending primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
 
   const flow = invite ? INVITE_FLOW : logging ? LOGIN_FLOW : creating ? CREATE_FLOW : CLAIM_FLOW;
@@ -895,7 +953,9 @@ export default function Claim() {
     address: { eyebrow: "Votre établissement", title: "Quelle est son adresse ?" },
     contact: { eyebrow: "Votre compte", title: "Comment peut-on vous contacter ?" },
     search: { eyebrow: "Espace prestataire", title: "Retrouvez votre établissement" },
-    confirm: { eyebrow: "Votre fiche", title: picked?.name || "" },
+    coords: { eyebrow: "Vos coordonnées", title: hasHint.email || hasHint.phone ? "Ces coordonnées sont-elles les vôtres ?" : "Quelles sont les coordonnées de votre établissement ?" },
+    account: { eyebrow: "Votre compte", title: "Comment peut-on vous contacter ?" },
+    demande: { eyebrow: "Votre demande", title: "Votre demande est prise en compte." },
     entry: { eyebrow: "Espace prestataire", title: "Bienvenue sur Merry." },
     "login-email": { eyebrow: "Connexion", title: "Heureux de vous revoir." },
     password: { eyebrow: "Connexion", title: "Choisissez votre mot de passe." },
@@ -907,10 +967,10 @@ export default function Claim() {
     "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
   const { eyebrow, title: cardTitle } = META[screen] || { eyebrow: "", title: "" };
-  const noProgress = logging || ["entry", "password", "managed", "duplicate"].includes(screen) || (screen === "invite" && !!invite?.already);
+  const noProgress = logging || ["entry", "password", "managed", "duplicate", "demande"].includes(screen) || (screen === "invite" && !!invite?.already);
   // Changer de compte sans perdre le lien d'invitation
   const switchAccount = () => pro.signOut(`/pro?invitation=${invite.token}`);
-  const goBack = screen === "entry" || screen === "password"
+  const goBack = screen === "entry" || screen === "password" || screen === "demande"
     ? null
     : screen === "managed"
     ? backTo("search")
@@ -936,9 +996,9 @@ export default function Claim() {
         ? signedIn
           ? null
           : backTo("entry")
-        : screen === "confirm"
+        : screen === "coords"
           ? backTo("search")
-          : backTo("confirm");
+          : backTo("coords");
 
   return (
     <div className="p-claim">
@@ -1013,9 +1073,9 @@ export default function Claim() {
                 <button type="button" className="p-claim-submit" onClick={startLogin}>
                   Me connecter
                 </button>
-                <button type="button" className="p-claim-link" onClick={backTo("confirm")}>
-                  Pas de compte ? Recevoir un code à l’adresse de la fiche
-                </button>
+                <a className="p-claim-link" href={`mailto:${CONTACT}?subject=Accès à ma fiche Merry : ${picked.name}`}>
+                  Ce compte n’est pas le vôtre ? Écrivez-nous
+                </a>
               </div>
             </>
           ) : screen === "duplicate" ? (
@@ -1297,65 +1357,100 @@ export default function Claim() {
                 </button>
               </div>
             </>
-          ) : screen === "confirm" ? (
+          ) : screen === "coords" ? (
             <>
-              <div className="p-claim-vcard">
-                <div role="img" aria-label={`${picked.name}, photo de couverture`} className="p-claim-cover" style={picked.photo ? { backgroundImage: `url("${picked.photo}")` } : undefined} />
-                <div className="p-claim-vbody">
-                  <span className="p-claim-vname">{picked.name}</span>
-                  <ul>
-                    {picked.address || picked.city ? (
-                      <li>
-                        <ProIcon name="pin" size={16} stroke="#5f5e58" />
-                        <span>{[picked.address, [picked.postal_code, picked.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span>
-                      </li>
-                    ) : null}
-                    {picked.category ? (
-                      <li>
-                        <ProIcon name="fiche" size={16} stroke="#5f5e58" />
-                        <span>{picked.category}</span>
-                      </li>
-                    ) : null}
-                    {picked.rating ? (
-                      <li>
-                        <ProIcon name="star" size={16} stroke="#5f5e58" />
-                        <span>
-                          {String(picked.rating).replace(".", ",")} sur Google · {picked.reviews || 0} avis
-                        </span>
-                      </li>
-                    ) : null}
-                  </ul>
-                </div>
-              </div>
-              <div className="p-claim-channel is-on is-single">
-                <ProIcon name="mail" size={20} />
-                <span>
-                  <span className="p-claim-ctitle">{picked.email_hint ? "Un code par mail, à l’adresse de la fiche" : "Pas d’adresse mail sur cette fiche"}</span>
-                  <span className="p-claim-chint">{picked.email_hint || "Écrivez-nous depuis l’adresse de votre établissement : nous vous ouvrons l’accès."}</span>
-                </span>
-              </div>
-              {picked.email_hint && !signedIn ? (
-                <div className="p-claim-field">
-                  <label htmlFor="pro-claim-pw">Choisissez un mot de passe (8 caractères minimum)</label>
-                  <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} onKeyDown={onEnter(confirmAndSend)} />
-                  <PasswordMeter value={claimPassword} />
-                  <Consent />
-                </div>
-              ) : null}
+              {ficheRow}
+              {hasHint.email || hasHint.phone ? <p className="p-claim-help">Elles viennent de votre fiche publique.</p> : null}
+              {[
+                ["email", "Email", "mail", "adresse mail", "email", "vous@exemple.fr", "email"],
+                ["phone", "Téléphone", "mobile", "numéro de téléphone", "tel", "06 12 34 56 78", "tel"],
+              ].map(([k, label, icon, noun, type, placeholder, auto]) => {
+                const field = (
+                  <div className="p-claim-field">
+                    <label htmlFor={`pro-coord-${k}`}>{picked[`${k}_hint`] ? `Votre ${noun}` : `${label} de l’établissement`}</label>
+                    <input
+                      id={`pro-coord-${k}`}
+                      className="p-claim-input"
+                      type={type}
+                      inputMode={type}
+                      autoComplete={auto}
+                      placeholder={placeholder}
+                      value={coordGiven[k]}
+                      onChange={(e) => setGiven(k, e.target.value)}
+                      onKeyDown={onEnter(nextFromCoords)}
+                    />
+                  </div>
+                );
+                return (
+                  <div className="p-claim-coord" key={k}>
+                    {picked[`${k}_hint`] ? (
+                      <>
+                        <div className="p-claim-coord-head">
+                          <ProIcon name={icon} size={22} />
+                          <span>
+                            <span className="p-claim-coord-label">{label}</span>
+                            <span className="p-claim-coord-value">{picked[`${k}_hint`]}</span>
+                          </span>
+                        </div>
+                        <div className="p-claim-choices" role="group" aria-label={`${label} de la fiche`}>
+                          <button type="button" className="p-claim-choice" aria-pressed={coordChoice[k] === "oui"} onClick={() => setChoice(k, "oui")}>
+                            Oui, c’est ça
+                          </button>
+                          <button type="button" className="p-claim-choice" aria-pressed={coordChoice[k] === "non"} onClick={() => setChoice(k, "non")}>
+                            Non, c’est pas ça
+                          </button>
+                        </div>
+                        {coordChoice[k] === "non" ? field : null}
+                      </>
+                    ) : (
+                      field
+                    )}
+                  </div>
+                );
+              })}
               {errorBox}
               <div className="p-claim-actions">
-                <button type="button" className="p-claim-submit" onClick={confirmAndSend} disabled={busy || !picked.email_hint}>
-                  Recevoir mon code
+                <button type="button" className="p-claim-submit" onClick={nextFromCoords} disabled={!coordReady}>
+                  Suivant
+                </button>
+              </div>
+            </>
+          ) : screen === "account" ? (
+            <>
+              {ficheRow}
+              {signedIn ? null : (
+                <>
+                  <div className="p-claim-field">
+                    <label htmlFor="pro-claim-email">Votre email</label>
+                    <input id="pro-claim-email" className="p-claim-input" type="email" autoComplete="email" placeholder="vous@exemple.fr" value={claimEmail} onChange={(e) => setClaimEmail(e.target.value)} onKeyDown={onEnter(submitRequest)} />
+                  </div>
+                  <div className="p-claim-field">
+                    <label htmlFor="pro-claim-pw">Mot de passe (8 caractères minimum)</label>
+                    <input id="pro-claim-pw" className="p-claim-input" type="password" autoComplete="new-password" value={claimPassword} onChange={(e) => setClaimPassword(e.target.value)} onKeyDown={onEnter(submitRequest)} />
+                    <PasswordMeter value={claimPassword} />
+                  </div>
+                </>
+              )}
+              <div className="p-claim-field">
+                <label htmlFor="pro-claim-phone">Téléphone</label>
+                <input id="pro-claim-phone" className="p-claim-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="06 12 34 56 78" value={claimPhone} onChange={(e) => setClaimPhone(e.target.value)} onKeyDown={onEnter(submitRequest)} />
+              </div>
+              {signedIn ? null : <Consent />}
+              {errorBox}
+              <div className="p-claim-actions">
+                <button type="button" className="p-claim-submit" onClick={submitRequest} disabled={busy}>
+                  Envoyer ma demande
                 </button>
               </div>
             </>
           ) : (
             <>
-              {codeBlock(`Le code envoyé à ${picked.email_hint}`, () => sendCode())}
-              {errorBox}
+              <p className="p-claim-lead">Nous vérifions que la fiche est bien à vous. Nous vous joignons par mail ou par téléphone dans l’heure.</p>
+              {ficheRow}
+              <p className="p-claim-help">En attendant, vous pouvez compléter votre fiche.</p>
               <div className="p-claim-actions">
-                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy || !picked.email_hint}>
-                  Confirmer
+                <button type="button" className="p-claim-submit" onClick={() => setPreparing("claim")}>
+                  Continuer
                 </button>
               </div>
             </>

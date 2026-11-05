@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
+import Demandes from "@/components/pilotage/Demandes";
 import PilotNav from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
@@ -24,6 +25,7 @@ function readDemoFlag() {
 
 const SECTIONS = [
   { id: "sante", label: "Santé" },
+  { id: "demandes", label: "Demandes" },
   { id: "couts", label: "Coûts" },
   { id: "site", label: "Site" },
   { id: "referencement", label: "Référencement" },
@@ -291,6 +293,8 @@ function Board({ data, jours, reload }) {
           ))}
         </div>
       </Section>
+
+      <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 

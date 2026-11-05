@@ -4,10 +4,11 @@
 // bord. La coche, le titre, la barre de complétude et les boutons arrivent l'un après l'autre (audit du
 // 4 nov. 2026). Création : un seul bouton vers le dashboard. Revendication : « Compléter ma fiche » en
 // avant, « Accéder au dashboard » en retrait. fill = complétude de la fiche en %, quand elle est connue.
+// pending : la fiche est une demande d'accès pas encore vérifiée (pastille orange, comme V0i du canvas).
 
 import { ProIcon } from "./icons";
 
-export default function Welcome({ name, fill, primary, secondary }) {
+export default function Welcome({ name, fill, primary, secondary, pending }) {
   const pct = typeof fill === "number" ? Math.max(0, Math.min(100, Math.round(fill))) : null;
   return (
     <div className="p-welcome">
@@ -18,6 +19,7 @@ export default function Welcome({ name, fill, primary, secondary }) {
           <ProIcon name="check" size={28} sw={2.6} stroke="#ffffff" />
         </span>
         <h1 className="p-welcome-h1 p-welcome-in">Bienvenue, {name}.</h1>
+        {pending ? <span className="p-welcome-pending p-welcome-in">Vérification en cours, réponse dans l’heure</span> : null}
         {pct !== null ? (
           <div className="p-welcome-fill p-welcome-in">
             <span className="p-welcome-bar" role="progressbar" aria-label="Fiche complète" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>

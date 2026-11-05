@@ -5912,3 +5912,81 @@ button.p-dem-item {
   color: inherit;
   text-decoration: underline;
 }
+
+/* Demande d'accès à une fiche (V0g2, V0g, V0h3) : coordonnées à confirmer, deux choix par coordonnée */
+.p-claim-coord {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1.5px solid var(--p-line);
+  background: #ffffff;
+}
+
+.p-claim-coord-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.p-claim-coord-head > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.p-claim-coord-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b6a63;
+}
+
+.p-claim-coord-value {
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.p-claim-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.p-claim-choice {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1.5px solid #1c1c1a;
+  background: #ffffff;
+  color: #1c1c1a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.p-claim-choice[aria-pressed="true"] {
+  background: #1c1c1a;
+  color: #ffffff;
+}
+
+.p-claim-lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.p-welcome-pending {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #ffe6cc;
+  color: #8a4b0f;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
