@@ -3,10 +3,10 @@
 // Corps de la page Prestataires du site vitrine : extrait pour lire la langue (useLang), le
 // chargement des chiffres du catalogue (getProof) reste côté serveur dans app/vitrine/partenaires/page.js.
 
-import { Block } from "./Frame";
+import Block from "./Block";
 import { DEMO, PRO } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
-import { formatProof } from "@/lib/vitrine/proof";
+import { formatProof } from "@/lib/vitrine/proofFormat";
 import { PARTENAIRES_TEXT, PARTENAIRES_COMPARATIF, PARTENAIRES_FAQ } from "@/lib/i18n/vitrine-partenaires";
 import avantApres, { en as avantApresEn } from "@/lib/vitrine/blocks/pro-avant-apres";
 import criteres, { en as criteresEn } from "@/lib/vitrine/blocks/pro-criteres";
