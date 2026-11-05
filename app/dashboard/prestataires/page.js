@@ -202,14 +202,13 @@ export default function Trouver() {
               Filtres
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
-            <ResultCount n={searching ? null : resultCount} />
             {CATEGORIES.map((cg) => (
               <button key={cg.key} type="button" className={`d-pr-pill${cat === cg.key ? " is-on" : ""}`} onClick={() => changeCat(cg.key)}>
                 {cg.tab}
               </button>
             ))}
           </div>
-          {searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : null}
+          <div className="d-pr-countrow">{searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : <ResultCount n={resultCount} />}</div>
           <ViewToggle view={view} onChange={changeView} />
         </>
       ) : (

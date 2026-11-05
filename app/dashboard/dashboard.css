@@ -12234,6 +12234,11 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
+.d-pr-countrow {
+  display: flex;
+  margin: 10px 0 0;
+}
+
 .d-pr-count {
   flex: none;
   display: inline-flex;
