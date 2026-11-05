@@ -975,7 +975,7 @@ export default function Claim() {
                   Me connecter
                 </button>
                 <button type="button" className="p-claim-link" onClick={backTo("confirm")}>
-                  Je n’ai plus accès au compte
+                  Pas de compte ? Recevoir un code à l’adresse de la fiche
                 </button>
               </div>
             </>
