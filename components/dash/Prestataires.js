@@ -1056,7 +1056,7 @@ export function MiniMap({ v, height = 220, width = 600 }) {
         {({ toScreen }) => (
           <span className="d-pr-pin is-active is-static" style={toScreen(p)}>
             <span aria-hidden="true" className="d-pr-pin-img" style={{ backgroundImage: (v.photos || []).find(Boolean) ? `url("${(v.photos || []).find(Boolean)}")` : undefined }} />
-            {v.price ? euros(v.price) : v.name}
+            <span className="d-pr-pin-label">{v.price ? euros(v.price) : v.name}</span>
           </span>
         )}
       </MapCanvas>
