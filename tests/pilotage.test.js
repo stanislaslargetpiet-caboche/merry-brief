@@ -97,7 +97,7 @@ describe("dayList", () => {
 });
 
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readServiceAccount, signedJwt } from "@/lib/server/pilotage/google";
+import { parseServiceAccount, readServiceAccount, signedJwt } from "@/lib/server/pilotage/google";
 import { auditHtml, sampleUrls, sectionOf } from "@/lib/server/pilotage/seo";
 
 describe("compte de service Google", () => {
@@ -144,5 +144,28 @@ describe("santé du référencement", () => {
     expect(sectionOf("https://www.withmerry.com/mariage/lieux/provence")).toBe("/mariage/lieux");
     expect(sectionOf("https://www.withmerry.com/partenaires")).toBe("/partenaires");
     expect(sectionOf("https://www.withmerry.com/")).toBe("/");
+  });
+});
+
+describe("clé du compte de service, telle qu'on la colle", () => {
+  const pem = "-----BEGIN PRIVATE KEY-----\nabc\ndef\n-----END PRIVATE KEY-----\n";
+  const file = JSON.stringify({ type: "service_account", client_email: "a@b.iam.gserviceaccount.com", private_key: pem, client_id: "1" }, null, 2);
+  const ok = { email: "a@b.iam.gserviceaccount.com", key: pem };
+  it("lit le fichier tel quel, en base64, entre guillemets ou en chaîne JSON", () => {
+    expect(parseServiceAccount(file)).toEqual(ok);
+    expect(parseServiceAccount(Buffer.from(file).toString("base64"))).toEqual(ok);
+    expect(parseServiceAccount(`'${file}'`)).toEqual(ok);
+    expect(parseServiceAccount(JSON.stringify(file))).toEqual(ok);
+  });
+  it("lit une clé dont les \\n sont devenus de vrais retours à la ligne", () => {
+    const broken = file.replace(/\\n/g, "\n");
+    expect(() => JSON.parse(broken)).toThrow();
+    expect(parseServiceAccount(broken)).toEqual(ok);
+  });
+  it("dit ce qui manque sans citer le contenu", () => {
+    expect(parseServiceAccount("")).toEqual({ erreur: "absente" });
+    expect(parseServiceAccount("bonjour").erreur).toMatch(/illisible : 7 caractères/);
+    expect(parseServiceAccount('{"client_email":"a@b"}').erreur).toMatch(/private_key introuvable/);
+    expect(parseServiceAccount('{"client_email":"a@b","private_key":"xx"}').erreur).toMatch(/BEGIN PRIVATE KEY/);
   });
 });
