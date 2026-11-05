@@ -157,7 +157,7 @@ export function useRecommendations(category, near, bbox = null) {
   keyRef.current = key;
   const dataRef = useRef(data);
   dataRef.current = data;
-  const args = { mode: dash.mode, category, places, near, bbox, filters, city };
+  const args = { mode: dash.mode, category, places, region, near, bbox, filters, city };
 
   // Une page : on lit les lieux confirmés, puis les « à confirmer », jusqu'à en avoir assez à montrer
   const fetchPage = async (from) => {
