@@ -196,19 +196,19 @@ export default function Trouver() {
       <FiltersNote rec={rec} />
       {phone ? (
         <>
-          <div className="d-pr-pillrow">
+          <div className="d-pr-tabrow is-phone">
+            <CategoryTabs value={cat} onChange={changeCat} />
+          </div>
+          <div className="d-pr-ctlrow">
             <button type="button" className={`d-pr-pill is-filters${filtersCount ? " is-on" : ""}`} onClick={() => setFilters(true)} aria-label={filtersCount ? `Filtres, ${filtersCount} actifs` : "Filtres"}>
               <DuoIcon name="list" size={18} stroke={filtersCount ? "#ffffff" : undefined} />
               {filtersCount ? <span className="d-pr-pill-badge">{filtersCount}</span> : null}
             </button>
-            {CATEGORIES.map((cg) => (
-              <button key={cg.key} type="button" className={`d-pr-pill${cat === cg.key ? " is-on" : ""}`} onClick={() => changeCat(cg.key)}>
-                {cg.tab}
-              </button>
-            ))}
+            {searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : <ResultCount n={resultCount} />}
+            <span className="d-pr-ctlrow-end">
+              <ViewToggle view={view} onChange={changeView} compact />
+            </span>
           </div>
-          <div className="d-pr-countrow">{searching ? <span className="d-pr-summary-busy" aria-live="polite">Recherche…</span> : <ResultCount n={resultCount} />}</div>
-          <ViewToggle view={view} onChange={changeView} />
         </>
       ) : (
         <>

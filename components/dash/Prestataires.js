@@ -313,16 +313,17 @@ export function CategoryTabs({ value, onChange }) {
   );
 }
 
-export function ViewToggle({ view, onChange }) {
+// compact (téléphone) : les deux icônes seules
+export function ViewToggle({ view, onChange, compact = false }) {
   return (
-    <div role="group" aria-label="Affichage" className="d-pr-view">
-      <button type="button" aria-pressed={view === "liste"} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
+    <div role="group" aria-label="Affichage" className={`d-pr-view${compact ? " is-compact" : ""}`}>
+      <button type="button" aria-pressed={view === "liste"} aria-label={compact ? "Liste" : undefined} className={view === "liste" ? "is-on" : ""} onClick={() => onChange("liste")}>
         <DuoIcon name="liste" size={18} stroke={view === "liste" ? "#ffffff" : undefined} />
-        Liste
+        {compact ? null : "Liste"}
       </button>
-      <button type="button" aria-pressed={view === "carte"} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
+      <button type="button" aria-pressed={view === "carte"} aria-label={compact ? "Carte" : undefined} className={view === "carte" ? "is-on" : ""} onClick={() => onChange("carte")}>
         <DuoIcon name="map" size={18} stroke={view === "carte" ? "#ffffff" : undefined} />
-        Carte
+        {compact ? null : "Carte"}
       </button>
     </div>
   );

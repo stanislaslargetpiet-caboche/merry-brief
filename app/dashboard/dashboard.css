@@ -12234,9 +12234,28 @@ body.d-noscroll {
   color: var(--d-muted);
 }
 
-.d-pr-countrow {
+.d-pr-tabrow.is-phone {
+  flex-wrap: nowrap;
+  margin: 4px 0 0;
+}
+
+.d-pr-tabrow.is-phone .d-pr-tabs {
+  flex: 1;
+}
+
+.d-pr-ctlrow {
   display: flex;
-  margin: 10px 0 0;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.d-pr-ctlrow-end {
+  margin-left: auto;
+}
+
+.d-pr-view.is-compact button {
+  padding: 0 12px;
 }
 
 .d-pr-count {
