@@ -336,7 +336,10 @@ export default function Brief() {
         const saved = JSON.parse(raw);
         if (saved && saved.data) {
           setData({ ...EMPTY, ...saved.data, password: "" });
-          setStep(Math.min(saved.step || 0, TOTAL - 1));
+          // Arrivée par un lien du site ou des pages SEO (?source=…) : on repart du début du parcours,
+          // pas de l'écran où un ancien brouillon s'était arrêté (souvent la création de compte).
+          const fromLink = new URLSearchParams(window.location.search).has("source");
+          setStep(fromLink ? 0 : Math.min(saved.step || 0, TOTAL - 1));
         }
       }
     } catch {
