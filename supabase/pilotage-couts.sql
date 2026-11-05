@@ -1,7 +1,6 @@
 -- Coûts de Merry : le registre des dépenses que la section « Coûts » du pilotage totalise (en haut de /pilotage).
 -- Une ligne par dépense, en euros (convertir à la main les factures en dollars, comme Google Places).
--- Les quatre catégories suivent les plafonds de l'année 1 décidés le 9 octobre 2026 : tech 5 000 €, juridique 10 000 €,
--- acquisition 30 000 €, divers 5 000 €. Lue et écrite côté serveur seulement (service_role) : aucune politique, donc
+-- Quatre catégories : tech, juridique, acquisition, divers. Lue et écrite côté serveur seulement (service_role) : aucune politique, donc
 -- ni les visiteurs ni les comptes connectés n'y accèdent. Relançable sans risque.
 -- Supabase > SQL Editor > New query, colle ce fichier, Run.
 
