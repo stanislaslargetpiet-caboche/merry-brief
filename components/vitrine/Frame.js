@@ -16,6 +16,11 @@ const SEO_TRADES = [
   ["photographes", "Photographes"],
   ["dj", "DJ"],
   ["fleuristes", "Fleuristes"],
+  // Deuxième rangée (5 nov. 2026) : les métiers ajoutés aux pages SEO
+  ["wedding-planners", "Wedding planners"],
+  ["coiffure-maquillage", "Coiffure et maquillage"],
+  ["decoration", "Décoration"],
+  ["robes-costumes", "Robes et costumes"],
 ];
 const SEO_REGIONS = [
   "Île-de-France", "Auvergne-Rhône-Alpes", "Provence-Alpes-Côte d'Azur", "Nouvelle-Aquitaine", "Occitanie", "Bretagne",
