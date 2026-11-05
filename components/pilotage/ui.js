@@ -82,9 +82,7 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
                 width={w}
                 height={h1}
                 rx={2}
-                fill={hover === i ? "#fff700" : current ? "#1c1c1a" : "#b8b6ad"}
-                stroke={hover === i ? "#1c1c1a" : "none"}
-                strokeWidth={hover === i ? 1 : 0}
+                fill={hover === i ? "#6b6a63" : current ? "#1c1c1a" : "#b8b6ad"}
               />
             </g>
           );
