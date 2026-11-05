@@ -58,6 +58,23 @@
   color: rgba(28, 28, 26, 0.72);
 }
 
+/* Nom de la fiche affichée, en pastille blanche sous « Espace prestataire » */
+.p-brand-vendor {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--d-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .p-brand.is-small {
   gap: 3px;
   padding: 0;
@@ -2212,6 +2229,11 @@ select.p-input {
 }
 
 .p-hint.is-warn {
+  color: var(--danger);
+}
+
+/* Astérisque des champs obligatoires de Ma fiche */
+.p-req {
   color: var(--danger);
 }
 

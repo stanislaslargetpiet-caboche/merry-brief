@@ -4,7 +4,7 @@
 // tout de suite dans le catalogue que lisent les couples. ?apercu=1 ouvre l'aperçu côté couples (V2b, V2n).
 // Audit du 3 nov. 2026 : seuls restent les champs que les couples voient vraiment (places debout, fin de
 // soirée, adresse exacte, zone, rayon et taille d'équipe retirés ; import de vidéo retiré, seul un lien
-// est montré aux couples).
+// est montré aux couples). Bloc « Plus d'informations » retiré pour tous les métiers le 5 nov. 2026 (demande de Stan).
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,7 +14,6 @@ import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
-import { plusFor } from "@/lib/vendorPlus";
 import { searchAddress } from "@/lib/pro/geo";
 
 const PHOTOS_MIN = 3;
@@ -25,10 +24,16 @@ const CATERER = [
   { value: "liste", label: "Liste de traiteurs" },
 ];
 const catererOf = (det) => (det.caterer_mode ? det.caterer_mode : det.caterer_imposed === false ? "libre" : det.caterer_imposed === true ? "impose" : "");
-const hasPlus = (category) => {
-  const { choices, toggles, text } = plusFor(category);
-  return choices.length > 0 || toggles.length > 0 || text.length > 0;
-};
+// Champs obligatoires (demande de Stan le 5 nov. 2026) : tout sauf site internet, brochure et vidéo.
+// Un champ vide est signalé, astérisque et message, sans bloquer l'enregistrement ni la fiche.
+const isEmpty = (x) => x === null || x === undefined || x === "" || (Array.isArray(x) && !x.length);
+const Req = () => (
+  <span className="p-req" aria-hidden="true">
+    {" "}
+    *
+  </span>
+);
+const Missing = ({ when, children = "Ce champ est obligatoire." }) => (when ? <p className="p-hint is-warn">{children}</p> : null);
 
 export default function MaFichePage() {
   return (
@@ -77,8 +82,12 @@ function MaFiche() {
       <section className="p-sec" id="presentation">
         <h2 className="p-sec-title">Présentation</h2>
         <div className="p-field">
-          <label htmlFor="desc">Description</label>
+          <label htmlFor="desc">
+            Description
+            <Req />
+          </label>
           <TextArea id="desc" rows={4} value={v.description || ""} onSave={(t) => save({ description: t })} />
+          <Missing when={isEmpty(v.description)} />
         </div>
         <div className="p-grid2">
           <TextField id="site" label="Site internet" value={v.website} onSave={(t) => save({ website: t || null })} />
@@ -97,17 +106,21 @@ function MaFiche() {
         <section className="p-sec" id="lieu">
           <h2 className="p-sec-title">Le lieu</h2>
           <div className="p-grid2">
-            <NumberField id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
-            <NumberField id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
+            <NumberField required id="assis" label="Places assises" value={v.capacity_seated} onSave={(n) => save({ capacity_seated: num(n) })} />
+            <NumberField required id="couch" label="Couchages" value={v.beds} onSave={(n) => save({ beds: num(n) })} />
           </div>
           <div className="p-field is-8">
-            <span id="trait">Traiteur</span>
+            <span id="trait">
+              Traiteur
+              <Req />
+            </span>
             <Pills
               label="Traiteur"
               options={CATERER}
               value={catererOf(det)}
               onChange={(mode) => save({ caterer_mode: mode, caterer_imposed: mode !== "libre" })}
             />
+            <Missing when={!catererOf(det)}>Choisissez une réponse.</Missing>
           </div>
         </section>
       ) : null}
@@ -124,12 +137,12 @@ function MaFiche() {
           </div>
           <p className="p-hint">Estimés depuis l’adresse de la section Présentation ; modifiables à la main.</p>
           <div className="p-access">
-            <TextField id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
-            <MinutesField id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
+            <TextField required id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
+            <MinutesField required id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
           </div>
           <div className="p-access">
-            <TextField id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
-            <MinutesField id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
+            <TextField required id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
+            <MinutesField required id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
           </div>
           <div className="p-toggles">
             <div className="p-toggle">
@@ -141,13 +154,6 @@ function MaFiche() {
               <Switch on={det.accessible === true || (det.accessible === undefined && v.accessible === true)} labelledBy="pmr" onChange={(on) => save({ accessible: on })} />
             </div>
           </div>
-        </section>
-      ) : null}
-
-      {hasPlus(v.primary_category) ? (
-        <section className="p-sec" id="plus">
-          <h2 className="p-sec-title">Plus d’informations</h2>
-          <PlusInfosSection category={v.primary_category} />
         </section>
       ) : null}
 
@@ -175,7 +181,10 @@ function PhotosSection() {
 
   return (
     <section className="p-sec" id="photos">
-      <h2 className="p-sec-title">Photos</h2>
+      <h2 className="p-sec-title">
+        Photos
+        <Req />
+      </h2>
       {photos.length < PHOTOS_MIN ? <p className="p-hint is-warn">Ajoutez au moins {PHOTOS_MIN} photos pour publier votre fiche.</p> : null}
       <ul className="p-photos">
         {photos.map((ph, i) => {
@@ -292,97 +301,6 @@ function VideoSection() {
   );
 }
 
-// ---------- Plus d'informations : questions propres à chaque métier (lib/vendorPlus.js) ----------
-
-function PlusInfosSection({ category }) {
-  const pro = usePro();
-  const v = pro.data.vendor;
-  const det = v.details || {};
-  const save = (patch) => pro.saveFiche(patch);
-  const { choices, toggles, text } = plusFor(category);
-
-  return (
-    <div className="p-plus">
-      {choices.map((c) => (
-        <PlusChoiceRow key={c.key} choice={c} value={det[c.key]} onChange={(val) => save({ [c.key]: val })} />
-      ))}
-      {toggles.map((t) => (
-        <div key={t.key} className="p-plus-row is-toggle">
-          <span id={`plus-${t.key}`} className="p-plus-q">
-            {t.question}
-          </span>
-          <Switch on={det[t.key] === true} labelledBy={`plus-${t.key}`} onChange={(on) => save({ [t.key]: on })} />
-        </div>
-      ))}
-      {text.map((t) => (
-        <div key={t.key} className="p-plus-row is-text">
-          <TextField id={`plus-${t.key}`} label={t.question} value={det[t.key]} onSave={(val) => save({ [t.key]: val || null })} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Choix à pastilles d'une question « Plus d'informations », avec un bouton pour ajouter sa propre réponse
-function PlusChoiceRow({ choice: c, value, onChange }) {
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const list = value || [];
-  const extra = list.filter((v) => !c.options.some((o) => o.value === v));
-  const isOn = (v) => list.includes(v);
-  const toggle = (v) => onChange(isOn(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const addCustom = () => {
-    const t = draft.trim();
-    setAdding(false);
-    setDraft("");
-    if (!t || isOn(t)) return;
-    onChange([...list, t]);
-  };
-
-  return (
-    <div className="p-plus-row">
-      <span id={`plus-${c.key}`} className="p-plus-q">
-        {c.question}
-      </span>
-      <div className="p-pills" role="group" aria-label={c.question}>
-        {c.options.map((o) => (
-          <button key={o.value} type="button" className={`p-pill${isOn(o.value) ? " is-on" : ""}`} onClick={() => toggle(o.value)}>
-            {o.label}
-          </button>
-        ))}
-        {extra.map((v) => (
-          <button key={v} type="button" className="p-pill is-on" onClick={() => toggle(v)}>
-            {v}
-          </button>
-        ))}
-        {adding ? (
-          <input
-            autoFocus
-            type="text"
-            className="p-pill-input"
-            value={draft}
-            placeholder="Votre réponse…"
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={addCustom}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "Escape") {
-                setDraft("");
-                setAdding(false);
-              }
-            }}
-          />
-        ) : (
-          <button type="button" className="p-pill p-pill-add" onClick={() => setAdding(true)}>
-            <ProIcon name="plus" size={13} sw={2.4} />
-            Autre
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ---------- Champs enregistrés quand on les quitte ----------
 
 function useDraft(value) {
@@ -397,7 +315,7 @@ function useDraft(value) {
   return [draft, setDraft];
 }
 
-function TextInput({ id, value, onSave, placeholder, type = "text", className = "p-input" }) {
+function TextInput({ id, value, onSave, placeholder, type = "text", className = "p-input", required }) {
   const [draft, setDraft] = useDraft(value);
   return (
     <input
@@ -406,6 +324,7 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
       className={className}
       value={draft}
       placeholder={placeholder}
+      aria-required={required || undefined}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => String(draft) !== String(value ?? "") && onSave(typeof draft === "string" ? draft.trim() : draft)}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
@@ -454,7 +373,10 @@ function AddressField({ value, onValidated }) {
 
   return (
     <div className="p-field p-address">
-      <label htmlFor="adresse">Adresse</label>
+      <label htmlFor="adresse">
+        Adresse
+        <Req />
+      </label>
       <input
         id="adresse"
         className="p-input"
@@ -483,36 +405,49 @@ function AddressField({ value, onValidated }) {
         </ul>
       ) : null}
       {!validated && draft.trim() ? <p className="p-hint">Choisissez une suggestion pour vérifier l’adresse.</p> : null}
+      <Missing when={isEmpty(value)} />
     </div>
   );
 }
 
-function TextField({ id, label, value, onSave }) {
+function TextField({ id, label, value, onSave, required }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>{label}</label>
-      <TextInput id={id} value={value} onSave={onSave} />
+      <label htmlFor={id}>
+        {label}
+        {required ? <Req /> : null}
+      </label>
+      <TextInput id={id} value={value} onSave={onSave} required={required} />
+      <Missing when={required && isEmpty(value)} />
     </div>
   );
 }
 
-function NumberField({ id, label, value, onSave }) {
+function NumberField({ id, label, value, onSave, required }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>{label}</label>
-      <TextInput id={id} type="number" value={value ?? ""} onSave={onSave} />
+      <label htmlFor={id}>
+        {label}
+        {required ? <Req /> : null}
+      </label>
+      <TextInput id={id} type="number" value={value ?? ""} onSave={onSave} required={required} />
+      <Missing when={required && isEmpty(value)} />
     </div>
   );
 }
 
-function MinutesField({ id, value, onSave }) {
+function MinutesField({ id, value, onSave, required }) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>Trajet</label>
+      <label htmlFor={id}>
+        Trajet
+        {required ? <Req /> : null}
+      </label>
       <div className="p-input p-unit">
-        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} />
+        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} required={required} />
         <span>min</span>
       </div>
+      <Missing when={required && isEmpty(value)} />
     </div>
   );
 }

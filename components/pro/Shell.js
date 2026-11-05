@@ -174,6 +174,7 @@ function Frame({ children }) {
         <Link href="/pro" className="p-brand">
           <span className="p-brand-logo">Merry</span>
           <span className="p-brand-sub">Espace prestataire</span>
+          {pro.data.vendor?.name ? <span className="p-brand-vendor">{pro.data.vendor.name}</span> : null}
         </Link>
         <div className="p-nav-main">
           {PRO_NAV.map((n) => {
