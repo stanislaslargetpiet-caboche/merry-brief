@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { addDays, euros, isoDate, today } from "@/lib/dash/format";
 import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, readSeenRequests, replyCost, seasonOf, since, stageColor, STAGES, weddingWhen, writeSeenRequests } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
+import { pastel } from "@/lib/dash/theme";
 import { Face, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
 
@@ -190,7 +191,14 @@ function Detail({ r, c, onBack }) {
   }
 
   // La date figure déjà dans le bandeau « libre / réservé » : seule une date flexible reste en pastille
-  const chips = [r.region, flexible ? r.dates[0].replace(/^Dates flexibles\s*:\s*/i, "Dates flexibles : ") : null, guestsText(c.guests), c.budget_label || budgetRange(r.budget), vibes.length ? vibes.map((v, i) => (i ? v.toLowerCase() : v)).join(" ") : null].filter(Boolean);
+  // Chaque pastille a son icône et son pastel (lieu, date, invités, budget, ambiance)
+  const chips = [
+    r.region ? { icon: "pin", tone: "bleu", text: r.region } : null,
+    flexible ? { icon: "calendar", tone: "lavande", text: r.dates[0].replace(/^Dates flexibles\s*:\s*/i, "Dates flexibles : ") } : null,
+    guestsText(c.guests) ? { icon: "clients", tone: "sauge", text: guestsText(c.guests) } : null,
+    c.budget_label || budgetRange(r.budget) ? { icon: "card", tone: "jaune", text: c.budget_label || budgetRange(r.budget) } : null,
+    vibes.length ? { icon: "sparkle", tone: "peche", text: vibes.map((v, i) => (i ? v.toLowerCase() : v)).join(" ") } : null,
+  ].filter(Boolean);
 
   return (
     <section aria-label={`Demande de ${r.names}`} className="p-dem-detail">
@@ -217,8 +225,11 @@ function Detail({ r, c, onBack }) {
         </div>
       ) : null}
       <div className="p-dem-chips">
-        {chips.map((t, i) => (
-                <span key={`${t}-${i}`}>{t}</span>
+        {chips.map((t) => (
+          <span key={t.icon} style={{ background: pastel(t.tone).bg, color: pastel(t.tone).ink }}>
+            <ProIcon name={t.icon} size={15} stroke="currentColor" />
+            {t.text}
+          </span>
         ))}
       </div>
       {r.message ? (
