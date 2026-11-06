@@ -7,12 +7,11 @@
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
-import { Pills, ProSubnav } from "@/components/pro/ui";
+import { ProSubnav } from "@/components/pro/ui";
 import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
-import { CATALOG_CATEGORIES } from "@/lib/dash/catalog";
 import Collaborators from "@/components/pro/Collaborators";
 import MailPrefs from "@/components/MailPrefs";
 import PasswordFields from "@/components/PasswordFields";
@@ -27,15 +26,6 @@ export default function Compte() {
     if (!ok) pro.setToast({ kind: "error", text: "La couleur n’a pas pu être enregistrée sur votre compte." });
   }
 
-  const category = pro.data.vendor?.primary_category;
-  const [savingCategory, setSavingCategory] = useState(false);
-  async function pickCategory(key) {
-    if (key === category) return;
-    setSavingCategory(true);
-    const ok = await pro.setCategory(key);
-    setSavingCategory(false);
-    if (ok) pro.setToast({ kind: "ok", text: "Activité mise à jour : Ma fiche s’adapte à votre métier." });
-  }
   const [email, setEmail] = useState(pro.data.user?.email || "");
   const [changePassword, setChangePassword] = useState(false);
   const [password, setPassword] = useState("");
@@ -108,18 +98,6 @@ export default function Compte() {
     <div className="p-narrow is-28">
       <h1 className="p-h1 is-page">Compte.</h1>
       <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
-
-      <Section title="Activité" />
-      <div className="d-card">
-        <p className="p-hint">Détermine les questions de Ma fiche et l’onglet où les couples vous trouvent.</p>
-        <Pills
-          label="Activité"
-          options={CATALOG_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
-          value={category}
-          onChange={pickCategory}
-        />
-        {savingCategory ? <p className="p-hint">Enregistrement…</p> : null}
-      </div>
 
       <Section title="Couleur de l’espace prestataire" />
       <div className="d-accents" role="radiogroup" aria-label="Couleur de l’espace prestataire">
