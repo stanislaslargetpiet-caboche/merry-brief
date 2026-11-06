@@ -106,6 +106,14 @@ async function throttled(admin, req, keys) {
   return null;
 }
 
+// Un code à 6 chiffres se devine par essais : 10 vérifications par heure et par adresse mail, 60 par adresse IP
+async function guessLimited(admin, req, email) {
+  if (!(await allowKey(admin, `claim-guess-ip:${clientIp(req)}`, 60, 3600)) || !(await allowKey(admin, `claim-guess-email:${email}`, 10, 3600))) {
+    return Response.json({ error: "wait" }, { status: 429 });
+  }
+  return null;
+}
+
 // Mail et téléphone masqués, comme pro_search
 const emailHint = (email) => (/@/.test(String(email || "")) ? `${email[0]}•••${email.slice(email.indexOf("@"))}` : null);
 const phoneHint = (phone) => {
@@ -129,9 +137,23 @@ async function attach(admin, vendorId, user, email, { pending = false } = {}) {
   const { data: existing, error: e0 } = await admin.from("pro_vendors").select("vendor_id").eq("vendor_id", vendorId).maybeSingle();
   if (e0) return e0;
   let welcome = false;
-  if (!existing) {
+  // Fiche déjà gérée : seul un membre existant peut la retrouver. Deux demandes simultanées passent la
+  // vérification « already_managed » ensemble ; la seconde est refusée ici, sur l'insertion qui échoue.
+  const refuseUnlessMember = async () => {
+    const { data: m, error } = await admin.from("pro_members").select("user_id").eq("vendor_id", vendorId).eq("user_id", user.id).maybeSingle();
+    if (error) return error;
+    return m ? null : { code: "ALREADY_MANAGED", message: "already_managed" };
+  };
+  if (existing) {
+    const refused = await refuseUnlessMember();
+    if (refused) return refused;
+  } else {
     const { error: e1 } = await admin.from("pro_vendors").insert(pending ? { vendor_id: vendorId, credits: 0, verification: "en_attente" } : { vendor_id: vendorId, credits: WELCOME_CREDITS });
-    if (e1 && !/23505/.test(String(e1.code))) return e1;
+    if (e1) {
+      if (!/23505/.test(String(e1.code))) return e1;
+      const refused = await refuseUnlessMember();
+      if (refused) return refused;
+    }
     welcome = !e1 && !pending;
     if (!e1 && !pending && WELCOME_CREDITS > 0) {
       await admin.from("pro_ledger").insert({ vendor_id: vendorId, kind: "remboursement", label: `Bienvenue sur Merry : ${WELCOME_CREDITS} crédits offerts`, delta: WELCOME_CREDITS, balance: WELCOME_CREDITS });
@@ -286,6 +308,8 @@ async function requestAccess(body, admin, url, anon, req) {
   if (!me) {
     const code = String(body.code || "").replace(/\D/g, "");
     if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+    const guessed = await guessLimited(admin, req, account.email);
+    if (guessed) return guessed;
     const { data, error } = await auth.auth.verifyOtp({ email: account.email, token: code, type: "email" });
     if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
     user = data.user;
@@ -315,6 +339,7 @@ async function requestAccess(body, admin, url, anon, req) {
 
 // session : null quand le prestataire était déjà connecté (rien à changer côté navigateur)
 function linked(error, session, vendorId) {
+  if (error?.code === "ALREADY_MANAGED") return Response.json({ error: "already_managed" }, { status: 409 });
   if (error) {
     const missing = /PGRST205|42P01|Could not find/i.test(`${error.code} ${error.message}`);
     return Response.json({ error: missing ? "setup" : "link_failed" }, { status: 500 });
@@ -344,6 +369,8 @@ async function create(body, admin, url, anon, req) {
   const code = String(body.code || "").replace(/\D/g, "");
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
   if (body.password !== undefined && badPassword(body.password)) return Response.json({ error: "bad_password" }, { status: 400 });
+  const guessed = await guessLimited(admin, req, email);
+  if (guessed) return guessed;
 
   // Une fiche active du catalogue porte déjà cette adresse et personne ne la gère encore : on rattache
   // celle-là (pas de doublon). Une fiche déjà gérée sur Merry n'est jamais reprise : un prestataire
@@ -422,6 +449,8 @@ async function login(body, admin, url, anon, req) {
   }
   const code = String(body.code || "").replace(/\D/g, "");
   if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+  const guessed = await guessLimited(admin, req, email);
+  if (guessed) return guessed;
   const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
   if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
   // La première fiche du compte nourrit Préparation et Bienvenue à la première connexion
