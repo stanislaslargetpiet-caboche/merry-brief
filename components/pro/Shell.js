@@ -17,16 +17,16 @@ import Claim from "./Claim";
 import Pending from "./Pending";
 import FeatureDialog from "./FeatureDialog";
 
-// Chaque entrée groupe plusieurs pages sous un seul onglet de la barre latérale (maquettes
-// « Mon profil » et « Messagerie » du canvas) ; `match` liste les chemins qui l'activent, et ses
-// sous-pages affichent un ProSubnav vers les autres.
-// Projets de mariage (/pro/projets) est masqué de la navigation depuis le 3 nov. 2026 (décision de Stan) :
-// la liste reste vide tant que les couples n'ont pas d'écran pour accepter d'être contactés. La page existe
-// toujours, il suffit de remettre l'entrée ici quand cet écran couple sera prêt.
+// Navigation validée le 6 nov. 2026 (maquettes V1 ter et V5 ter) : Crédits et Réglages restent en bas de la barre.
+// Projets de mariage (/pro/projets) est masqué depuis le 3 nov. 2026 (décision de Stan) : la liste reste vide
+// tant que les couples n'ont pas d'écran pour accepter d'être contactés. La page existe toujours, il suffit de
+// remettre l'entrée ici quand cet écran couple sera prêt.
 export const PRO_NAV = [
   { href: "/pro", label: "Dashboard", icon: "home", exact: true, match: ["/pro"] },
-  { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes", "/pro/clients"], badge: true },
-  { href: "/pro/fiche", label: "Mon profil", icon: "fiche", match: ["/pro/fiche", "/pro/tarifs", "/pro/credits", "/pro/compte"] },
+  { href: "/pro/demandes", label: "Messagerie", icon: "demandes", match: ["/pro/demandes"], badge: true },
+  { href: "/pro/clients", label: "Clients", icon: "clients", match: ["/pro/clients"] },
+  { href: "/pro/tarifs", label: "Calendrier", icon: "calendar", match: ["/pro/tarifs"] },
+  { href: "/pro/fiche", label: "Ma fiche", icon: "fiche", match: ["/pro/fiche"] },
 ];
 
 // Demandes reçues et pas encore répondues, non relues dans ce navigateur (lecture posée par la page
@@ -34,10 +34,11 @@ export const PRO_NAV = [
 function useUnreadRequests() {
   const pro = usePro();
   const requests = pro.data.requests;
+  const inbox = pro.data.inbox;
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
-    const recompute = () => setUnread(countUnreadRequests(requests));
+    const recompute = () => setUnread(countUnreadRequests(requests) + unreadReplies({ requests, inbox }).length);
     recompute();
     window.addEventListener(PRO_SEEN_EVENT, recompute);
     window.addEventListener("storage", recompute);
@@ -45,23 +46,14 @@ function useUnreadRequests() {
       window.removeEventListener(PRO_SEEN_EVENT, recompute);
       window.removeEventListener("storage", recompute);
     };
-  }, [requests]);
+  }, [requests, inbox]);
 
   return unread;
 }
 
-export const PRO_MESSAGERIE_TABS = [
-  { href: "/pro/demandes", label: "Demandes" },
-  { href: "/pro/clients", label: "Réservations" },
+export const PRO_CLIENTS_TABS = [
+  { href: "/pro/clients", label: "En cours" },
   { href: "/pro/clients/historique", label: "Anciens clients" },
-];
-
-// Disponibilités a fusionné dans Tarifs (calendrier + prix, demande de Stan le 3 nov. 2026)
-export const PRO_PROFIL_TABS = [
-  { href: "/pro/fiche", label: "Ma fiche" },
-  { href: "/pro/tarifs", label: "Calendrier & Tarifs" },
-  { href: "/pro/credits", label: "Crédits" },
-  { href: "/pro/compte", label: "Compte" },
 ];
 
 export default function ProShell({ children }) {
@@ -117,6 +109,7 @@ function Frame({ children }) {
   const pathname = usePathname();
   const [feature, setFeature] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [help, setHelp] = useState(false);
   const credits = pro.data.pro?.credits ?? 0;
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
   const accent = useAccent();
@@ -206,20 +199,15 @@ function Frame({ children }) {
               <Icon name="settings" size={16} sw={2} />
               <span>Réglages</span>
             </Link>
-            <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-              <Icon name="bubble" size={16} sw={2} />
-              <span>Aide</span>
-            </a>
-          </div>
-          <CollabTeam />
-          <button type="button" className="p-outline-pill" onClick={() => setFeature(true)}>
-            Proposer une fonctionnalité
-          </button>
-          <div className="d-nav-links">
-            <a href={SITE_URL}>Retour au site</a>
-            <button type="button" onClick={pro.signOut}>
-              Se déconnecter
-            </button>
+            <span className="d-anchor">
+              <button type="button" className="d-help-btn" onClick={() => setHelp((o) => !o)} aria-expanded={help}>
+                <Icon name="bubble" size={16} sw={2} />
+                <span>Aide</span>
+              </button>
+              <Popover open={help} onClose={() => setHelp(false)}>
+                <HelpItems close={() => setHelp(false)} onFeature={() => setFeature(true)} />
+              </Popover>
+            </span>
           </div>
         </div>
       </nav>
@@ -243,60 +231,6 @@ function Frame({ children }) {
           {pro.toast.text}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-// Collaborateurs dans la barre latérale (maquette Compte), sur le modèle de la carte « Organisateurs »
-// du tableau de bord des couples (components/dash/Shell.js) : avatars, invitation en attente, bouton d'invitation
-// Déjà sur Compte, le lien ne change rien à l'écran : l'événement fait défiler jusqu'à la section
-// (et place le curseur dans le formulaire pour « Inviter »). Depuis une autre page, l'ancre s'en charge.
-function showCollab(invite) {
-  window.dispatchEvent(new CustomEvent("merry:collab", { detail: { invite } }));
-}
-
-function CollabTeam() {
-  const pro = usePro();
-  const members = pro.data.members || [];
-  if (!members.length) return null;
-  const pending = members.filter((m) => !m.user_id);
-  const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${memberName(pending[0])} n’a pas encore rejoint.`) : null;
-  return (
-    <div className="d-team">
-      <Link href="/pro/compte#collaborateurs" onClick={() => showCollab(false)} className="d-team-title" style={{ textDecoration: "none", color: "inherit" }}>
-        Collaborateurs
-      </Link>
-      <Link href="/pro/compte#collaborateurs" onClick={() => showCollab(false)} className="d-team-faces" aria-label="Voir les collaborateurs">
-        {members.slice(0, 5).map((m, i) => (
-          <span key={m.id} style={{ marginLeft: i ? -9 : 0, display: "inline-flex", opacity: m.user_id ? 1 : 0.55 }}>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                background: memberColor(m).mid,
-                color: memberColor(m).ink,
-                border: "2px solid #ffffff",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "11.5px",
-                fontWeight: 700,
-              }}
-            >
-              {memberInitial(m)}
-            </span>
-          </span>
-        ))}
-        <span className="d-team-plus" style={{ marginLeft: members.length ? -9 : 0 }}>
-          <Icon name="plus" size={14} sw={2} />
-        </span>
-      </Link>
-      {note ? <div className="d-team-note">{note}</div> : null}
-      <Link href="/pro/compte#inviter" onClick={() => showCollab(true)} className="d-btn d-btn-primary d-btn-small d-btn-block">
-        Inviter un collaborateur
-      </Link>
     </div>
   );
 }
@@ -349,16 +283,13 @@ function VendorPill() {
   );
 }
 
-function AccountMenu({ close, onFeature }) {
+// Aide, rendez-vous et fin de session : le menu Aide de la barre, repris dans le menu « … » du téléphone
+function HelpItems({ close, onFeature }) {
   const pro = usePro();
   return (
     <>
-      <VendorSwitch />
-      <a className="d-pop-item" href="/pro?revendiquer=1">
-        Ajouter une fiche
-      </a>
       <a className="d-pop-item" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-        Aide
+        Prendre rendez-vous
       </a>
       <button
         type="button"
@@ -383,6 +314,21 @@ function AccountMenu({ close, onFeature }) {
       >
         Se déconnecter
       </button>
+    </>
+  );
+}
+
+function AccountMenu({ close, onFeature }) {
+  return (
+    <>
+      <VendorSwitch />
+      <a className="d-pop-item" href="/pro?revendiquer=1">
+        Ajouter une fiche
+      </a>
+      <Link className="d-pop-item" href="/pro/compte" onClick={close}>
+        Réglages
+      </Link>
+      <HelpItems close={close} onFeature={onFeature} />
     </>
   );
 }

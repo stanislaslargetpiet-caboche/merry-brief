@@ -10,7 +10,7 @@ import { usePro } from "@/lib/pro/store";
 import { guestsText, isPastClient, weddingWhen } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face, ProSubnav } from "@/components/pro/ui";
-import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
+import { PRO_CLIENTS_TABS } from "@/components/pro/Shell";
 import ClientPanel from "@/components/pro/ClientPanel";
 
 export default function HistoriquePage() {
@@ -38,8 +38,8 @@ function Historique() {
 
   return (
     <div className={`p-clients${current ? " is-open" : ""}`}>
-      <h1 className="p-h1 is-page">Anciens clients.</h1>
-      <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
+      <h1 className="p-h1 is-page">Clients.</h1>
+      <ProSubnav items={PRO_CLIENTS_TABS} label="Sections de Clients" />
       {past.length ? (
         <div className="p-clients-tools">
           <div className="p-search">
