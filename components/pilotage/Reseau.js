@@ -9,9 +9,9 @@ import { Card, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { PISTES, STATUTS } from "@/lib/server/pilotage/reseau";
 
-async function send(method, body) {
+async function send(method, body, url = "/api/interne/pilotage/reseau") {
   const { data } = await supabase.auth.getSession();
-  const res = await fetch("/api/interne/pilotage/reseau", {
+  const res = await fetch(url, {
     method,
     headers: { authorization: `Bearer ${data?.session?.access_token || ""}`, "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -22,11 +22,11 @@ async function send(method, body) {
 function useAct(onChange) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const run = async (method, body) => {
+  const run = async (method, body, url) => {
     setBusy(true);
     setErr(null);
     try {
-      await send(method, body);
+      await send(method, body, url);
       await onChange();
       return true;
     } catch (x) {
@@ -77,6 +77,97 @@ function Action({ c, demo, today, onChange }) {
         )}
       </div>
     </div>
+  );
+}
+
+const PLAN_URL = "/api/interne/pilotage/reseau/plan";
+
+function PlanLigne({ l, demo, onChange }) {
+  const { busy, err, run } = useAct(onChange);
+  const [texte, setTexte] = useState(l.message);
+  const [copie, setCopie] = useState(false);
+  const titre = l.nom ? who(l) : l.titre;
+  const lien = l.lien_envoi || l.linkedin;
+  const ouvert = l.statut === "a_faire";
+  const copier = async () => {
+    await navigator.clipboard.writeText(texte);
+    setCopie(true);
+    setTimeout(() => setCopie(false), 1500);
+  };
+  const enregistrer = () => {
+    if (texte !== l.message) run("PATCH", { id: l.id, action: "texte", message: texte }, PLAN_URL);
+  };
+  if (!ouvert) {
+    return (
+      <div className="pl-health-item">
+        <Pill tone={l.statut === "fait" ? "ok" : "neutral"}>{l.statut === "fait" ? "Fait" : "Reporté"}</Pill>
+        <div>
+          <strong>{titre}</strong>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="pl-health-item pl-demande pl-reseau-ligne">
+      <Pill tone="neutral">À faire</Pill>
+      <div>
+        <strong>{titre}</strong>
+        {l.raison ? <span className="pl-muted">{l.raison}</span> : null}
+        {l.dernier_message ? <blockquote className="pl-reseau-recu">{l.dernier_message}</blockquote> : null}
+        {l.message ? <textarea className="pl-reseau-message" aria-label={`Message pour ${titre}`} value={texte} rows={5} maxLength={4000} readOnly={demo} onChange={(e) => setTexte(e.target.value)} onBlur={enregistrer} /> : null}
+        <span className="pl-demande-actions">
+          {l.message ? (
+            <button type="button" className="pl-btn" onClick={copier}>
+              {copie ? "Copié" : "Copier"}
+            </button>
+          ) : null}
+          {lien ? (
+            <a className="pl-btn" href={lien} target="_blank" rel="noreferrer">
+              {lien.includes("mail.google.com") ? "Ouvrir le brouillon" : "Ouvrir LinkedIn"}
+            </a>
+          ) : null}
+          {demo ? null : (
+            <>
+              <button type="button" className="pl-btn is-primary" onClick={() => run("PATCH", { id: l.id, action: "fait" }, PLAN_URL)} disabled={busy}>
+                Fait
+              </button>
+              <button type="button" className="pl-btn" onClick={() => run("PATCH", { id: l.id, action: "reporter" }, PLAN_URL)} disabled={busy}>
+                Reporter
+              </button>
+            </>
+          )}
+          {err ? <span className="pl-form-err">{err}</span> : null}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Plan({ plan, raison, demo, onChange }) {
+  if (!plan) {
+    return (
+      <div className="pl-health-item">
+        <Pill tone="neutral">Info</Pill>
+        <div>
+          <strong>Pas de plan préparé</strong>
+          {raison ? <span className="pl-muted">{raison}</span> : null}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      {plan.creneaux.map((x) => (
+        <div className="pl-reseau-creneau" key={x.id}>
+          <h3>
+            {x.label} <span className="pl-muted">{fmtDay(plan.jour)}</span>
+          </h3>
+          {x.lignes.map((l) => (
+            <PlanLigne key={l.id} l={l} demo={demo} onChange={onChange} />
+          ))}
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -187,7 +278,7 @@ export default function Reseau({ reseau, demo, onChange }) {
       title="Réseau"
       kicker="Contacts et relances"
       summary={[
-        { label: "à faire", value: reseau.a_faire.length },
+        { label: "à faire", value: reseau.a_faire.length + (reseau.plan?.creneaux || []).flatMap((x) => x.lignes).filter((l) => l.statut === "a_faire").length },
         { label: "à valider", value: reseau.a_valider.length },
       ]}
     >
@@ -198,16 +289,10 @@ export default function Reseau({ reseau, demo, onChange }) {
         <Tile label="Contacts suivis" value={reseau.total} />
       </div>
       <div className="pl-reseau-liste">
-        {reseau.a_faire.length ? (
-          reseau.a_faire.map((c) => <Action key={c.id} c={c} demo={demo} today={reseau.jour} onChange={onChange} />)
-        ) : (
-          <div className="pl-health-item">
-            <Pill tone="ok">OK</Pill>
-            <div>
-              <strong>Rien à faire aujourd'hui</strong>
-            </div>
-          </div>
-        )}
+        <Plan plan={reseau.plan} raison={reseau.plan_raison} demo={demo} onChange={onChange} />
+        {reseau.a_faire.map((c) => (
+          <Action key={c.id} c={c} demo={demo} today={reseau.jour} onChange={onChange} />
+        ))}
         {reseau.a_valider.map((c) => (
           <AValider key={c.id} c={c} demo={demo} onChange={onChange} />
         ))}
