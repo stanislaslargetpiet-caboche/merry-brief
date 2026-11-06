@@ -22,6 +22,21 @@ const FILTERS = [
 // les cookies ont des sessions.
 const posthogPersonUrl = (id) => `https://eu.posthog.com/project/321035/person/${encodeURIComponent(id)}#activeTab=sessionRecordings`;
 
+// `posthog_dernier` : dernier événement reçu pour cette personne (undefined si PostHog n'a pas été lu, null si aucun)
+const NO_CONSENT_DAYS = 3;
+const posthogCell = (r) => {
+  const link = (text) => <a className="pl-link" href={posthogPersonUrl(r.id)} target="_blank" rel="noopener noreferrer">{text}</a>;
+  if (r.posthog_dernier === undefined) return link("PostHog");
+  const last = Date.parse(r.posthog_dernier);
+  const lastLogin = r.derniere_connexion ? Date.parse(r.derniere_connexion) : 0;
+  if (!last) return <span className="pl-muted" title="Aucun événement PostHog en 90 jours : cookies refusés, jamais acceptés, ou PostHog bloqué par le navigateur.">Aucun consentement</span>;
+  // Connecté après le dernier événement reçu (marge de 3 jours) : il utilise l'appli mais PostHog ne voit plus rien
+  if (lastLogin - last > NO_CONSENT_DAYS * 86400000) {
+    return <span className="pl-muted" title={`Dernier événement PostHog : ${fmtDateTime(r.posthog_dernier)}. Il s'est connecté depuis : probablement plus de consentement aux cookies (ou PostHog bloqué).`}>Aucun consentement depuis le {new Date(r.posthog_dernier).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" })} · {link("ancien replay")}</span>;
+  }
+  return link("PostHog");
+};
+
 const sitePill =(site) => (site === "publié" ? <Pill tone="ok">Site publié</Pill> : site === "brouillon" ? <Pill tone="warn">Site brouillon</Pill> : <span className="pl-muted">aucun</span>);
 
 export default function Utilisateurs({ data, label }) {
@@ -60,7 +75,7 @@ export default function Utilisateurs({ data, label }) {
               { key: "site", label: "Site", render: (r) => sitePill(r.site) },
               { key: "invites", label: "Invités", num: true, render: (r) => (r.invites === null ? "–" : fmtInt(r.invites)) },
               { key: "devis", label: "Devis", num: true, render: (r) => (r.devis === null ? "–" : fmtInt(r.devis)) },
-              { key: "sessions", label: "Sessions", render: (r) => <a className="pl-link" href={posthogPersonUrl(r.id)} target="_blank" rel="noopener noreferrer">PostHog</a> },
+              { key: "sessions", label: "Sessions", render: posthogCell },
             ]}
             rows={data.utilisateurs}
             max={12}
