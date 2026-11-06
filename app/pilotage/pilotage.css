@@ -273,3 +273,60 @@
   .pl-subnav { flex-wrap: nowrap; overflow-x: auto; margin: 16px -16px 0; padding: 0 16px; scrollbar-width: none; }
   .pl-subnav::-webkit-scrollbar { display: none; }
 }
+
+/* Ajouter : au-dessus de la période, et la fenêtre de capture */
+.pl-add { appearance: none; margin-top: auto; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px 0 12px; border: 0; border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.pl-add:hover { background: var(--sunken); }
+.pl-add:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pl-add:disabled { opacity: 0.6; cursor: default; }
+.pl-add kbd { margin-left: auto; padding: 6px 9px; border-radius: 999px; background: var(--sunken); color: var(--ink-muted); font: inherit; font-size: 11px; font-weight: 600; }
+.pl-add + .pl-period { margin-top: -16px; }
+.pl-capture-fond { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: flex-start; padding: 18vh 16px 0; background: rgba(28, 28, 26, 0.32); }
+.pl-capture { width: min(560px, 100%); display: grid; gap: 12px; padding: 16px; border-radius: 20px; background: var(--surface); }
+.pl-capture input { width: 100%; min-height: 44px; padding: 0 4px; border: 0; outline: 0; background: none; color: var(--ink); font: inherit; font-size: 18px; font-weight: 500; }
+.pl-capture input::placeholder { color: var(--ink-muted); font-weight: 400; }
+.pl-capture-bas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.pl-capture-bas .pl-filters { align-items: center; margin: 0; }
+
+/* Aujourd'hui : le mot du matin, la liste à gauche, l'agenda et les lectures à droite */
+.pl-mot { padding: 20px 24px; border-radius: 20px; background: var(--sunken); }
+.pl-mot p { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.45; letter-spacing: -0.005em; }
+.pl-jour { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.pl-jour.has-side { grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr); }
+.pl-jour-side { display: grid; gap: 20px; min-width: 0; }
+.pl-lignes { list-style: none; margin: 0; padding: 0; }
+.pl-ligne { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 0; border-top: 1px solid var(--border); }
+.pl-ligne:first-child { border-top: 0; }
+.pl-ligne.is-first { margin: 0 -10px; padding: 8px 10px; border-radius: 12px; background: #fffceb; }
+.pl-ligne.is-first + .pl-ligne { border-top-color: transparent; }
+.pl-tick { appearance: none; flex: none; width: 22px; height: 22px; padding: 0; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--surface); cursor: pointer; }
+.pl-tick:hover { border-color: var(--ink); background: var(--accent-tint); }
+.pl-tick:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pl-tick.is-vide { visibility: hidden; }
+.pl-ligne-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pl-ligne-t strong { font-weight: 600; line-height: 1.35; }
+.pl-ligne-t small { font-size: 12px; font-weight: 500; color: var(--ink-muted); line-height: 1.4; }
+.pl-ligne-a { flex: none; display: flex; align-items: center; gap: 6px; }
+.pl-lecture { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid var(--border); }
+.pl-lecture:first-child { border-top: 0; padding-top: 0; }
+.pl-lecture small { font-size: 12px; font-weight: 500; color: var(--ink-muted); }
+.pl-lecture strong, .pl-lecture a { font-weight: 600; line-height: 1.35; color: inherit; }
+
+/* Tâches : titre et échéance modifiables sur la ligne */
+.pl-tache-titre { flex: 1; min-width: 0; min-height: 34px; padding: 0 6px; margin-left: -6px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-weight: 600; }
+.pl-tache-titre:hover { border-color: var(--border); }
+.pl-tache-titre:focus { outline: 0; border-color: var(--border-strong); }
+.pl-tache-date { min-height: 32px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .pl-jour.has-side { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .pl-add { margin: 0 16px; min-height: 36px; }
+  .pl-add kbd { display: none; }
+  .pl-add + .pl-period { margin-top: 0; }
+  .pl-ligne, .pl-ligne.pl-tache { flex-wrap: wrap; }
+  .pl-ligne-t, .pl-tache-titre { flex-basis: calc(100% - 34px); }
+  .pl-ligne .pl-pill { margin-left: 34px; }
+  .pl-ligne-a { margin-left: auto; }
+}

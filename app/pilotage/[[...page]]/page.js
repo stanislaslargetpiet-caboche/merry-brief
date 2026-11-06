@@ -11,13 +11,16 @@ import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
 import Nouveautes from "@/components/pilotage/Nouveautes";
 import Reseau from "@/components/pilotage/Reseau";
+import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotPeriod, PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
+import { titreJour } from "@/lib/pilotage/items";
 import { pathFromHash, resolvePage } from "@/lib/pilotage/nav";
+import { parisDay } from "@/lib/server/pilotage/reseau";
 import { AGENT_TYPES } from "@/lib/agentsIa";
 
 // ?demo=1 (ou pas de Supabase en local) : la page se dessine avec un jeu d'exemple, jamais de vraies mesures
@@ -67,6 +70,8 @@ export default function PilotagePage() {
   const pathname = usePathname();
   const { group, page } = resolvePage(pathname);
   const [search, setSearch] = useState("");
+  const liste = useItems(auth.status);
+  const today = parisDay(Date.now());
 
   // Les anciens liens (/pilotage#demandes) mènent à la sous-page ; ?demo=1 suit la navigation
   useEffect(() => {
@@ -113,6 +118,7 @@ export default function PilotagePage() {
   }, [auth.status, jours, heure, load]);
 
   const badges = { demandes: data?.demandes?.en_attente?.length || 0 };
+  const quotidien = group.id === "aujourdhui";
 
   if (auth.status === "loading") return <Gate title="Pilotage" text="Un instant…" />;
   if (auth.status === "signedout" || error === "connexion")
@@ -128,6 +134,7 @@ export default function PilotagePage() {
   return (
     <div className="pl-root pl-shell">
       <PilotSide group={group} search={search} badges={badges}>
+        <Capture agir={liste.agir} disponible={liste.disponible} defaut={quotidien ? today : null} today={today} />
         <PilotPeriod
           ranges={RANGES}
           value={periode}
@@ -141,15 +148,25 @@ export default function PilotagePage() {
       <main className="pl-main">
         <div className="pl-wrap">
           <header className="pl-head">
-            <h1>{group.label}</h1>
+            <h1>{quotidien ? titreJour(today) : group.label}</h1>
           </header>
           <PilotSubnav group={group} page={page} search={search} badges={badges} />
           {heure && data && page.periode !== false && page.id !== "comptes" ? <p className="pl-note">Sur 1 h, seule la page Comptes est lue à la minute près ; ici, les chiffres restent sur 24 h.</p> : null}
           {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
-          {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
+          {page.id === "liste" ? (
+            <section className="pl-section">
+              <Taches liste={liste} today={today} />
+            </section>
+          ) : null}
+          {!data && quotidien ? (
+            <section className="pl-section">
+              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={[]} reload={() => {}} />
+            </section>
+          ) : null}
+          {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
-              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} />
+              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} />
             </PageContext.Provider>
           ) : null}
         </div>
@@ -212,7 +229,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours, reload }) {
+function Board({ data, jours, reload, liste, today }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -276,8 +293,20 @@ function Board({ data, jours, reload }) {
     seo && <Tile key="sitemap" label="Pages dans le sitemap" value={seo.sitemap.urls} sub={seo.sitemap.statut === 200 ? "sitemap.xml lisible" : `réponse ${seo.sitemap.statut}`} />,
   ].filter(Boolean).slice(0, 5);
 
+  const u = data.utilisateurs?.fenetre || {};
+  const tuilesJour = [
+    ph && { label: "Visiteurs", value: sumBy(siteSplit.current, "visiteurs"), prev: sumBy(siteSplit.previous, "visiteurs") },
+    { label: "Comptes créés", value: u.comptes_crees?.n, prev: u.comptes_crees?.prec },
+    { label: "Mariages créés", value: u.mariages_crees?.n, prev: u.mariages_crees?.prec },
+    { label: "Demandes de devis", value: u.devis?.n, prev: u.devis?.prec },
+  ].filter(Boolean);
+
   return (
     <>
+      <Section id="jour">
+        <Aujourdhui liste={liste} data={data} sante={sante} today={today} tuiles={tuilesJour} reload={reload} />
+      </Section>
+
       <Section id="sante" right={demo ? null : <SendBrief />}>
         <div className="pl-health">
           {sante.map((s, i) => (

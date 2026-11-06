@@ -7,7 +7,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
-export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint }) {
+export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint, sansPct = false }) {
   const missing = value === null || value === undefined;
   const d = missing || prev === undefined || prev === null ? null : delta(value, prev);
   const good = d && (inverse ? d.sens === "baisse" : d.sens === "hausse");
@@ -20,7 +20,7 @@ export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false
         <span className={`pl-tile-delta${good ? " is-good" : bad ? " is-bad" : ""}`} title="Par rapport à la période précédente">
           {d.sens === "stable" ? "=" : d.diff > 0 ? "+" : "−"}
           {d.sens === "stable" ? "" : format(Math.abs(d.diff))}
-          {d.pct !== null && d.sens !== "stable" ? ` (${d.pct > 0 ? "+" : ""}${d.pct} %)` : ""}
+          {!sansPct && d.pct !== null && d.sens !== "stable" ? ` (${d.pct > 0 ? "+" : ""}${d.pct} %)` : ""}
         </span>
       ) : sub ? (
         <span className="pl-tile-sub">{sub}</span>

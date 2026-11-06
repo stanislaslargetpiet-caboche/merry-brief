@@ -75,6 +75,7 @@ export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefre
 
 export function PilotSubnav({ group, page, search, badges }) {
   const go = useGo();
+  if (group.pages.length < 2) return null;
   return (
     <nav className="pl-subnav" aria-label={`Pages de ${group.label}`}>
       {group.pages.map((p) => {
