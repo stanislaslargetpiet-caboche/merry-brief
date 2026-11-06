@@ -6159,69 +6159,57 @@ button.p-brand-vendor.is-menu svg {
   }
 }
 
-/* ---------- Compte : bloc Connexion (adresse mail et mot de passe, chacun son bouton) ---------- */
+/* ---------- Compte : bloc Collaborateurs ---------- */
 
-.p-conn {
-  padding: 6px 22px;
-  margin-bottom: 28px;
+.p-collab-intro {
+  margin: 0 0 8px;
 }
 
-.p-conn-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 0;
+.p-options .d-org-row {
+  flex-wrap: nowrap;
+  gap: 14px;
+  padding: 14px 0;
 }
 
-.p-conn-what {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+.p-options .d-org-who {
+  flex: 1 1 auto;
+  gap: 5px;
 }
 
-.p-conn-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--d-muted);
-}
-
-.p-conn-value {
+.p-options .d-org-who > strong {
   font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.p-conn-sep {
-  height: 1px;
-  background: var(--d-line);
+.p-options .d-org-actions {
+  flex: none;
+  flex-wrap: nowrap;
 }
 
-.p-conn-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 0;
+.p-options .p-collab-invite {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  margin: 10px 0 14px;
+  padding: 18px 20px 20px;
 }
 
-.p-conn-edit .p-hint {
-  margin: 0;
-}
-
-.p-conn-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+.p-collab-invite-title {
+  grid-column: 1 / -1;
+  font-size: 15px;
 }
 
 @media (max-width: 700px) {
-  .p-conn-row {
-    flex-direction: column;
-    align-items: stretch;
+  .p-options .d-org-row {
+    flex-wrap: wrap;
   }
-  .p-conn-actions .d-btn {
-    flex: 1;
+  .p-options .d-org-who {
+    flex: 1 1 calc(100% - 54px);
+  }
+  .p-options .d-org-actions {
+    margin-left: 54px;
+  }
+  .p-options .p-collab-invite {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
