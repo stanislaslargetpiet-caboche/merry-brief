@@ -16,7 +16,7 @@ FILES=(
   supabase/espace-prestataire.sql supabase/pro-credits-reponse.sql supabase/prestataires-ajout-manuel.sql supabase/prestataires-ajout-manuel-google.sql
   supabase/prestataires-ajout-manuel-fix-ambiguite.sql supabase/prestataires-notifier-couple.sql supabase/mail-desinscriptions.sql supabase/mails-planifies.sql supabase/mails-nouveautes.sql
   supabase/site-mariage.sql supabase/site-mariage-moisson.sql supabase/site-visites.sql supabase/invites-recherche.sql
-  supabase/note-invites.sql supabase/mise-en-page.sql supabase/pro-fiche-categorie-correction.sql supabase/pilotage.sql supabase/seo-stats.sql supabase/catalogue-reclassement-2026-11-05.sql supabase/pilotage-couts.sql
+  supabase/note-invites.sql supabase/mise-en-page.sql supabase/pro-fiche-categorie-correction.sql supabase/pilotage.sql supabase/seo-stats.sql supabase/catalogue-reclassement-2026-11-05.sql supabase/pilotage-couts.sql supabase/pilotage-reseau.sql
 )
 for f in "${FILES[@]}"; do
   if ! out=$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f" 2>&1); then
@@ -25,7 +25,7 @@ for f in "${FILES[@]}"; do
   echo "ok   $f"
 done
 # Relançables : chaque fichier doit passer une seconde fois sans erreur
-for f in supabase/pilotage-couts.sql supabase/catalogue-reclassement-2026-11-05.sql supabase/seo-stats.sql supabase/pilotage.sql supabase/catalog.sql supabase/espace-prestataire.sql supabase/prestataires-notifier-couple.sql supabase/prestataires-ajout-manuel-fix-ambiguite.sql supabase/formulaire.sql supabase/invites-recherche.sql supabase/site-visites.sql supabase/quotas.sql supabase/plan-de-table.sql supabase/sync-et-historique.sql; do
+for f in supabase/pilotage-reseau.sql supabase/pilotage-couts.sql supabase/catalogue-reclassement-2026-11-05.sql supabase/seo-stats.sql supabase/pilotage.sql supabase/catalog.sql supabase/espace-prestataire.sql supabase/prestataires-notifier-couple.sql supabase/prestataires-ajout-manuel-fix-ambiguite.sql supabase/formulaire.sql supabase/invites-recherche.sql supabase/site-visites.sql supabase/quotas.sql supabase/plan-de-table.sql supabase/sync-et-historique.sql; do
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null 2>&1 || { echo "ÉCHEC (relance) $f"; exit 1; }
   echo "ok   $f (relancé)"
 done

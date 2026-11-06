@@ -1,0 +1,241 @@
+"use client";
+
+// Section « Réseau » du pilotage : les actions du jour, les noms à valider et le pipeline par piste.
+// Les données viennent de /api/interne/pilotage (clé `reseau`) ; l'agent des créneaux écrit dans les mêmes tables.
+
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
+import { fmtDay } from "@/lib/server/pilotage/shape";
+import { PISTES, STATUTS } from "@/lib/server/pilotage/reseau";
+
+async function send(method, body) {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/interne/pilotage/reseau", {
+    method,
+    headers: { authorization: `Bearer ${data?.session?.access_token || ""}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erreur ${res.status}`);
+}
+
+function useAct(onChange) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const run = async (method, body) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await send(method, body);
+      await onChange();
+      return true;
+    } catch (x) {
+      setErr(x.message === "existe" ? "Ce contact existe déjà" : `Non enregistré : ${x.message}`);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, err, run };
+}
+
+function Coordonnees({ c }) {
+  return (
+    <span className="pl-muted pl-reseau-liens">
+      {c.linkedin ? (
+        <a href={c.linkedin} target="_blank" rel="noreferrer">
+          LinkedIn
+        </a>
+      ) : null}
+      {c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : null}
+    </span>
+  );
+}
+
+const who = (c) => [c.nom, c.entreprise].filter(Boolean).join(" · ");
+
+function Action({ c, demo, today, onChange }) {
+  const { busy, err, run } = useAct(onChange);
+  return (
+    <div className="pl-health-item pl-demande">
+      <Pill tone={c.date_action < today ? "warn" : "neutral"}>{c.date_action < today ? "En retard" : "Aujourd'hui"}</Pill>
+      <div>
+        <strong>{who(c)}</strong>
+        <span className="pl-muted">{c.prochaine_action || "Action à préciser"}</span>
+        {c.notes ? <span className="pl-muted">{c.notes}</span> : null}
+        <Coordonnees c={c} />
+        {demo ? null : (
+          <span className="pl-demande-actions">
+            <button type="button" className="pl-btn is-primary" onClick={() => run("PATCH", { id: c.id, action: "fait" })} disabled={busy}>
+              Fait
+            </button>
+            <button type="button" className="pl-btn" onClick={() => run("PATCH", { id: c.id, action: "reporter" })} disabled={busy}>
+              Reporter
+            </button>
+            {err ? <span className="pl-form-err">{err}</span> : null}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AValider({ c, demo, onChange }) {
+  const { busy, err, run } = useAct(onChange);
+  return (
+    <div className="pl-health-item pl-demande">
+      <Pill tone="neutral">À valider</Pill>
+      <div>
+        <strong>
+          {who(c)}
+          {c.role ? ` · ${c.role}` : ""}
+        </strong>
+        {c.notes ? <span className="pl-muted">{c.notes}</span> : null}
+        <Coordonnees c={c} />
+        {demo ? null : (
+          <span className="pl-demande-actions">
+            <button type="button" className="pl-btn is-primary" onClick={() => run("PATCH", { id: c.id, action: "valider" })} disabled={busy}>
+              Valider
+            </button>
+            <button type="button" className="pl-btn" onClick={() => run("PATCH", { id: c.id, action: "ecarter" })} disabled={busy}>
+              Écarter
+            </button>
+            {err ? <span className="pl-form-err">{err}</span> : null}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatutSelect({ c, demo, onChange }) {
+  const { busy, err, run } = useAct(onChange);
+  return (
+    <>
+      <select className="pl-reseau-statut" aria-label={`Statut de ${c.nom}`} value={c.statut} disabled={busy || demo} onChange={(e) => run("PATCH", { id: c.id, action: "statut", statut: e.target.value })}>
+        {STATUTS.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      {err ? <span className="pl-form-err">{err}</span> : null}
+    </>
+  );
+}
+
+function Ajouter({ onChange }) {
+  const { busy, err, run } = useAct(onChange);
+  const [form, setForm] = useState({ nom: "", entreprise: "", piste: "marketplace" });
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const submit = async (e) => {
+    e.preventDefault();
+    if (await run("POST", form)) setForm({ ...form, nom: "", entreprise: "" });
+  };
+  return (
+    <form className="pl-form pl-reseau-ajout" onSubmit={submit}>
+      <label>
+        Nom
+        <input value={form.nom} onChange={set("nom")} required maxLength={120} />
+      </label>
+      <label>
+        Entreprise
+        <input value={form.entreprise} onChange={set("entreprise")} maxLength={120} />
+      </label>
+      <label>
+        Piste
+        <select value={form.piste} onChange={set("piste")}>
+          {PISTES.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button type="submit" className="pl-btn" disabled={busy}>
+        Ajouter
+      </button>
+      {err ? <span className="pl-form-err">{err}</span> : null}
+    </form>
+  );
+}
+
+export default function Reseau({ reseau, demo, onChange }) {
+  if (!reseau?.disponible) {
+    return (
+      <Section id="reseau" title="Réseau" kicker="Contacts et relances">
+        <div className="pl-health-item">
+          <Pill tone="neutral">Info</Pill>
+          <div>
+            <strong>Réseau non lu</strong>
+            <span className="pl-muted">{reseau?.raison || "la lecture a échoué : voir les erreurs en bas de page"}</span>
+          </div>
+        </div>
+      </Section>
+    );
+  }
+  const cols = [
+    { key: "nom", label: "Contact", render: (c) => who(c) },
+    { key: "statut", label: "Statut", render: (c) => <StatutSelect c={c} demo={demo} onChange={onChange} /> },
+    { key: "action", label: "Prochaine action", render: (c) => c.prochaine_action || "–" },
+    { key: "date", label: "Date", render: (c) => (c.date_action ? fmtDay(c.date_action) : "–") },
+    { key: "dernier", label: "Dernier contact", render: (c) => (c.dernier_contact ? fmtDay(c.dernier_contact) : "–") },
+  ];
+  return (
+    <Section
+      id="reseau"
+      title="Réseau"
+      kicker="Contacts et relances"
+      summary={[
+        { label: "à faire", value: reseau.a_faire.length },
+        { label: "à valider", value: reseau.a_valider.length },
+      ]}
+    >
+      <div className="pl-tiles">
+        <Tile label="Nouveaux contacts, 7 jours" value={reseau.semaine.nouveaux} />
+        <Tile label="Réponses, 7 jours" value={reseau.semaine.reponses} />
+        <Tile label="Rendez-vous" value={reseau.semaine.rdv} />
+        <Tile label="Contacts suivis" value={reseau.total} />
+      </div>
+      <div className="pl-reseau-liste">
+        {reseau.a_faire.length ? (
+          reseau.a_faire.map((c) => <Action key={c.id} c={c} demo={demo} today={reseau.jour} onChange={onChange} />)
+        ) : (
+          <div className="pl-health-item">
+            <Pill tone="ok">OK</Pill>
+            <div>
+              <strong>Rien à faire aujourd'hui</strong>
+            </div>
+          </div>
+        )}
+        {reseau.a_valider.map((c) => (
+          <AValider key={c.id} c={c} demo={demo} onChange={onChange} />
+        ))}
+      </div>
+      <div className="pl-grid pl-reseau-pistes">
+        {reseau.pistes.map((p) => (
+          <Card key={p.id} full fold="closed" title={`${p.label} (${p.contacts.length})`}>
+            <Table cols={cols} rows={p.contacts} max={200} />
+          </Card>
+        ))}
+        <Card full fold="closed" title="Derniers échanges">
+          <Table
+            cols={[
+              { key: "jour", label: "Jour", render: (e) => fmtDay(e.jour) },
+              { key: "nom", label: "Contact" },
+              { key: "sens", label: "Sens", render: (e) => ({ entrant: "Reçu", sortant: "Envoyé", note: "Note" })[e.sens] },
+              { key: "resume", label: "Résumé", render: (e) => e.resume || "–" },
+            ]}
+            rows={reseau.derniers}
+            empty="Aucun échange"
+          />
+        </Card>
+        {demo ? null : (
+          <Card full fold="closed" title="Ajouter un contact">
+            <Ajouter onChange={onChange} />
+          </Card>
+        )}
+      </div>
+    </Section>
+  );
+}
