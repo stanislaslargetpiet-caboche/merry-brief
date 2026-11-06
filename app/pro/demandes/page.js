@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { supabase } from "@/lib/supabase";
 import { addDays, euros, isoDate, today } from "@/lib/dash/format";
-import { budgetRange, dateLong, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, readSeenRequests, replyCost, seasonOf, since, stageColor, STAGES, weddingWhen, writeSeenRequests } from "@/lib/pro/format";
+import { budgetRange, dateLong, messageAuthor, dateShortYear, firstName, guestsText, OPTION_UNIT, quoteTotal, readSeenRequests, replyCost, seasonOf, since, stageColor, STAGES, weddingWhen, writeSeenRequests } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { pastel } from "@/lib/dash/theme";
 import { Face, ProSubnav, Switch } from "@/components/pro/ui";
@@ -259,7 +259,20 @@ function Detail({ r, c, onBack }) {
             {thread.filter((m, i) => !(i === 0 && !m.from_vendor && m.body === r.message)).map((m) => (
               <li key={m.id} className={m.from_vendor ? "is-me" : ""}>
                 <span className="p-thread-who">
-                  {m.from_vendor ? "Vous" : firstName(r.names)} · {dateShortYear(String(m.sent_at).slice(0, 10)).replace(/ \d{4}$/, "")}
+                  {(() => {
+                    const a = m.from_vendor ? messageAuthor(m, d.members, d.user) : null;
+                    return (
+                      <>
+                        {a ? (
+                          <span aria-hidden="true" className="p-thread-face" style={{ background: a.color.mid, color: a.color.ink }}>
+                            {a.initial}
+                          </span>
+                        ) : null}
+                        {m.from_vendor ? (a ? (a.mine ? `${a.name} (vous)` : a.name) : "Vous") : firstName(r.names)}
+                      </>
+                    );
+                  })()}{" "}
+                  · {dateShortYear(String(m.sent_at).slice(0, 10)).replace(/ \d{4}$/, "")}
                 </span>
                 <p>{m.body}</p>
               </li>
