@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSante } from "@/lib/pilotage/sante";
-import { buildBrief, costRows, morningAlerts, yesterdayRows } from "@/lib/server/pilotage/brief";
+import { buildBrief, costRows, morningAlerts, userRows, yesterdayRows } from "@/lib/server/pilotage/brief";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { briefKey, inBriefWindow, parisParts } from "@/lib/server/pilotage/schedule";
 
@@ -53,7 +53,7 @@ describe("coûts dans le mail du matin", () => {
     for (const erreurs of [[], [{ source: "supabase", message: "statement timeout" }]]) {
       const brief = buildBrief({ couts, erreurs }, now);
       expect(brief.text).toContain("Coûts :\n- Dépensé en novembre : 34,37 € · 6,87 € par jour");
-      expect(brief.body).toContain("Coûts</h2>");
+      expect(brief.body).toContain(">Coûts</span></h2>");
     }
     expect(buildBrief({ erreurs: [] }, now).text).not.toContain("Coûts :");
   });
@@ -104,5 +104,45 @@ describe("mail du matin", () => {
     expect(brief.body).toContain("&lt;script&gt;");
     expect(brief.body).toContain("Sessions dans l&#39;appli");
     expect(brief.text.split("\n").length).toBeGreaterThan(8);
+  });
+});
+
+describe("utilisateurs dans le mail du matin", () => {
+  const now = new Date("2026-11-05T07:00:00Z");
+  const ago = (min) => new Date(now.getTime() - min * 60000).toISOString();
+  const utilisateurs = {
+    totaux: { mariages: 25, avec_site: 5, avec_site_publie: 4, avec_invites: 6, avec_devis: 3 },
+    fenetre: { connectes: { n: 2, prec: 1 }, comptes_crees: { n: 1, prec: 1 }, invites_ajoutes: { n: 12, prec: 0 }, devis: { n: 0, prec: 5 } },
+    utilisateurs: [
+      { email: "emma@x.fr", cree: ago(60 * 24 * 9), derniere_connexion: ago(12), couple: "Emma et Lucas", site: "publié", invites: 84 },
+      { email: "<b>theo</b>@x.fr", cree: ago(30), derniere_connexion: ago(30), couple: null, site: null, invites: null },
+      { email: "vieux@x.fr", cree: ago(60 * 24 * 40), derniere_connexion: ago(60 * 24 * 3), couple: "Vieux", site: null, invites: 0 },
+    ],
+  };
+  it("liste les connectés des dernières 24 h et les derniers comptes", () => {
+    const u = userRows({ utilisateurs }, now);
+    expect(u.connectes.map((x) => x.email)).toEqual(["emma@x.fr", "<b>theo</b>@x.fr"]);
+    expect(u.comptes[0].email).toBe("<b>theo</b>@x.fr");
+    expect(u.tuiles.map((t) => t.now)).toEqual([2, 1, 12, 0]);
+    expect(userRows({}, now)).toBe(null);
+  });
+  it("met tableaux et tuiles dans le mail et le texte, en échappant le HTML", () => {
+    const brief = buildBrief({ utilisateurs, erreurs: [] }, now);
+    expect(brief.body).toContain("Connectés sur 24 h · 2");
+    expect(brief.body).toContain("Derniers comptes créés");
+    expect(brief.body).toContain("&lt;b&gt;theo&lt;/b&gt;@x.fr");
+    expect(brief.body).not.toContain("<b>theo");
+    expect(brief.text).toContain("Connectés sur 24 h (2) :\n- emma@x.fr · Emma et Lucas · il y a 12 min · Site publié, 84 invité(s)");
+    expect(brief.text).toContain("25 mariages : 5 ont un site (4 publiés), 6 ont au moins un invité, 3 ont demandé un devis.");
+  });
+  it("dit quand personne ne s'est connecté, et plafonne la liste", () => {
+    const none = buildBrief({ utilisateurs: { ...utilisateurs, utilisateurs: [utilisateurs.utilisateurs[2]] }, erreurs: [] }, now);
+    expect(none.body).toContain("Personne ne s&#39;est connecté");
+    const many = Array.from({ length: 11 }, (_, i) => ({ email: `u${i}@x.fr`, cree: ago(i), derniere_connexion: ago(i), couple: null, site: null, invites: null }));
+    const brief = buildBrief({ utilisateurs: { ...utilisateurs, utilisateurs: many }, erreurs: [] }, now);
+    expect(brief.text).toContain("- et 3 autre(s)");
+  });
+  it("le jeu d'exemple donne les tableaux", () => {
+    expect(buildBrief(demoData(2), now).body).toContain("Derniers comptes créés");
   });
 });
