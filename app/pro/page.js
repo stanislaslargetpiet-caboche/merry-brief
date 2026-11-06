@@ -2,7 +2,8 @@
 
 // Dashboard de l'espace prestataire (maquettes « V1 ter », canvas Merry · Carte brief, 6 nov. 2026) : l'action
 // d'abord. Le couple qui attend depuis le plus longtemps, puis ce qui est à suivre ; crédits, fiche et chiffres
-// sur le côté. Tant qu'aucune demande n'est arrivée, le guide (V1 bis) prend la place.
+// sur le côté. Le guide (V1 bis) reste jusqu'à « Masquer ce guide » : en tête tant qu'aucune demande n'est arrivée,
+// sous les demandes ensuite (décision de Stan le 6 nov. 2026).
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -195,6 +196,7 @@ export default function ProHome() {
           </section>
         </div>
       </div>
+      {requests.length ? <Guide /> : null}
     </>
   );
 }
