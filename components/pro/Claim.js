@@ -2,13 +2,13 @@
 
 // Revendiquer sa fiche (maquettes V0f, V0g2, V0g, V0h3 puis V0h2 et V0i) : retrouver son établissement dans le
 // catalogue Merry, confirmer ou corriger les coordonnées de la fiche, créer son compte avec un téléphone, puis
-// la demande attend une vérification à la main (mail ou rappel dans l'heure, décision de Stan le 5 nov. 2026) :
-// aucun code n'est envoyé pour une revendication. Le prestataire entre tout de suite dans son espace, fiche
-// « en attente » et sans crédit jusqu'à la validation (pilotage > Demandes). Sert aussi de connexion : un
-// prestataire qui revient retrouve son espace.
+// la demande attend une vérification à la main (mail ou rappel dans l'heure, décision de Stan le 5 nov. 2026).
+// Depuis le 6 nov. 2026, un code prouve l'adresse du compte, jamais la propriété de la fiche : l'espace reste
+// fermé, fiche « en attente » et sans crédit, jusqu'à la validation (pilotage > Demandes). Sert aussi de
+// connexion : un prestataire qui revient retrouve son espace.
 // Créer sa fiche (maquettes V0-Onb1 à V0-Onb4) : l'établissement n'est pas dans le catalogue, un écran par
 // groupe d'informations (nom et activité, adresse, contact), puis le code reçu à cette adresse crée la
-// fiche. Chaque étape a sa propre barre de progression, conforme au canvas du 3 nov. 2026 (avant cette
+// fiche, invisible et en attente de la même validation à la main (décision de Stan le 6 nov. 2026). Chaque étape a sa propre barre de progression, conforme au canvas du 3 nov. 2026 (avant cette
 // date, ces deux parcours tenaient sur un seul écran fusionné ; Stan a demandé de les refaire pas à pas).
 // Se connecter : un prestataire qui revient tape son adresse mail, reçoit un code, et retrouve ses fiches
 // (hors canvas, parcours à part, sans barre de progression, inchangé).
@@ -145,7 +145,7 @@ const DEMO_FICHES = [
   { id: "demo-1", name: "Le Clos des Amandiers", category: "Lieu de réception", city: "Lourmarin", postal_code: "84160", address: "", email_hint: "c•••@closdesamandiers.fr", phone_hint: "06 •• •• •• 78", claimed: false, photo: null },
   { id: "demo-2", name: "Le Clos des Oliviers", category: "Lieu de réception", city: "Lauris", postal_code: "84360", address: "", email_hint: null, phone_hint: null, claimed: false, photo: null },
 ];
-const CLAIM_FLOW = ["search", "coords", "account"];
+const CLAIM_FLOW = ["search", "coords", "account", "claim-code"];
 const LOGIN_FLOW = ["login-email", "login-code"];
 const INVITE_FLOW = ["invite", "invite-code"];
 
@@ -156,6 +156,7 @@ function formProblem(f) {
   if (!/^\d{5}$/.test(f.postal_code.replace(/\s/g, ""))) return "Le code postal compte 5 chiffres.";
   if (!f.city.trim()) return "Indiquez la ville.";
   if (!EMAIL_RE.test(f.email.trim())) return "Indiquez une adresse mail valide : le code y sera envoyé.";
+  if (!PHONE_RE.test(cleanPhone(f.phone))) return ERRORS.account_phone;
   if (f.siret.trim() && !/^\d{14}$/.test(f.siret.replace(/\s/g, ""))) return "Le SIRET compte 14 chiffres. Vous pouvez aussi le laisser vide.";
   return "";
 }
@@ -232,8 +233,8 @@ export default function Claim() {
   const [invite, setInvite] = useState(null); // { token, vendor_name, email_hint } : lien d'invitation
   const [invitePassword, setInvitePassword] = useState("");
   const [invitePassword2, setInvitePassword2] = useState("");
-  const [preparing, setPreparing] = useState(null); // "create" | "claim", une fois le code validé
-  const [welcome, setWelcome] = useState(null); // "create" | "claim", une fois la préparation terminée
+  const [preparing, setPreparing] = useState(null); // "claim", à la première connexion
+  const [welcome, setWelcome] = useState(null); // "claim", une fois la préparation terminée
   const [fill, setFill] = useState(null); // complétude de la fiche, pour Bienvenue
   const fromPop = useRef(false);
   const firstScreen = useRef(true);
@@ -282,7 +283,8 @@ export default function Claim() {
       setCoordGiven(saved.coordGiven || { email: "", phone: "" });
       setClaimEmail(saved.claimEmail || "");
       setClaimPhone(saved.claimPhone || "");
-      setScreen(saved.screen);
+      // Le mot de passe n'est jamais gardé : sans lui, le code du compte ne peut pas aboutir
+      setScreen(saved.screen === "claim-code" ? "account" : saved.screen);
     }
     if (name && name.trim()) setQ(name.trim().slice(0, 120));
     if (signedIn || (name && name.trim()) || fiche || params.get("invitation")) setScreen("search");
@@ -443,12 +445,40 @@ export default function Claim() {
     setScreen("account");
   }
 
-  // Envoie la demande (V0g) : le compte est créé, la fiche lui est rattachée « en attente », l'équipe est prévenue
+  const requestBody = () => ({
+    vendorId: picked.id,
+    coords: {
+      email: { choice: hasHint.email ? coordChoice.email : null, given: coordGiven.email.trim() },
+      phone: { choice: hasHint.phone ? coordChoice.phone : null, given: coordGiven.phone.trim() },
+    },
+    account: { email: claimEmail.trim(), password: claimPassword, phone: claimPhone.trim() },
+  });
+
+  // Fin de l'écran Votre compte (V0g) : déjà connecté, la demande part ; sinon un code prouve d'abord l'adresse
   async function submitRequest() {
     if (!signedIn && !EMAIL_RE.test(claimEmail.trim())) return setError(ERRORS.account_email);
     if (!signedIn && claimPassword.length < 8) return setError(PASSWORD_HINT);
     if (!PHONE_RE.test(cleanPhone(claimPhone))) return setError(ERRORS.account_phone);
     setError("");
+    if (signedIn) return sendRequest();
+    if (!demo) {
+      setBusy(true);
+      const res = await call({ action: "request_send", ...requestBody() });
+      setBusy(false);
+      if (!res.ok) {
+        setError(ERRORS[res.error] || ERRORS.send_failed);
+        return;
+      }
+    }
+    setScreen("claim-code");
+    setSent(true);
+    armResend();
+    setCode(["", "", "", "", "", ""]);
+    setTimeout(() => boxes.current[0]?.focus(), 50);
+  }
+
+  // La demande : le compte est créé, la fiche lui est rattachée « en attente », l'équipe est prévenue
+  async function sendRequest(c) {
     if (demo) {
       setFill(40);
       setScreen("demande");
@@ -456,19 +486,7 @@ export default function Claim() {
     }
     setBusy(true);
     const token = signedIn && supabase ? (await supabase.auth.getSession()).data?.session?.access_token || null : null;
-    const res = await call(
-      {
-        action: "request",
-        vendorId: picked.id,
-        coords: {
-          email: { choice: hasHint.email ? coordChoice.email : null, given: coordGiven.email.trim() },
-          phone: { choice: hasHint.phone ? coordChoice.phone : null, given: coordGiven.phone.trim() },
-        },
-        account: { email: claimEmail.trim(), password: claimPassword, phone: claimPhone.trim() },
-      },
-      "/api/pro/claim",
-      token,
-    );
+    const res = await call({ action: "request", code: c, ...requestBody() }, "/api/pro/claim", token);
     if (!res.ok) {
       setBusy(false);
       setError(ERRORS[res.error] || ERRORS.request_failed);
@@ -476,11 +494,14 @@ export default function Claim() {
       return;
     }
     trackEvent("pro_completed", { flow: "claim" });
-    // La session est posée, puis l'espace se recharge : la fiche est en attente, il affiche l'écran d'attente
-    // (Pending.js) et non le dashboard
+    await openPending(res);
+  }
+
+  // La session est posée, puis l'espace repart de zéro : la fiche en attente affiche l'écran d'attente (Pending.js)
+  async function openPending(res) {
     if (res.session && supabase) await supabase.auth.setSession(res.session);
     clearSaved();
-    pro.reload();
+    window.location.assign("/pro");
   }
 
   function startCreate() {
@@ -776,6 +797,10 @@ export default function Claim() {
     }
     setBusy(true);
     setError("");
+    if (screen === "claim-code") {
+      await sendRequest(c);
+      return;
+    }
     if (invite) {
       const res = demo ? { ok: true } : await call({ action: "verify", token: invite.token, code: c, password: invitePassword }, "/api/pro/invitation");
       if (!res.ok) {
@@ -805,7 +830,8 @@ export default function Claim() {
         return;
       }
       setFill(40);
-      setPreparing(creating ? "create" : "claim");
+      setPicked({ id: "demo", name: form.name, city: form.city });
+      setScreen("demande");
       return;
     }
     const res = creating
@@ -817,18 +843,16 @@ export default function Claim() {
       trackEvent("pro_code_failed", { flow: flowName, error: res.error || "bad_code" });
       return;
     }
-    if (!logging) trackEvent("pro_completed", { flow: flowName });
+    if (creating) {
+      trackEvent("pro_completed", { flow: flowName });
+      if (res.vendorId) pro.rememberVendor(res.vendorId);
+      await openPending(res);
+      return;
+    }
     // La session est posée tout de suite : un rechargement pendant Préparation ou Bienvenue mène au
     // dashboard au lieu de perdre le code. setHold empêche l'espace de se recharger sous les animations.
     pro.setHold(true);
     if (res.session && supabase) await supabase.auth.setSession(res.session);
-    if (!logging) {
-      const vid = res.vendorId || picked?.id;
-      if (vid) pro.rememberVendor(vid);
-      await loadFill(vid);
-      setPreparing(creating ? "create" : "claim");
-      return;
-    }
     setFirstLogin(!!res.firstTime);
     if (res.vendor) {
       setPicked(res.vendor);
@@ -897,7 +921,6 @@ export default function Claim() {
       <span className="p-claim-meta">{[picked.category, picked.city].filter(Boolean).join(" · ")}</span>
     </div>
   ) : null;
-  const categoryLabel = CATEGORIES.find(([slug]) => slug === form.category)?.[1];
 
   function finishPreparing() {
     setWelcome(preparing);
@@ -909,19 +932,6 @@ export default function Claim() {
     window.location.assign(demo ? `${path}?demo=1` : path);
   }
 
-  if (preparing === "create") {
-    return (
-      <Preparation
-        steps={[
-          { label: "Fiche créée", detail: [form.name.trim(), categoryLabel, form.city.trim()].filter(Boolean).join(" · ") },
-          { label: "Adresse placée sur la carte", detail: [form.address.trim(), form.postal_code.trim(), form.city.trim()].filter(Boolean).join(" ") },
-          { label: "Tableau de bord prêt", detail: "100 crédits offerts" },
-        ]}
-        lines={["On enregistre votre fiche…", "On la place sur la carte…", "On prépare votre tableau de bord…"]}
-        onDone={finishPreparing}
-      />
-    );
-  }
   if (preparing === "claim") {
     const found = [picked.website, picked.rating ? `${String(picked.rating).replace(".", ",")} sur Google` : null, picked.photo ? "photos" : null].filter(Boolean);
     return (
@@ -938,9 +948,6 @@ export default function Claim() {
   }
   // Démo : la demande envoyée mène à l'écran d'attente, comme en vrai (Pending.js)
   if (screen === "demande") return <PendingScreen name={picked?.name} city={picked?.city} onSignOut={() => goTo("/pro?revendiquer=1")} />;
-  if (welcome === "create") {
-    return <Welcome name={form.name.trim()} fill={fill} primary={{ label: "Accéder à mon dashboard", onClick: () => goTo("/pro") }} />;
-  }
   if (welcome === "claim") {
     return <Welcome name={picked.name} fill={fill} primary={{ label: "Compléter ma fiche", onClick: () => goTo("/pro/fiche") }} secondary={{ label: "Accéder au dashboard", onClick: () => goTo("/pro") }} />;
   }
@@ -963,6 +970,7 @@ export default function Claim() {
     duplicate: { eyebrow: "Votre établissement", title: "Est-ce votre fiche ?" },
     "login-code": { eyebrow: "Connexion", title: "Vérifions que c’est bien vous." },
     code: { eyebrow: "Dernière étape", title: "Vérifions que c’est bien vous." },
+    "claim-code": { eyebrow: "Dernière étape", title: "Vérifions votre adresse mail." },
     invite: { eyebrow: "Invitation", title: invite?.already ? "Cette invitation est pour un collègue." : `Rejoindre ${invite?.vendor_name || "l’équipe"}` },
     "invite-code": { eyebrow: "Invitation", title: "Vérifions que c’est bien vous." },
   };
@@ -998,7 +1006,9 @@ export default function Claim() {
           : backTo("entry")
         : screen === "coords"
           ? backTo("search")
-          : backTo("coords");
+          : screen === "claim-code"
+            ? backTo("account")
+            : backTo("coords");
 
   return (
     <div className="p-claim">
@@ -1274,9 +1284,7 @@ export default function Claim() {
                   <span className="p-claim-hint">Le code arrive à cette adresse, comme les demandes des couples.</span>
                 </div>
                 <div className="p-claim-field">
-                  <label htmlFor="pro-tel">
-                    Téléphone <span className="p-claim-opt">(facultatif)</span>
-                  </label>
+                  <label htmlFor="pro-tel">Téléphone</label>
                   <input id="pro-tel" className="p-claim-input" type="tel" autoComplete="tel" onKeyDown={onEnter(sendCreateCode)} {...field("phone")} />
                 </div>
                 {signedIn ? null : (
@@ -1439,6 +1447,16 @@ export default function Claim() {
               {errorBox}
               <div className="p-claim-actions">
                 <button type="button" className="p-claim-submit" onClick={submitRequest} disabled={busy}>
+                  {signedIn ? "Envoyer ma demande" : "Recevoir mon code"}
+                </button>
+              </div>
+            </>
+          ) : screen === "claim-code" ? (
+            <>
+              {codeBlock(`Le code envoyé à ${claimEmail.trim()}`, submitRequest)}
+              {errorBox}
+              <div className="p-claim-actions">
+                <button type="button" className="p-claim-submit" onClick={validate} disabled={busy}>
                   Envoyer ma demande
                 </button>
               </div>
