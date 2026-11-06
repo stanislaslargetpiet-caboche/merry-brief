@@ -17,7 +17,12 @@ const FILTERS = [
   { id: "devis", label: "Ont demandé un devis", test: (m) => m.devis > 0 },
 ];
 
-const sitePill = (site) => (site === "publié" ? <Pill tone="ok">Site publié</Pill> : site === "brouillon" ? <Pill tone="warn">Site brouillon</Pill> : <span className="pl-muted">aucun</span>);
+// Fiche PostHog de la personne, ouverte sur l'onglet des replays. Le distinct_id est l'id Supabase (posthog.identify
+// dans lib/analytics.js) ; le projet est celui de lib/server/pilotage/posthog.js. Seules les personnes qui ont accepté
+// les cookies ont des sessions.
+const posthogPersonUrl = (id) => `https://eu.posthog.com/project/321035/person/${encodeURIComponent(id)}#activeTab=sessionRecordings`;
+
+const sitePill =(site) => (site === "publié" ? <Pill tone="ok">Site publié</Pill> : site === "brouillon" ? <Pill tone="warn">Site brouillon</Pill> : <span className="pl-muted">aucun</span>);
 
 export default function Utilisateurs({ data, label }) {
   const [filter, setFilter] = useState("tous");
@@ -55,6 +60,7 @@ export default function Utilisateurs({ data, label }) {
               { key: "site", label: "Site", render: (r) => sitePill(r.site) },
               { key: "invites", label: "Invités", num: true, render: (r) => (r.invites === null ? "–" : fmtInt(r.invites)) },
               { key: "devis", label: "Devis", num: true, render: (r) => (r.devis === null ? "–" : fmtInt(r.devis)) },
+              { key: "sessions", label: "Sessions", render: (r) => <a className="pl-link" href={posthogPersonUrl(r.id)} target="_blank" rel="noopener noreferrer">PostHog</a> },
             ]}
             rows={data.utilisateurs}
             max={12}
