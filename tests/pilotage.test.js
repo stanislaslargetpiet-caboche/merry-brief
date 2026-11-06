@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, replayUrl, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
 import { sendsByDay } from "@/lib/server/pilotage/resend";
 
@@ -53,6 +53,15 @@ describe("templatePath", () => {
     expect(templatePath("/f/abc")).toBe("/f/:slug");
     expect(templatePath("/dashboard/")).toBe("/dashboard");
     expect(templatePath(null)).toBe("/");
+  });
+});
+
+describe("replayUrl", () => {
+  it("ouvre le replay au moment clé, en secondes", () => {
+    expect(replayUrl("abc", 65400)).toBe("https://eu.posthog.com/project/321035/replay/abc?t=65");
+  });
+  it("ouvre le début du replay sans moment clé", () => {
+    expect(replayUrl("abc", null)).toBe("https://eu.posthog.com/project/321035/replay/abc");
   });
 });
 

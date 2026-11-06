@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
+import { trackError } from "@/lib/analytics";
+
 // Dernier filet : une erreur dans la mise en page racine elle-même (rare). Doit rendre <html> et <body>.
-export default function GlobalError({ reset }) {
+export default function GlobalError({ error, reset }) {
+  useEffect(() => {
+    trackError(error, { boundary: "racine" });
+  }, [error]);
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: "Helvetica, Arial, sans-serif" }}>

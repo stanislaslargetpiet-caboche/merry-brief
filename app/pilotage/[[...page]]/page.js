@@ -706,6 +706,7 @@ function Board({ data, jours, reload }) {
               <Tile label="Erreurs JavaScript" value={exceptionsCur} prev={exceptionsPrev} inverse />
               <Tile label="Clics de rage" value={rageCur} prev={sumBy(bugsSplit.previous, "rage")} inverse />
               <Tile label="Clics morts" value={sumBy(bugsSplit.current, "morts")} prev={sumBy(bugsSplit.previous, "morts")} inverse hint="Clics sans aucun effet visible" />
+              <Tile label="Bugs vus en replay" value={ph.bugs.replays?.bugs || 0} sub={`sur ${fmtInt(ph.bugs.replays?.analysees || 0)} analysée(s)`} inverse />
               {vc ? <Tile label="Déploiements" value={vc.total} sub={`${fmtInt(vc.erreurs)} en échec, ${fmtInt(vc.en_cours)} en cours`} /> : null}
             </div>
             <Card title="Erreurs par jour">
@@ -726,6 +727,18 @@ function Board({ data, jours, reload }) {
                 ) : (
                   <div className="pl-empty">Pas de mesure : active « Web vitals » dans PostHog (Autocapture) pour les voir ici.</div>
                 )}
+              </Fold>
+              <Fold open title="Bugs vus dans les replays" icon="securite" value={fmtInt(ph.bugs.replays?.bugs || 0)}>
+                <Table
+                  cols={[
+                    { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
+                    { key: "raison", label: "Ce qui s'est passé" },
+                    { key: "lien", label: "Replay", render: (r) => <a href={r.lien}>Voir</a> },
+                  ]}
+                  rows={ph.bugs.replays?.liste || []}
+                  max={15}
+                  empty={ph.bugs.replays?.analysees ? "Aucun bug vu sur la période" : "Aucune session analysée sur la période"}
+                />
               </Fold>
               <Fold title="Dernières erreurs" icon="securite" value={fmtInt(ph.bugs.exceptions.length)}>
                 <Table
