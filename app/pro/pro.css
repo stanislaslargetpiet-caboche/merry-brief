@@ -5364,7 +5364,7 @@ button.p-brand-vendor.is-menu svg {
   grid-template-columns: 272px minmax(0, 1fr) 280px;
   gap: 0;
   align-items: stretch;
-  min-height: calc(100dvh - 150px);
+  height: max(640px, calc(100dvh - 130px));
   border: 1px solid var(--d-line);
   border-radius: 20px;
   overflow: hidden;
@@ -5373,6 +5373,7 @@ button.p-brand-vendor.is-menu svg {
 .p-dem-list {
   padding: 10px;
   border-right: 1px solid var(--d-line);
+  overflow-y: auto;
 }
 
 .p-dem-item {
@@ -5397,6 +5398,14 @@ button.p-brand-vendor.is-menu svg {
   border-radius: 0;
   padding: 0;
   gap: 0;
+  min-height: 0;
+}
+
+button.d-help-btn {
+  width: 100%;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .p-dem-head {
@@ -5533,6 +5542,7 @@ button.p-brand-vendor.is-menu svg {
   flex-direction: column;
   gap: 18px;
   min-width: 0;
+  overflow-y: auto;
 }
 
 .p-rep-day {
@@ -5603,7 +5613,7 @@ button.p-brand-vendor.is-menu svg {
 @media (max-width: 860px) {
   .p-dem-grid {
     display: block;
-    min-height: 0;
+    height: auto;
     border: 0;
     border-radius: 0;
     overflow: visible;
@@ -5665,7 +5675,8 @@ button.p-brand-vendor.is-menu svg {
     bottom: 0;
     flex-direction: column;
     gap: 10px;
-    padding: 12px 0 calc(16px + env(safe-area-inset-bottom));
+    margin: 0 -16px;
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--d-line);
     background: #ffffff;
   }
@@ -5685,6 +5696,8 @@ button.p-brand-vendor.is-menu svg {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
     overflow: hidden;
+    padding-bottom: 0;
+    border-bottom: 14px solid #ebeae5;
   }
   .p-dem-head {
     padding: 8px 0 12px;
@@ -5693,6 +5706,7 @@ button.p-brand-vendor.is-menu svg {
     margin-left: auto;
   }
   .p-demandes.is-open .p-dem-detail {
+    height: auto;
     min-height: calc(100dvh - 92px);
   }
 }

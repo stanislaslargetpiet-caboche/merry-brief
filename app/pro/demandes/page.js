@@ -161,7 +161,7 @@ function Detail({ r, c, onBack }) {
     replyDrafts.set(`${r.client_id}:ia`, true);
     let gone = false;
     setDrafting(true);
-    pro.draftReply(r.client_id).then((draft) => {
+    pro.draftReply(r.client_id, addQuote).then((draft) => {
       if (gone) return;
       setDrafting(false);
       if (!draft) return;
