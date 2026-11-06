@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeNext } from "@/lib/connexionNext";
 import "@/app/onboarding.css";
 
 import { useEffect, useState } from "react";
@@ -23,11 +24,6 @@ const TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 
 // Supabase lit puis efface le #… de l'adresse au chargement : on le garde avant.
 const INITIAL_HASH = typeof window !== "undefined" ? window.location.hash : "";
-
-function safeNext(raw) {
-  // Uniquement des chemins internes au tableau de bord ou à l'espace prestataire
-  return raw && /^\/(dashboard|pro)(\/|$|\?)/.test(raw) ? raw : "/dashboard";
-}
 
 function readToken() {
   try {

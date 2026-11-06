@@ -1,10 +1,11 @@
 "use client";
 
-// Navigation du pilotage : barre latérale citron (cinq boutons) et sous-pages en pilules, comme l'espace prestataire.
+// Navigation du pilotage : barre latérale citron (cinq boutons, puis la période et Actualiser, valables sur toutes
+// les pages) et sous-pages en pilules, comme l'espace prestataire.
 // Le changement de page passe par l'historique du navigateur, sans recharger : les données lues restent en mémoire.
 
 import { useEffect, useRef } from "react";
-import { Icon } from "@/components/dash/icons";
+import { PilotIcon } from "@/components/pilotage/icons";
 import { PILOTAGE_NAV, pilotagePath } from "@/lib/pilotage/nav";
 
 function useGo() {
@@ -16,7 +17,7 @@ function useGo() {
   };
 }
 
-export function PilotSide({ group, search, badges }) {
+export function PilotSide({ group, search, badges, children }) {
   const go = useGo();
   const nav = useRef(null);
 
@@ -39,14 +40,36 @@ export function PilotSide({ group, search, badges }) {
           const badge = g.pages.reduce((n, p) => n + (badges[p.id] || 0), 0);
           return (
             <a key={g.id} href={href} className={`pl-nav-item${on ? " is-on" : ""}`} aria-current={on ? "true" : undefined} onClick={(e) => go(e, href)}>
-              <Icon name={g.icon} size={20} />
+              <span className="pl-nav-ic">
+                <PilotIcon name={g.icon} size={18} />
+              </span>
               {g.label}
               {badge ? <span className="pl-nav-badge">{badge}</span> : null}
             </a>
           );
         })}
       </nav>
+      {children}
     </aside>
+  );
+}
+
+export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefresh, stamp }) {
+  return (
+    <div className="pl-period">
+      <div className="pl-ranges" role="group" aria-label="Période">
+        {ranges.map((r) => (
+          <button key={r.id} type="button" aria-pressed={value === r.id} className={`pl-seg${value === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => onChange(r.id)}>
+            {r.label}
+          </button>
+        ))}
+      </div>
+      <button type="button" className={`pl-refresh${busy ? " is-busy" : ""}`} onClick={onRefresh} disabled={busy || !canRefresh} title="Relire toutes les sources maintenant">
+        <PilotIcon name="actualiser" size={16} />
+        <span>Actualiser</span>
+      </button>
+      {stamp ? <span className="pl-generated">{stamp}</span> : null}
+    </div>
   );
 }
 

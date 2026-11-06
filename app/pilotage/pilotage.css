@@ -1,6 +1,6 @@
-/* Merry · pilotage (page interne). Jetons du design system v2 (DESIGN.md, 2 nov. 2026) : Alan Sans, fond de page greige,
-   cartes blanches à 20 px sans ombre, pilule pour tout ce qui se clique, un seul aplat vif par écran. Ici l'aplat
-   vif est la barre latérale, comme sur les espaces couples et prestataires : rien d'autre n'est en citron sur la page. */
+/* Merry · pilotage (page interne). Jetons du design system v2 : Alan Sans, fond blanc, panneau de chiffres greige,
+   cartes à 20 px sans ombre, pilule pour tout ce qui se clique, icônes pleines citron. Une page : cinq chiffres au
+   plus, un graphe, puis ses menus déroulants. */
 
 .pl-root {
   /* Jetons (tokens.json) */
@@ -21,7 +21,7 @@
   --error-text: #b42318;
 
   min-height: 100dvh;
-  background: var(--sunken);
+  background: var(--surface);
   color: var(--ink);
   font-family: "Alan Sans", Helvetica, Arial, sans-serif;
   font-weight: 500;
@@ -42,9 +42,11 @@
 }
 .pl-logo { padding: 0 12px; font-family: "Climate Crisis", "Arial Black", sans-serif; font-weight: 400; font-size: 26px; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); line-height: 1; }
 .pl-nav { display: flex; flex-direction: column; gap: 2px; }
-.pl-nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; }
+.pl-nav-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: 12px; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; }
 .pl-nav-item:hover { background: rgba(255, 255, 255, 0.45); }
-.pl-nav-item.is-on { background: var(--surface); font-weight: 600; }
+.pl-nav-item.is-on { background: var(--surface); font-weight: 700; }
+/* Le citron de l'icône disparaîtrait sur la barre : rond blanc, celui des cibles d'icônes du design system */
+.pl-nav-ic { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: var(--surface); }
 .pl-nav-item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .pl-nav-badge, .pl-subnav-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .pl-nav-badge { margin-left: auto; }
@@ -53,7 +55,6 @@
 .pl-main { flex: 1 1 0; min-width: 0; padding-bottom: 96px; }
 .pl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .pl-head h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; }
-.pl-actions { display: flex; align-items: center; gap: 8px; }
 .pl-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 0; }
 
 /* Pilule : blanche, trait ; la page en cours prend une bordure encre, en fondu */
@@ -64,19 +65,19 @@
   transition: background-color 0.28s ease, border-color 0.28s ease;
 }
 .pl-pill-link:hover, .pl-chip:hover { border-color: var(--border-strong); }
-.pl-pill-link.is-active { border-color: var(--ink); }
-.pl-chip.is-on { border-color: var(--ink); }
+.pl-pill-link.is-active, .pl-chip.is-on { background: var(--accent-tint); border-color: var(--accent); }
 .pl-chip:disabled { opacity: 0.5; cursor: default; }
-/* Période : un seul bloc à segments ; Actualiser : un bouton rond */
-.pl-ranges { display: inline-flex; padding: 3px; gap: 2px; border: 1.5px solid var(--border); border-radius: 999px; background: var(--sunken); }
-.pl-seg { appearance: none; min-height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-muted); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease; }
-.pl-seg:hover { color: var(--ink); }
-.pl-seg.is-on { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
+/* Période et Actualiser : un bloc blanc en bas de la barre latérale, sur toutes les pages */
+.pl-period { margin-top: auto; display: grid; gap: 8px; padding: 12px; border-radius: 20px; background: var(--surface); }
+.pl-ranges { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.pl-seg { appearance: none; min-height: 32px; padding: 0 6px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.pl-seg:hover { border-color: var(--ink); }
+.pl-seg.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .pl-seg:disabled { cursor: default; }
 .pl-seg:focus-visible, .pl-refresh:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-tint), 0 0 0 1.5px var(--ink); }
-.pl-refresh { appearance: none; display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.pl-refresh { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .pl-refresh:hover { background: var(--sunken); }
-.pl-refresh:disabled { border-color: var(--border-strong); color: var(--ink-muted); cursor: default; }
+.pl-refresh:disabled { border-color: var(--border-strong); border-style: dashed; color: var(--ink-muted); background: var(--sunken); cursor: default; }
 .pl-refresh.is-busy svg { animation: pl-spin 0.9s linear infinite; }
 @keyframes pl-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .pl-refresh.is-busy svg { animation: none; } }
@@ -95,58 +96,76 @@
   outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
-.pl-generated { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--ink-muted); }
+.pl-generated { font-size: 12px; font-weight: 500; color: var(--ink-muted); text-align: center; }
 
 /* ---- Sections --------------------------------------------------------------------------------------------- */
-/* Teintes des pages : pastels du design system, du citron à la pistache */
-.pl-section { --sec-tint: #fffdb8; --sec: #f2e600; }
-.pl-section[data-tone="beurre"] { --sec-tint: #fff5cc; --sec: #f5cf5a; }
-.pl-section[data-tone="anis"] { --sec-tint: #f5fcd2; --sec: #cde46a; }
-.pl-section[data-tone="pistache"] { --sec-tint: #e6f7dc; --sec: #9fd884; }
-.pl-section { margin: 20px 0 0; }
-.pl-section-head { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.pl-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 20px 0 0; }
+.pl-section-head { display: flex; justify-content: flex-end; }
 .pl-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
-.pl-chip[aria-pressed="true"] { background: var(--sec-tint); }
 
-/* Chiffres clés : cartes blanches, gros chiffre en 28 px / 600, tabulaire */
-.pl-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.pl-tile { box-shadow: inset 0 4px 0 var(--sec); display: flex; flex-direction: column; gap: 2px; padding: 22px 20px 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); min-width: 0; }
+/* Chiffres clés : un seul panneau greige, gros chiffre en 28 px / 600, tabulaire, comme l'écran de référence */
+.pl-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px 12px; padding: 22px 18px; border-radius: 20px; background: var(--sunken); }
+.pl-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
 .pl-tile-value { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.pl-tile-label { font-size: 13px; color: var(--ink-muted); font-weight: 600; }
+.pl-tile-label { font-size: 13px; color: var(--ink-muted); font-weight: 500; }
 .pl-tile-sub { font-size: 12px; color: var(--ink-muted); }
-.pl-tile-delta { font-size: 12px; font-weight: 600; margin-top: 4px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.pl-tile-delta { font-size: 12px; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .pl-tile-delta.is-good { color: var(--success-text); }
 .pl-tile-delta.is-bad { color: var(--error-text); }
-.pl-tile-delta-sub { font-weight: 500; color: var(--ink-muted); }
 
-.pl-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
-.pl-card { grid-column: span 4; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 22px; min-width: 0; }
-.pl-card.is-wide { grid-column: span 8; }
-.pl-card.is-full { grid-column: 1 / -1; }
-.pl-card h3 { margin: 0 0 14px; font-size: 18px; font-weight: 700; line-height: 1.25; }
+.pl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 22px; min-width: 0; }
+.pl-card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 700; line-height: 1.25; }
+
+/* Menus déroulants : une carte, une ligne par menu */
+.pl-folds { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 22px; min-width: 0; }
+.pl-fold-item + .pl-fold-item { border-top: 1px solid var(--border); }
+.pl-fold { appearance: none; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.pl-fold:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
+.pl-fold svg { flex: none; }
+.pl-fold-title { flex: 1; min-width: 0; }
+.pl-fold-value { font-size: 13px; font-weight: 600; color: var(--ink-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-fold-body { padding: 0 0 18px; min-width: 0; }
+.pl-chev { flex: none; width: 8px; height: 8px; margin-right: 3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.2s ease; }
+.pl-fold-item.is-open .pl-chev { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .pl-chev { transition: none; } }
+
+/* Chiffres de détail dans un menu */
+.pl-facts { margin: 0; display: grid; }
+.pl-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.pl-facts > div:first-child { border-top: 0; }
+.pl-facts dt { min-width: 0; }
+.pl-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-bars + .pl-facts { margin-top: 8px; }
+
 .pl-note { margin: 12px 0 0; font-size: 12px; color: var(--ink-muted); line-height: 1.45; }
-@media (max-width: 1000px) { .pl-card, .pl-card.is-wide { grid-column: span 6; } }
-@media (max-width: 680px) {
-  .pl-card, .pl-card.is-wide, .pl-card.is-full { grid-column: span 12; }
-}
 
 /* ---- Graphes : encre pour la période courante, gris pour la précédente ---------------------------------------- */
 .pl-bars-head { font-size: 13px; min-height: 20px; margin-bottom: 8px; }
 .pl-bars-svg { display: block; width: 100%; height: auto; }
 .pl-bars-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
 .pl-bars-cut { color: var(--ink); font-weight: 600; }
+.pl-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-muted); }
+.pl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.pl-legend i { width: 10px; height: 10px; border-radius: 3px; }
+
+/* Colonnes étiquetées (dépenses par mois) */
+.pl-cols { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-end; gap: 12px; overflow-x: auto; }
+.pl-cols li { flex: 1 1 0; min-width: 64px; max-width: 120px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-height: calc(var(--h) + 44px); }
+.pl-cols-bar { display: block; width: 100%; max-width: 40px; min-height: 2px; background: var(--ink); border-radius: 4px 4px 0 0; }
+.pl-cols-value { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-cols-label { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 
 .pl-ranked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .pl-ranked li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) auto; align-items: center; gap: 10px; font-size: 14px; }
 .pl-ranked-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .pl-ranked-bar { height: 8px; background: var(--sunken); border-radius: 999px; overflow: hidden; }
-.pl-ranked-bar > span { display: block; height: 100%; background: var(--sec, var(--ink)); border-radius: 999px; }
+.pl-ranked-bar > span { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
 .pl-ranked-value { font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .pl-funnel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .pl-funnel li { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; font-size: 14px; }
 .pl-funnel-bar { height: 14px; background: var(--border); border-radius: 999px; overflow: hidden; }
-.pl-funnel-bar > span { display: block; height: 100%; background: var(--sec, var(--ink)); border-radius: 999px; }
+.pl-funnel-bar > span { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
 .pl-funnel-value { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---- Tableaux ----------------------------------------------------------------------------------------------- */
@@ -200,7 +219,6 @@
 /* Demandes d'accès : les deux boutons sous la demande */
 .pl-demande-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .pl-reseau-liste { display: grid; gap: 8px; }
-.pl-reseau-pistes { margin-top: 12px; }
 .pl-reseau-creneau { display: grid; gap: 8px; }
 .pl-reseau-creneau + .pl-reseau-creneau { margin-top: 12px; }
 .pl-reseau-creneau h3 { margin: 4px 0 0; font-size: 15px; font-weight: 600; }
@@ -213,16 +231,9 @@
 .pl-reseau-ajout { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
 .pl-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--ink-muted); text-decoration: underline; cursor: pointer; }
 
-/* Sections et cartes repliables */
-.pl-fold { appearance: none; display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
-.pl-chev { flex: none; width: 9px; height: 9px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 0.2s ease; }
-.pl-card.is-folded .pl-chev { transform: rotate(-45deg); margin-top: 0; }
-.pl-card.is-folded h3 { margin-bottom: 0; }
-@media (prefers-reduced-motion: reduce) { .pl-chev { transition: none; } }
-
-/* Utilisateurs : bouton « Voir les noms » sous les tuiles et listes dépliées */
-.pl-qui { margin: 12px 0 4px; }
-.pl-qui .pl-grid { margin-top: 12px; }
+/* Utilisateurs : les noms derrière les chiffres */
+.pl-qui { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.pl-qui h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
 .pl-qui-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 
 /* Mail du samedi : aperçu du mail, à sa largeur */
@@ -240,12 +251,22 @@
 /* ---- Téléphone : bandeau citron, onglets texte qui défilent, comme l'espace prestataire -------------------- */
 @media (max-width: 700px) {
   .pl-shell { display: block; }
-  .pl-side { position: sticky; z-index: 20; height: auto; flex-direction: column; gap: 8px; padding: 14px 0 8px; }
+  .pl-side { position: sticky; z-index: 20; height: auto; flex-direction: column; gap: 8px; padding: 14px 0 8px; overflow: hidden; }
   .pl-logo { padding: 0 16px; font-size: 22px; }
   .pl-nav { position: relative; flex-direction: row; gap: 4px; overflow-x: auto; padding: 0 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .pl-nav::-webkit-scrollbar { display: none; }
   .pl-nav-item { flex: none; min-height: 36px; padding: 0 12px; font-size: 14px; }
-  .pl-nav-item svg { display: none; }
+  .pl-nav-ic { display: none; }
+  /* La période tient sur une ligne, Actualiser réduit à son icône */
+  .pl-period { margin: 0 16px; padding: 0; grid-template-columns: minmax(0, 1fr) auto; background: none; }
+  .pl-ranges { grid-template-columns: repeat(4, 1fr); }
+  .pl-seg { min-height: 30px; padding: 0 2px; font-size: 12px; background: var(--surface); }
+  .pl-refresh { width: 34px; min-height: 34px; padding: 0; }
+  .pl-refresh span, .pl-generated { display: none; }
+  .pl-folds { padding: 4px 16px; }
+  .pl-card { padding: 16px; }
+  .pl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 18px 12px; }
+  .pl-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .pl-nav-badge { margin-left: 0; }
   .pl-wrap { padding: 20px 16px 0; }
   .pl-head h1 { font-size: 28px; }

@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, ColBars, Fold, Folds, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { fmtDay, fmtEur } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
 
@@ -106,14 +106,17 @@ export default function Couts({ couts, demo, onChange }) {
             <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
             <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
           </div>
-          <div className="pl-grid">
-            <Card fold="open" title="Par catégorie" note="Cumul depuis la première dépense saisie">
+          <Card title="Dépenses par mois">
+            <ColBars rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" />
+          </Card>
+          <Folds>
+            <Fold open title="Par catégorie" icon="filtrer" note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_categorie.map((c) => ({ label: c.label, n: c.depense }))} format={eur} empty="Aucune dépense saisie" />
-            </Card>
-            <Card fold="open" title="Par fournisseur" wide note="Cumul depuis la première dépense saisie">
+            </Fold>
+            <Fold title="Par fournisseur" icon="lieu" note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_fournisseur} format={eur} empty="Aucune dépense saisie" max={8} />
-            </Card>
-            <Card fold="open" title="Dernières dépenses" wide>
+            </Fold>
+            <Fold title="Dernières dépenses" icon="budget" value={`${couts.lignes} au total`}>
               <Table
                 empty="Aucune dépense saisie : ajoute la première ci-dessous"
                 rows={couts.recentes}
@@ -130,11 +133,11 @@ export default function Couts({ couts, demo, onChange }) {
                   ) }]),
                 ]}
               />
-            </Card>
-            <Card fold="closed" title="Ajouter une dépense" note="En euros : convertis à la main une facture en dollars. Les coûts par appel de Google Places se lisent dans Google Cloud Console, Facturation > Rapports.">
+            </Fold>
+            <Fold title="Ajouter une dépense" icon="ajouter" note="En euros : convertis à la main une facture en dollars. Les coûts par appel de Google Places se lisent dans Google Cloud Console, Facturation > Rapports.">
               {demo ? <div className="pl-empty">Indisponible dans le jeu d'exemple</div> : <Ajout onDone={onChange} />}
-            </Card>
-          </div>
+            </Fold>
+          </Folds>
         </>
       )}
     </Section>
