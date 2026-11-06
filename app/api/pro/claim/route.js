@@ -3,16 +3,14 @@
 //    corrige les coordonnées de la fiche, le compte est créé, la fiche lui est rattachée « en_attente » sans
 //    crédit, et une alerte part à l'équipe pour vérifier à la main dans l'heure (lib/server/proDemande.js,
 //    supabase/pro-demande-acces.sql ; la décision se prend dans /pilotage > Demandes).
-// Les actions send et verify ci-dessous (code à 6 chiffres envoyé à l'adresse de la fiche, qui ouvre une
-// session et rattache la fiche) ne sont plus appelées par l'écran ; elles restent pour d'anciens liens.
-// 1. send   : Supabase envoie un code à 6 chiffres à l'adresse mail de la fiche (jamais montrée en entier)
-// 2. verify : le code ouvre une session pour cette adresse, et rattache la fiche au compte (pro_members)
+// Rien d'autre ne rattache une fiche existante : l'ancien code envoyé à l'adresse de la fiche a été retiré le
+// 6 nov. 2026, car il contournait la vérification à la main.
 // Créer sa fiche (maquette V0c), pour un établissement absent du catalogue :
 // 1. create_send   : le code part à l'adresse que le prestataire a saisie
 // 2. create_verify : le code ouvre la session, l'adresse est géocodée (Géoplateforme de l'IGN), la fiche est
 //    créée dans catalog.vendors, active tout de suite, et rattachée au compte. Si une fiche active que
 //    personne ne gère encore porte déjà cette adresse mail, c'est elle qui est rattachée : pas de doublon.
-// verify et create_verify : si l'écran envoie le jeton d'un prestataire déjà connecté, la fiche rejoint ce
+// create_verify : si l'écran envoie le jeton d'un prestataire déjà connecté, la fiche rejoint ce
 // compte et aucune nouvelle session n'est renvoyée.
 // Se connecter : le mot de passe se vérifie côté navigateur (signInWithPassword). login_send et login_verify servent
 // à « Oublié ? » et aux comptes créés avant le 4 nov. 2026 : le code ouvre la session, puis password_set enregistre
@@ -221,42 +219,6 @@ export async function POST(req) {
         claimed: !!claimed,
       },
     });
-  }
-
-  const vendorId = String(body.vendorId || "");
-  if (!UUID_RE.test(vendorId)) return Response.json({ error: "bad_request" }, { status: 400 });
-  const { data: vendor } = await admin.schema("catalog").from("vendors").select("id, email, status").eq("id", vendorId).maybeSingle();
-  if (!vendor || vendor.status !== "active") return Response.json({ error: "not_found" }, { status: 404 });
-  const email = String(vendor.email || "").trim().toLowerCase();
-  if (!EMAIL_RE.test(email)) return Response.json({ error: "no_email" }, { status: 422 });
-
-  const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-
-  if (body.action === "send") {
-    const limited = await throttled(admin, req, [`claim-vendor:${vendorId}`, `claim-email:${email}`]);
-    if (limited) return limited;
-    const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-    if (error) {
-      const wait = /rate|seconds|too many/i.test(error.message);
-      return Response.json({ error: wait ? "wait" : "send_failed" }, { status: wait ? 429 : 502 });
-    }
-    return Response.json({ ok: true });
-  }
-
-  if (body.action === "verify") {
-    const code = String(body.code || "").replace(/\D/g, "");
-    if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
-    if (body.password !== undefined && badPassword(body.password)) return Response.json({ error: "bad_password" }, { status: 400 });
-    const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
-    if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
-
-    // Le code prouve que la fiche est à vous : elle rejoint le compte connecté s'il y en a un, sinon
-    // le compte de cette adresse
-    const me = await currentUser(admin, req);
-    const owner = me || data.user;
-    const failed = await attach(admin, vendorId, owner, me?.email || email);
-    if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password, true);
-    return linked(failed, me ? null : data.session, vendorId);
   }
 
   return Response.json({ error: "bad_request" }, { status: 400 });

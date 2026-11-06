@@ -4788,7 +4788,8 @@ button.p-dem-item {
     display: none;
   }
   .p-panel {
-    top: 105px;
+    top: 60px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
     width: 100%;
     box-shadow: none;
     z-index: 18;
