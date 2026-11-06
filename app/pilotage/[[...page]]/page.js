@@ -160,7 +160,7 @@ export default function PilotagePage() {
           ) : null}
           {!data && quotidien ? (
             <section className="pl-section">
-              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={[]} reload={() => {}} />
+              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={[]} reload={() => {}} indicateurs={error ? "erreur" : "lecture"} />
             </section>
           ) : null}
           {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}

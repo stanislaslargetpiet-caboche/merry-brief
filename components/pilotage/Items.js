@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { Card, Pill, Tile } from "@/components/pilotage/ui";
-import { buildFil, itemAction, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
+import { buildFil, etatFil, itemAction, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
 import { demoItems } from "@/lib/server/pilotage/demo";
@@ -203,7 +203,7 @@ function LigneFil({ l, agir, reload, retirer, premier }) {
   );
 }
 
-export function Aujourdhui({ liste, data, sante, today, tuiles, reload }) {
+export function Aujourdhui({ liste, data, sante, today, tuiles, reload, indicateurs = "lus" }) {
   const [retires, setRetires] = useState([]);
   const items = liste.items;
   const fil = useMemo(() => buildFil({ items, reseau: data.reseau, demandes: data.demandes, sante, today }).filter((l) => !retires.includes(l.cle)), [items, data.reseau, data.demandes, sante, today, retires]);
@@ -211,6 +211,7 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload }) {
   const mot = items.filter((i) => i.type === "mot" && i.statut === "a_faire").sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))[0];
   const lectures = items.filter((i) => i.type === "lecture" && i.statut === "a_faire");
   const creneaux = data.reseau?.plan?.jour === today ? data.reseau.plan.creneaux : [];
+  const etat = etatFil({ charge: liste.charge, err: liste.err, indicateurs });
   return (
     <>
       {mot ? (
@@ -223,13 +224,16 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload }) {
       <div className={`pl-jour${creneaux.length || lectures.length ? " has-side" : ""}`}>
         <Card title={`À faire${fil.length ? ` · ${fil.length}` : ""}`}>
           {fil.length ? (
-            <ul className="pl-lignes">
-              {fil.map((l, i) => (
-                <LigneFil key={l.cle} l={l} agir={liste.agir} reload={reload} retirer={retirer} premier={i === 0} />
-              ))}
-            </ul>
+            <>
+              <ul className="pl-lignes">
+                {fil.map((l, i) => (
+                  <LigneFil key={l.cle} l={l} agir={liste.agir} reload={reload} retirer={retirer} premier={i === 0} />
+                ))}
+              </ul>
+              {etat.complet ? null : <p className="pl-empty">{etat.message}</p>}
+            </>
           ) : (
-            <p className="pl-empty">{liste.charge ? "Rien pour aujourd'hui" : "Lecture de la liste…"}</p>
+            <p className="pl-empty">{etat.message}</p>
           )}
         </Card>
         {creneaux.length || lectures.length ? (
@@ -332,7 +336,7 @@ export function Taches({ liste, today }) {
           </ul>
         </Card>
       ))}
-      {!groupes.length && liste.disponible ? <p className="pl-empty">{liste.charge ? "Rien à faire" : "Lecture de la liste…"}</p> : null}
+      {!groupes.length && liste.disponible && (liste.charge || !liste.err) ? <p className="pl-empty">{liste.charge ? "Rien à faire" : "Lecture de la liste…"}</p> : null}
       {liste.faits.length ? (
         <Card title="Faites récemment">
           <ul className="pl-lignes">

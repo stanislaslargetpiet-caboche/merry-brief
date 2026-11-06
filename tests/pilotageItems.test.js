@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFil, itemAction, parseCapture, rangerTaches, titreJour, validateItem } from "@/lib/pilotage/items";
+import { buildFil, etatFil, itemAction, parseCapture, rangerTaches, titreJour, validateItem } from "@/lib/pilotage/items";
 import { buildSante } from "@/lib/pilotage/sante";
 
 const LUNDI = "2026-11-09";
@@ -103,5 +103,18 @@ describe("santé des déploiements", () => {
   });
   it("un échec sur la dernière production reste une alerte", () => {
     expect(deploiement({ echecs_actifs: 1 }).tone).toBe("bad");
+  });
+});
+
+describe("etatFil", () => {
+  it("n'annonce un fil vide qu'une fois la liste et les indicateurs lus", () => {
+    expect(etatFil({ charge: true })).toEqual({ complet: true, message: "Rien pour aujourd'hui" });
+    expect(etatFil({ charge: true, indicateurs: "lecture" }).complet).toBe(false);
+    expect(etatFil({ charge: false, indicateurs: "lus" }).complet).toBe(false);
+  });
+
+  it("dit ce qui manque quand une lecture échoue", () => {
+    expect(etatFil({ charge: true, indicateurs: "erreur" })).toEqual({ complet: false, message: "Réseau, demandes et alertes non lus" });
+    expect(etatFil({ charge: false, err: "Liste non lue : erreur 502", indicateurs: "lecture" })).toEqual({ complet: false, message: "Liste non lue" });
   });
 });
