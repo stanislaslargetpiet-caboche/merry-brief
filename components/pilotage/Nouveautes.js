@@ -18,6 +18,7 @@ async function call(init) {
   return body;
 }
 
+const at = (iso) => new Date(iso).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "Europe/Paris" }).replace(":00", " h").replace(":", " h ");
 const dayOf = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" });
 
 export default function Nouveautes({ demo }) {
@@ -55,12 +56,13 @@ export default function Nouveautes({ demo }) {
 
   const send = async () => {
     const count = state.restants.length;
-    if (!window.confirm(`Envoyer « Du nouveau sur Merry » à ${count} personne${count > 1 ? "s" : ""} ?`)) return;
+    const plural = `${count} personne${count > 1 ? "s" : ""}`;
+    if (!window.confirm(state.depart ? `Programmer « Du nouveau sur Merry » pour ${at(state.depart)}, à ${plural} ?` : `Envoyer « Du nouveau sur Merry » à ${plural} ?`)) return;
     setBusy(true);
     setNote(null);
     try {
       const res = await call({ method: "POST", body: JSON.stringify({ action: "envoyer", numero: state.numero, attendu: count }) });
-      setNote(`${res.envoyes} mail${res.envoyes > 1 ? "s" : ""} envoyé${res.envoyes > 1 ? "s" : ""}${res.echecs ? `, ${res.echecs} en échec : relance pour les reprendre` : ""}.`);
+      setNote(`${res.envoyes} mail${res.envoyes > 1 ? "s" : ""} ${res.depart ? `programmé${res.envoyes > 1 ? "s" : ""} pour ${at(res.depart)}` : `envoyé${res.envoyes > 1 ? "s" : ""}`}${res.echecs ? `, ${res.echecs} en échec : relance pour les reprendre` : ""}.`);
     } catch (e) {
       setNote(e.message === "liste_changee" ? "La liste a changé : relis-la avant d'envoyer." : `Envoi interrompu : ${e.message}`);
     }
@@ -94,7 +96,7 @@ export default function Nouveautes({ demo }) {
                   M'envoyer un test
                 </button>
                 <button type="button" className="pl-btn is-primary" onClick={send} disabled={busy || !left}>
-                  {busy ? "Envoi…" : `Envoyer à ${left} personne${left > 1 ? "s" : ""}`}
+                  {busy ? "Envoi…" : `${state.depart ? "Programmer" : "Envoyer"} à ${left} personne${left > 1 ? "s" : ""}`}
                 </button>
                 {note ? <span className="pl-muted">{note}</span> : null}
               </span>
