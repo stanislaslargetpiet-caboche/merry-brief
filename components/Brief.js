@@ -384,6 +384,10 @@ export default function Brief() {
 
   // Message sous le mot de passe tant qu'il est commencé mais trop court : sinon le bouton reste grisé sans explication.
   const pwdShort = data.password.length > 0 && data.password.length < 8;
+  // Même logique pour l'email, une fois le champ quitté (pas de reproche pendant la frappe), et pour un lieu tapé mais pas choisi dans la liste.
+  const [emailLeft, setEmailLeft] = useState(false);
+  const emailBad = emailLeft && data.email.trim().length > 0 && !/.+@.+\..+/.test(data.email);
+  const placeUnpicked = !data.region_unknown && !data.region_pick && !placesDown && data.region.trim().length > 0;
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -544,6 +548,7 @@ export default function Brief() {
                   {s.unsure}
                 </button>
               </div>
+              {placeUnpicked ? <p className="ob-error" role="status">{t.wherePick}</p> : null}
             </div>
 
             <div className="ob-row">
@@ -641,7 +646,8 @@ export default function Brief() {
               </div>
               <div className="ob-field">
                 <label htmlFor="email">{t.emailLabel}</label>
-                <input id="email" className="ob-input" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" />
+                <input id="email" className="ob-input" type="email" value={data.email} onChange={(e) => set("email", e.target.value)} autoComplete="email" inputMode="email" onBlur={() => setEmailLeft(true)} aria-invalid={emailBad || undefined} aria-describedby={emailBad ? "email-hint" : undefined} />
+                {emailBad ? <p id="email-hint" className="ob-error" role="status">{t.emailInvalid}</p> : null}
               </div>
               <div className="ob-field">
                 <label htmlFor="password">{t.passwordLabel}</label>
