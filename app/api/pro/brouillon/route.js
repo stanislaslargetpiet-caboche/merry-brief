@@ -20,7 +20,7 @@ Règles :
 - Réponds aux questions posées, avec les seules informations de la fiche. N'invente ni prix, ni capacité, ni horaire, ni disponibilité, ni prestation.
 - Une question sans réponse dans la fiche : écris que tu reviens vers eux sur ce point, sans la deviner.
 - Si l'agenda indique que la date est libre, dis-le. Si elle est prise, propose d'en parler. Sinon, n'affirme rien sur la disponibilité.
-- Ne cite aucun montant : le devis est joint à part.
+- Ne cite aucun montant. Si « devis_joint » est vrai, dis qu'un devis est joint ; sinon, n'en annonce aucun.
 - Quatre phrases au plus, français, vouvoiement, ton chaleureux et simple, sans formule creuse, sans tiret cadratin, sans emoji.
 - Commence par « Bonjour » suivi des prénoms du couple. Pas de signature. Réponds uniquement par le texte du message.`;
 
@@ -80,6 +80,7 @@ export async function POST(req) {
     invites: request.guests,
     region: request.region,
     message: clip(request.message, 4000),
+    devis_joint: !!body.withQuote,
   };
   const content = `Fiche du prestataire :\n${JSON.stringify(facts)}\n\nDemande du couple :\n${JSON.stringify(demande)}`;
 

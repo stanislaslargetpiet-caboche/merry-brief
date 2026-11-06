@@ -99,7 +99,8 @@ function useFollowUps(d, clients) {
         return { key: `o${x.id}`, icon: "calendar", title: `Option du ${dateShortYear(x.day)}`, meta: [name(x.client_id) || x.label, left ? `Expire dans ${left} jour${left > 1 ? "s" : ""}` : "Expire aujourd’hui"].filter(Boolean).join(" · "), href: "/pro/tarifs", cta: "Voir" };
       });
     const later = (d.clients || [])
-      .filter((c) => c.next_action_on && c.next_action_on <= now && !["reserve", "perdu"].includes(c.stage) && !isPastClient(c))
+      // Une demande sans réponse est déjà en tête de page : pas de doublon ici
+      .filter((c) => c.next_action_on && c.next_action_on <= now && !["reserve", "perdu"].includes(c.stage) && !isPastClient(c) && (!byId.has(c.id) || byId.get(c.id).answered))
       .map((c) => ({ key: `r${c.id}`, icon: "file", title: `${c.next_action || "À relancer"} : ${c.names}`, meta: `Prévu le ${dateShortYear(c.next_action_on)}`, href: byId.has(c.id) ? `/pro/demandes?demande=${c.id}` : "/pro/clients", cta: "Voir" }));
     return [...replies, ...options, ...later].slice(0, 5);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -27,6 +27,7 @@
     "@eslint/eslintrc": "^3.3.7",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.28",
+    "globals": "^17.14.0",
     "vitest": "^3.2.7"
   }
 }
