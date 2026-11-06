@@ -2373,6 +2373,20 @@ select.p-input {
   padding: 2px 0 16px;
 }
 
+.p-range + .p-range {
+  border-top: 1px solid var(--d-line);
+  padding-top: 16px;
+}
+
+.p-range-add,
+.p-range-remove {
+  align-self: flex-start;
+}
+
+.p-range-add {
+  padding: 0 0 16px;
+}
+
 .p-range-row {
   display: flex;
   align-items: center;
