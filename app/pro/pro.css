@@ -2352,11 +2352,37 @@ select.p-input {
   white-space: nowrap;
 }
 
-.p-access {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
+.p-toggle-block + .p-toggle-block {
+  border-top: 1px solid var(--d-line);
+}
+
+.p-range {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  align-items: end;
+  padding: 2px 0 16px;
+}
+
+.p-range-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.p-range-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  accent-color: var(--d-ink);
+  cursor: pointer;
+}
+
+.p-range-row output {
+  min-width: 64px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .p-photos {
@@ -2548,9 +2574,6 @@ select.p-input {
   .p-grid3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-  }
-  .p-access {
-    grid-template-columns: minmax(0, 1fr) 110px;
   }
   .p-field.is-narrow {
     max-width: none;
