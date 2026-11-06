@@ -139,7 +139,6 @@ function MaFiche() {
 
       <section className="p-sec" id="acces">
         <h2 className="p-sec-title">Gare et aéroport</h2>
-        <p className="p-hint">Activez ce qui est à proximité, puis ajustez le trajet : il est estimé depuis l’adresse, à corriger à la main.</p>
         <div className="p-toggles">
           <TransportRow id="gare" label="Gare à proximité" nameKey="station_name" minutesKey="station_minutes" pick={(a) => a?.station} />
           <TransportRow id="aero" label="Aéroport à proximité" nameKey="airport_name" minutesKey="airport_minutes" pick={(a) => a?.airport} />
