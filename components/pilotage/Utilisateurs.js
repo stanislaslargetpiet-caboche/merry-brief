@@ -39,6 +39,50 @@ const posthogCell = (r) => {
 
 const sitePill =(site) => (site === "publié" ? <Pill tone="ok">Site publié</Pill> : site === "brouillon" ? <Pill tone="warn">Site brouillon</Pill> : <span className="pl-muted">aucun</span>);
 
+// Noms derrière les tuiles : un seul bouton déroulant, une liste par tuile (période courante)
+const DETAIL_LISTS = [
+  { key: "connectes", title: "Connectés", line: (x) => x.email, more: (x) => [x.couple, fmtAgo(x.at)] },
+  { key: "comptes", title: "Nouveaux comptes", line: (x) => x.email, more: (x) => [x.couple || "sans mariage", fmtAgo(x.at)] },
+  { key: "mariages", title: "Mariages créés", line: (x) => x.couple, more: (x) => [x.email, fmtAgo(x.at)] },
+  { key: "sites", title: "Sites créés", line: (x) => x.couple, more: (x) => [x.email, fmtAgo(x.at)] },
+  { key: "invites", title: "Invités ajoutés", line: (x) => x.couple, more: (x) => [x.email, `${fmtInt(x.n)} invité${x.n > 1 ? "s" : ""}`] },
+  { key: "devis", title: "Demandes de devis", line: (x) => x.couple, more: (x) => [x.email, `${fmtInt(x.n)} demande${x.n > 1 ? "s" : ""}`] },
+];
+
+function Qui({ detail }) {
+  const [open, setOpen] = useState(false);
+  if (!detail) return null;
+  return (
+    <div className="pl-qui">
+      <button type="button" className="pl-chip" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? "Masquer les noms" : "Voir les noms"}
+      </button>
+      {open ? (
+        <div className="pl-grid">
+          {DETAIL_LISTS.map((l) => {
+            const rows = detail[l.key] || [];
+            return (
+              <Card key={l.key} title={`${l.title} (${rows.length})`} fold={rows.length ? undefined : "closed"}>
+                {rows.length ? (
+                  <ul className="pl-qui-list">
+                    {rows.map((x, i) => (
+                      <li key={i}>
+                        <strong>{l.line(x)}</strong> <span className="pl-muted">{l.more(x).filter(Boolean).join(" · ")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="pl-empty">Personne sur la période</div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Utilisateurs({ data, label }) {
   const [filter, setFilter] = useState("tous");
   const rows = useMemo(() => (data?.mariages || []).filter((FILTERS.find((f) => f.id === filter) || FILTERS[0]).test), [data, filter]);
@@ -65,6 +109,7 @@ export default function Utilisateurs({ data, label }) {
         <Tile label="Invités ajoutés" value={f.invites_ajoutes?.n} prev={f.invites_ajoutes?.prec} sub={`${fmtInt(t.avec_invites)} mariage(s) en ont au moins un`} />
         <Tile label="Demandes de devis" value={f.devis?.n} prev={f.devis?.prec} sub={`${fmtInt(t.avec_devis)} mariage(s) en ont fait`} />
       </div>
+      <Qui detail={data.detail} />
       <div className="pl-grid">
         <Card fold="open" full title="Derniers utilisateurs connectés" note="Supabase date la dernière connexion (mot de passe ou lien), pas chaque ouverture de l'appli avec une session déjà ouverte : un couple qui reste connecté peut y paraître moins récent qu'il ne l'est.">
           <Table
