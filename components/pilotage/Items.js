@@ -6,15 +6,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { PilotIcon } from "@/components/pilotage/icons";
+import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, Tile } from "@/components/pilotage/ui";
 import { buildFil, etatFil, itemAction, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
+import { pilotagePath } from "@/lib/pilotage/nav";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
-import { demoItems } from "@/lib/server/pilotage/demo";
+import { demoAgenda, demoItems } from "@/lib/server/pilotage/demo";
 
 const URL_ITEMS = "/api/interne/pilotage/items";
 const URL_CONTACT = "/api/interne/pilotage/reseau";
 const URL_PLAN = "/api/interne/pilotage/reseau/plan";
+const URL_AGENDA = "/api/interne/pilotage/agenda";
 
 async function call(method, body, url = URL_ITEMS) {
   const { data } = await supabase.auth.getSession();
@@ -76,7 +79,24 @@ export function useItems(status) {
     [demo, lire],
   );
 
-  return { ...state, err, agir };
+  return { ...state, status, err, agir };
+}
+
+// Lu à part des indicateurs, plus lents : les meetings s'affichent sans les attendre
+function useAgenda(status) {
+  const [agenda, setAgenda] = useState(null);
+  useEffect(() => {
+    if (status === "demo") return setAgenda(demoAgenda());
+    if (status !== "ok") return;
+    let vivant = true;
+    call("GET", null, URL_AGENDA)
+      .then((a) => vivant && setAgenda(a))
+      .catch(() => vivant && setAgenda({ disponible: false, raison: "Agenda non lu" }));
+    return () => {
+      vivant = false;
+    };
+  }, [status]);
+  return agenda;
 }
 
 // Ajouter, en bas de la barre latérale ; ⌘ K l'ouvre depuis n'importe quelle page
@@ -203,17 +223,67 @@ function LigneFil({ l, agir, reload, retirer, premier }) {
   );
 }
 
-export function Aujourdhui({ liste, data, sante, today, tuiles, reload, indicateurs = "lus" }) {
+function Meetings({ status }) {
+  const agenda = useAgenda(status);
+  const meetings = agenda?.meetings || [];
+  return (
+    <Card title={`Meetings avec l'extérieur${meetings.length ? ` · ${meetings.length}` : ""}`}>
+      {meetings.length ? (
+        <dl className="pl-facts">
+          {meetings.map((m) => (
+            <div key={m.id}>
+              <dt>{m.personnes}</dt>
+              <dd>{m.heure}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="pl-empty">{!agenda ? "Lecture de l'agenda…" : agenda.disponible ? "Aucun aujourd'hui" : agenda.raison}</p>
+      )}
+    </Card>
+  );
+}
+
+function BlocLecture({ titre, items, today }) {
+  const lecture = items.filter((i) => i.type === "lecture" && i.projet === titre).sort((a, b) => String(b.echeance).localeCompare(String(a.echeance)))[0];
+  return (
+    <Card title={titre}>
+      {lecture ? (
+        <div className="pl-lecture">
+          {lecture.echeance && lecture.echeance !== today ? <small>{fmtDay(lecture.echeance)}</small> : null}
+          {lecture.lien ? (
+            <a href={lecture.lien} target="_blank" rel="noreferrer">
+              {lecture.titre}
+            </a>
+          ) : (
+            <strong>{lecture.titre}</strong>
+          )}
+          {lecture.detail ? <p>{lecture.detail}</p> : null}
+        </div>
+      ) : (
+        <p className="pl-empty">Pas encore publiée</p>
+      )}
+    </Card>
+  );
+}
+
+export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, indicateurs = "lus" }) {
+  const go = useGo();
+  const pageTaches = `${pilotagePath("taches", "liste")}${search}`;
   const [retires, setRetires] = useState([]);
   const items = liste.items;
   const fil = useMemo(() => buildFil({ items, reseau: data.reseau, demandes: data.demandes, sante, today }).filter((l) => !retires.includes(l.cle)), [items, data.reseau, data.demandes, sante, today, retires]);
   const retirer = useCallback((cle) => setRetires((r) => [...r, cle]), []);
   const mot = items.filter((i) => i.type === "mot" && i.statut === "a_faire").sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))[0];
-  const lectures = items.filter((i) => i.type === "lecture" && i.statut === "a_faire");
-  const creneaux = data.reseau?.plan?.jour === today ? data.reseau.plan.creneaux : [];
+  const nbTaches = rangerTaches(items, today).reduce((n, g) => n + g.lignes.length, 0);
   const etat = etatFil({ charge: liste.charge, err: liste.err, indicateurs });
   return (
     <>
+      <div className="pl-tiles">
+        {tuiles.map((t) => (
+          <Tile key={t.label} {...t} sansPct />
+        ))}
+      </div>
       {mot ? (
         <div className="pl-mot">
           <p>{mot.detail || mot.titre}</p>
@@ -221,7 +291,7 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, indicate
       ) : null}
       {!liste.disponible ? <div className="pl-errors">{liste.raison}</div> : null}
       {liste.err ? <div className="pl-errors">{liste.err}</div> : null}
-      <div className={`pl-jour${creneaux.length || lectures.length ? " has-side" : ""}`}>
+      <div className="pl-jour has-side">
         <Card title={`À faire${fil.length ? ` · ${fil.length}` : ""}`}>
           {fil.length ? (
             <>
@@ -236,48 +306,18 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, indicate
             <p className="pl-empty">{etat.message}</p>
           )}
         </Card>
-        {creneaux.length || lectures.length ? (
-          <div className="pl-jour-side">
-            {creneaux.length ? (
-              <Card title="Agenda">
-                <dl className="pl-facts">
-                  {creneaux.map((c) => (
-                    <div key={c.id}>
-                      <dt>{c.label}</dt>
-                      <dd>{c.lignes.filter((x) => x.statut === "a_faire").length}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </Card>
-            ) : null}
-            {lectures.length ? (
-              <Card title="À lire">
-                <ul className="pl-lignes">
-                  {lectures.map((i) => (
-                    <li key={i.id} className="pl-lecture">
-                      <small>{i.projet}</small>
-                      {i.lien ? (
-                        <a href={i.lien} target="_blank" rel="noreferrer">
-                          {i.titre}
-                        </a>
-                      ) : (
-                        <strong>{i.titre}</strong>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      {tuiles.length ? (
-        <div className="pl-tiles">
-          {tuiles.map((t) => (
-            <Tile key={t.label} {...t} sansPct />
-          ))}
+        <div className="pl-jour-side">
+          <Meetings status={liste.status} />
+          <a className="pl-card pl-compteur" href={pageTaches} onClick={(e) => go(e, pageTaches)}>
+            <span>{liste.charge ? nbTaches : "–"}</span>
+            Tâches
+          </a>
         </div>
-      ) : null}
+      </div>
+      <div className="pl-lectures">
+        <BlocLecture titre="News of the Day" items={items} today={today} />
+        <BlocLecture titre="Feature of the Day" items={items} today={today} />
+      </div>
     </>
   );
 }

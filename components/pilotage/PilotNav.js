@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { PILOTAGE_NAV, pilotagePath } from "@/lib/pilotage/nav";
 
-function useGo() {
+export function useGo() {
   return (event, href) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();

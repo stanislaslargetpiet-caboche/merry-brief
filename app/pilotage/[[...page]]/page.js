@@ -40,6 +40,9 @@ const RANGES = [
   { id: "30j", jours: 30, label: "30 jours" },
 ];
 
+// Le bandeau garde sa place pendant la lecture des indicateurs : la liste ne saute pas sous le doigt
+const TUILES_JOUR = ["Visiteurs", "Comptes créés", "Mariages créés", "Demandes de devis"];
+
 function useToken() {
   const [state, setState] = useState({ status: "loading", token: null, email: null });
   useEffect(() => {
@@ -160,13 +163,13 @@ export default function PilotagePage() {
           ) : null}
           {!data && quotidien ? (
             <section className="pl-section">
-              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={[]} reload={() => {}} indicateurs={error ? "erreur" : "lecture"} />
+              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={TUILES_JOUR.map((label) => ({ label }))} reload={() => {}} search={search} indicateurs={error ? "erreur" : "lecture"} />
             </section>
           ) : null}
           {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
-              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} />
+              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} search={search} />
             </PageContext.Provider>
           ) : null}
         </div>
@@ -229,7 +232,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours, reload, liste, today }) {
+function Board({ data, jours, reload, liste, today, search }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -295,16 +298,16 @@ function Board({ data, jours, reload, liste, today }) {
 
   const u = data.utilisateurs?.fenetre || {};
   const tuilesJour = [
-    ph && { label: "Visiteurs", value: sumBy(siteSplit.current, "visiteurs"), prev: sumBy(siteSplit.previous, "visiteurs") },
+    { label: "Visiteurs", value: ph ? sumBy(siteSplit.current, "visiteurs") : null, prev: ph ? sumBy(siteSplit.previous, "visiteurs") : null },
     { label: "Comptes créés", value: u.comptes_crees?.n, prev: u.comptes_crees?.prec },
     { label: "Mariages créés", value: u.mariages_crees?.n, prev: u.mariages_crees?.prec },
     { label: "Demandes de devis", value: u.devis?.n, prev: u.devis?.prec },
-  ].filter(Boolean);
+  ];
 
   return (
     <>
       <Section id="jour">
-        <Aujourdhui liste={liste} data={data} sante={sante} today={today} tuiles={tuilesJour} reload={reload} />
+        <Aujourdhui liste={liste} data={data} sante={sante} today={today} tuiles={tuilesJour} reload={reload} search={search} />
       </Section>
 
       <Section id="sante" right={demo ? null : <SendBrief />}>
