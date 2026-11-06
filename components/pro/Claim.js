@@ -214,8 +214,21 @@ const ERRORS = {
   account_email: "Entrez une adresse mail valide.",
   account_phone: "Entrez un numéro de téléphone où l’on peut vous joindre.",
   request_failed: "La demande n’a pas pu partir. Réessayez dans un instant.",
+  wrong_account: "Ce lien est réservé à l’adresse invitée. Connectez-vous avec cette adresse, ou demandez à la personne qui vous a invité de vous écrire à la bonne.",
   already_member: "Vous faites déjà partie de cette équipe. Ce lien est réservé à la personne invitée : il reste valable pour elle.",
 };
+
+// Le jeton d'invitation et la fiche visée ne restent pas dans la barre d'adresse une fois lus : ni
+// historique, ni Referer, ni outil de suivi ne les gardent (audit du 6 nov. 2026)
+function dropParams(...names) {
+  try {
+    const u = new URL(window.location.href);
+    names.forEach((n) => u.searchParams.delete(n));
+    window.history.replaceState(window.history.state, "", u.pathname + u.search + u.hash);
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function Claim() {
   const pro = usePro();
@@ -302,6 +315,7 @@ export default function Claim() {
         const { data: s } = supabase ? await supabase.auth.getSession() : { data: null };
         const res = await call({ action: "info", token }, "/api/pro/invitation", s?.session?.access_token);
         if (!live) return;
+        dropParams("invitation");
         if (res.vendor_name) {
           setInvite({ token, vendor_name: res.vendor_name, email_hint: res.email_hint, already: !!res.already_member });
           setScreen("invite");
@@ -316,6 +330,7 @@ export default function Claim() {
     (async () => {
       const res = await call({ action: "lookup", vendorId: fiche });
       if (!live) return;
+      dropParams("fiche");
       if (res.result) choose(res.result);
       else setNotice(ERRORS[res.error] || ERRORS.not_found);
     })();
