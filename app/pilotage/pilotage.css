@@ -216,6 +216,12 @@
 .pl-demande-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .pl-reseau-liste { display: grid; gap: 8px; }
 .pl-reseau-pistes { margin-top: 12px; }
+.pl-reseau-creneau { display: grid; gap: 8px; }
+.pl-reseau-creneau + .pl-reseau-creneau { margin-top: 12px; }
+.pl-reseau-creneau h3 { margin: 4px 0 0; font-size: 15px; font-weight: 600; }
+.pl-reseau-ligne > div { flex: 1; min-width: 0; }
+.pl-reseau-recu { margin: 8px 0 0; padding: 8px 12px; border-left: 3px solid var(--border-strong); color: var(--ink-muted); font-size: 13px; white-space: pre-wrap; }
+.pl-reseau-message { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.45; color: var(--ink); border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); resize: vertical; }
 .pl-reseau-liens { display: flex; flex-wrap: wrap; gap: 12px; }
 .pl-reseau-liens a { color: inherit; }
 .pl-reseau-statut { font: inherit; font-size: 13px; color: var(--ink); min-height: 32px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); }
