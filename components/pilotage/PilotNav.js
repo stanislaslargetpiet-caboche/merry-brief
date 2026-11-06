@@ -1,76 +1,69 @@
 "use client";
 
-// Menu des sections du pilotage, fixe en haut de page : la pastille de la section en cours passe en citron, en
-// fondu, au fil du défilement. La section en cours est la dernière dont le haut a franchi le bas du menu ; en bas de
-// page, c'est la dernière. Un clic défile en douceur jusqu'à la section (sans animation si le système la réduit).
+// Navigation du pilotage : barre latérale citron (cinq boutons) et sous-pages en pilules, comme l'espace prestataire.
+// Le changement de page passe par l'historique du navigateur, sans recharger : les données lues restent en mémoire.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { activeSection } from "@/lib/pilotage/nav";
+import { useEffect, useRef } from "react";
+import { Icon } from "@/components/dash/icons";
+import { PILOTAGE_NAV, pilotagePath } from "@/lib/pilotage/nav";
 
-const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+function useGo() {
+  return (event, href) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    window.history.pushState(null, "", href);
+    window.scrollTo(0, 0);
+  };
+}
 
-export default function PilotNav({ sections, offsetRef, ready }) {
-  const [active, setActive] = useState(sections[0]?.id || null);
+export function PilotSide({ group, search, badges }) {
+  const go = useGo();
   const nav = useRef(null);
 
-  const offset = useCallback(() => (offsetRef?.current?.getBoundingClientRect().height || 112) + 24, [offsetRef]);
-
-  const compute = useCallback(() => {
-    const tops = sections.map((s) => ({ id: s.id, top: document.getElementById(s.id)?.getBoundingClientRect().top })).filter((t) => typeof t.top === "number");
-    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-    const id = activeSection(tops, offset(), atBottom);
-    if (id) setActive(id);
-  }, [sections, offset]);
-
-  useEffect(() => {
-    if (!ready) return undefined;
-    let frame = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(compute);
-    };
-    compute();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [ready, compute]);
-
-  // Sur téléphone la barre défile en largeur : la pastille en cours est ramenée au centre
+  // Sur téléphone la barre défile en largeur : le bouton en cours reste visible
   useEffect(() => {
     const el = nav.current;
-    const on = el?.querySelector(".is-active");
-    if (!el || !on || el.scrollWidth <= el.clientWidth) return;
-    const box = el.getBoundingClientRect();
-    const b = on.getBoundingClientRect();
-    el.scrollTo({ left: Math.max(0, b.left - box.left + el.scrollLeft - (el.clientWidth - b.width) / 2), behavior: reduced() ? "auto" : "smooth" });
-  }, [active]);
-
-  const go = (event, id) => {
-    const target = document.getElementById(id);
-    if (!target) return;
-    event.preventDefault();
-    setActive(id);
-    // Une section repliée s'ouvre d'abord ; le défilement attend que la page ait repris sa hauteur
-    window.dispatchEvent(new CustomEvent("pilotage:open", { detail: id }));
-    requestAnimationFrame(() => target.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }));
-    try {
-      window.history.replaceState(null, "", `#${id}`);
-    } catch {
-      /* ignore */
-    }
-  };
+    const on = el?.querySelector(".is-on");
+    if (on && el.scrollWidth > el.clientWidth) el.scrollLeft = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2;
+  }, [group.id]);
 
   return (
-    <nav ref={nav} className="pl-nav" aria-label="Sections">
-      {sections.map((s) => (
-        <a key={s.id} href={`#${s.id}`} className={`pl-pill-link${active === s.id ? " is-active" : ""}`} aria-current={active === s.id ? "true" : undefined} onClick={(e) => go(e, s.id)}>
-          {s.label}
-        </a>
-      ))}
+    <aside className="pl-side">
+      <a className="pl-logo" href="/dashboard">
+        Merry
+      </a>
+      <nav ref={nav} className="pl-nav" aria-label="Pilotage">
+        {PILOTAGE_NAV.map((g) => {
+          const on = g.id === group.id;
+          const href = `${pilotagePath(g.id, g.pages[0].id)}${search}`;
+          const badge = g.pages.reduce((n, p) => n + (badges[p.id] || 0), 0);
+          return (
+            <a key={g.id} href={href} className={`pl-nav-item${on ? " is-on" : ""}`} aria-current={on ? "true" : undefined} onClick={(e) => go(e, href)}>
+              <Icon name={g.icon} size={20} />
+              {g.label}
+              {badge ? <span className="pl-nav-badge">{badge}</span> : null}
+            </a>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
+
+export function PilotSubnav({ group, page, search, badges }) {
+  const go = useGo();
+  return (
+    <nav className="pl-subnav" aria-label={`Pages de ${group.label}`}>
+      {group.pages.map((p) => {
+        const on = p.id === page.id;
+        const href = `${pilotagePath(group.id, p.id)}${search}`;
+        return (
+          <a key={p.id} href={href} className={`pl-pill-link${on ? " is-active" : ""}`} aria-current={on ? "page" : undefined} onClick={(e) => go(e, href)}>
+            {p.label}
+            {badges[p.id] ? <span className="pl-subnav-badge">{badges[p.id]}</span> : null}
+          </a>
+        );
+      })}
     </nav>
   );
 }

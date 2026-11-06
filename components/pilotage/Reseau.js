@@ -251,19 +251,21 @@ function Ajouter({ onChange }) {
   );
 }
 
+const NON_LU = ["plan", "noms", "pipeline"];
+
 export default function Reseau({ reseau, demo, onChange }) {
   if (!reseau?.disponible) {
-    return (
-      <Section id="reseau" title="Réseau" kicker="Contacts et relances">
+    return NON_LU.map((id) => (
+      <Section key={id} id={id}>
         <div className="pl-health-item">
           <Pill tone="neutral">Info</Pill>
           <div>
             <strong>Réseau non lu</strong>
-            <span className="pl-muted">{reseau?.raison || "la lecture a échoué : voir les erreurs en bas de page"}</span>
+            <span className="pl-muted">{reseau?.raison || "la lecture a échoué : voir les erreurs en bas de la page Santé"}</span>
           </div>
         </div>
       </Section>
-    );
+    ));
   }
   const cols = [
     { key: "nom", label: "Contact", render: (c) => who(c) },
@@ -273,54 +275,52 @@ export default function Reseau({ reseau, demo, onChange }) {
     { key: "dernier", label: "Dernier contact", render: (c) => (c.dernier_contact ? fmtDay(c.dernier_contact) : "–") },
   ];
   return (
-    <Section
-      id="reseau"
-      title="Réseau"
-      kicker="Contacts et relances"
-      summary={[
-        { label: "à faire", value: reseau.a_faire.length + (reseau.plan?.creneaux || []).flatMap((x) => x.lignes).filter((l) => l.statut === "a_faire").length },
-        { label: "à valider", value: reseau.a_valider.length },
-      ]}
-    >
-      <div className="pl-tiles">
-        <Tile label="Nouveaux contacts, 7 jours" value={reseau.semaine.nouveaux} />
-        <Tile label="Réponses, 7 jours" value={reseau.semaine.reponses} />
-        <Tile label="Rendez-vous" value={reseau.semaine.rdv} />
-        <Tile label="Contacts suivis" value={reseau.total} />
-      </div>
-      <div className="pl-reseau-liste">
-        <Plan plan={reseau.plan} raison={reseau.plan_raison} demo={demo} onChange={onChange} />
-        {reseau.a_faire.map((c) => (
-          <Action key={c.id} c={c} demo={demo} today={reseau.jour} onChange={onChange} />
-        ))}
-        {reseau.a_valider.map((c) => (
-          <AValider key={c.id} c={c} demo={demo} onChange={onChange} />
-        ))}
-      </div>
-      <div className="pl-grid pl-reseau-pistes">
-        {reseau.pistes.map((p) => (
-          <Card key={p.id} full fold="closed" title={`${p.label} (${p.contacts.length})`}>
-            <Table cols={cols} rows={p.contacts} max={200} />
+    <>
+      <Section id="plan">
+        <div className="pl-reseau-liste">
+          <Plan plan={reseau.plan} raison={reseau.plan_raison} demo={demo} onChange={onChange} />
+          {reseau.a_faire.map((c) => (
+            <Action key={c.id} c={c} demo={demo} today={reseau.jour} onChange={onChange} />
+          ))}
+        </div>
+      </Section>
+      <Section id="noms">
+        <div className="pl-reseau-liste">
+          {reseau.a_valider.length ? reseau.a_valider.map((c) => <AValider key={c.id} c={c} demo={demo} onChange={onChange} />) : <div className="pl-empty">Aucun nom à valider</div>}
+        </div>
+      </Section>
+      <Section id="pipeline">
+        <div className="pl-tiles">
+          <Tile label="Nouveaux contacts, 7 jours" value={reseau.semaine.nouveaux} />
+          <Tile label="Réponses, 7 jours" value={reseau.semaine.reponses} />
+          <Tile label="Rendez-vous" value={reseau.semaine.rdv} />
+          <Tile label="Contacts suivis" value={reseau.total} />
+        </div>
+        <div className="pl-grid pl-reseau-pistes">
+          {reseau.pistes.map((p) => (
+            <Card key={p.id} full fold="closed" title={`${p.label} (${p.contacts.length})`}>
+              <Table cols={cols} rows={p.contacts} max={200} />
+            </Card>
+          ))}
+          <Card full fold="closed" title="Derniers échanges">
+            <Table
+              cols={[
+                { key: "jour", label: "Jour", render: (e) => fmtDay(e.jour) },
+                { key: "nom", label: "Contact" },
+                { key: "sens", label: "Sens", render: (e) => ({ entrant: "Reçu", sortant: "Envoyé", note: "Note" })[e.sens] },
+                { key: "resume", label: "Résumé", render: (e) => e.resume || "–" },
+              ]}
+              rows={reseau.derniers}
+              empty="Aucun échange"
+            />
           </Card>
-        ))}
-        <Card full fold="closed" title="Derniers échanges">
-          <Table
-            cols={[
-              { key: "jour", label: "Jour", render: (e) => fmtDay(e.jour) },
-              { key: "nom", label: "Contact" },
-              { key: "sens", label: "Sens", render: (e) => ({ entrant: "Reçu", sortant: "Envoyé", note: "Note" })[e.sens] },
-              { key: "resume", label: "Résumé", render: (e) => e.resume || "–" },
-            ]}
-            rows={reseau.derniers}
-            empty="Aucun échange"
-          />
-        </Card>
-        {demo ? null : (
-          <Card full fold="closed" title="Ajouter un contact">
-            <Ajouter onChange={onChange} />
-          </Card>
-        )}
-      </div>
-    </Section>
+          {demo ? null : (
+            <Card full fold="closed" title="Ajouter un contact">
+              <Ajouter onChange={onChange} />
+            </Card>
+          )}
+        </div>
+      </Section>
+    </>
   );
 }

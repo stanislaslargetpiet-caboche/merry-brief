@@ -73,7 +73,7 @@ export default function Nouveautes({ demo }) {
   if (demo) return null;
   const left = state?.restants.length || 0;
   return (
-    <Section id="nouveautes" title="Mail du samedi" kicker={state ? `N° ${state.numero}, ${dayOf(state.samedi)}` : "Du nouveau sur Merry"}>
+    <Section id="samedi">
       {error ? (
         <div className="pl-health-item">
           <Pill tone="warn">Erreur</Pill>

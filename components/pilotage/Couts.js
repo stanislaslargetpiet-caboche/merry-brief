@@ -90,7 +90,7 @@ export default function Couts({ couts, demo, onChange }) {
   };
 
   return (
-    <Section id="couts" title="Coûts" kicker="Registre saisi à la main">
+    <Section id="couts">
       {!couts?.disponible ? (
         <div className="pl-health-item">
           <Pill tone="neutral">Info</Pill>

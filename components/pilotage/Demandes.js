@@ -79,7 +79,7 @@ function Demande({ d, demo, onDone }) {
 export default function Demandes({ demandes, demo, onChange }) {
   const waiting = demandes?.en_attente || [];
   return (
-    <Section id="demandes" title="Demandes" kicker="Accès aux fiches prestataires" defaultOpen={waiting.length > 0}>
+    <Section id="demandes">
       {!demandes?.disponible ? (
         <div className="pl-health-item">
           <Pill tone="neutral">Info</Pill>

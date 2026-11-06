@@ -83,24 +83,20 @@ function Qui({ detail }) {
   );
 }
 
-export default function Utilisateurs({ data, label }) {
+export default function Utilisateurs({ data }) {
   const [filter, setFilter] = useState("tous");
   const rows = useMemo(() => (data?.mariages || []).filter((FILTERS.find((f) => f.id === filter) || FILTERS[0]).test), [data, filter]);
   if (!data) {
     return (
-      <Section id="utilisateurs" title="Utilisateurs" kicker={`En direct · ${label}`}>
-        <div className="pl-empty">Utilisateurs non lus : voir la section Santé.</div>
+      <Section id="comptes">
+        <div className="pl-empty">Utilisateurs non lus : voir la page Santé.</div>
       </Section>
     );
   }
   const f = data.fenetre || {};
   const t = data.totaux || {};
-  const summary = [
-    { label: "connectés", value: fmtInt(f.connectes?.n || 0) },
-    { label: "nouveaux comptes", value: fmtInt(f.comptes_crees?.n || 0) },
-  ];
   return (
-    <Section id="utilisateurs" title="Utilisateurs" kicker={`En direct · ${label}`} summary={summary}>
+    <Section id="comptes">
       <div className="pl-tiles">
         <Tile label="Connectés" value={f.connectes?.n} prev={f.connectes?.prec} hint="Comptes dont la dernière connexion tombe dans la période (Supabase Auth)" />
         <Tile label="Nouveaux comptes" value={f.comptes_crees?.n} prev={f.comptes_crees?.prec} sub={`${fmtInt(t.comptes)} au total`} />
