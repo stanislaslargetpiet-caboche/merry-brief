@@ -1,10 +1,11 @@
+import { existsSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readUnsubLink, unsubLink } from "../lib/server/mailOptouts.js";
 import { departAt, INCLUS, issueState, sendIssue, sendTest } from "../lib/server/nouveautes.js";
-import { latestIssue, nouveautesMail } from "../lib/server/nouveautesMail.js";
+import { latestIssue, NOUVEAUTES, nouveautesMail } from "../lib/server/nouveautesMail.js";
 
 const ORIGIN = "https://app.withmerry.com";
-const issue = latestIssue();
+const issue = NOUVEAUTES[0];
 
 function fakeAdmin({ emails = [], optouts = [], sent = [], failOptouts = false } = {}) {
   const sentKeys = new Set(sent);
@@ -58,6 +59,13 @@ describe("mail du samedi", () => {
     expect(html).toContain(`${ORIGIN}${issue.lien}`);
     expect(text).toContain("https://x/d?e=1&t=2");
     expect(text).toContain(issue.promesse);
+  });
+
+  it("propose le dernier numéro, avec son image, à 8 h le samedi suivant", () => {
+    const dernier = latestIssue();
+    expect(dernier.numero).toBe(NOUVEAUTES.length);
+    expect(existsSync(`public/mail/nouveautes/${dernier.image}`)).toBe(true);
+    expect(departAt(dernier, new Date("2026-11-06T20:00:00Z")).toISOString()).toBe("2026-11-14T07:00:00.000Z");
   });
 
   it("signe le lien pour les nouveautés seulement", () => {
