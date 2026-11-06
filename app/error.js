@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { trackError } from "@/lib/analytics";
 
 // Une erreur de rendu n'emporte plus toute la page : on l'affiche, on la journalise, et on propose de réessayer
 export default function AppError({ error, reset }) {
   useEffect(() => {
     console.error("[merry] erreur de page", error);
+    trackError(error, { boundary: "page" });
   }, [error]);
   return (
     <main style={{ minHeight: "70vh", display: "grid", placeItems: "center", padding: "48px 16px", textAlign: "center", fontFamily: "var(--font-body)" }}>
