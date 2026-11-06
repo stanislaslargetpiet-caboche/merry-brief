@@ -131,21 +131,6 @@
   font-size: 12.5px;
 }
 
-.p-outline-pill {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1.5px solid var(--d-ink);
-  background: transparent;
-  color: var(--d-ink);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .p-main {
   flex: 1 1 auto;
   min-width: 0;
@@ -318,15 +303,6 @@
   text-decoration: none;
 }
 
-.p-head {
-  display: flex;
-  flex-wrap: wrap;
-  /* En haut : le titre du Dashboard tombe à la même hauteur que celui des autres pages */
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 /* Sous-onglets d'une section groupée (Mon profil, Messagerie) */
 .p-subnav {
   display: flex;
@@ -445,156 +421,6 @@
 }
 
 /* ---------- Accueil (maquettes Vendor-Accueil / -Tel) ---------- */
-
-.p-acc-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.p-acc-stats > div {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  text-align: left;
-  gap: 20px;
-  background: #ffffff;
-  border: 1px solid var(--d-line);
-  border-radius: 16px;
-  padding: 18px 18px 20px;
-}
-
-.p-acc-top {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.p-acc-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.p-acc-value svg {
-  flex: none;
-}
-
-.p-acc-stats b {
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.p-acc-stats b.is-amber {
-  color: var(--d-ok-ink);
-}
-
-.p-acc-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.p-acc-card {
-  border: 1px solid var(--d-line);
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 18px 18px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 20px;
-  min-width: 0;
-}
-
-.p-acc-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.p-acc-card-head span,
-.p-acc-card-label {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.p-acc-card-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.p-acc-card-n {
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.p-acc-card-n small {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--d-muted);
-}
-
-.p-acc-card-n-credits {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.p-acc-bar {
-  display: block;
-  height: 7px;
-  border-radius: 999px;
-  background: #efeeea;
-  overflow: hidden;
-}
-
-.p-acc-bar > span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--d-lime);
-}
-
-.p-acc-bar.is-ink > span {
-  background: var(--d-ink);
-}
-
-.p-acc-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 18px;
-  padding: 16px 0;
-}
-
-@media (max-width: 700px) {
-  .p-acc-stats {
-    padding: 18px 12px;
-  }
-
-  .p-acc-stats b {
-    font-size: 24px;
-  }
-
-  .p-acc-cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .p-acc-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    row-gap: 10px;
-  }
-
-  .p-acc-row .p-btn {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-}
 
 .p-couple {
   flex: none;
@@ -1316,10 +1142,6 @@
   font-size: 12px;
   line-height: 1.4;
   color: var(--p-muted);
-}
-
-.p-claim-opt {
-  font-weight: 400;
 }
 
 .p-claim-actions.is-split {
@@ -3216,24 +3038,6 @@ button.p-dem-item {
   margin-left: auto;
 }
 
-.p-free {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--d-lime);
-  color: var(--d-ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.p-free.is-taken {
-  background: var(--d-orange-bg);
-  color: var(--d-orange-ink);
-}
-
 .p-dem-chips {
   display: flex;
   flex-wrap: wrap;
@@ -3281,16 +3085,6 @@ button.p-dem-item {
   white-space: pre-line;
 }
 
-.p-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 0;
-  border-top: 1px solid var(--d-line);
-  font-size: 14px;
-}
-
 .p-chip.is-free {
   background: #ffffff;
   color: var(--d-ink);
@@ -3301,71 +3095,6 @@ button.p-dem-item {
   height: 1px;
   background: var(--d-line);
   margin: 4px 0;
-}
-
-.p-dem-reply-label {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.p-dem-quote-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.p-dem-quote-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 32px;
-}
-
-.p-radios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.p-radio {
-  flex: 1 1 220px;
-  min-width: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1.5px solid #e4e2dc;
-  background: #ffffff;
-  cursor: pointer;
-}
-
-.p-radio.is-on {
-  border-color: var(--d-ink);
-}
-
-.p-radio input {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin: 1px 0 0;
-  accent-color: var(--d-ink);
-}
-
-.p-radio > span {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.p-radio-t {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.p-radio-s {
-  font-size: 12.5px;
-  color: var(--d-muted);
 }
 
 .p-quote {
