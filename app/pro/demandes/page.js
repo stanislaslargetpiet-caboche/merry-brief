@@ -16,6 +16,9 @@ import { pastel } from "@/lib/dash/theme";
 import { Face, ProSubnav, Switch } from "@/components/pro/ui";
 import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
 
+// Brouillons de réponse par demande : ils survivent au retour à la liste et au passage d'une demande à l'autre
+const replyDrafts = new Map();
+
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 // « 19 juin 2027 » → « 2027-06-19 » (dates de repli écrites par le couple)
@@ -126,7 +129,7 @@ function Detail({ r, c, onBack }) {
   const fallbacks = (r.dates || []).slice(1).map((t) => ({ t, iso: parseFr(t) }));
   const formulas = [...d.formulas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const names = r.names.replace(" & ", " et ");
-  const [text, setText] = useState(() => (r.answered ? "" : `Bonjour ${names}, merci pour votre message. `));
+  const [text, setText] = useState(() => replyDrafts.get(r.client_id) ?? (r.answered ? "" : `Bonjour ${names}, merci pour votre message. `));
   const cost = c.source === "merry" && !c.answered_at ? replyCost(d.vendor?.primary_category) : 0;
   const [addQuote, setAddQuote] = useState(false);
   const [mode, setMode] = useState(formulas.length ? "formules" : "pdf");
@@ -146,6 +149,10 @@ function Detail({ r, c, onBack }) {
   const season = dayIso ? seasonOf(dayIso, d.pro) : "high";
   const total = quoteTotal({ formula, options, guests: c.guests, season });
   const vibes = (r.vibes || []).filter((x) => x && !/sait pas/i.test(x));
+
+  useEffect(() => {
+    replyDrafts.set(r.client_id, text);
+  }, [r.client_id, text]);
 
   useEffect(() => {
     if (r.answered) pro.loadThread(c.id).then(setThread);
@@ -168,10 +175,16 @@ function Detail({ r, c, onBack }) {
       if (manualTotal) lines.push(`Total : ${euros(Number(manualTotal))}`);
       body = [body, lines.join("\n")].filter(Boolean).join("\n\n");
     }
+    // Sans le fichier, le message annoncerait un devis absent : rien ne part, aucun crédit n'est dépensé
+    let doc = null;
     if (addQuote && mode === "pdf" && file) {
-      const doc = await pro.addDocument(c.id, file);
+      doc = await pro.addDocument(c.id, file);
+      if (!doc) {
+        setBusy(false);
+        return;
+      }
       let link = "";
-      if (doc && pro.mode === "live" && supabase) {
+      if (pro.mode === "live" && supabase) {
         const { data } = await supabase.storage.from("pro-fichiers").createSignedUrl(doc.storage_path, 60 * 60 * 24 * 30);
         link = data?.signedUrl ? `\n${data.signedUrl}` : "";
       }
@@ -180,12 +193,22 @@ function Detail({ r, c, onBack }) {
     const ok = await pro.sendMessage(c.id, body);
     if (ok) {
       if (hold && dayIso) await pro.setDay(dayIso, { status: "option", client_id: c.id, expires_on: isoDate(addDays(today(), 14)) });
-      await pro.updateRow("pro_clients", "clients", c.id, { stage: c.stage === "nouvelle" ? "devis" : c.stage, next_action: "Relancer", next_action_on: isoDate(addDays(today(), 4)), answered_at: c.answered_at || new Date().toISOString() });
+      await pro.updateRow("pro_clients", "clients", c.id, { stage: c.stage === "nouvelle" ? "devis" : c.stage, next_action: "Relancer", next_action_on: isoDate(addDays(today(), 4)) });
       pro.setToast({ kind: "ok", text: `Réponse envoyée à ${r.names}.` });
       setText("");
       setFile(null);
+      setAddQuote(false);
+      setHold(false);
+      setOptionIds([]);
+      setManualLabel("");
+      setManualDetail("");
+      setManualTotal("");
       // Le fil est relu après l'envoi (démo comme réel) : l'ajouter aussi à la main l'affichait deux fois
       pro.loadThread(c.id).then(setThread);
+    } else if (doc) {
+      // Réponse refusée : le fichier repartira au prochain essai, sans doublon sur la fiche du client
+      await pro.deleteRow("pro_documents", "documents", doc.id);
+      if (pro.mode === "live" && supabase) await supabase.storage.from("pro-fichiers").remove([doc.storage_path]);
     }
     setBusy(false);
   }

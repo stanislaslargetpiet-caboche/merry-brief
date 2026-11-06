@@ -66,7 +66,7 @@ create policy "prestataire: son équipe" on public.pro_members for select to aut
 revoke insert, update, delete on public.pro_vendors from authenticated, anon;
 grant select on public.pro_vendors to authenticated;
 grant update (high_from, high_to, low_from, low_to) on public.pro_vendors to authenticated;
-revoke insert, update, delete on public.pro_members from authenticated, anon;
+-- Droits d'écriture de pro_members : voir pro-securite.sql
 grant select on public.pro_members to authenticated;
 
 -- La fiche et le compte du prestataire connecté (une ligne par fiche gérée)

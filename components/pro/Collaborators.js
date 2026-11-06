@@ -20,6 +20,8 @@ function inviteLink(token) {
 export default function Collaborators() {
   const pro = usePro();
   const { members, user } = pro.data;
+  // Seul un gérant retire un compte déjà rejoint (règle en base, supabase/pro-securite.sql)
+  const isGerant = members.some((m) => m.user_id === user?.id && m.role === "gerant");
   const vendorName = pro.data.vendor?.name || "";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -181,7 +183,7 @@ export default function Collaborators() {
                 <button type="button" className="p-btn p-btn-ghost is-135" onClick={() => (editing === m.id ? setEditing(null) : startEdit(m))} aria-expanded={editing === m.id}>
                   Modifier
                 </button>
-                {!m.user_id || m.user_id !== user?.id ? (
+                {!m.user_id || (isGerant && m.user_id !== user?.id) ? (
                   <span className="d-anchor">
                     <button type="button" className="d-icon-btn is-flat" aria-label={`Options pour ${memberName(m) || m.email}`} aria-haspopup="menu" aria-expanded={menu === m.id} onClick={() => setMenu(menu === m.id ? null : m.id)}>
                       <Icon name="dots" size={16} sw={2.4} />
@@ -212,9 +214,11 @@ export default function Collaborators() {
                           </button>
                         </>
                       ) : null}
-                      <button type="button" className="d-pop-item is-danger" onClick={() => remove(m)}>
-                        {m.user_id ? "Retirer des collaborateurs" : "Retirer l’invitation"}
-                      </button>
+                      {!m.user_id || isGerant ? (
+                        <button type="button" className="d-pop-item is-danger" onClick={() => remove(m)}>
+                          {m.user_id ? "Retirer des collaborateurs" : "Retirer l’invitation"}
+                        </button>
+                      ) : null}
                     </Popover>
                   </span>
                 ) : null}
