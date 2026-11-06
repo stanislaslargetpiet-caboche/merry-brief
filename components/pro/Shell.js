@@ -5,7 +5,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
@@ -119,7 +119,6 @@ function Frame({ children }) {
   const [menu, setMenu] = useState(false);
   const credits = pro.data.pro?.credits ?? 0;
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
-  const navRef = useRef(null);
   const accent = useAccent();
   const unread = useUnreadRequests();
 
@@ -133,10 +132,6 @@ function Frame({ children }) {
     return () => clearTimeout(t);
   }, [pro.toast, pro]);
 
-  // Téléphone : l'onglet de la page reste visible dans la barre qui défile
-  useEffect(() => {
-    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
-  }, [pathname]);
 
   return (
     <div className="d-root p-root" data-accent={accent}>
@@ -161,23 +156,25 @@ function Frame({ children }) {
           </span>
         </span>
       </header>
-      <nav className="p-tabs" aria-label="Navigation de l'espace prestataire" ref={navRef}>
+      <nav className="p-tabs" aria-label="Navigation de l'espace prestataire">
         {PRO_NAV.map((n) => {
           const on = (n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")));
           return (
             <Link key={n.href} href={n.href} className={`p-tab${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
-              {n.label}
+              {on ? <span className="p-tab-pill">{n.label}</span> : n.label}
             </Link>
           );
         })}
       </nav>
 
       <nav className="p-nav" aria-label="Navigation de l'espace prestataire">
-        <Link href="/pro" className="p-brand">
-          <span className="p-brand-logo">Merry</span>
-          <span className="p-brand-sub">Espace prestataire</span>
-          {pro.data.vendor?.name ? <span className="p-brand-vendor">{pro.data.vendor.name}</span> : null}
-        </Link>
+        <div className="p-brand-block">
+          <Link href="/pro" className="p-brand">
+            <span className="p-brand-logo">Merry</span>
+            <span className="p-brand-sub">Espace prestataire</span>
+          </Link>
+          <VendorPill />
+        </div>
         <div className="p-nav-main">
           {PRO_NAV.map((n) => {
             const on = (n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")));
@@ -210,7 +207,6 @@ function Frame({ children }) {
             </a>
           </div>
           <CollabTeam />
-          <VendorSwitch />
           <button type="button" className="p-outline-pill" onClick={() => setFeature(true)}>
             Proposer une fonctionnalité
           </button>
@@ -300,32 +296,51 @@ function CollabTeam() {
   );
 }
 
-// Plusieurs fiches sur le même compte : un menu pour passer de l'une à l'autre
-function VendorSwitch({ item }) {
+// Plusieurs fiches sur le même compte (menu du téléphone) : passer de l'une à l'autre
+function VendorSwitch() {
   const pro = usePro();
   const list = pro.data.vendors || [];
   if (list.length < 2) return null;
   const current = pro.data.vendor?.id;
-  if (item) {
-    return list
-      .filter((v) => v.id !== current)
-      .map((v) => (
-        <button key={v.id} type="button" className="d-pop-item" onClick={() => pro.switchVendor(v.id)}>
-          Passer à {v.name}
-        </button>
-      ));
-  }
+  return list
+    .filter((v) => v.id !== current)
+    .map((v) => (
+      <button key={v.id} type="button" className="d-pop-item" onClick={() => pro.switchVendor(v.id)}>
+        Passer à {v.name}
+      </button>
+    ));
+}
+
+// Nom de la fiche affichée, en pastille blanche ; avec plusieurs fiches, la pastille ouvre le choix de la fiche
+function VendorPill() {
+  const pro = usePro();
+  const [open, setOpen] = useState(false);
+  const list = pro.data.vendors || [];
+  const current = pro.data.vendor;
+  if (!current?.name) return null;
+  if (list.length < 2) return <span className="p-brand-vendor">{current.name}</span>;
   return (
-    <label className="p-vendor-switch">
-      <span className="p-sr">Fiche affichée</span>
-      <select className="p-input" value={current} onChange={(e) => pro.switchVendor(e.target.value)}>
+    <span className="d-anchor p-brand-switch">
+      <button type="button" className="p-brand-vendor is-menu" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label={`Fiche affichée : ${current.name}. Changer de fiche`}>
+        <span>{current.name}</span>
+        <Icon name="chevDown" size={14} sw={2.2} />
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)}>
         {list.map((v) => (
-          <option key={v.id} value={v.id}>
+          <button
+            key={v.id}
+            type="button"
+            className={`d-pop-item${v.id === current.id ? " is-on" : ""}`}
+            onClick={() => {
+              setOpen(false);
+              if (v.id !== current.id) pro.switchVendor(v.id);
+            }}
+          >
             {v.name}
-          </option>
+          </button>
         ))}
-      </select>
-    </label>
+      </Popover>
+    </span>
   );
 }
 
@@ -333,7 +348,7 @@ function AccountMenu({ close }) {
   const pro = usePro();
   return (
     <>
-      <VendorSwitch item />
+      <VendorSwitch />
       <a className="d-pop-item" href="/pro?revendiquer=1">
         Ajouter une fiche
       </a>
