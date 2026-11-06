@@ -139,10 +139,9 @@ function MaFiche() {
 
       <section className="p-sec" id="acces">
         <h2 className="p-sec-title">Gare et aéroport</h2>
-        <p className="p-hint">Activez ce qui est à proximité, puis ajustez le trajet : il est estimé depuis l’adresse, à corriger à la main.</p>
         <div className="p-toggles">
-          <TransportRow id="gare" label="Gare à proximité" nameKey="station_name" minutesKey="station_minutes" pick={(a) => a?.station} />
-          <TransportRow id="aero" label="Aéroport à proximité" nameKey="airport_name" minutesKey="airport_minutes" pick={(a) => a?.airport} />
+          <TransportRow id="gare" kind="station" label="Gare à proximité" noun={{ indef: "une gare", of: "de la gare", def: "cette gare" }} nameKey="station_name" minutesKey="station_minutes" pick={(a) => a?.station} />
+          <TransportRow id="aero" kind="airport" label="Aéroport à proximité" noun={{ indef: "un aéroport", of: "de l’aéroport", def: "cet aéroport" }} nameKey="airport_name" minutesKey="airport_minutes" pick={(a) => a?.airport} />
         </div>
       </section>
 
@@ -530,27 +529,28 @@ function NumberField({ id, label, value, onSave, required }) {
 }
 
 // Gare ou aéroport à proximité : « oui » enregistre un trajet de départ (estimé depuis l'adresse, 15 min à
-// défaut), « non » vide le nom et le trajet (colonnes *_name et *_minutes de vendors, lues par les couples).
+// défaut), « non » vide tout. Le premier va dans les colonnes *_name et *_minutes de vendors (lues par les
+// couples) ; « Ajouter » en met d'autres dans details.extra_access ({ kind, name, minutes }).
 // La jauge ne part qu'au relâchement pour ne pas enregistrer à chaque cran.
 const MAX_MINUTES = 120;
-function TransportRow({ id, label, nameKey, minutesKey, pick }) {
+function TransportRow({ id, kind, label, noun, nameKey, minutesKey, pick }) {
   const pro = usePro();
   const v = pro.data.vendor;
   const minutes = v[minutesKey];
   const on = minutes !== null && minutes !== undefined;
-  const [draft, setDraft] = useState(null);
-  const shown = draft ?? minutes ?? 0;
+  const all = v.details?.extra_access || [];
+  const extras = all.filter((x) => x.kind === kind);
+  const setExtras = (list) => pro.saveFiche({ extra_access: [...all.filter((x) => x.kind !== kind), ...list] });
 
   const toggle = async (next) => {
-    if (!next) return pro.saveFiche({ [nameKey]: null, [minutesKey]: null });
+    if (!next) {
+      await setExtras([]);
+      return pro.saveFiche({ [nameKey]: null, [minutesKey]: null });
+    }
     const est = pick(await pro.estimateAccess());
     return pro.saveFiche({ [nameKey]: est?.name || null, [minutesKey]: Math.min(est?.minutes ?? 15, MAX_MINUTES) });
   };
-  const commit = (e) => {
-    const n = Number(e.currentTarget.value);
-    setDraft(null);
-    if (n !== minutes) pro.saveFiche({ [minutesKey]: n });
-  };
+  const patchExtra = (i, patch) => setExtras(extras.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (
     <div className="p-toggle-block">
@@ -559,28 +559,66 @@ function TransportRow({ id, label, nameKey, minutesKey, pick }) {
         <Switch on={on} labelledBy={`${id}-l`} onChange={toggle} />
       </div>
       {on ? (
-        <div className="p-range">
-          <TextField id={`${id}-n`} label={nameKey === "station_name" ? "Nom de la gare" : "Nom de l’aéroport"} value={v[nameKey]} onSave={(t) => pro.saveFiche({ [nameKey]: t || null })} />
-          <div className="p-field">
-            <label htmlFor={`${id}-r`}>Trajet estimé</label>
-            <div className="p-range-row">
-              <input
-                id={`${id}-r`}
-                type="range"
-                min={0}
-                max={MAX_MINUTES}
-                step={5}
-                value={shown}
-                aria-valuetext={`${shown} min`}
-                onChange={(e) => setDraft(Number(e.target.value))}
-                onPointerUp={commit}
-                onKeyUp={commit}
-                onBlur={commit}
-              />
-              <output htmlFor={`${id}-r`}>{shown} min</output>
-            </div>
+        <>
+          <AccessItem id={id} noun={noun} name={v[nameKey]} minutes={minutes} onName={(t) => pro.saveFiche({ [nameKey]: t || null })} onMinutes={(n) => pro.saveFiche({ [minutesKey]: n })} />
+          {extras.map((x, i) => (
+            <AccessItem
+              key={i}
+              id={`${id}-${i + 2}`}
+              noun={noun}
+              name={x.name}
+              minutes={x.minutes}
+              onName={(t) => patchExtra(i, { name: t || "" })}
+              onMinutes={(n) => patchExtra(i, { minutes: n })}
+              onRemove={() => setExtras(extras.filter((_, j) => j !== i))}
+            />
+          ))}
+          <div className="p-range-add">
+            <button type="button" className="p-btn p-btn-ghost" onClick={() => setExtras([...extras, { kind, name: "", minutes: 15 }])}>
+              + Ajouter {noun.indef}
+            </button>
           </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function AccessItem({ id, noun, name, minutes, onName, onMinutes, onRemove }) {
+  const [draft, setDraft] = useState(null);
+  const shown = draft ?? minutes ?? 0;
+  const commit = (e) => {
+    const n = Number(e.currentTarget.value);
+    setDraft(null);
+    if (n !== minutes) onMinutes(n);
+  };
+  return (
+    <div className="p-range">
+      <TextField id={`${id}-n`} label={`Nom ${noun.of}`} value={name} onSave={onName} />
+      <div className="p-field">
+        <label htmlFor={`${id}-r`}>Trajet estimé</label>
+        <div className="p-range-row">
+          <input
+            id={`${id}-r`}
+            type="range"
+            min={0}
+            max={MAX_MINUTES}
+            step={5}
+            value={shown}
+            aria-valuetext={`${shown} min`}
+            style={{ "--fill": `${(shown / MAX_MINUTES) * 100}%` }}
+            onChange={(e) => setDraft(Number(e.target.value))}
+            onPointerUp={commit}
+            onKeyUp={commit}
+            onBlur={commit}
+          />
+          <output htmlFor={`${id}-r`}>{shown} min</output>
         </div>
+      </div>
+      {onRemove ? (
+        <button type="button" className="p-btn p-btn-ghost p-range-remove" onClick={onRemove}>
+          Retirer {noun.def}
+        </button>
       ) : null}
     </div>
   );
