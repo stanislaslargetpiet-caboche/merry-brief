@@ -1,14 +1,16 @@
 // Espace prestataire : revendiquer sa fiche du catalogue (maquette V0, « Vérifions que c'est bien vous »).
-// request : demande d'accès (depuis le 5 nov. 2026, écrans V0g2 à V0h3), sans code : le prestataire confirme ou
-//    corrige les coordonnées de la fiche, le compte est créé, la fiche lui est rattachée « en_attente » sans
-//    crédit, et une alerte part à l'équipe pour vérifier à la main dans l'heure (lib/server/proDemande.js,
+// request_send puis request : demande d'accès (depuis le 5 nov. 2026, écrans V0g2 à V0h3). Le prestataire confirme
+//    ou corrige les coordonnées de la fiche, un code prouve son adresse mail (il ne prouve pas que la fiche est à
+//    lui), le compte est créé, la fiche lui est rattachée « en_attente » sans crédit, et une alerte part à
+//    l'équipe pour vérifier à la main dans l'heure (lib/server/proDemande.js,
 //    supabase/pro-demande-acces.sql ; la décision se prend dans /pilotage > Demandes).
 // Rien d'autre ne rattache une fiche existante : l'ancien code envoyé à l'adresse de la fiche a été retiré le
 // 6 nov. 2026, car il contournait la vérification à la main.
 // Créer sa fiche (maquette V0c), pour un établissement absent du catalogue :
 // 1. create_send   : le code part à l'adresse que le prestataire a saisie
 // 2. create_verify : le code ouvre la session, l'adresse est géocodée (Géoplateforme de l'IGN), la fiche est
-//    créée dans catalog.vendors, active tout de suite, et rattachée au compte. Si une fiche active que
+//    créée dans catalog.vendors, invisible (candidate) jusqu'à la validation à la main, et rattachée au compte
+//    « en_attente » comme une demande d'accès (décision de Stan le 6 nov. 2026). Si une fiche active que
 //    personne ne gère encore porte déjà cette adresse mail, c'est elle qui est rattachée : pas de doublon.
 // create_verify : si l'écran envoie le jeton d'un prestataire déjà connecté, la fiche rejoint ce
 // compte et aucune nouvelle session n'est renvoyée.
@@ -27,7 +29,7 @@ import { allowKey } from "@/lib/server/rate";
 import { sendVendorWelcome } from "@/lib/server/vendorWelcome";
 import { sendDemandeAlert } from "@/lib/server/demandeMail";
 import { sendDemandeRecue } from "@/lib/server/demandeVendorMails";
-import { cleanEmail, validateDemande, welcomeCredits } from "@/lib/server/proDemande";
+import { cleanEmail, cleanPhone, validateDemande, validPhone, welcomeCredits } from "@/lib/server/proDemande";
 
 export const runtime = "nodejs";
 
@@ -61,6 +63,8 @@ function newVendor(raw) {
   };
   if (f.name.length < 2 || !CATEGORIES.includes(f.category) || !f.address || !/^\d{5}$/.test(f.postal_code) || !f.city) return null;
   if (f.siret && !/^\d{14}$/.test(f.siret)) return null;
+  // La validation à la main passe par ce numéro
+  if (!validPhone(f.phone)) return null;
   return f;
 }
 
@@ -181,7 +185,7 @@ export async function POST(req) {
     return Response.json({ ok: true });
   }
 
-  if (body.action === "request") return requestAccess(body, admin, url, anon, req);
+  if (body.action === "request_send" || body.action === "request") return requestAccess(body, admin, url, anon, req);
   if (body.action === "create_send" || body.action === "create_verify") return create(body, admin, url, anon, req);
   if (body.action === "login_send" || body.action === "login_verify") return login(body, admin, url, anon, req);
 
@@ -224,8 +228,26 @@ export async function POST(req) {
   return Response.json({ error: "bad_request" }, { status: 400 });
 }
 
-// Demande d'accès à une fiche (écrans V0g2, V0g, V0h3) : aucun code. Le compte est créé (ou le compte connecté
-// réutilisé), la fiche lui est rattachée « en_attente » sans crédit, la demande est gardée avec les coordonnées
+// Garde la demande, alerte l'équipe et accuse réception au demandeur. Les mails ne bloquent jamais la demande.
+async function recordDemande(admin, vendor, claim) {
+  const { error: ci } = await admin.from("pro_claims").insert(claim);
+  if (ci) console.warn("[merry pro] demande d'accès non enregistrée", ci.message);
+  try {
+    const { data: cat } = await admin.schema("catalog").from("categories").select("label").eq("slug", vendor.primary_category).maybeSingle();
+    await sendDemandeAlert({ vendor: { name: vendor.name, city: vendor.city, category: cat?.label || vendor.primary_category }, claim });
+  } catch (err) {
+    console.warn("[merry pro] alerte demande d'accès", err?.message || err);
+  }
+  try {
+    await sendDemandeRecue({ to: claim.account_email, vendorName: vendor.name });
+  } catch (err) {
+    console.warn("[merry pro] mail demande reçue", err?.message || err);
+  }
+}
+
+// Demande d'accès à une fiche (écrans V0g2, V0g, V0h3). Sans compte connecté, request_send envoie un code à
+// l'adresse du compte, et request le vérifie avant toute écriture : personne ne prend l'adresse d'un autre. Le
+// compte est créé (ou le compte connecté réutilisé), la fiche lui est rattachée « en_attente » sans crédit, la demande est gardée avec les coordonnées
 // d'origine de la fiche, et l'équipe reçoit une alerte pour vérifier à la main dans l'heure. Une fiche déjà
 // gérée (même en attente) n'est jamais reprise : un refus la libère.
 async function requestAccess(body, admin, url, anon, req) {
@@ -244,23 +266,32 @@ async function requestAccess(body, admin, url, anon, req) {
   const { email: e, phone: p, account } = checked.value;
   const accountEmail = me?.email || account.email;
 
-  const limited = await throttled(admin, req, [`claim-vendor:${vendorId}`, `claim-email:${accountEmail}`]);
-  if (limited) return limited;
+  if (body.action === "request_send" || me) {
+    const limited = await throttled(admin, req, [`claim-vendor:${vendorId}`, `claim-email:${accountEmail}`]);
+    if (limited) return limited;
+  }
+  const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (body.action === "request_send") {
+    if (me) return Response.json({ error: "bad_request" }, { status: 400 });
+    const { error } = await auth.auth.signInWithOtp({ email: account.email, options: { shouldCreateUser: true } });
+    if (error) {
+      const wait = /rate|seconds|too many/i.test(error.message);
+      return Response.json({ error: wait ? "wait" : "send_failed" }, { status: wait ? 429 : 502 });
+    }
+    return Response.json({ ok: true });
+  }
 
   let user = me;
   let session = null;
   if (!me) {
-    const { data: created, error: ce } = await admin.auth.admin.createUser({
-      email: account.email,
-      password: account.password,
-      email_confirm: true,
-      user_metadata: { merry_password: true, merry_cgu_at: new Date().toISOString() },
-    });
-    if (ce || !created?.user) return Response.json({ error: /already|registered|exists/i.test(ce?.message || "") ? "account_exists" : "account_failed" }, { status: ce && /already|registered|exists/i.test(ce.message) ? 409 : 502 });
-    user = created.user;
-    const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: s } = await auth.auth.signInWithPassword({ email: account.email, password: account.password });
-    session = s?.session || null;
+    const code = String(body.code || "").replace(/\D/g, "");
+    if (code.length < 6 || code.length > 8) return Response.json({ error: "bad_code" }, { status: 400 });
+    const { data, error } = await auth.auth.verifyOtp({ email: account.email, token: code, type: "email" });
+    if (error || !data?.session || !data.user) return Response.json({ error: "bad_code" }, { status: 401 });
+    user = data.user;
+    session = data.session;
+    // Un compte existant garde son mot de passe : le code prouve l'adresse, il ne le remplace pas
+    if (!user.user_metadata?.merry_password) await setPassword(admin, user, account.password, true);
   }
 
   const failed = await attach(admin, vendorId, user, accountEmail, { pending: true });
@@ -278,21 +309,7 @@ async function requestAccess(body, admin, url, anon, req) {
     phone_choice: p.choice,
     phone_given: p.given,
   };
-  const { error: ci } = await admin.from("pro_claims").insert(claim);
-  if (ci) console.warn("[merry pro] demande d'accès non enregistrée", ci.message);
-  // L'alerte ne bloque jamais la demande
-  try {
-    const { data: cat } = await admin.schema("catalog").from("categories").select("label").eq("slug", vendor.primary_category).maybeSingle();
-    await sendDemandeAlert({ vendor: { name: vendor.name, city: vendor.city, category: cat?.label || vendor.primary_category }, claim });
-  } catch (err) {
-    console.warn("[merry pro] alerte demande d'accès", err?.message || err);
-  }
-  // Accusé de réception au demandeur
-  try {
-    await sendDemandeRecue({ to: accountEmail, vendorName: vendor.name });
-  } catch (err) {
-    console.warn("[merry pro] mail demande reçue", err?.message || err);
-  }
+  await recordDemande(admin, vendor, claim);
   return linked(null, me ? null : session, vendorId);
 }
 
@@ -363,7 +380,8 @@ async function create(body, admin, url, anon, req) {
         phone: fields.phone || null,
         siret: fields.siret || null,
         siren: fields.siret ? fields.siret.slice(0, 9) : null,
-        status: "active",
+        // Invisible pour les couples tant que la demande n'est pas validée (decideDemande la rend active)
+        status: "candidate",
       })
       .select("id")
       .single();
@@ -371,9 +389,18 @@ async function create(body, admin, url, anon, req) {
     vendorId = row.id;
   }
   const me = await currentUser(admin, req);
-  const failed = await attach(admin, vendorId, me || data.user, me?.email || email);
-  if (!failed && !me && body.password !== undefined) await setPassword(admin, data.user, body.password, true);
-  return linked(failed, me ? null : data.session, vendorId);
+  const user = me || data.user;
+  const accountEmail = me?.email || email;
+  const failed = await attach(admin, vendorId, user, accountEmail, { pending: true });
+  if (failed) return linked(failed, null, vendorId);
+  if (!me && body.password !== undefined) await setPassword(admin, data.user, body.password, true);
+  // Pas de coordonnées d'origine à contacter : l'équipe vérifie celles qui viennent d'être saisies
+  await recordDemande(
+    admin,
+    { name: fields.name, city: fields.city, primary_category: fields.category },
+    { vendor_id: vendorId, user_id: user.id, account_email: accountEmail, account_phone: cleanPhone(fields.phone), fiche_email: null, fiche_phone: null, email_choice: null, email_given: email, phone_choice: null, phone_given: cleanPhone(fields.phone) },
+  );
+  return linked(null, me ? null : data.session, vendorId);
 }
 
 // Se connecter avec un code : « Oublié ? », ou un compte qui n'a pas encore de mot de passe
