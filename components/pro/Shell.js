@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
-import { Popover, PageLoader } from "@/components/dash/ui";
+import { Popover } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
 import { countUnreadRequests, PRO_SEEN_EVENT, unreadReplies } from "@/lib/pro/format";
@@ -16,6 +16,7 @@ import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
 import Pending from "./Pending";
 import FeatureDialog from "./FeatureDialog";
+import ProSkeleton from "./Skeleton";
 
 // Navigation validée le 6 nov. 2026 (maquettes V1 ter et V5 ter) : Crédits et Réglages restent en bas de la barre.
 // Projets de mariage (/pro/projets) est masqué depuis le 3 nov. 2026 (décision de Stan) : la liste reste vide
@@ -67,11 +68,7 @@ export default function ProShell({ children }) {
 function Gate({ children }) {
   const pro = usePro();
   if (pro.status === "loading") {
-    return (
-      <div className="d-root p-root p-bare">
-        <PageLoader />
-      </div>
-    );
+    return <ProSkeleton nav={PRO_NAV} />;
   }
   // Un lien d'invitation s'ouvre sur l'écran pour rejoindre l'équipe, même pour un compte qui a déjà sa fiche
   const invited = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("invitation");
