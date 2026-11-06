@@ -611,6 +611,12 @@ function Board({ data, jours, heure, reload }) {
               <Tile label="Envoyés" value={rs.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : "tous les envois de la période"} />
               <Tile label="Délivrés" value={rs.par_etat.delivered || 0} sub={fmtPct(rs.par_etat.delivered || 0, rs.envoyes)} />
               <Tile label="Rebonds et plaintes" value={(rs.par_etat.bounced || 0) + (rs.par_etat.complained || 0)} inverse prev={null} />
+              {rs.suivi?.actif ? (
+                <>
+                  <Tile label="Ouverts" value={rs.suivi.ouverts} sub={rs.suivi.taux_ouverture == null ? null : `${rs.suivi.taux_ouverture} % des délivrés`} hint="Webhook Resend ; il faut le suivi des ouvertures activé sur le domaine" />
+                  <Tile label="Cliqués" value={rs.suivi.cliques} sub={rs.suivi.taux_clic == null ? null : `${rs.suivi.taux_clic} % des délivrés`} />
+                </>
+              ) : null}
               <Tile label="Relances planifiées" value={cur("mails_planifies")} prev={prev("mails_planifies")} hint="Tâche Vercel de 8 h UTC (mail_sent)" />
               <Tile label="Désinscriptions" value={t.desinscriptions_mail} inverse />
             </div>
