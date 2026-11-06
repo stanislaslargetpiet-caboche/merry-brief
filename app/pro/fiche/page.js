@@ -571,6 +571,7 @@ function TransportRow({ id, label, nameKey, minutesKey, pick }) {
                 step={5}
                 value={shown}
                 aria-valuetext={`${shown} min`}
+                style={{ "--fill": `${(shown / MAX_MINUTES) * 100}%` }}
                 onChange={(e) => setDraft(Number(e.target.value))}
                 onPointerUp={commit}
                 onKeyUp={commit}

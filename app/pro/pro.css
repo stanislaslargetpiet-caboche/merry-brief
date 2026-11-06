@@ -2379,17 +2379,63 @@ select.p-input {
   gap: 14px;
 }
 
+/* Même langage que le switch : piste d'un trait, partie choisie en encre, poignée blanche ombrée */
 .p-range-row input[type="range"] {
   flex: 1;
   min-width: 0;
   height: 32px;
-  accent-color: var(--d-ink);
+  margin: 0;
+  background: transparent;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.p-range-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--d-ink) var(--fill, 0%), var(--d-border) var(--fill, 0%));
+}
+
+.p-range-row input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--d-ink) var(--fill, 0%), var(--d-border) var(--fill, 0%));
+}
+
+.p-range-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(28, 28, 26, 0.35);
+}
+
+.p-range-row input[type="range"]::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(28, 28, 26, 0.35);
+}
+
+.p-range-row input[type="range"]:focus-visible {
+  outline: 2px solid var(--d-ink);
+  outline-offset: 4px;
+  border-radius: 999px;
 }
 
 .p-range-row output {
-  min-width: 64px;
-  text-align: right;
+  flex: none;
+  min-width: 72px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--d-panel);
+  text-align: center;
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
