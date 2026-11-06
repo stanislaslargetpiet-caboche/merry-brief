@@ -5,8 +5,8 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
-import { fmtDay } from "@/lib/server/pilotage/shape";
+import { Card, Fold, Folds, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 import { PISTES, STATUTS } from "@/lib/server/pilotage/reseau";
 
 async function send(method, body, url = "/api/interne/pilotage/reseau") {
@@ -296,13 +296,16 @@ export default function Reseau({ reseau, demo, onChange }) {
           <Tile label="Rendez-vous" value={reseau.semaine.rdv} />
           <Tile label="Contacts suivis" value={reseau.total} />
         </div>
-        <div className="pl-grid pl-reseau-pistes">
+        <Card title="Contacts par étape">
+          <Ranked rows={reseau.pistes.map((p) => ({ label: p.label, n: p.contacts.length }))} max={20} empty="Aucun contact" />
+        </Card>
+        <Folds>
           {reseau.pistes.map((p) => (
-            <Card key={p.id} full fold="closed" title={`${p.label} (${p.contacts.length})`}>
+            <Fold key={p.id} title={p.label} icon="invites" value={fmtInt(p.contacts.length)}>
               <Table cols={cols} rows={p.contacts} max={200} />
-            </Card>
+            </Fold>
           ))}
-          <Card full fold="closed" title="Derniers échanges">
+          <Fold title="Derniers échanges" icon="messagerie">
             <Table
               cols={[
                 { key: "jour", label: "Jour", render: (e) => fmtDay(e.jour) },
@@ -313,13 +316,13 @@ export default function Reseau({ reseau, demo, onChange }) {
               rows={reseau.derniers}
               empty="Aucun échange"
             />
-          </Card>
+          </Fold>
           {demo ? null : (
-            <Card full fold="closed" title="Ajouter un contact">
+            <Fold title="Ajouter un contact" icon="ajouter">
               <Ajouter onChange={onChange} />
-            </Card>
+            </Fold>
           )}
-        </div>
+        </Folds>
       </Section>
     </>
   );

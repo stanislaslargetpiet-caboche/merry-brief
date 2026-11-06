@@ -11,10 +11,10 @@ import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
 import Nouveautes from "@/components/pilotage/Nouveautes";
 import Reseau from "@/components/pilotage/Reseau";
-import { PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
+import { PilotPeriod, PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
-import { Card, DayBars, Funnel, PageContext, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
 import { pathFromHash, resolvePage } from "@/lib/pilotage/nav";
@@ -126,31 +126,21 @@ export default function PilotagePage() {
 
   return (
     <div className="pl-root pl-shell">
-      <PilotSide group={group} search={search} badges={badges} />
+      <PilotSide group={group} search={search} badges={badges}>
+        <PilotPeriod
+          ranges={RANGES}
+          value={periode}
+          onChange={setPeriode}
+          onRefresh={() => load(jours, true, heure)}
+          busy={busy}
+          canRefresh={auth.status !== "demo"}
+          stamp={data ? (data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Lu le ${fmtDateTime(data.genere)}`) : null}
+        />
+      </PilotSide>
       <main className="pl-main">
         <div className="pl-wrap">
           <header className="pl-head">
-            <div>
-              <h1>{group.label}</h1>
-              {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
-            </div>
-            <div className="pl-actions">
-              {page.periode === false ? null : (
-                <div className="pl-ranges" role="group" aria-label="Période">
-                  {RANGES.map((r) => (
-                    <button key={r.id} type="button" aria-pressed={periode === r.id} className={`pl-seg${periode === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => setPeriode(r.id)}>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button type="button" className={`pl-refresh${busy ? " is-busy" : ""}`} onClick={() => load(jours, true, heure)} disabled={busy || auth.status === "demo"} aria-label="Actualiser" title="Relire toutes les sources maintenant">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20 11a8 8 0 1 0-2.3 5.7" />
-                  <path d="M20 4v7h-7" />
-                </svg>
-              </button>
-            </div>
+            <h1>{group.label}</h1>
           </header>
           <PilotSubnav group={group} page={page} search={search} badges={badges} />
           {heure && data && page.periode !== false && page.id !== "comptes" ? <p className="pl-note">Sur 1 h, seule la page Comptes est lue à la minute près ; ici, les chiffres restent sur 24 h.</p> : null}
@@ -263,12 +253,25 @@ function Board({ data, jours, reload }) {
     return imp ? Math.round((seen.reduce((a, r) => a + r.position * r.impressions, 0) / imp) * 10) / 10 : null;
   };
   const sitemapGsc = gsc?.sitemaps?.[0] || null;
+  const clickRate = gsc ? pctOf(sumBy(gscSplit.current, "clics"), sumBy(gscSplit.current, "impressions")) : null;
+  const mailSeries = alignSeries(joursList, rs?.par_jour, ["envois"]);
 
   const appS = ph?.app?.sessions;
   const appP = ph?.app?.sessions_prec;
   const siteB = ph?.site?.rebond;
   const siteBP = ph?.site?.rebond_prec;
   const catalogue = sb?.catalogue || [];
+
+  // Cinq chiffres au plus : Search Console d'abord, puis ce qui reste lisible sans elle
+  const seoTiles = [
+    gsc && <Tile key="clics" label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" />,
+    gsc && <Tile key="impressions" label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" />,
+    gsc && <Tile key="position" label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" />,
+    gsc && <Tile key="indexees" label="Pages indexées" value={sitemapGsc ? sitemapGsc.indexes : null} sub={sitemapGsc ? `sur ${fmtInt(sitemapGsc.soumis)} soumises` : "sitemap pas encore soumis"} />,
+    seo && <Tile key="defauts" label="Pages en défaut" value={seo.pages_en_defaut} sub={`sur ${fmtInt(seo.pages.length)} relues aujourd'hui`} inverse />,
+    ph && <Tile key="moteurs" label="Sessions venues d'un moteur" value={sumBy(organicSplit.current, "sessions")} prev={sumBy(organicSplit.previous, "sessions")} hint="PostHog : première page de la session ouverte depuis Google, Bing, Qwant… (après accord cookies)" />,
+    seo && <Tile key="sitemap" label="Pages dans le sitemap" value={seo.sitemap.urls} sub={seo.sitemap.statut === 200 ? "sitemap.xml lisible" : `réponse ${seo.sitemap.statut}`} />,
+  ].filter(Boolean).slice(0, 5);
 
   return (
     <>
@@ -296,13 +299,13 @@ function Board({ data, jours, reload }) {
             </ul>
           </div>
         ) : null}
-        <p className="pl-note" style={{ marginTop: 24 }}>
+        <p className="pl-note">
           Liens directs : <a href="https://eu.posthog.com/project/321035">PostHog</a> · <a href="https://supabase.com/dashboard/project/vrmgrcvdqznswzuamezj">Supabase</a> ·{" "}
-          <a href="https://vercel.com/stan-f307/merry-brief">Vercel</a> · <a href="https://resend.com/emails">Resend</a>. Période courante en encre dans les graphes, précédente en retrait ; jours en heure de Paris.
+          <a href="https://vercel.com/stan-f307/merry-brief">Vercel</a> · <a href="https://resend.com/emails">Resend</a>. Jours en heure de Paris.
         </p>
       </Section>
 
-      <Utilisateurs data={data.utilisateurs} />
+      <Utilisateurs data={data.utilisateurs} series={sb?.series} jours={jours} />
 
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
 
@@ -322,30 +325,33 @@ function Board({ data, jours, reload }) {
               <Tile label="Taux de rebond" value={pctOf(siteB?.rebonds, siteB?.sessions)} prev={pctOf(siteBP?.rebonds, siteBP?.sessions)} format={(v) => `${v} %`} inverse hint="Sessions d'une seule page" />
               <Tile label="Durée moyenne" value={Math.round(siteB?.duree || 0)} prev={Math.round(siteBP?.duree || 0)} format={fmtDuration} />
             </div>
-            <div className="pl-grid">
-              <Card title="Visiteurs par jour" wide>
-                <DayBars series={site} keys={["visiteurs", "pages"]} labels={["Visiteurs", "Pages vues"]} days={jours} />
-              </Card>
-              <Card fold="open" title="D'où viennent les sessions">
+            <Card title="Visiteurs par jour">
+              <DayBars series={site} keys={["visiteurs"]} labels={["Visiteurs"]} days={jours} />
+            </Card>
+            <Folds>
+              <Fold open title="D'où viennent les sessions" icon="lieu" value={ph.site.sources.length ? `${fmtInt(ph.site.sources.length)} sources` : null}>
                 <Ranked rows={ph.site.sources} label="source" />
-              </Card>
-              <Card fold="closed" title="Pages les plus vues">
+              </Fold>
+              <Fold title="Pages vues par jour" icon="date">
+                <DayBars series={site} keys={["pages"]} labels={["Pages vues"]} days={jours} height={80} />
+              </Fold>
+              <Fold title="Pages les plus vues" icon="document">
                 <Ranked rows={ph.site.pages.map((p) => ({ label: p.chemin, n: p.vues, sub: `${fmtInt(p.visiteurs)} visiteurs` }))} />
-              </Card>
-              <Card fold="closed" title="Pages d'entrée">
+              </Fold>
+              <Fold title="Pages d'entrée" icon="rechercher">
                 <Ranked rows={ph.site.entrees.map((p) => ({ label: p.chemin, n: p.n }))} />
-              </Card>
-              <Card fold="closed" title="Appareils et pays">
+              </Fold>
+              <Fold title="Appareils et pays" icon="telephone">
                 <Ranked rows={ph.site.appareils} max={4} />
                 <div style={{ height: 10 }} />
                 <Ranked rows={ph.site.pays} max={5} />
-              </Card>
+              </Fold>
               {ph.site.utm.length ? (
-                <Card fold="closed" title="Campagnes (utm)">
+                <Fold title="Campagnes (utm)" icon="filtrer" value={fmtInt(ph.site.utm.length)}>
                   <Ranked rows={ph.site.utm.map((u) => ({ label: `${u.source}${u.campagne ? ` · ${u.campagne}` : ""}`, n: u.n }))} />
-                </Card>
+                </Fold>
               ) : null}
-            </div>
+            </Folds>
           </>
         ) : (
           <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la page Santé"}.</div>
@@ -353,38 +359,20 @@ function Board({ data, jours, reload }) {
       </Section>
 
       <Section id="referencement" right={demo ? null : <RefreshSeo />}>
-        <div className="pl-tiles">
+        <div className="pl-tiles">{seoTiles}</div>
+        {gsc ? (
+          <Card title="Clics par jour">
+            <DayBars series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} />
+          </Card>
+        ) : ph ? (
+          <Card title="Sessions venues d'un moteur, par jour">
+            <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} />
+          </Card>
+        ) : null}
+        <Folds>
           {gsc ? (
             <>
-              <Tile label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" />
-              <Tile label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" />
-              <Tile label="Taux de clic" value={pctOf(sumBy(gscSplit.current, "clics"), sumBy(gscSplit.current, "impressions"))} prev={pctOf(sumBy(gscSplit.previous, "clics"), sumBy(gscSplit.previous, "impressions"))} format={(v) => `${v} %`} />
-              <Tile label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" />
-              <Tile label="Pages indexées" value={sitemapGsc ? sitemapGsc.indexes : null} sub={sitemapGsc ? `sur ${fmtInt(sitemapGsc.soumis)} soumises dans le sitemap` : "sitemap pas encore soumis à Google"} />
-            </>
-          ) : null}
-          {ph ? <Tile label="Sessions venues d'un moteur" value={sumBy(organicSplit.current, "sessions")} prev={sumBy(organicSplit.previous, "sessions")} hint="PostHog : première page de la session ouverte depuis Google, Bing, Qwant… (après accord cookies)" /> : null}
-          {seo ? (
-            <>
-              <Tile label="Pages dans le sitemap" value={seo.sitemap.urls} sub={seo.sitemap.statut === 200 ? "sitemap.xml lisible" : `réponse ${seo.sitemap.statut}`} />
-              <Tile label="Pages en défaut" value={seo.pages_en_defaut} sub={`sur ${fmtInt(seo.pages.length)} relues aujourd'hui`} inverse />
-              <Tile label="Temps de réponse" value={seo.lenteur_ms} format={(v) => `${fmtInt(v)} ms`} sub="moyenne de l'échantillon, depuis le serveur" />
-            </>
-          ) : null}
-        </div>
-        <div className="pl-grid">
-          {gsc ? (
-            <>
-              <Card title="Clics par jour">
-                <DayBars series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} height={80} />
-              </Card>
-              <Card title="Impressions par jour">
-                <DayBars series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} height={80} />
-              </Card>
-              <Card fold="closed" title="Appareils (clics)">
-                <Ranked rows={gsc.appareils} max={4} empty="Pas encore de clic" />
-              </Card>
-              <Card fold="closed" title="Requêtes qui amènent du monde" wide>
+              <Fold open title="Requêtes qui amènent du monde" icon="rechercher" value={clickRate === null ? null : `${clickRate} % de clic`}>
                 <Table
                   cols={[
                     { key: "requete", label: "Requête" },
@@ -397,11 +385,33 @@ function Board({ data, jours, reload }) {
                   max={15}
                   empty="Google n'a encore remonté aucune requête pour cette période"
                 />
-              </Card>
-              <Card fold="closed" title="Pages qui ressortent">
+              </Fold>
+              <Fold title="Impressions par jour" icon="date">
+                <DayBars series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} height={80} />
+              </Fold>
+              <Fold title="Pages qui ressortent" icon="document">
                 <Ranked rows={gsc.pages.map((p) => ({ label: p.page, n: p.impressions, sub: `${fmtInt(p.clics)} clic(s)` }))} empty="Aucune page vue dans les résultats" />
-              </Card>
-              <Card fold="closed" title="Sitemaps vus par Google" wide>
+                <div style={{ height: 10 }} />
+                <Ranked rows={gsc.appareils} max={4} empty="Pas encore de clic" />
+              </Fold>
+            </>
+          ) : (
+            <Fold open title="Search Console" icon="rechercher" note="Trois gestes : valider withmerry.com dans Search Console (enregistrement TXT chez Squarespace), y ajouter le compte de service comme utilisateur, coller sa clé JSON sur Vercel en GOOGLE_SERVICE_ACCOUNT_JSON. Les clics, impressions, positions, requêtes et pages indexées apparaissent ici ensuite, avec deux à trois jours de décalage.">
+              <div className="pl-empty">{data.google?.raison || "Non lue"}.</div>
+            </Fold>
+          )}
+          {ph ? (
+            <Fold title="Arrivées depuis un moteur" icon="lieu" value={fmtInt(sumBy(organicSplit.current, "sessions"))}>
+              {gsc ? <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} height={80} /> : null}
+              <div style={{ height: 10 }} />
+              <Ranked rows={ph.seo.moteurs} max={6} empty="Aucune arrivée depuis un moteur" />
+              <div style={{ height: 10 }} />
+              <Ranked rows={ph.seo.entrees.map((p) => ({ label: p.chemin, n: p.n, sub: `${(Math.round(p.pages * 10) / 10).toLocaleString("fr-FR")} page(s) vue(s)` }))} empty="Aucune arrivée depuis un moteur sur la période" />
+            </Fold>
+          ) : null}
+          {gsc || seo ? (
+            <Fold title="Sitemap" icon="filtrer" value={seo ? `${fmtInt(seo.sitemap.urls)} pages` : null} note={seo ? `robots.txt : ${seo.robots.statut === 200 ? "lisible" : `réponse ${seo.robots.statut}`}, sitemap ${seo.robots.sitemap_declare ? "déclaré" : "non déclaré"}.` : null}>
+              {gsc ? (
                 <Table
                   cols={[
                     { key: "chemin", label: "Sitemap", render: (r) => <span className="pl-mono">{r.chemin}</span> },
@@ -413,72 +423,47 @@ function Board({ data, jours, reload }) {
                   rows={gsc.sitemaps}
                   empty="Aucun sitemap soumis : dans Search Console, Sitemaps, ajoute https://www.withmerry.com/sitemap.xml"
                 />
-              </Card>
-            </>
-          ) : (
-            <Card title="Search Console" wide>
-              <div className="pl-empty">{data.google?.raison || "Non lue"}.</div>
-              <p className="pl-note">
-                Trois gestes : valider withmerry.com dans Search Console (enregistrement TXT chez Squarespace), y ajouter le compte de service comme utilisateur, coller sa clé JSON sur Vercel en
-                GOOGLE_SERVICE_ACCOUNT_JSON. Les clics, impressions, positions, requêtes et pages indexées apparaissent ici ensuite, avec deux à trois jours de décalage.
-              </p>
-            </Card>
-          )}
-          {ph ? (
-            <>
-              <Card title="Sessions venues d'un moteur, par jour" wide={!gsc}>
-                <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} height={80} />
-              </Card>
-              <Card fold="closed" title="Pages d'entrée depuis un moteur">
-                <Ranked rows={ph.seo.entrees.map((p) => ({ label: p.chemin, n: p.n, sub: `${(Math.round(p.pages * 10) / 10).toLocaleString("fr-FR")} page(s) vue(s)` }))} empty="Aucune arrivée depuis un moteur sur la période" />
-              </Card>
-              <Card fold="closed" title="Moteurs">
-                <Ranked rows={ph.seo.moteurs} max={6} empty="Aucune arrivée depuis un moteur" />
-              </Card>
-            </>
+              ) : null}
+              <div style={{ height: 10 }} />
+              {seo ? <Ranked rows={seo.sitemap.sections} max={12} empty="Sitemap vide" /> : null}
+            </Fold>
           ) : null}
           {seo ? (
-            <>
-              <Card fold="closed" title="Pages relues aujourd'hui" wide note="Un échantillon du sitemap, différent chaque jour, relu comme le ferait un moteur : réponse, titre, description, adresse canonique, noindex, h1.">
-                <Table
-                  cols={[
-                    { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
-                    { key: "statut", label: "Réponse", num: true, render: (r) => <Pill tone={r.statut === 200 ? "ok" : "bad"}>{r.statut || "–"}</Pill> },
-                    { key: "ms", label: "Temps", num: true, render: (r) => `${fmtInt(r.ms)} ms` },
-                    { key: "problemes", label: "Défauts", render: (r) => (r.problemes.length ? r.problemes.join(", ") : <span className="pl-muted">aucun</span>) },
-                  ]}
-                  rows={[...seo.pages].sort((a, b) => b.problemes.length - a.problemes.length)}
-                  max={13}
-                />
-              </Card>
-              <Card fold="closed" title="Contenu du sitemap" note={`robots.txt : ${seo.robots.statut === 200 ? "lisible" : `réponse ${seo.robots.statut}`}, sitemap ${seo.robots.sitemap_declare ? "déclaré" : "non déclaré"}.`}>
-                <Ranked rows={seo.sitemap.sections} max={12} empty="Sitemap vide" />
-              </Card>
-            </>
+            <Fold title="Santé technique" icon="securite" value={`${fmtInt(seo.lenteur_ms)} ms`} note="Un échantillon du sitemap, différent chaque jour, relu comme le ferait un moteur : réponse, titre, description, adresse canonique, noindex, h1.">
+              <Table
+                cols={[
+                  { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
+                  { key: "statut", label: "Réponse", num: true, render: (r) => <Pill tone={r.statut === 200 ? "ok" : "bad"}>{r.statut || "–"}</Pill> },
+                  { key: "ms", label: "Temps", num: true, render: (r) => `${fmtInt(r.ms)} ms` },
+                  { key: "problemes", label: "Défauts", render: (r) => (r.problemes.length ? r.problemes.join(", ") : <span className="pl-muted">aucun</span>) },
+                ]}
+                rows={[...seo.pages].sort((a, b) => b.problemes.length - a.problemes.length)}
+                max={13}
+              />
+            </Fold>
           ) : null}
-        </div>
+        </Folds>
       </Section>
 
       <Section id="appli">
         <div className="pl-tiles">
           <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} />
           <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} />
-          <Tile label="Comptes connectés" value={t.comptes_actifs} prev={t.comptes_actifs_prec} hint="Dernière connexion dans la période (Supabase Auth, sans dépendre des cookies)" />
           {ph ? (
             <>
-              <Tile label="Personnes vues (PostHog)" value={ph.app.personnes} prev={ph.app.personnes_prec} hint="Après accord cookies seulement" />
               <Tile label="Sessions" value={appS?.n || 0} prev={appP?.n} />
               <Tile label="Durée moyenne" value={Math.round(appS?.duree || 0)} prev={Math.round(appP?.duree || 0)} format={fmtDuration} hint={`Médiane ${fmtDuration(appS?.mediane || 0)}`} />
-              <Tile label="Pages par session" value={appS?.pages || 0} prev={appP?.pages} format={(v) => (Math.round(Number(v) * 10) / 10).toLocaleString("fr-FR")} />
               <Tile label="Sessions d'une minute ou plus" value={pctOf(appS?.engagees, appS?.n)} prev={pctOf(appP?.engagees, appP?.n)} format={(v) => `${v} %`} />
             </>
           ) : null}
         </div>
-        <div className="pl-grid">
-          <Card title="Nouveaux comptes par jour" wide>
-            <DayBars series={sb?.series} keys={["inscriptions", "mariages"]} labels={["Comptes", "Mariages créés"]} days={jours} />
+        {ph ? (
+          <Card title="Sessions et personnes par jour">
+            <DayBars series={appMerged} keys={["sessions", "personnes"]} labels={["Sessions", "Personnes"]} days={jours} />
           </Card>
-          <Card fold="open" title="Entonnoir d'onboarding" note="Personnes distinctes ayant vu chaque écran, puis comptes créés. PostHog ne compte que les visiteurs qui acceptent les cookies.">
+        ) : null}
+        <Folds>
+          <Fold open title="Entonnoir d'onboarding" icon="filtrer" value={ph ? `${fmtInt(ph.app.funnel.termine)} comptes` : null} note="Personnes distinctes ayant vu chaque écran, puis comptes créés. PostHog ne compte que les visiteurs qui acceptent les cookies.">
             {ph ? (
               <Funnel
                 steps={[
@@ -493,17 +478,25 @@ function Board({ data, jours, reload }) {
               <div className="pl-empty">PostHog non lu</div>
             )}
             {ph?.app.funnel.echecs ? <p className="pl-note">{fmtInt(ph.app.funnel.echecs)} échec(s) de création de compte.</p> : null}
-          </Card>
+          </Fold>
+          <Fold title="Nouveaux comptes par jour" icon="invites" value={fmtInt(cur("inscriptions"))}>
+            <DayBars series={sb?.series} keys={["inscriptions", "mariages"]} labels={["Comptes", "Mariages créés"]} days={jours} height={80} />
+          </Fold>
+          <Fold title="Autres mesures" icon="reglages">
+            <Facts
+              rows={[
+                { label: "Comptes connectés", value: t.comptes_actifs, sub: t.comptes_actifs_prec != null ? `${fmtInt(t.comptes_actifs_prec)} avant` : null },
+                ph && { label: "Personnes vues (PostHog)", value: ph.app.personnes, sub: ph.app.personnes_prec != null ? `${fmtInt(ph.app.personnes_prec)} avant` : null },
+                ph && { label: "Pages par session", value: (Math.round(Number(appS?.pages || 0) * 10) / 10).toLocaleString("fr-FR") },
+              ]}
+            />
+          </Fold>
           {ph ? (
             <>
-              <Card title="Sessions et personnes par jour" wide>
-                <DayBars series={appMerged} keys={["sessions", "personnes"]} labels={["Sessions", "Personnes"]} days={jours} />
-              </Card>
-              <Card fold="closed" title="Appareils">
+              <Fold title="Appareils" icon="telephone" note="Le téléphone est attendu autour de 80 % de l'usage.">
                 <Ranked rows={ph.app.appareils} max={4} />
-                <p className="pl-note">Le téléphone est attendu autour de 80 % de l'usage.</p>
-              </Card>
-              <Card fold="closed" title="Pages les plus vues" wide>
+              </Fold>
+              <Fold title="Pages les plus vues" icon="document">
                 <Table
                   cols={[
                     { key: "chemin", label: "Page", render: (r) => <span className="pl-mono">{r.chemin}</span> },
@@ -514,38 +507,61 @@ function Board({ data, jours, reload }) {
                   rows={ph.app.pages}
                   max={14}
                 />
-              </Card>
-              <Card fold="closed" title="Où le temps passe" note="Temps entre un événement et le suivant dans la même session, plafonné à 30 minutes ; le dernier écran d'une session n'est pas compté.">
+              </Fold>
+              <Fold title="Où le temps passe" icon="horloge" note="Temps entre un événement et le suivant dans la même session, plafonné à 30 minutes ; le dernier écran d'une session n'est pas compté.">
                 <Ranked rows={ph.app.temps.map((p) => ({ label: p.chemin, n: p.total, sub: `${fmtDuration(p.moyenne)} par passage` }))} format={fmtDuration} max={10} />
-              </Card>
+              </Fold>
             </>
           ) : null}
-        </div>
+        </Folds>
       </Section>
 
       <Section id="couples">
         <div className="pl-tiles">
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
-          <Tile label="Organisateurs" value={t.organisateurs} sub={`${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente`} />
           <Tile label="Invités saisis" value={t.invites} sub={t.mariages_avec_invites != null ? `dans ${fmtInt(t.mariages_avec_invites)} mariage(s)` : null} />
           <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={prev("reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" />
           <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} sub={`${fmtInt(t.demandes_devis)} au total`} />
-          <Tile label="Messages couple → pro" value={cur("messages_couple")} prev={prev("messages_couple")} />
-          <Tile label="Réponses pro → couple" value={cur("messages_pro")} prev={prev("messages_pro")} />
-          <Tile label="Sites de mariage publiés" value={t.sites_publies} sub={sb?.repli ? null : `${fmtInt(cur("visites_sites"))} visite(s) sur ${periode}`} />
-          <Tile label="Formulaires publiés" value={t.formulaires_publies} sub={t.reponses_formulaires != null ? `${fmtInt(t.reponses_formulaires)} réponse(s) reçue(s)` : null} />
-          <Tile label="Tâches" value={t.taches} sub={`${fmtPct(t.taches_faites, t.taches)} faites`} />
-          <Tile label="Lignes de budget" value={t.lignes_budget} sub={`${fmtInt(t.documents)} document(s)`} />
-          <Tile label="Appels IA" value={cur("appels_ia")} prev={prev("appels_ia")} hint="Import d'invités, lecture de devis, comparaison de prestataires" />
+          <Tile label="Sites publiés" value={t.sites_publies} sub={sb?.repli ? null : `${fmtInt(cur("visites_sites"))} visite(s) sur ${periode}`} />
         </div>
-        <div className="pl-grid">
-          <Card title="Demandes et messages par jour" wide>
-            <DayBars series={sb?.series} keys={["demandes", "messages_couple"]} labels={["Demandes de devis", "Messages"]} days={jours} />
-          </Card>
-          <Card title="Réponses RSVP et visites des sites">
+        <Card title="Demandes de devis par jour">
+          <DayBars series={sb?.series} keys={["demandes"]} labels={["Demandes de devis"]} days={jours} />
+        </Card>
+        <Folds>
+          <Fold open title="Messages" icon="messagerie" value={fmtInt(cur("messages_couple") + cur("messages_pro"))}>
+            <DayBars series={sb?.series} keys={["messages_couple", "messages_pro"]} labels={["Couple vers prestataire", "Prestataire vers couple"]} days={jours} height={80} />
+            <Facts
+              rows={[
+                { label: "Couple vers prestataire", value: cur("messages_couple"), sub: `${fmtInt(prev("messages_couple"))} avant` },
+                { label: "Prestataire vers couple", value: cur("messages_pro"), sub: `${fmtInt(prev("messages_pro"))} avant` },
+              ]}
+            />
+          </Fold>
+          <Fold title="Réponses RSVP et visites des sites" icon="date" value={fmtInt(cur("reponses_rsvp"))}>
             <DayBars series={sb?.series} keys={["reponses_rsvp", "visites_sites"]} labels={["Réponses", "Visites"]} days={jours} height={80} />
-          </Card>
-          <Card fold="closed" title="Dernières demandes de devis">
+          </Fold>
+          <Fold title="Formulaires et sites" icon="document" value={fmtInt((t.formulaires_publies || 0) + (t.sites_publies || 0))}>
+            <Facts
+              rows={[
+                { label: "Formulaires publiés", value: t.formulaires_publies, sub: t.reponses_formulaires != null ? `${fmtInt(t.reponses_formulaires)} réponse(s) reçue(s)` : null },
+                { label: "Sites publiés", value: t.sites_publies },
+              ]}
+            />
+          </Fold>
+          <Fold title="Organisation" icon="budget" value={`${fmtInt(t.organisateurs)} organisateurs`}>
+            <Facts
+              rows={[
+                { label: "Organisateurs", value: t.organisateurs, sub: `${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente` },
+                { label: "Tâches", value: t.taches, sub: `${fmtPct(t.taches_faites, t.taches)} faites` },
+                { label: "Lignes de budget", value: t.lignes_budget },
+                { label: "Documents", value: t.documents },
+              ]}
+            />
+          </Fold>
+          <Fold title="Appels IA" icon="reglages" value={fmtInt(cur("appels_ia"))} note="Import d'invités, lecture de devis, comparaison de prestataires.">
+            <DayBars series={sb?.series} keys={["appels_ia"]} labels={["Appels IA"]} days={jours} height={80} />
+          </Fold>
+          <Fold title="Dernières demandes de devis" icon="email">
             <Table
               cols={[
                 { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -555,25 +571,44 @@ function Board({ data, jours, reload }) {
               rows={sb?.dernieres_demandes}
               max={10}
             />
-          </Card>
-        </div>
+          </Fold>
+        </Folds>
       </Section>
 
       <Section id="prestataires">
         <div className="pl-tiles">
           <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
-          <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
-          <Tile label="Avec un email" value={pctOf(t.catalogue_email, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_email)} fiches`} />
-          <Tile label="Avec un téléphone" value={pctOf(t.catalogue_telephone, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_telephone)} fiches`} />
           <Tile label="Fiches revendiquées" value={t.fiches_revendiquees} sub={t.fiches_revendiquees_periode != null ? `${fmtInt(t.fiches_revendiquees_periode)} sur ${periode} · ${fmtInt(t.comptes_pro)} compte(s) pro` : `${fmtInt(t.comptes_pro)} compte(s) pro`} />
-          <Tile label="Crédits en circulation" value={t.credits_en_circulation} sub={t.credits_depenses != null ? `${fmtInt(t.credits_depenses)} dépensés au total` : null} />
           <Tile label="Crédits dépensés" value={t.credits_depenses_periode} hint="Réponses payées en crédits sur la période" />
-          <Tile label="Vues de fiches pro" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" />
+          <Tile label="Vues de fiches" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" />
           <Tile label="Clients côté pro" value={t.clients_pro} sub={t.clients_pro_repondus != null ? `${fmtInt(t.clients_pro_repondus)} avec une réponse` : null} />
-          <Tile label="Ajoutés par les couples" value={t.catalogue_ajoutes_par_couples} hint="Prestataires créés à la main depuis un tableau de bord" />
         </div>
-        <div className="pl-grid">
-          <Card fold="open" title="Catalogue par métier" wide>
+        <Card title="Vues de fiches par jour">
+          <DayBars series={sb?.series} keys={["vues_pro"]} labels={["Vues de fiches"]} days={jours} />
+        </Card>
+        <Folds>
+          <Fold open title="Qualité du catalogue" icon="photo" value={`${fmtInt(t.catalogue_sans_photo)} sans photo`}>
+            <Facts
+              rows={[
+                { label: "Avec 3 photos ou plus", value: `${pctOf(t.catalogue_photos3, t.catalogue_actifs)} %`, sub: `${fmtInt(t.catalogue_sans_photo)} sans aucune photo` },
+                { label: "Avec un email", value: `${pctOf(t.catalogue_email, t.catalogue_actifs)} %`, sub: `${fmtInt(t.catalogue_email)} fiches` },
+                { label: "Avec un téléphone", value: `${pctOf(t.catalogue_telephone, t.catalogue_actifs)} %`, sub: `${fmtInt(t.catalogue_telephone)} fiches` },
+                { label: "Ajoutés par les couples", value: t.catalogue_ajoutes_par_couples },
+              ]}
+            />
+          </Fold>
+          <Fold title="Crédits" icon="budget" value={fmtInt(t.credits_en_circulation)}>
+            <Facts
+              rows={[
+                { label: "En circulation", value: t.credits_en_circulation },
+                { label: "Dépensés sur la période", value: t.credits_depenses_periode },
+                { label: "Dépensés au total", value: t.credits_depenses },
+              ]}
+            />
+          </Fold>
+          <Fold title="Catalogue par métier" icon="filtrer" value={fmtInt(catalogue.filter((c) => c.actifs || c.candidats).length)}>
+            <Ranked rows={catalogue.filter((c) => c.actifs).map((c) => ({ label: c.label, n: c.actifs })).sort((a, b) => b.n - a.n)} max={8} />
+            <div style={{ height: 10 }} />
             <Table
               cols={[
                 { key: "label", label: "Métier" },
@@ -588,8 +623,8 @@ function Board({ data, jours, reload }) {
               rows={catalogue.filter((c) => c.actifs || c.candidats)}
               max={20}
             />
-          </Card>
-          <Card fold="closed" title="Fiches revendiquées">
+          </Fold>
+          <Fold title="Fiches revendiquées" icon="avis" value={fmtInt(t.fiches_revendiquees)}>
             <Table
               cols={[
                 { key: "nom", label: "Fiche", render: (r) => `${r.nom || "?"}${r.categorie ? ` · ${r.categorie}` : ""}` },
@@ -600,43 +635,30 @@ function Board({ data, jours, reload }) {
               rows={sb?.fiches_pro}
               max={12}
             />
-          </Card>
-        </div>
+          </Fold>
+        </Folds>
       </Section>
 
       <Section id="mails">
         {rs ? (
           <>
             <div className="pl-tiles">
-              <Tile label="Envoyés" value={rs.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : "tous les envois de la période"} />
+              <Tile label="Envoyés" value={rs.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} />
               <Tile label="Délivrés" value={rs.par_etat.delivered || 0} sub={fmtPct(rs.par_etat.delivered || 0, rs.envoyes)} />
-              <Tile label="Rebonds et plaintes" value={(rs.par_etat.bounced || 0) + (rs.par_etat.complained || 0)} inverse prev={null} />
               {rs.suivi?.actif ? (
                 <>
                   <Tile label="Ouverts" value={rs.suivi.ouverts} sub={rs.suivi.taux_ouverture == null ? null : `${rs.suivi.taux_ouverture} % des délivrés`} hint="Webhook Resend ; il faut le suivi des ouvertures activé sur le domaine" />
                   <Tile label="Cliqués" value={rs.suivi.cliques} sub={rs.suivi.taux_clic == null ? null : `${rs.suivi.taux_clic} % des délivrés`} />
                 </>
               ) : null}
-              <Tile label="Relances planifiées" value={cur("mails_planifies")} prev={prev("mails_planifies")} hint="Tâche Vercel de 8 h UTC (mail_sent)" />
-              <Tile label="Désinscriptions" value={t.desinscriptions_mail} inverse />
+              <Tile label="Rebonds et plaintes" value={(rs.par_etat.bounced || 0) + (rs.par_etat.complained || 0)} inverse prev={null} />
             </div>
-            <div className="pl-grid">
-              <Card fold="open" title="Par type de mail" wide>
-                <Ranked rows={rs.sujets.map((s) => ({ label: s.sujet, n: s.n }))} />
-              </Card>
-              <Card fold="closed" title="Derniers envois">
-                <Table
-                  cols={[
-                    { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
-                    { key: "sujet", label: "Sujet" },
-                    { key: "etat", label: "État", render: (r) => <Pill tone={r.etat === "delivered" ? "ok" : ["bounced", "complained", "failed"].includes(r.etat) ? "bad" : "neutral"}>{r.etat}</Pill> },
-                  ]}
-                  rows={rs.derniers}
-                  max={8}
-                />
-              </Card>
+            <Card title="Envois par jour" note={rs.tronque ? "Sur les 100 derniers envois seulement." : null}>
+              <DayBars series={mailSeries} keys={["envois"]} labels={["Envois"]} days={jours} />
+            </Card>
+            <Folds>
               {rs.problemes.length ? (
-                <Card title="En difficulté" wide>
+                <Fold open title="En difficulté" icon="securite" value={fmtInt(rs.problemes.length)}>
                   <Table
                     cols={[
                       { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -646,9 +668,31 @@ function Board({ data, jours, reload }) {
                     ]}
                     rows={rs.problemes}
                   />
-                </Card>
+                </Fold>
               ) : null}
-            </div>
+              <Fold open={!rs.problemes.length} title="Par type de mail" icon="email" value={fmtInt(rs.sujets.length)}>
+                <Ranked rows={rs.sujets.map((s) => ({ label: s.sujet, n: s.n }))} />
+              </Fold>
+              <Fold title="Derniers envois" icon="horloge">
+                <Table
+                  cols={[
+                    { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
+                    { key: "sujet", label: "Sujet" },
+                    { key: "etat", label: "État", render: (r) => <Pill tone={r.etat === "delivered" ? "ok" : ["bounced", "complained", "failed"].includes(r.etat) ? "bad" : "neutral"}>{r.etat}</Pill> },
+                  ]}
+                  rows={rs.derniers}
+                  max={8}
+                />
+              </Fold>
+              <Fold title="Relances et désinscriptions" icon="date" value={fmtInt(cur("mails_planifies"))}>
+                <Facts
+                  rows={[
+                    { label: "Relances planifiées", value: cur("mails_planifies"), sub: `${fmtInt(prev("mails_planifies"))} avant` },
+                    { label: "Désinscriptions", value: t.desinscriptions_mail },
+                  ]}
+                />
+              </Fold>
+            </Folds>
           </>
         ) : (
           <div className="pl-empty">Resend n'est pas lisible : {data.resend?.raison || "voir la page Santé"}.</div>
@@ -665,11 +709,11 @@ function Board({ data, jours, reload }) {
               <Tile label="Bugs vus en replay" value={ph.bugs.replays?.bugs || 0} sub={`sur ${fmtInt(ph.bugs.replays?.analysees || 0)} analysée(s)`} inverse />
               {vc ? <Tile label="Déploiements" value={vc.total} sub={`${fmtInt(vc.erreurs)} en échec, ${fmtInt(vc.en_cours)} en cours`} /> : null}
             </div>
-            <div className="pl-grid">
-              <Card title="Erreurs par jour" wide>
-                <DayBars series={bugs} keys={["exceptions", "rage"]} labels={["Erreurs", "Clics de rage"]} days={jours} height={80} />
-              </Card>
-              <Card fold="open" title="Web vitals (p75)" note="LCP sous 2,5 s, INP sous 200 ms et CLS sous 0,1 sont les seuils de Google.">
+            <Card title="Erreurs par jour">
+              <DayBars series={bugs} keys={["exceptions", "rage"]} labels={["Erreurs", "Clics de rage"]} days={jours} />
+            </Card>
+            <Folds>
+              <Fold open title="Web vitals (p75)" icon="horloge" note="LCP sous 2,5 s, INP sous 200 ms et CLS sous 0,1 sont les seuils de Google.">
                 {ph.bugs.vitals.length ? (
                   <Table
                     cols={[
@@ -683,8 +727,8 @@ function Board({ data, jours, reload }) {
                 ) : (
                   <div className="pl-empty">Pas de mesure : active « Web vitals » dans PostHog (Autocapture) pour les voir ici.</div>
                 )}
-              </Card>
-              <Card fold="open" title="Bugs vus dans les replays" wide>
+              </Fold>
+              <Fold open title="Bugs vus dans les replays" icon="securite" value={fmtInt(ph.bugs.replays?.bugs || 0)}>
                 <Table
                   cols={[
                     { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -695,8 +739,8 @@ function Board({ data, jours, reload }) {
                   max={15}
                   empty={ph.bugs.replays?.analysees ? "Aucun bug vu sur la période" : "Aucune session analysée sur la période"}
                 />
-              </Card>
-              <Card fold="closed" title="Dernières erreurs" wide>
+              </Fold>
+              <Fold title="Dernières erreurs" icon="securite" value={fmtInt(ph.bugs.exceptions.length)}>
                 <Table
                   cols={[
                     { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -711,12 +755,12 @@ function Board({ data, jours, reload }) {
                 <p className="pl-note">
                   Détail et replay de chaque session dans <a href="https://eu.posthog.com/project/321035/error_tracking">PostHog, Error tracking</a>.
                 </p>
-              </Card>
-              <Card fold="closed" title="Clics de rage">
+              </Fold>
+              <Fold title="Clics de rage" icon="rechercher" value={fmtInt(rageCur)}>
                 <Ranked rows={ph.bugs.rage.map((r) => ({ label: `${r.hote || ""}${r.chemin || ""}`, n: r.n, sub: fmtDay(r.dernier) }))} empty="Aucun clic de rage" />
-              </Card>
-              {vc ? (
-                <Card fold="closed" title="Déploiements Vercel" wide>
+              </Fold>
+              <Fold title="Déploiements Vercel" icon="reglages" value={vc ? fmtInt(vc.total) : null}>
+                {vc ? (
                   <Table
                     cols={[
                       { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -728,16 +772,14 @@ function Board({ data, jours, reload }) {
                     rows={vc.liste}
                     max={15}
                   />
-                </Card>
-              ) : (
-                <Card fold="closed" title="Déploiements Vercel" wide>
+                ) : (
                   <div className="pl-empty">
                     {data.vercel?.raison || "Non disponible"}. Crée un jeton sur vercel.com/account/tokens (portée stan-f307), ajoute-le sur Vercel en variable
                     VERCEL_API_TOKEN (Production), redéploie : la liste et les échecs de build apparaissent ici.
                   </div>
-                </Card>
-              )}
-            </div>
+                )}
+              </Fold>
+            </Folds>
           </>
         ) : (
           <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la page Santé"}.</div>
