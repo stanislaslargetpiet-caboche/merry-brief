@@ -178,10 +178,11 @@ export function Funnel({ steps }) {
   );
 }
 
-// Sections et cartes repliables : l'état de chacune est gardé dans le navigateur (localStorage, clé pl-fold), le
-// menu du haut ouvre la section visée, et « Tout déplier » / « Tout replier » agissent sur toute la page.
+// Cartes repliables : l'état de chacune est gardé dans le navigateur (localStorage, clé pl-fold).
 const FOLD_KEY = "pl-fold";
 const SectionContext = createContext("");
+// La sous-page ouverte : une section ne se dessine que sur la sienne, mais ses composants restent montés
+export const PageContext = createContext(null);
 
 function readFold(key) {
   try {
@@ -202,33 +203,11 @@ function writeFold(key, open) {
   }
 }
 
-// `onEvent` : réaction aux ordres de la page (ouvrir une section précise, tout déplier, tout replier)
-function useFold(key, defaultOpen, { id, isSection, enabled = true }) {
+function useFold(key, defaultOpen, enabled) {
   const [open, setOpenState] = useState(defaultOpen);
   useEffect(() => {
-    if (!enabled) return undefined;
-    const saved = readFold(key);
-    const target = typeof window !== "undefined" && window.location.hash === `#${id}`;
-    setOpenState(target ? true : saved ?? defaultOpen);
-    const onOpen = (e) => {
-      if (isSection && e.detail === id) setOpenState(true);
-    };
-    const onAll = (e) => {
-      if (e.detail) {
-        setOpenState(true);
-        writeFold(key, true);
-      } else if (isSection) {
-        setOpenState(false);
-        writeFold(key, false);
-      }
-    };
-    window.addEventListener("pilotage:open", onOpen);
-    window.addEventListener("pilotage:all", onAll);
-    return () => {
-      window.removeEventListener("pilotage:open", onOpen);
-      window.removeEventListener("pilotage:all", onAll);
-    };
-  }, [key, id, defaultOpen, isSection, enabled]);
+    if (enabled) setOpenState(readFold(key) ?? defaultOpen);
+  }, [key, defaultOpen, enabled]);
   const set = (next) => {
     setOpenState(next);
     writeFold(key, next);
@@ -236,42 +215,20 @@ function useFold(key, defaultOpen, { id, isSection, enabled = true }) {
   return [open, set];
 }
 
-// Chaque section a sa teinte, prise dans les quatre pastels du design system (citron, beurre, anis, pistache) :
-// bandeau d'en-tête et barres des listes ; l'encre reste la couleur des chiffres.
+// Chaque page a sa teinte, prise dans les quatre pastels du design system (citron, beurre, anis, pistache), pour
+// le filet des chiffres clés et les barres des listes ; l'encre reste la couleur des chiffres.
 const TONES = {
-  utilisateurs: "citron", sante: "pistache", demandes: "beurre", couts: "anis", site: "citron", referencement: "anis",
-  appli: "pistache", produit: "beurre", prestataires: "citron", mails: "anis", bugs: "pistache",
+  comptes: "citron", sante: "pistache", demandes: "beurre", couts: "anis", site: "citron", referencement: "anis",
+  appli: "pistache", couples: "beurre", prestataires: "citron", mails: "anis", bugs: "pistache",
 };
 
-// `summary` : [{ label, value }] montrés dans l'en-tête quand la section est repliée
-export function Section({ id, title, kicker, children, right, summary, defaultOpen = true }) {
-  const [open, setOpen] = useFold(`section:${id}`, defaultOpen, { id, isSection: true });
+// `right` : le bouton d'action de la page (mail du jour, rafraîchir le SEO)
+export function Section({ id, children, right }) {
+  if (useContext(PageContext) !== id) return null;
   return (
-    <section className={`pl-section${open ? "" : " is-folded"}`} id={id} data-tone={TONES[id] || "citron"}>
-      <header className="pl-section-head">
-        <div className="pl-section-titles">
-          {kicker ? <span className="pl-kicker">{kicker}</span> : null}
-          <h2>
-            <button type="button" className="pl-fold pl-section-toggle" aria-expanded={open} aria-controls={`${id}-corps`} onClick={() => setOpen(!open)}>
-              <span className="pl-chev" aria-hidden="true" />
-              {title}
-            </button>
-          </h2>
-        </div>
-        {!open && summary?.length ? (
-          <span className="pl-summary">
-            {summary.map((x) => (
-              <span key={x.label} className="pl-summary-item">
-                <strong>{x.value}</strong> {x.label}
-              </span>
-            ))}
-          </span>
-        ) : null}
-        {open ? right : null}
-      </header>
-      <div id={`${id}-corps`} hidden={!open}>
-        <SectionContext.Provider value={id}>{children}</SectionContext.Provider>
-      </div>
+    <section className="pl-section" data-tone={TONES[id] || "citron"}>
+      {right ? <div className="pl-section-head">{right}</div> : null}
+      <SectionContext.Provider value={id}>{children}</SectionContext.Provider>
     </section>
   );
 }
@@ -281,7 +238,7 @@ export function Card({ title, children, wide, full, note, fold }) {
   const section = useContext(SectionContext);
   const key = `card:${section}/${title}`;
   const foldable = Boolean(title);
-  const [open, setOpen] = useFold(key, fold !== "closed", { id: key, isSection: false, enabled: foldable });
+  const [open, setOpen] = useFold(key, fold !== "closed", foldable);
   const shown = !foldable || open;
   return (
     <div className={`pl-card${full ? " is-full" : wide ? " is-wide" : ""}${shown ? "" : " is-folded"}`}>

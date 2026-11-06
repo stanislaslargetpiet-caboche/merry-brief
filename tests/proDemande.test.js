@@ -72,7 +72,7 @@ describe("mail d'alerte", () => {
     const mail = demandeMail({ vendor, claim, origin: "https://app.withmerry.com" });
     expect(mail.subject).toBe("Demande d'accès : Le Clos des Amandiers (coordonnées changées)");
     expect(mail.text).toContain("coordonnées d'origine");
-    expect(mail.text).toContain("https://app.withmerry.com/pilotage#demandes");
+    expect(mail.text).toContain("https://app.withmerry.com/pilotage/aujourdhui/demandes");
   });
 
   it("sans changement, pas de mention « changées »", () => {

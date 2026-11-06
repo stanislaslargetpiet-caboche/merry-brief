@@ -1,6 +1,6 @@
 /* Merry · pilotage (page interne). Jetons du design system v2 (DESIGN.md, 2 nov. 2026) : Alan Sans, fond de page greige,
    cartes blanches à 20 px sans ombre, pilule pour tout ce qui se clique, un seul aplat vif par écran. Ici l'aplat
-   vif est la pastille de la section en cours dans le menu fixe : rien d'autre n'est en citron sur la page. */
+   vif est la barre latérale, comme sur les espaces couples et prestataires : rien d'autre n'est en citron sur la page. */
 
 .pl-root {
   /* Jetons (tokens.json) */
@@ -19,7 +19,6 @@
   --warning-text: #8a4b0f;
   --error-bg: #fde0de;
   --error-text: #b42318;
-  --bar-h: 112px; /* hauteur du menu fixe, mesurée par la page */
 
   min-height: 100dvh;
   background: var(--sunken);
@@ -32,30 +31,32 @@
   padding-bottom: 96px;
 }
 
-.pl-wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+.pl-wrap { max-width: 1180px; margin: 0 auto; padding: 32px 32px 0; }
 
-/* ---- Menu fixe -------------------------------------------------------------------------------------------- */
-.pl-bar {
-  position: sticky; top: 0; z-index: 20;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+/* ---- Barre latérale ---------------------------------------------------------------------------------------- */
+.pl-shell { display: flex; align-items: flex-start; padding-bottom: 0; }
+.pl-side {
+  flex: 0 0 240px; position: sticky; top: 0; height: 100dvh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 28px; padding: 28px 16px;
+  background: var(--accent);
 }
-.pl-bar-in {
-  max-width: 1180px; margin: 0 auto; padding: 10px 16px 0;
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
-}
-.pl-logo { font-family: "Climate Crisis", "Arial Black", sans-serif; font-weight: 400; font-size: 22px; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); line-height: 1; }
+.pl-logo { padding: 0 12px; font-family: "Climate Crisis", "Arial Black", sans-serif; font-weight: 400; font-size: 26px; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); line-height: 1; }
+.pl-nav { display: flex; flex-direction: column; gap: 2px; }
+.pl-nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; }
+.pl-nav-item:hover { background: rgba(255, 255, 255, 0.45); }
+.pl-nav-item.is-on { background: var(--surface); font-weight: 600; }
+.pl-nav-item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.pl-nav-badge, .pl-subnav-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-nav-badge { margin-left: auto; }
+.pl-subnav-badge { margin-left: 8px; }
+
+.pl-main { flex: 1 1 0; min-width: 0; padding-bottom: 96px; }
+.pl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.pl-head h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; }
 .pl-actions { display: flex; align-items: center; gap: 8px; }
+.pl-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 0; }
 
-.pl-nav {
-  order: 3; flex: 1 0 100%;
-  display: flex; gap: 6px; padding: 4px 0 10px;
-  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
-}
-.pl-nav::-webkit-scrollbar { display: none; }
-
-/* Pilule : blanche, trait ; la section en cours passe en citron avec une bordure encre, en fondu */
+/* Pilule : blanche, trait ; la page en cours prend une bordure encre, en fondu */
 .pl-pill-link, .pl-chip {
   flex: none; display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px;
   border: 1.5px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--ink);
@@ -63,7 +64,7 @@
   transition: background-color 0.28s ease, border-color 0.28s ease;
 }
 .pl-pill-link:hover, .pl-chip:hover { border-color: var(--border-strong); }
-.pl-pill-link.is-active { background: var(--accent); border-color: var(--ink); }
+.pl-pill-link.is-active { border-color: var(--ink); }
 .pl-chip.is-on { border-color: var(--ink); }
 .pl-chip:disabled { opacity: 0.5; cursor: default; }
 /* Période : un seul bloc à segments ; Actualiser : un bouton rond */
@@ -94,31 +95,18 @@
   outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
-/* ---- Titre de page ---------------------------------------------------------------------------------------- */
-.pl-hero { padding: 28px 0 4px; }
-.pl-hero h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; }
-.pl-lede { margin: 6px 0 0; color: var(--ink-muted); font-size: 15px; }
 .pl-generated { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--ink-muted); }
 
 /* ---- Sections --------------------------------------------------------------------------------------------- */
-/* Teintes des sections : pastels du design system, du citron à la pistache */
+/* Teintes des pages : pastels du design system, du citron à la pistache */
 .pl-section { --sec-tint: #fffdb8; --sec: #f2e600; }
 .pl-section[data-tone="beurre"] { --sec-tint: #fff5cc; --sec: #f5cf5a; }
 .pl-section[data-tone="anis"] { --sec-tint: #f5fcd2; --sec: #cde46a; }
 .pl-section[data-tone="pistache"] { --sec-tint: #e6f7dc; --sec: #9fd884; }
-.pl-section { margin: 40px 0 0; scroll-margin-top: calc(var(--bar-h) + 12px); }
-.pl-section-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 16px 22px; border-radius: 20px; background: var(--sec-tint); }
-/* Toute la bande est cliquable : le bouton du titre l'étend sous les boutons de droite */
-.pl-section-toggle::after { content: ""; position: absolute; inset: 0; border-radius: 20px; }
-.pl-section-head > :not(.pl-section-titles) { position: relative; z-index: 1; }
-.pl-section-titles { min-width: 0; }
-.pl-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
-.pl-summary-item { padding: 3px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.75); font-size: 13px; font-weight: 500; color: var(--ink-muted); white-space: nowrap; }
-.pl-summary-item strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.pl-section { margin: 20px 0 0; }
+.pl-section-head { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .pl-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 .pl-chip[aria-pressed="true"] { background: var(--sec-tint); }
-.pl-section-head h2 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; }
-.pl-kicker { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
 
 /* Chiffres clés : cartes blanches, gros chiffre en 28 px / 600, tabulaire */
 .pl-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
@@ -140,9 +128,6 @@
 @media (max-width: 1000px) { .pl-card, .pl-card.is-wide { grid-column: span 6; } }
 @media (max-width: 680px) {
   .pl-card, .pl-card.is-wide, .pl-card.is-full { grid-column: span 12; }
-  .pl-hero h1 { font-size: 28px; }
-  .pl-section-head h2 { font-size: 22px; }
-  .pl-section { margin-top: 32px; }
 }
 
 /* ---- Graphes : encre pour la période courante, gris pour la précédente ---------------------------------------- */
@@ -231,11 +216,8 @@
 /* Sections et cartes repliables */
 .pl-fold { appearance: none; display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
 .pl-chev { flex: none; width: 9px; height: 9px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 0.2s ease; }
-.is-folded > .pl-section-head .pl-chev, .pl-card.is-folded .pl-chev { transform: rotate(-45deg); margin-top: 0; }
-.pl-section.is-folded .pl-section-head { margin-bottom: 0; }
-.pl-section-head:hover { filter: brightness(0.98); }
+.pl-card.is-folded .pl-chev { transform: rotate(-45deg); margin-top: 0; }
 .pl-card.is-folded h3 { margin-bottom: 0; }
-.pl-folds { display: flex; gap: 8px; margin: 20px 0 0; }
 @media (prefers-reduced-motion: reduce) { .pl-chev { transition: none; } }
 
 /* Utilisateurs : bouton « Voir les noms » sous les tuiles et listes dépliées */
@@ -253,4 +235,20 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #ffffff;
+}
+
+/* ---- Téléphone : bandeau citron, onglets texte qui défilent, comme l'espace prestataire -------------------- */
+@media (max-width: 700px) {
+  .pl-shell { display: block; }
+  .pl-side { position: sticky; z-index: 20; height: auto; flex-direction: column; gap: 8px; padding: 14px 0 8px; }
+  .pl-logo { padding: 0 16px; font-size: 22px; }
+  .pl-nav { position: relative; flex-direction: row; gap: 4px; overflow-x: auto; padding: 0 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .pl-nav::-webkit-scrollbar { display: none; }
+  .pl-nav-item { flex: none; min-height: 36px; padding: 0 12px; font-size: 14px; }
+  .pl-nav-item svg { display: none; }
+  .pl-nav-badge { margin-left: 0; }
+  .pl-wrap { padding: 20px 16px 0; }
+  .pl-head h1 { font-size: 28px; }
+  .pl-subnav { flex-wrap: nowrap; overflow-x: auto; margin: 16px -16px 0; padding: 0 16px; scrollbar-width: none; }
+  .pl-subnav::-webkit-scrollbar { display: none; }
 }

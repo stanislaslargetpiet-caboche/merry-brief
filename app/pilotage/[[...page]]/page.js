@@ -1,21 +1,23 @@
 "use client";
 
-// Pilotage : tous les indicateurs de Merry sur une page (site, appli, prestataires, mails, bugs, déploiements),
-// réservée aux adresses de PILOTAGE_EMAILS. Les données viennent de /api/interne/pilotage ; la page ne fait
-// que les mettre en forme. Chaque chiffre de période est comparé à la période précédente de même longueur.
+// Pilotage : les indicateurs de Merry (site, appli, prestataires, mails, bugs, déploiements), rangés en cinq boutons
+// et leurs sous-pages (lib/pilotage/nav.js), réservés aux adresses de PILOTAGE_EMAILS. Toutes les adresses
+// /pilotage/… servent cette page : les données viennent de /api/interne/pilotage ; la page ne fait que les mettre en forme. Chaque chiffre de période est comparé à la période précédente de même longueur.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
 import Nouveautes from "@/components/pilotage/Nouveautes";
 import Reseau from "@/components/pilotage/Reseau";
-import PilotNav from "@/components/pilotage/PilotNav";
+import { PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
-import { Card, DayBars, Funnel, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, Funnel, PageContext, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
+import { pathFromHash, resolvePage } from "@/lib/pilotage/nav";
 
 // ?demo=1 (ou pas de Supabase en local) : la page se dessine avec un jeu d'exemple, jamais de vraies mesures
 function readDemoFlag() {
@@ -25,22 +27,6 @@ function readDemoFlag() {
     return false;
   }
 }
-
-const SECTIONS = [
-  { id: "sante", label: "Santé" },
-  { id: "utilisateurs", label: "Utilisateurs" },
-  { id: "demandes", label: "Demandes" },
-  { id: "reseau", label: "Réseau" },
-  { id: "nouveautes", label: "Mail du samedi" },
-  { id: "couts", label: "Coûts" },
-  { id: "site", label: "Site" },
-  { id: "referencement", label: "Référencement" },
-  { id: "appli", label: "Appli" },
-  { id: "produit", label: "Produit" },
-  { id: "prestataires", label: "Prestataires" },
-  { id: "mails", label: "Mails" },
-  { id: "bugs", label: "Bugs" },
-];
 
 // 1 h : seule la section Utilisateurs se lit à l'heure ; les sources par jour (PostHog, Resend…) restent sur 24 h
 const RANGES = [
@@ -77,21 +63,19 @@ export default function PilotagePage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const rootRef = useRef(null);
-  const barRef = useRef(null);
+  const pathname = usePathname();
+  const { group, page } = resolvePage(pathname);
+  const [search, setSearch] = useState("");
 
-  // Le menu fixe a une hauteur qui change (une ou deux rangées selon la largeur) : la page la mesure pour que
-  // les sections s'arrêtent juste dessous quand on clique sur une pastille
+  // Les anciens liens (/pilotage#demandes) mènent à la sous-page ; ?demo=1 suit la navigation
   useEffect(() => {
-    const bar = barRef.current;
-    const root = rootRef.current;
-    if (!bar || !root || typeof ResizeObserver === "undefined") return undefined;
-    const apply = () => root.style.setProperty("--bar-h", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
-    apply();
-    const ro = new ResizeObserver(apply);
-    ro.observe(bar);
-    return () => ro.disconnect();
-  });
+    setSearch(window.location.search);
+    const target = pathFromHash(window.location.hash);
+    if (!target) return undefined;
+    // Après ce tour : le routeur ne suit l'historique qu'une fois ses propres effets passés
+    const timer = setTimeout(() => window.history.replaceState(null, "", `${target}${window.location.search}`));
+    return () => clearTimeout(timer);
+  }, []);
 
   // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
   // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
@@ -127,11 +111,13 @@ export default function PilotagePage() {
     if (auth.status === "demo") setData(demoData(jours));
   }, [auth.status, jours, heure, load]);
 
+  const badges = { demandes: data?.demandes?.en_attente?.length || 0 };
+
   if (auth.status === "loading") return <Gate title="Pilotage" text="Un instant…" />;
   if (auth.status === "signedout" || error === "connexion")
     return (
       <Gate title="Pilotage" text="Connectez-vous avec le compte Merry autorisé pour lire les indicateurs.">
-        <a className="pl-btn is-primary" href="/connexion?next=%2Fpilotage">
+        <a className="pl-btn is-primary" href={`/connexion?next=${encodeURIComponent(pathname)}`}>
           Me connecter
         </a>
       </Gate>
@@ -139,53 +125,44 @@ export default function PilotagePage() {
   if (error === "interdit") return <Gate title="Réservé" text={`Le compte ${auth.email || ""} n'a pas accès au pilotage.`} />;
 
   return (
-    <div className="pl-root" ref={rootRef}>
-      <header className="pl-bar" ref={barRef}>
-        <div className="pl-bar-in">
-          <a className="pl-logo" href="/dashboard">
-            Merry
-          </a>
-          <div className="pl-actions">
-            <div className="pl-ranges" role="group" aria-label="Période">
-              {RANGES.map((r) => (
-                <button key={r.id} type="button" aria-pressed={periode === r.id} className={`pl-seg${periode === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => setPeriode(r.id)}>
-                  {r.label}
-                </button>
-              ))}
+    <div className="pl-root pl-shell">
+      <PilotSide group={group} search={search} badges={badges} />
+      <main className="pl-main">
+        <div className="pl-wrap">
+          <header className="pl-head">
+            <div>
+              <h1>{group.label}</h1>
+              {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
             </div>
-            <button type="button" className={`pl-refresh${busy ? " is-busy" : ""}`} onClick={() => load(jours, true, heure)} disabled={busy || auth.status === "demo"} aria-label="Actualiser" title="Relire toutes les sources maintenant">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 11a8 8 0 1 0-2.3 5.7" />
-                <path d="M20 4v7h-7" />
-              </svg>
-            </button>
-          </div>
-          {data ? <PilotNav sections={SECTIONS} offsetRef={barRef} ready={Boolean(data)} /> : null}
+            <div className="pl-actions">
+              {page.periode === false ? null : (
+                <div className="pl-ranges" role="group" aria-label="Période">
+                  {RANGES.map((r) => (
+                    <button key={r.id} type="button" aria-pressed={periode === r.id} className={`pl-seg${periode === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => setPeriode(r.id)}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button type="button" className={`pl-refresh${busy ? " is-busy" : ""}`} onClick={() => load(jours, true, heure)} disabled={busy || auth.status === "demo"} aria-label="Actualiser" title="Relire toutes les sources maintenant">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+                  <path d="M20 4v7h-7" />
+                </svg>
+              </button>
+            </div>
+          </header>
+          <PilotSubnav group={group} page={page} search={search} badges={badges} />
+          {heure && data && page.periode !== false && page.id !== "comptes" ? <p className="pl-note">Sur 1 h, seule la page Comptes est lue à la minute près ; ici, les chiffres restent sur 24 h.</p> : null}
+          {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
+          {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
+          {data ? (
+            <PageContext.Provider value={page.id}>
+              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} />
+            </PageContext.Provider>
+          ) : null}
         </div>
-      </header>
-      <div className="pl-wrap">
-        <div className="pl-hero">
-          <h1>Pilotage</h1>
-          <p className="pl-lede">
-            Coûts, site, appli, prestataires, mails, référencement et bugs de Merry, relus à l'ouverture.
-            {data ? <span className="pl-generated">{data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Généré le ${fmtDateTime(data.genere)}`}</span> : null}
-          </p>
-        </div>
-        {data ? (
-          <div className="pl-folds">
-            <button type="button" className="pl-chip" onClick={() => window.dispatchEvent(new CustomEvent("pilotage:all", { detail: true }))}>
-              Tout déplier
-            </button>
-            <button type="button" className="pl-chip" onClick={() => window.dispatchEvent(new CustomEvent("pilotage:all", { detail: false }))}>
-              Tout replier
-            </button>
-          </div>
-        ) : null}
-        {heure && data ? <p className="pl-note">Sur 1 h, la section Utilisateurs est lue à la minute près ; les autres sections (PostHog, Resend, Supabase par jour…) restent sur 24 h, leur plus petite période.</p> : null}
-        {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
-        {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
-        {data ? <Board data={data} jours={jours} heure={heure} reload={() => load(jours, true, heure)} /> : null}
-      </div>
+      </main>
     </div>
   );
 }
@@ -244,7 +221,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours, heure, reload }) {
+function Board({ data, jours, reload }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -253,7 +230,6 @@ function Board({ data, jours, heure, reload }) {
   const gsc = data.google?.disponible ? data.google : null;
   const seo = data.seo?.disponible ? data.seo : null;
   const periode = LABEL_PERIODE[jours] || `${jours} jours`;
-  const periodeUtilisateurs = heure ? "1 h" : periode;
 
   const joursList = useMemo(() => (sb?.series?.length ? sb.series.map((r) => r.jour) : dayList(jours)), [sb, jours]);
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
@@ -296,7 +272,7 @@ function Board({ data, jours, heure, reload }) {
 
   return (
     <>
-      <Section id="sante" title="Santé" kicker="À regarder d'abord" right={demo ? null : <SendBrief />}>
+      <Section id="sante" right={demo ? null : <SendBrief />}>
         <div className="pl-health">
           {sante.map((s, i) => (
             <div className="pl-health-item" key={i}>
@@ -308,9 +284,25 @@ function Board({ data, jours, heure, reload }) {
             </div>
           ))}
         </div>
+        {data.erreurs?.length ? (
+          <div className="pl-errors">
+            <h3>Sources en échec</h3>
+            <ul>
+              {data.erreurs.map((e, i) => (
+                <li key={i}>
+                  <strong>{e.source}</strong> : {e.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <p className="pl-note" style={{ marginTop: 24 }}>
+          Liens directs : <a href="https://eu.posthog.com/project/321035">PostHog</a> · <a href="https://supabase.com/dashboard/project/vrmgrcvdqznswzuamezj">Supabase</a> ·{" "}
+          <a href="https://vercel.com/stan-f307/merry-brief">Vercel</a> · <a href="https://resend.com/emails">Resend</a>. Période courante en encre dans les graphes, précédente en retrait ; jours en heure de Paris.
+        </p>
       </Section>
 
-      <Utilisateurs data={data.utilisateurs} label={periodeUtilisateurs} />
+      <Utilisateurs data={data.utilisateurs} />
 
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
 
@@ -320,7 +312,7 @@ function Board({ data, jours, heure, reload }) {
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 
-      <Section defaultOpen={false} id="site" title="Site vitrine" kicker={`withmerry.com · ${periode}`} summary={ph ? [{ label: "visiteurs", value: fmtInt(sumBy(siteSplit.current, "visiteurs")) }, { label: "pages vues", value: fmtInt(sumBy(siteSplit.current, "pages")) }] : null}>
+      <Section id="site">
         {ph ? (
           <>
             <div className="pl-tiles">
@@ -356,11 +348,11 @@ function Board({ data, jours, heure, reload }) {
             </div>
           </>
         ) : (
-          <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la section Santé"}.</div>
+          <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la page Santé"}.</div>
         )}
       </Section>
 
-      <Section defaultOpen={false} id="referencement" title="Référencement" kicker={`Google · ${periode}`} right={demo ? null : <RefreshSeo />}>
+      <Section id="referencement" right={demo ? null : <RefreshSeo />}>
         <div className="pl-tiles">
           {gsc ? (
             <>
@@ -467,7 +459,7 @@ function Board({ data, jours, heure, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`} summary={[{ label: "comptes", value: fmtInt(t.comptes) }, { label: "nouveaux", value: fmtInt(cur("inscriptions")) }]}>
+      <Section id="appli">
         <div className="pl-tiles">
           <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} />
           <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} />
@@ -531,7 +523,7 @@ function Board({ data, jours, heure, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="produit" title="Ce que les couples font" kicker={`Supabase · ${periode}`} summary={[{ label: "mariages", value: fmtInt(t.mariages) }, { label: "invités", value: fmtInt(t.invites) }, { label: "sites publiés", value: fmtInt(t.sites_publies) }]}>
+      <Section id="couples">
         <div className="pl-tiles">
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
           <Tile label="Organisateurs" value={t.organisateurs} sub={`${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente`} />
@@ -567,7 +559,7 @@ function Board({ data, jours, heure, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire" summary={[{ label: "actifs", value: fmtInt(t.catalogue_actifs) }, { label: "revendiquées", value: fmtInt(t.fiches_revendiquees) }]}>
+      <Section id="prestataires">
         <div className="pl-tiles">
           <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
           <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
@@ -612,7 +604,7 @@ function Board({ data, jours, heure, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="mails" title="Mails" kicker={`Resend · ${periode}`} summary={rs ? [{ label: "envoyés", value: fmtInt(rs.envoyes) }, { label: "en difficulté", value: fmtInt(mailProblemes) }] : null}>
+      <Section id="mails">
         {rs ? (
           <>
             <div className="pl-tiles">
@@ -659,11 +651,11 @@ function Board({ data, jours, heure, reload }) {
             </div>
           </>
         ) : (
-          <div className="pl-empty">Resend n'est pas lisible : {data.resend?.raison || "voir la section Santé"}.</div>
+          <div className="pl-empty">Resend n'est pas lisible : {data.resend?.raison || "voir la page Santé"}.</div>
         )}
       </Section>
 
-      <Section defaultOpen={false} id="bugs" title="Bugs et performance" kicker={`PostHog et Vercel · ${periode}`} summary={ph ? [{ label: "erreurs", value: fmtInt(exceptionsCur) }, { label: "clics de rage", value: fmtInt(rageCur) }] : null}>
+      <Section id="bugs">
         {ph ? (
           <>
             <div className="pl-tiles">
@@ -735,26 +727,10 @@ function Board({ data, jours, heure, reload }) {
             </div>
           </>
         ) : (
-          <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la section Santé"}.</div>
+          <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la page Santé"}.</div>
         )}
       </Section>
 
-      {data.erreurs?.length ? (
-        <div className="pl-errors">
-          <h3>Sources en échec</h3>
-          <ul>
-            {data.erreurs.map((e, i) => (
-              <li key={i}>
-                <strong>{e.source}</strong> : {e.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <p className="pl-note" style={{ marginTop: 24 }}>
-        Liens directs : <a href="https://eu.posthog.com/project/321035">PostHog</a> · <a href="https://supabase.com/dashboard/project/vrmgrcvdqznswzuamezj">Supabase</a> ·{" "}
-        <a href="https://vercel.com/stan-f307/merry-brief">Vercel</a> · <a href="https://resend.com/emails">Resend</a>. Période courante en encre dans les graphes, précédente en retrait ; jours en heure de Paris.
-      </p>
     </>
   );
 }
