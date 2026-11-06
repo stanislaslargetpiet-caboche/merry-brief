@@ -225,3 +225,8 @@
 .pl-card.is-folded h3 { margin-bottom: 0; }
 .pl-folds { display: flex; gap: 8px; margin: 20px 0 0; }
 @media (prefers-reduced-motion: reduce) { .pl-chev { transition: none; } }
+
+/* Utilisateurs : bouton « Voir les noms » sous les tuiles et listes dépliées */
+.pl-qui { margin: 12px 0 4px; }
+.pl-qui .pl-grid { margin-top: 12px; }
+.pl-qui-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
