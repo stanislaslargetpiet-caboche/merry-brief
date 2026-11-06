@@ -14,7 +14,6 @@ import { Icon } from "@/components/dash/icons";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import Collaborators from "@/components/pro/Collaborators";
 import MailPrefs from "@/components/MailPrefs";
-import PasswordFields from "@/components/PasswordFields";
 
 export default function Compte() {
   const pro = usePro();
@@ -26,54 +25,77 @@ export default function Compte() {
     if (!ok) pro.setToast({ kind: "error", text: "La couleur n’a pas pu être enregistrée sur votre compte." });
   }
 
-  const [email, setEmail] = useState(pro.data.user?.email || "");
-  const [changePassword, setChangePassword] = useState(false);
+  const currentEmail = pro.data.user?.email || "";
+  const [email, setEmail] = useState(currentEmail);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordAgain, setPasswordAgain] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  async function save(e) {
+  async function saveEmail(e) {
+    e.preventDefault();
+    const cleanEmail = email.trim();
+    if (!cleanEmail || cleanEmail === currentEmail) {
+      setEditingEmail(false);
+      return;
+    }
+    if (!live) {
+      setEditingEmail(false);
+      setEmail(currentEmail);
+      pro.setToast({ kind: "ok", text: "En démo, l'adresse mail ne change pas." });
+      return;
+    }
+    setSaving("email");
+    const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+    setSaving(null);
+    if (error) {
+      pro.setToast({ kind: "error", text: "L'adresse mail n'a pas pu être changée." });
+      return;
+    }
+    setEditingEmail(false);
+    pro.setToast({ kind: "ok", text: `Un lien de confirmation est parti à ${cleanEmail}.` });
+  }
+
+  function cancelEmail() {
+    setEmail(currentEmail);
+    setEditingEmail(false);
+  }
+
+  async function savePassword(e) {
     e.preventDefault();
     const cleanPassword = password.trim();
-    if (changePassword && cleanPassword.length < 8) {
+    if (cleanPassword.length < 8) {
       pro.setToast({ kind: "error", text: "Le mot de passe doit faire au moins 8 caractères." });
       return;
     }
-    if (changePassword && cleanPassword !== passwordAgain.trim()) {
+    if (cleanPassword !== passwordAgain.trim()) {
       pro.setToast({ kind: "error", text: "Les deux mots de passe ne sont pas identiques." });
       return;
     }
-    setSaving(true);
-    const notes = [];
-    let failed = false;
-    const cleanEmail = email.trim();
-    if (cleanEmail && cleanEmail !== pro.data.user?.email) {
-      if (!live) notes.push("en démo, l'adresse mail ne change pas");
-      else {
-        const { error } = await supabase.auth.updateUser({ email: cleanEmail });
-        failed = failed || !!error;
-        notes.push(error ? "l'adresse mail n'a pas pu être changée" : `un lien de confirmation est parti à ${cleanEmail}`);
-      }
+    if (!live) {
+      cancelPassword();
+      pro.setToast({ kind: "ok", text: "En démo, le mot de passe ne change pas." });
+      return;
     }
-    if (changePassword) {
-      if (!live) notes.push("en démo, le mot de passe ne change pas");
-      else {
-        const { error } = await supabase.auth.updateUser({ password: cleanPassword, data: { merry_password: true } });
-        failed = failed || !!error;
-        notes.push(error ? "le mot de passe n'a pas pu être changé" : "le mot de passe est changé");
-        if (!error) {
-          setPassword("");
-          setPasswordAgain("");
-          setChangePassword(false);
-          sendPasswordChangedMail();
-        }
-      }
+    setSaving("password");
+    const { error } = await supabase.auth.updateUser({ password: cleanPassword, data: { merry_password: true } });
+    setSaving(null);
+    if (error) {
+      pro.setToast({ kind: "error", text: "Le mot de passe n'a pas pu être changé." });
+      return;
     }
-    setSaving(false);
-    const text = notes.length ? `C'est enregistré ; ${notes.join(", ")}.` : "C'est enregistré.";
-    pro.setToast({ kind: failed ? "error" : "ok", text });
+    cancelPassword();
+    sendPasswordChangedMail();
+    pro.setToast({ kind: "ok", text: "Le mot de passe est changé." });
+  }
+
+  function cancelPassword() {
+    setPassword("");
+    setPasswordAgain("");
+    setEditingPassword(false);
   }
 
   async function removeAccount() {
@@ -124,19 +146,65 @@ export default function Compte() {
       </div>
 
       <Section title="Connexion" />
-      <form className="d-card d-settings" onSubmit={save}>
-        <div className="d-form-grid">
-          <Field label="Adresse mail">
-            <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-          </Field>
-        </div>
-        <PasswordFields on={changePassword} setOn={setChangePassword} password={password} setPassword={setPassword} again={passwordAgain} setAgain={setPasswordAgain} />
-        <div className="d-settings-actions">
-          <Btn type="submit" disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer"}
-          </Btn>
-        </div>
-      </form>
+      <div className="d-card p-conn">
+        {editingEmail ? (
+          <form className="p-conn-edit" onSubmit={saveEmail}>
+            <Field label="Nouvelle adresse mail">
+              <input className="d-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus required />
+            </Field>
+            <p className="p-hint">Un lien de confirmation part à cette adresse ; l’ancienne reste valable jusque-là.</p>
+            <div className="p-conn-actions">
+              <Btn kind="ghost" onClick={cancelEmail}>
+                Annuler
+              </Btn>
+              <Btn type="submit" disabled={saving === "email"}>
+                {saving === "email" ? "Enregistrement…" : "Enregistrer"}
+              </Btn>
+            </div>
+          </form>
+        ) : (
+          <div className="p-conn-row">
+            <span className="p-conn-what">
+              <span className="p-conn-label">Adresse mail</span>
+              <strong className="p-conn-value">{currentEmail}</strong>
+            </span>
+            <Btn kind="ghost" onClick={() => setEditingEmail(true)}>
+              Changer mon mail
+            </Btn>
+          </div>
+        )}
+        <div className="p-conn-sep" />
+        {editingPassword ? (
+          <form className="p-conn-edit" onSubmit={savePassword}>
+            <div className="d-form-grid">
+              <Field label="Nouveau mot de passe">
+                <input className="d-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus />
+              </Field>
+              <Field label="Confirmer le mot de passe">
+                <input className="d-input" type="password" value={passwordAgain} onChange={(e) => setPasswordAgain(e.target.value)} autoComplete="new-password" />
+              </Field>
+            </div>
+            <div className="p-conn-actions">
+              <Btn kind="ghost" onClick={cancelPassword}>
+                Annuler
+              </Btn>
+              <Btn type="submit" disabled={saving === "password"}>
+                {saving === "password" ? "Enregistrement…" : "Enregistrer"}
+              </Btn>
+            </div>
+          </form>
+        ) : (
+          <div className="p-conn-row">
+            <span className="p-conn-what">
+              <span className="p-conn-label">Mot de passe</span>
+              <strong className="p-conn-value">••••••••</strong>
+            </span>
+            <Btn kind="ghost" onClick={() => setEditingPassword(true)}>
+              Changer mon mot de passe
+            </Btn>
+          </div>
+        )}
+      </div>
 
       <Section title="Notifications par mail" />
       <MailPrefs

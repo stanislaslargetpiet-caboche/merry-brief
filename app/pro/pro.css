@@ -6075,3 +6075,70 @@ button.p-brand-vendor.is-menu svg {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Compte : bloc Connexion (adresse mail et mot de passe, chacun son bouton) ---------- */
+
+.p-conn {
+  padding: 6px 22px;
+  margin-bottom: 28px;
+}
+
+.p-conn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.p-conn-what {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.p-conn-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--d-muted);
+}
+
+.p-conn-value {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-conn-sep {
+  height: 1px;
+  background: var(--d-line);
+}
+
+.p-conn-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 0;
+}
+
+.p-conn-edit .p-hint {
+  margin: 0;
+}
+
+.p-conn-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .p-conn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .p-conn-actions .d-btn {
+    flex: 1;
+  }
+}
