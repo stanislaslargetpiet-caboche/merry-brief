@@ -45,7 +45,7 @@ export default function Apercu({ onClose }) {
   const v = coupleView(pro.data);
   const photos = v.photos?.length ? v.photos : [null];
   const [i, setI] = useState(0);
-  const n = Math.max(photos.length, 5);
+  const n = photos.length;
   const cur = photos[i] || null;
 
   return (

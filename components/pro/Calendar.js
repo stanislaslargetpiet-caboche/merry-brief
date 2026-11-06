@@ -247,7 +247,7 @@ function Legend({ className = "" }) {
 // État, couple et expiration d'une option : partagé entre l'édition d'un jour et de plusieurs jours
 function useDayStatusState(entry, choices) {
   const [status, setStatus] = useState(entry?.status || "option");
-  const [who, setWho] = useState(entry?.client_id || (entry?.label ? OTHER : choices[0]?.id || OTHER));
+  const [who, setWho] = useState(entry?.client_id || (entry?.label ? OTHER : ""));
   const [label, setLabel] = useState(entry?.label || "");
   const [expires, setExpires] = useState(entry?.expires_on || isoDate(addDays(today(), 14)));
   return { status, setStatus, who, setWho, label, setLabel, expires, setExpires };
@@ -273,6 +273,7 @@ function DayStatusFields({ idPrefix, state, choices }) {
           <div className="p-field">
             <label htmlFor={`${idPrefix}-couple`}>Couple</label>
             <select id={`${idPrefix}-couple`} className="p-input" value={who} onChange={(e) => setWho(e.target.value)}>
+              <option value="">Date bloquée, sans couple</option>
               {choices.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.names}
@@ -312,7 +313,7 @@ function DayEditor({ day, entry, clients, phone, onClose }) {
 
   async function save() {
     if (status === "libre") await pro.setDay(day, null);
-    else await pro.setDay(day, { status, client_id: who === OTHER ? null : who, label: who === OTHER ? label.trim() || null : null, expires_on: expires });
+    else await pro.setDay(day, { status, client_id: who === OTHER ? null : who || null, label: who === OTHER ? label.trim() || null : null, expires_on: expires });
     onClose();
   }
 
@@ -365,7 +366,7 @@ function MultiDayEditor({ days, clients, onClose }) {
   const summary = sorted.length > 3 ? `${shortDate(sorted[0])} – ${shortDate(sorted[sorted.length - 1])}` : sorted.map((x) => shortDate(x)).join(", ");
 
   async function save() {
-    const payload = status === "libre" ? null : { status, client_id: who === OTHER ? null : who, label: who === OTHER ? label.trim() || null : null, expires_on: expires };
+    const payload = status === "libre" ? null : { status, client_id: who === OTHER ? null : who || null, label: who === OTHER ? label.trim() || null : null, expires_on: expires };
     await Promise.all(sorted.map((day) => pro.setDay(day, payload)));
     onClose();
   }

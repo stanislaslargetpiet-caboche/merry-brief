@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { coupleInitials, faceColor } from "@/lib/pro/format";
+import { trapTab } from "@/components/dash/ui";
 
 // Sous-onglets d'une section groupée de la barre latérale (Mon profil, Messagerie) : évite
 // d'empiler trop d'entrées dans la barre, comme sur les maquettes « Mon profil » et « Messagerie »
@@ -36,6 +37,7 @@ export function Sheet({ labelledBy, onClose, children, className = "", wide = fa
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") closeRef.current();
+      trapTab(box.current, e);
     };
     document.addEventListener("keydown", onKey);
     const before = document.activeElement;

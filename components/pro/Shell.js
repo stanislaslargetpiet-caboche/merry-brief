@@ -151,7 +151,7 @@ function Frame({ children }) {
               <Icon name="dots" size={18} sw={2.2} />
             </button>
             <Popover open={menu} onClose={() => setMenu(false)} align="right">
-              <AccountMenu close={() => setMenu(false)} />
+              <AccountMenu close={() => setMenu(false)} onFeature={() => setFeature(true)} />
             </Popover>
           </span>
         </span>
@@ -162,6 +162,11 @@ function Frame({ children }) {
           return (
             <Link key={n.href} href={n.href} className={`p-tab${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
               {on ? <span className="p-tab-pill">{n.label}</span> : n.label}
+              {n.badge && unread ? (
+                <span className="d-tab-badge" aria-label={`${unread} non lues`}>
+                  {unread}
+                </span>
+              ) : null}
             </Link>
           );
         })}
@@ -344,7 +349,7 @@ function VendorPill() {
   );
 }
 
-function AccountMenu({ close }) {
+function AccountMenu({ close, onFeature }) {
   const pro = usePro();
   return (
     <>
@@ -352,6 +357,19 @@ function AccountMenu({ close }) {
       <a className="d-pop-item" href="/pro?revendiquer=1">
         Ajouter une fiche
       </a>
+      <a className="d-pop-item" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+        Aide
+      </a>
+      <button
+        type="button"
+        className="d-pop-item"
+        onClick={() => {
+          close();
+          onFeature();
+        }}
+      >
+        Proposer une fonctionnalité
+      </button>
       <a className="d-pop-item" href={SITE_URL}>
         Retour au site
       </a>

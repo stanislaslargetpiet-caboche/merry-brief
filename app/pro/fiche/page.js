@@ -58,12 +58,6 @@ function MaFiche() {
   const isLieu = v.primary_category === "lieu";
   const apercu = params.get("apercu") === "1";
 
-  // Les liens « Prochaine étape » de l'accueil arrivent sur la bonne section
-  useEffect(() => {
-    const id = window.location.hash.slice(1);
-    if (id) document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, []);
-
   const save = (patch) => pro.saveFiche(patch);
   const num = (x) => (x === "" || x === null || x === undefined ? null : Math.max(0, Math.round(Number(x))) || 0);
 
@@ -384,6 +378,14 @@ function MailCheck({ email }) {
 
 // ---------- Champs enregistrés quand on les quitte ----------
 
+// Enregistrement refusé : le texte reste dans le champ, et quitter le champ de nouveau réessaie
+function useSaveOnBlur(onSave) {
+  const failed = useRef(false);
+  return async (changed, next) => {
+    if (changed || failed.current) failed.current = (await onSave(next)) === false;
+  };
+}
+
 function useDraft(value) {
   const [draft, setDraft] = useState(value ?? "");
   const last = useRef(value);
@@ -398,6 +400,7 @@ function useDraft(value) {
 
 function TextInput({ id, value, onSave, placeholder, type = "text", className = "p-input", required }) {
   const [draft, setDraft] = useDraft(value);
+  const saveOnBlur = useSaveOnBlur(onSave);
   return (
     <input
       id={id}
@@ -407,7 +410,7 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
       placeholder={placeholder}
       aria-required={required || undefined}
       onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => String(draft) !== String(value ?? "") && onSave(typeof draft === "string" ? draft.trim() : draft)}
+      onBlur={() => saveOnBlur(String(draft) !== String(value ?? ""), typeof draft === "string" ? draft.trim() : draft)}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
     />
   );
@@ -416,10 +419,11 @@ function TextInput({ id, value, onSave, placeholder, type = "text", className = 
 // `min` : longueur minimale signalée sous le champ, décomptée pendant la saisie (le texte reste enregistré)
 function TextArea({ id, value, onSave, rows, min }) {
   const [draft, setDraft] = useDraft(value);
+  const saveOnBlur = useSaveOnBlur(onSave);
   const left = min ? min - draft.trim().length : 0;
   return (
     <>
-      <textarea id={id} rows={rows} className="p-textarea" aria-required={min ? true : undefined} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== (value || "") && onSave(draft.trim())} />
+      <textarea id={id} rows={rows} className="p-textarea" aria-required={min ? true : undefined} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => saveOnBlur(draft !== (value || ""), draft.trim())} />
       <Missing when={left > 0}>
         {min} caractères au minimum : il en manque {left}.
       </Missing>

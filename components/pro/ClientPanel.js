@@ -200,7 +200,7 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
                         </span>
                         <div>
                           <span className="p-msg-who">
-                            <strong>{m.from_vendor ? (a ? (a.mine ? `${a.name} (vous)` : a.name) : "Vous") : firstName(c.names)}</strong> <span className="p-muted">· {shortDate(String(m.sent_at).slice(0, 10))}</span>
+                            <strong>{m.from_vendor ? (a ? (a.mine ? `${a.name} (vous)` : a.name) : "Vous") : firstName(c.names)}</strong> <span className="p-muted">· {shortDate(new Date(m.sent_at))}</span>
                           </span>
                           <span className={`p-msg-body${m.from_vendor ? " is-me" : ""}`}>{m.body}</span>
                         </div>
@@ -230,7 +230,7 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
                     <span className="p-doc-text">
                       <span className="p-doc-name">{doc.name}</span>
                       <span className="p-doc-meta">
-                        {(doc.storage_path.match(/\.([a-z0-9]+)$/i)?.[1] || "Fichier").toUpperCase()} · {shortDate(String(doc.created_at).slice(0, 10))}
+                        {(doc.storage_path.match(/\.([a-z0-9]+)$/i)?.[1] || "Fichier").toUpperCase()} · {shortDate(new Date(doc.created_at))}
                       </span>
                     </span>
                     <button type="button" className="p-link is-135" onClick={() => pro.openDocument(doc)}>
