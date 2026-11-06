@@ -145,6 +145,7 @@ export default function Collaborators() {
   return (
     <section className="p-card p-options" id="collaborateurs" ref={sectionRef} style={{ scrollMarginTop: 24 }}>
       <h2 className="p-options-title">Collaborateurs</h2>
+      <p className="p-hint p-collab-intro">Ils voient les mêmes demandes que vous, et leur nom apparaît dans la messagerie quand ils répondent.</p>
       <ul className="d-org-list">
         {members.map((m) => (
           <Fragment key={m.id}>
@@ -181,26 +182,39 @@ export default function Collaborators() {
                 <button type="button" className="p-btn p-btn-ghost is-135" onClick={() => (editing === m.id ? setEditing(null) : startEdit(m))} aria-expanded={editing === m.id}>
                   Modifier
                 </button>
-                {!m.user_id ? (
-                  <>
-                    <button type="button" className="p-btn p-btn-ghost is-135" onClick={() => copy(m)}>
-                      {copied === m.id ? "Lien copié" : "Copier le lien"}
-                    </button>
-                    <button type="button" className="p-btn p-btn-ghost is-135" onClick={() => sendMail(m)} disabled={sending === m.id}>
-                      {sending === m.id ? <BusyDots /> : sent[m.id] ? "Envoyée" : "Renvoyer"}
-                    </button>
-                    <button type="button" className="d-icon-btn is-flat" aria-label={`Retirer ${m.email}`} onClick={() => remove(m)}>
-                      <Icon name="x" size={14} sw={2.4} />
-                    </button>
-                  </>
-                ) : m.user_id !== user?.id ? (
+                {!m.user_id || m.user_id !== user?.id ? (
                   <span className="d-anchor">
-                    <button type="button" className="d-icon-btn is-flat" aria-label={`Options pour ${m.email}`} onClick={() => setMenu(menu === m.id ? null : m.id)}>
+                    <button type="button" className="d-icon-btn is-flat" aria-label={`Options pour ${memberName(m) || m.email}`} aria-haspopup="menu" aria-expanded={menu === m.id} onClick={() => setMenu(menu === m.id ? null : m.id)}>
                       <Icon name="dots" size={16} sw={2.4} />
                     </button>
                     <Popover open={menu === m.id} onClose={() => setMenu(null)} align="right">
+                      {!m.user_id ? (
+                        <>
+                          <button
+                            type="button"
+                            className="d-pop-item"
+                            onClick={() => {
+                              setMenu(null);
+                              sendMail(m);
+                            }}
+                            disabled={sending === m.id}
+                          >
+                            {sent[m.id] ? "Invitation renvoyée" : "Renvoyer l’invitation"}
+                          </button>
+                          <button
+                            type="button"
+                            className="d-pop-item"
+                            onClick={() => {
+                              setMenu(null);
+                              copy(m);
+                            }}
+                          >
+                            {copied === m.id ? "Lien copié" : "Copier le lien"}
+                          </button>
+                        </>
+                      ) : null}
                       <button type="button" className="d-pop-item is-danger" onClick={() => remove(m)}>
-                        Retirer des collaborateurs
+                        {m.user_id ? "Retirer des collaborateurs" : "Retirer l’invitation"}
                       </button>
                     </Popover>
                   </span>
@@ -251,7 +265,8 @@ export default function Collaborators() {
           </Fragment>
         ))}
       </ul>
-      <form className="d-org-form" onSubmit={add}>
+      <form className="d-org-form p-collab-invite" onSubmit={add}>
+        <strong className="p-collab-invite-title">Inviter un collaborateur</strong>
         <div className="p-field">
           <label htmlFor="collab-name">Qui ?</label>
           <input id="collab-name" className="p-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Théo, régisseur" />

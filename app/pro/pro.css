@@ -6075,3 +6075,58 @@ button.p-brand-vendor.is-menu svg {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Compte : bloc Collaborateurs ---------- */
+
+.p-collab-intro {
+  margin: 0 0 8px;
+}
+
+.p-options .d-org-row {
+  flex-wrap: nowrap;
+  gap: 14px;
+  padding: 14px 0;
+}
+
+.p-options .d-org-who {
+  flex: 1 1 auto;
+  gap: 5px;
+}
+
+.p-options .d-org-who > strong {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-options .d-org-actions {
+  flex: none;
+  flex-wrap: nowrap;
+}
+
+.p-options .p-collab-invite {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  margin: 10px 0 14px;
+  padding: 18px 20px 20px;
+}
+
+.p-collab-invite-title {
+  grid-column: 1 / -1;
+  font-size: 15px;
+}
+
+@media (max-width: 700px) {
+  .p-options .d-org-row {
+    flex-wrap: wrap;
+  }
+  .p-options .d-org-who {
+    flex: 1 1 calc(100% - 54px);
+  }
+  .p-options .d-org-actions {
+    margin-left: 54px;
+  }
+  .p-options .p-collab-invite {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
