@@ -2,6 +2,11 @@
 -- Débit des crédits d'un prestataire : pro_send (première réponse à une demande, coût selon le métier).
 -- Chaque scénario lève une exception s'il est faux, donc check.sh échoue. Base de test uniquement, tout est annulé.
 begin;
+-- Version de pro_send en production (lue le 6 nov. 2026) : check.sh relance espace-prestataire.sql, qui remet
+-- l'ancienne version sans débit, et ne charge pas pro-collaborateurs-noms.sql. On recharge donc ces trois fichiers.
+\i supabase/pro-credits-reponse.sql
+\i supabase/pro-collaborateurs.sql
+\i supabase/pro-collaborateurs-noms.sql
 insert into auth.users (id, email) values ('99999999-9999-9999-9999-999999999999', 'presta@example.com');
 select set_config('request.jwt.claim.sub', '99999999-9999-9999-9999-999999999999', true);
 insert into public.weddings (id, partner1, partner2) values ('11111111-1111-1111-1111-111111111111', 'Alice', 'Ben');
