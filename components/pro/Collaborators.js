@@ -145,7 +145,6 @@ export default function Collaborators() {
   return (
     <section className="p-card p-options" id="collaborateurs" ref={sectionRef} style={{ scrollMarginTop: 24 }}>
       <h2 className="p-options-title">Collaborateurs</h2>
-      <p className="p-hint p-collab-intro">Ils voient les mêmes demandes que vous, et leur nom apparaît dans la messagerie quand ils répondent.</p>
       <ul className="d-org-list">
         {members.map((m) => (
           <Fragment key={m.id}>

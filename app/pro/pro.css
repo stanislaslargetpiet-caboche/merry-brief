@@ -6161,10 +6161,6 @@ button.p-brand-vendor.is-menu svg {
 
 /* ---------- Compte : bloc Collaborateurs ---------- */
 
-.p-collab-intro {
-  margin: 0 0 8px;
-}
-
 .p-options .d-org-row {
   flex-wrap: nowrap;
   gap: 14px;
@@ -6211,5 +6207,69 @@ button.p-brand-vendor.is-menu svg {
   }
   .p-options .p-collab-invite {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Réglages > Connexion : une ligne par information (intitulé, valeur), l'action à droite */
+.p-conn {
+  gap: 0;
+}
+
+.p-conn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+}
+
+.p-conn-what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.p-conn-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p-muted);
+}
+
+.p-conn-value {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  letter-spacing: 0.02em;
+}
+
+.p-conn-row .d-btn {
+  flex: none;
+}
+
+.p-conn-sep {
+  height: 1px;
+  margin: 14px 0;
+  background: var(--d-line);
+}
+
+.p-conn-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.p-conn-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .p-conn-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
   }
 }
