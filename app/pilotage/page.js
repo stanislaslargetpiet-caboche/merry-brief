@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
+import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
 import PilotNav from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
@@ -25,6 +26,7 @@ function readDemoFlag() {
 
 const SECTIONS = [
   { id: "sante", label: "Santé" },
+  { id: "utilisateurs", label: "Utilisateurs" },
   { id: "demandes", label: "Demandes" },
   { id: "couts", label: "Coûts" },
   { id: "site", label: "Site" },
@@ -36,10 +38,12 @@ const SECTIONS = [
   { id: "bugs", label: "Bugs" },
 ];
 
+// 1 h : seule la section Utilisateurs se lit à l'heure ; les sources par jour (PostHog, Resend…) restent sur 24 h
 const RANGES = [
-  { jours: 1, label: "24 h" },
-  { jours: 7, label: "7 jours" },
-  { jours: 30, label: "30 jours" },
+  { id: "1h", jours: 1, heure: true, label: "1 h" },
+  { id: "24h", jours: 1, label: "24 h" },
+  { id: "7j", jours: 7, label: "7 jours" },
+  { id: "30j", jours: 30, label: "30 jours" },
 ];
 
 function useToken() {
@@ -62,7 +66,10 @@ function useToken() {
 
 export default function PilotagePage() {
   const auth = useToken();
-  const [jours, setJours] = useState(7);
+  const [periode, setPeriode] = useState("7j");
+  const range = RANGES.find((r) => r.id === periode) || RANGES[2];
+  const jours = range.jours;
+  const heure = Boolean(range.heure);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -85,11 +92,11 @@ export default function PilotagePage() {
   // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
   // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
   const load = useCallback(
-    async (j, frais = false) => {
+    async (j, frais = false, h = false) => {
       if (auth.status !== "ok") return;
       setBusy(true);
       setError(null);
-      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}${frais ? "&frais=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
+      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}${h ? "&periode=1h" : ""}${frais ? "&frais=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
       try {
         const { data: sess } = await supabase.auth.getSession();
         let res = await call(sess?.session?.access_token || auth.token);
@@ -112,9 +119,9 @@ export default function PilotagePage() {
   );
 
   useEffect(() => {
-    if (auth.status === "ok") load(jours);
+    if (auth.status === "ok") load(jours, false, heure);
     if (auth.status === "demo") setData(demoData(jours));
-  }, [auth.status, jours, load]);
+  }, [auth.status, jours, heure, load]);
 
   if (auth.status === "loading") return <Gate title="Pilotage" text="Un instant…" />;
   if (auth.status === "signedout" || error === "connexion")
@@ -137,13 +144,16 @@ export default function PilotagePage() {
           <div className="pl-actions">
             <div className="pl-ranges" role="group" aria-label="Période">
               {RANGES.map((r) => (
-                <button key={r.jours} type="button" aria-pressed={jours === r.jours} className={`pl-chip${jours === r.jours ? " is-on" : ""}`} disabled={busy} onClick={() => setJours(r.jours)}>
+                <button key={r.id} type="button" aria-pressed={periode === r.id} className={`pl-seg${periode === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => setPeriode(r.id)}>
                   {r.label}
                 </button>
               ))}
             </div>
-            <button type="button" className="pl-btn" onClick={() => load(jours, true)} disabled={busy || auth.status === "demo"}>
-              {busy ? "Chargement…" : "Actualiser"}
+            <button type="button" className={`pl-refresh${busy ? " is-busy" : ""}`} onClick={() => load(jours, true, heure)} disabled={busy || auth.status === "demo"} aria-label="Actualiser" title="Relire toutes les sources maintenant">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+                <path d="M20 4v7h-7" />
+              </svg>
             </button>
           </div>
           {data ? <PilotNav sections={SECTIONS} offsetRef={barRef} ready={Boolean(data)} /> : null}
@@ -167,9 +177,10 @@ export default function PilotagePage() {
             </button>
           </div>
         ) : null}
+        {heure && data ? <p className="pl-note">Sur 1 h, la section Utilisateurs est lue à la minute près ; les autres sections (PostHog, Resend, Supabase par jour…) restent sur 24 h, leur plus petite période.</p> : null}
         {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
         {!data && !error ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
-        {data ? <Board data={data} jours={jours} reload={() => load(jours, true)} /> : null}
+        {data ? <Board data={data} jours={jours} heure={heure} reload={() => load(jours, true, heure)} /> : null}
       </div>
     </div>
   );
@@ -229,7 +240,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours, reload }) {
+function Board({ data, jours, heure, reload }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -238,6 +249,7 @@ function Board({ data, jours, reload }) {
   const gsc = data.google?.disponible ? data.google : null;
   const seo = data.seo?.disponible ? data.seo : null;
   const periode = LABEL_PERIODE[jours] || `${jours} jours`;
+  const periodeUtilisateurs = heure ? "1 h" : periode;
 
   const joursList = useMemo(() => (sb?.series?.length ? sb.series.map((r) => r.jour) : dayList(jours)), [sb, jours]);
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
@@ -294,11 +306,13 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
+      <Utilisateurs data={data.utilisateurs} label={periodeUtilisateurs} />
+
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 
-      <Section defaultOpen={false} id="site" title="Site vitrine" kicker={`withmerry.com · ${periode}`}>
+      <Section defaultOpen={false} id="site" title="Site vitrine" kicker={`withmerry.com · ${periode}`} summary={ph ? [{ label: "visiteurs", value: fmtInt(sumBy(siteSplit.current, "visiteurs")) }, { label: "pages vues", value: fmtInt(sumBy(siteSplit.current, "pages")) }] : null}>
         {ph ? (
           <>
             <div className="pl-tiles">
@@ -445,7 +459,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`}>
+      <Section defaultOpen={false} id="appli" title="Appli organisateurs" kicker={`app.withmerry.com · ${periode}`} summary={[{ label: "comptes", value: fmtInt(t.comptes) }, { label: "nouveaux", value: fmtInt(cur("inscriptions")) }]}>
         <div className="pl-tiles">
           <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} />
           <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} />
@@ -509,7 +523,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="produit" title="Ce que les couples font" kicker={`Supabase · ${periode}`}>
+      <Section defaultOpen={false} id="produit" title="Ce que les couples font" kicker={`Supabase · ${periode}`} summary={[{ label: "mariages", value: fmtInt(t.mariages) }, { label: "invités", value: fmtInt(t.invites) }, { label: "sites publiés", value: fmtInt(t.sites_publies) }]}>
         <div className="pl-tiles">
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
           <Tile label="Organisateurs" value={t.organisateurs} sub={`${fmtInt(t.organisateurs_invites_en_attente)} invitation(s) en attente`} />
@@ -531,17 +545,6 @@ function Board({ data, jours, reload }) {
           <Card title="Réponses RSVP et visites des sites">
             <DayBars series={sb?.series} keys={["reponses_rsvp", "visites_sites"]} labels={["Réponses", "Visites"]} days={jours} height={80} />
           </Card>
-          <Card fold="closed" title="Derniers comptes" wide>
-            <Table
-              cols={[
-                { key: "email", label: "Adresse" },
-                { key: "prenoms", label: "Couple", render: (r) => r.prenoms || <span className="pl-muted">{sb?.repli ? "–" : "sans mariage"}</span> },
-                { key: "cree", label: "Créé", render: (r) => fmtDateTime(r.cree) },
-                { key: "derniere_connexion", label: "Dernière connexion", render: (r) => fmtDateTime(r.derniere_connexion) },
-              ]}
-              rows={sb?.derniers_comptes}
-            />
-          </Card>
           <Card fold="closed" title="Dernières demandes de devis">
             <Table
               cols={[
@@ -556,7 +559,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire">
+      <Section defaultOpen={false} id="prestataires" title="Prestataires" kicker="Catalogue et espace prestataire" summary={[{ label: "actifs", value: fmtInt(t.catalogue_actifs) }, { label: "revendiquées", value: fmtInt(t.fiches_revendiquees) }]}>
         <div className="pl-tiles">
           <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
           <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={(v) => `${v} %`} sub={`${fmtInt(t.catalogue_sans_photo)} sans aucune photo`} />
@@ -601,7 +604,7 @@ function Board({ data, jours, reload }) {
         </div>
       </Section>
 
-      <Section defaultOpen={false} id="mails" title="Mails" kicker={`Resend · ${periode}`}>
+      <Section defaultOpen={false} id="mails" title="Mails" kicker={`Resend · ${periode}`} summary={rs ? [{ label: "envoyés", value: fmtInt(rs.envoyes) }, { label: "en difficulté", value: fmtInt(mailProblemes) }] : null}>
         {rs ? (
           <>
             <div className="pl-tiles">
@@ -646,7 +649,7 @@ function Board({ data, jours, reload }) {
         )}
       </Section>
 
-      <Section defaultOpen={false} id="bugs" title="Bugs et performance" kicker={`PostHog et Vercel · ${periode}`}>
+      <Section defaultOpen={false} id="bugs" title="Bugs et performance" kicker={`PostHog et Vercel · ${periode}`} summary={ph ? [{ label: "erreurs", value: fmtInt(exceptionsCur) }, { label: "clics de rage", value: fmtInt(rageCur) }] : null}>
         {ph ? (
           <>
             <div className="pl-tiles">

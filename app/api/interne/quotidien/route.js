@@ -32,7 +32,7 @@ function adminClient() {
 const byCron = (req) => Boolean(process.env.CRON_SECRET) && req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
 
 async function sendBrief(admin) {
-  const data = await collectPilotage({ admin, days: 2, fresh: true });
+  const data = await collectPilotage({ admin, days: 2, fresh: true, windowMs: 24 * 3600 * 1000 });
   const brief = buildBrief(data, new Date());
   const ok = await sendMail({
     to: TO,

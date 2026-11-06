@@ -19,7 +19,9 @@ export async function GET(req) {
   const params = new URL(req.url).searchParams;
   const asked = Number(params.get("jours") || 7);
   const days = RANGES.has(asked) ? asked : 7;
+  // ?periode=1h : les sources par jour restent sur 24 h, la section Utilisateurs se lit sur l'heure exacte
+  const hour = params.get("periode") === "1h";
   // « Actualiser » demande une lecture neuve (?frais=1) ; sinon Supabase est lu par le cache de cinq minutes
-  const data = await collectPilotage({ admin, days, fresh: params.get("frais") === "1" });
-  return Response.json({ ok: true, jours: days, genere: new Date().toISOString(), ...data }, { headers: { "cache-control": "private, no-store" } });
+  const data = await collectPilotage({ admin, days, fresh: params.get("frais") === "1", ...(hour ? { days: 1, windowMs: 3600 * 1000 } : {}) });
+  return Response.json({ ok: true, jours: days, heure: hour, genere: new Date().toISOString(), ...data }, { headers: { "cache-control": "private, no-store" } });
 }
