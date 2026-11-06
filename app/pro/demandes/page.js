@@ -55,14 +55,16 @@ function Demandes() {
   useEffect(() => setSeen(readSeenRequests()), []);
   // Une demande ouverte est lue
   useEffect(() => {
-    if (!shown) return;
+    // Téléphone : la première demande de la liste n'est pas affichée tant qu'on ne l'ouvre pas
+    const read = window.matchMedia("(max-width: 860px)").matches ? current : shown;
+    if (!read) return;
     setSeen((s) => {
-      if (s.has(shown.client_id)) return s;
-      const next = new Set(s).add(shown.client_id);
+      if (s.has(read.client_id)) return s;
+      const next = new Set(s).add(read.client_id);
       writeSeenRequests(next);
       return next;
     });
-  }, [shown]);
+  }, [shown, current]);
 
   return (
     <div className={`p-demandes${current ? " is-open" : ""}`}>
@@ -295,7 +297,7 @@ function Detail({ r, c, onBack }) {
                       </>
                     );
                   })()}{" "}
-                  · {dateShortYear(String(m.sent_at).slice(0, 10)).replace(/ \d{4}$/, "")}
+                  · {dateShortYear(new Date(m.sent_at)).replace(/ \d{4}$/, "")}
                 </span>
                 <p>{m.body}</p>
               </li>

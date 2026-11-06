@@ -47,7 +47,7 @@ export default function FeatureDialog({ page, onClose }) {
               <li key={f.id}>
                 <span>
                   <span className="p-feature-body">{f.body}</span>
-                  <span className="p-feature-when">Envoyée le {shortDate(String(f.created_at).slice(0, 10))}</span>
+                  <span className="p-feature-when">Envoyée le {shortDate(new Date(f.created_at))}</span>
                 </span>
                 <span className={`p-chip${STATUS[f.status]?.cls || ""}`}>{STATUS[f.status]?.label || "Reçue"}</span>
               </li>

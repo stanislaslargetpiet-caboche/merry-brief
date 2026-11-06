@@ -77,7 +77,7 @@ export default function Credits() {
               <tbody>
                 {d.ledger.map((l) => (
                   <tr key={l.id}>
-                    <td className="p-muted">{shortDate(String(l.at).slice(0, 10))}</td>
+                    <td className="p-muted">{shortDate(new Date(l.at))}</td>
                     <td className="p-ledger-label">{l.label}</td>
                     <td className="p-ledger-n">{delta(l.delta)}</td>
                     <td className="p-ledger-b">{l.balance}</td>
@@ -91,7 +91,7 @@ export default function Credits() {
                   <span>
                     <span className="p-ledger-label">{l.label}</span>
                     <span className="p-muted">
-                      {shortDate(String(l.at).slice(0, 10))} · solde {l.balance}
+                      {shortDate(new Date(l.at))} · solde {l.balance}
                     </span>
                   </span>
                   <span className="p-ledger-n">{delta(l.delta)}</span>
