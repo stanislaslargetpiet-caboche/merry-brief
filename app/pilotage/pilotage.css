@@ -307,8 +307,12 @@
 .pl-ligne-t strong { font-weight: 600; line-height: 1.35; }
 .pl-ligne-t small { font-size: 12px; font-weight: 500; color: var(--ink-muted); line-height: 1.4; }
 .pl-ligne-a { flex: none; display: flex; align-items: center; gap: 6px; }
-.pl-lecture { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid var(--border); }
-.pl-lecture:first-child { border-top: 0; padding-top: 0; }
+.pl-lectures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.pl-lecture { display: grid; gap: 4px; }
+.pl-lecture p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-muted); }
+.pl-compteur { display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 700; color: inherit; text-decoration: none; }
+.pl-compteur span { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.pl-compteur:hover { border-color: var(--border-strong); }
 .pl-lecture small { font-size: 12px; font-weight: 500; color: var(--ink-muted); }
 .pl-lecture strong, .pl-lecture a { font-weight: 600; line-height: 1.35; color: inherit; }
 
@@ -319,7 +323,7 @@
 .pl-tache-date { min-height: 32px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
 
 @media (max-width: 900px) {
-  .pl-jour.has-side { grid-template-columns: minmax(0, 1fr); }
+  .pl-jour.has-side, .pl-lectures { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
   .pl-add { margin: 0 16px; min-height: 36px; }

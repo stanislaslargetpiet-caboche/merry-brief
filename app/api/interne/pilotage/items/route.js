@@ -2,7 +2,7 @@
 // Même accès que le reste du pilotage (adresses de PILOTAGE_EMAILS, jeton de session Supabase).
 
 import { requirePilot } from "@/lib/server/pilotage/auth";
-import { readItems } from "@/lib/server/pilotage/items";
+import { ecrireParCle, readItems } from "@/lib/server/pilotage/items";
 import { parisDay } from "@/lib/server/pilotage/reseau";
 import { itemAction, validateItem } from "@/lib/pilotage/items";
 
@@ -33,7 +33,7 @@ export async function POST(req) {
   if (body.alerte) {
     const cle = String(body.alerte);
     if (!cle.startsWith("alerte:") || cle.length > 320) return invalide("alerte");
-    const { error } = await who.admin.from("pilotage_items").upsert({ type: "alerte", titre: cle.slice(7) || "Alerte", statut: "fait", fait_le: new Date().toISOString(), cle }, { onConflict: "cle", ignoreDuplicates: true });
+    const { error } = await ecrireParCle(who.admin, { type: "alerte", titre: cle.slice(7, 307) || "Alerte", statut: "fait", fait_le: new Date().toISOString(), cle });
     return error ? fail(error) : Response.json({ ok: true }, { headers: NO_STORE });
   }
   const v = validateItem(body, { creation: true });
