@@ -46,9 +46,6 @@ export default function Collaborators() {
     };
     const hash = window.location.hash;
     if (hash === "#collaborateurs" || hash === "#inviter") show(hash === "#inviter");
-    const onEvent = (e) => show(!!e.detail?.invite);
-    window.addEventListener("merry:collab", onEvent);
-    return () => window.removeEventListener("merry:collab", onEvent);
   }, []);
 
   async function add(e) {

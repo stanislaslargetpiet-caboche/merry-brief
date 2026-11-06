@@ -12,8 +12,6 @@ import { usePro } from "@/lib/pro/store";
 import { parseAmount } from "@/lib/dash/format";
 import { OPTION_UNIT, UNIT_LABEL, price } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
-import { ProSubnav } from "@/components/pro/ui";
-import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import AvailabilityCalendar from "@/components/pro/Calendar";
 import SeasonDatePicker from "@/components/pro/SeasonPicker";
 
@@ -45,7 +43,6 @@ export default function Tarifs() {
   return (
     <div className="p-narrow is-28">
       <h1 className="p-h1 is-page">Calendrier &amp; Tarifs.</h1>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <AvailabilityCalendar />
 

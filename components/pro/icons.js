@@ -1,6 +1,8 @@
 // Icônes de l'espace prestataire : les tracés des maquettes « Espace prestataire » du canvas
 
 const PATHS = {
+  bubble: '<path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/>',
+  horloge: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   home: '<path d="M3.5 11 12 4l8.5 7v8.5a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/>',
   fiche: '<path d="M4 9h16l-1.5-5h-13z"/><path d="M5 9v11h14V9M10 20v-5h4v5"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',

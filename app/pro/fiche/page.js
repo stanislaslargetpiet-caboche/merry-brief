@@ -10,8 +10,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "@/components/pro/icons";
-import { Pills, ProSubnav, Switch } from "@/components/pro/ui";
-import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
+import { Pills, Switch } from "@/components/pro/ui";
 import { BusyDots } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 import { searchAddress } from "@/lib/pro/geo";
@@ -58,6 +57,12 @@ function MaFiche() {
   const isLieu = v.primary_category === "lieu";
   const apercu = params.get("apercu") === "1";
 
+  // Les liens « Ma fiche » de l'accueil arrivent sur la bonne section
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, []);
+
   const save = (patch) => pro.saveFiche(patch);
   const num = (x) => (x === "" || x === null || x === undefined ? null : Math.max(0, Math.round(Number(x))) || 0);
 
@@ -65,7 +70,6 @@ function MaFiche() {
     <div className="p-narrow">
       {/* Le titre seul, comme les autres onglets de Mon profil ; l'aperçu passe sous les onglets */}
       <h1 className="p-h1 is-page">Ma fiche.</h1>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
       <div className="p-clients-tools">
         <button type="button" className="p-btn p-btn-ghost p-phone-wide" onClick={() => router.push("/pro/fiche?apercu=1")}>
           <ProIcon name="eye" size={18} />

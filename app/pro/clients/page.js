@@ -12,7 +12,7 @@ import { usePro } from "@/lib/pro/store";
 import { dayShort, guestsText, isPastClient, STAGES, weddingWhen } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face, ProSubnav } from "@/components/pro/ui";
-import { PRO_MESSAGERIE_TABS } from "@/components/pro/Shell";
+import { PRO_CLIENTS_TABS } from "@/components/pro/Shell";
 import ClientPanel, { NEW_CLIENT } from "@/components/pro/ClientPanel";
 
 const ACTIVE_STAGES = STAGES.filter((s) => s.key !== "perdu");
@@ -48,8 +48,8 @@ function Clients() {
   return (
     <div className={`p-clients${current ? " is-open" : ""}`}>
       {/* En-tête comme Mon profil : le titre seul, puis les onglets, puis les outils de la page */}
-      <h1 className="p-h1 is-page">Réservations.</h1>
-      <ProSubnav items={PRO_MESSAGERIE_TABS} label="Sections de Messagerie" />
+      <h1 className="p-h1 is-page">Clients.</h1>
+      <ProSubnav items={PRO_CLIENTS_TABS} label="Sections de Clients" />
       <div className="p-clients-tools">
         <div className="p-search">
           <ProIcon name="search" size={16} stroke="#6b6a63" />

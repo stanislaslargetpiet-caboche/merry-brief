@@ -9,8 +9,6 @@ import { usePro } from "@/lib/pro/store";
 import { creditsRoi } from "@/lib/pro/format";
 import { shortDate } from "@/lib/dash/format";
 import { CreditsCoins } from "@/components/pro/icons";
-import { ProSubnav } from "@/components/pro/ui";
-import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 
 const count = (n) => `${n} crédit${n > 1 ? "s" : ""}`;
 const delta = (n) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
@@ -25,7 +23,6 @@ export default function Credits() {
   return (
     <div className="p-credits">
       <h1 className="p-h1 is-page">Crédits.</h1>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
 
       <section className="p-credits-card">
         <h2>Crédits disponibles</h2>

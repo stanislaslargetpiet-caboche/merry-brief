@@ -7,8 +7,6 @@
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
-import { ProSubnav } from "@/components/pro/ui";
-import { PRO_PROFIL_TABS } from "@/components/pro/Shell";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
@@ -118,8 +116,7 @@ export default function Compte() {
 
   return (
     <div className="p-narrow is-28">
-      <h1 className="p-h1 is-page">Compte.</h1>
-      <ProSubnav items={PRO_PROFIL_TABS} label="Sections de Mon profil" />
+      <h1 className="p-h1 is-page">Réglages.</h1>
 
       <Section title="Couleur de l’espace prestataire" />
       <div className="d-accents" role="radiogroup" aria-label="Couleur de l’espace prestataire">
