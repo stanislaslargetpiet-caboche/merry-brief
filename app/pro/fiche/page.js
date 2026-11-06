@@ -137,25 +137,18 @@ function MaFiche() {
         </section>
       ) : null}
 
+      <section className="p-sec" id="acces">
+        <h2 className="p-sec-title">Gare et aéroport</h2>
+        <p className="p-hint">Activez ce qui est à proximité, puis ajustez le trajet : il est estimé depuis l’adresse, à corriger à la main.</p>
+        <div className="p-toggles">
+          <TransportRow id="gare" label="Gare à proximité" nameKey="station_name" minutesKey="station_minutes" pick={(a) => a?.station} />
+          <TransportRow id="aero" label="Aéroport à proximité" nameKey="airport_name" minutesKey="airport_minutes" pick={(a) => a?.airport} />
+        </div>
+      </section>
+
       {isLieu ? (
-        <section className="p-sec" id="acces">
-          <div className="p-sec-row">
-            <h2 className="p-sec-title">Accès</h2>
-            {v.address ? (
-              <button type="button" className="p-btn p-btn-ghost" onClick={() => pro.calcAccess()}>
-                Recalculer depuis l’adresse
-              </button>
-            ) : null}
-          </div>
-          <p className="p-hint">Estimés depuis l’adresse de la section Présentation ; modifiables à la main.</p>
-          <div className="p-access">
-            <TextField required id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
-            <MinutesField required id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
-          </div>
-          <div className="p-access">
-            <TextField required id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
-            <MinutesField required id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
-          </div>
+        <section className="p-sec" id="parking">
+          <h2 className="p-sec-title">Accès</h2>
           <div className="p-toggles">
             <div className="p-toggle">
               <span id="park">Parking sur place</span>
@@ -536,18 +529,60 @@ function NumberField({ id, label, value, onSave, required }) {
   );
 }
 
-function MinutesField({ id, value, onSave, required }) {
+// Gare ou aéroport à proximité : « oui » enregistre un trajet de départ (estimé depuis l'adresse, 15 min à
+// défaut), « non » vide le nom et le trajet (colonnes *_name et *_minutes de vendors, lues par les couples).
+// La jauge ne part qu'au relâchement pour ne pas enregistrer à chaque cran.
+const MAX_MINUTES = 120;
+function TransportRow({ id, label, nameKey, minutesKey, pick }) {
+  const pro = usePro();
+  const v = pro.data.vendor;
+  const minutes = v[minutesKey];
+  const on = minutes !== null && minutes !== undefined;
+  const [draft, setDraft] = useState(null);
+  const shown = draft ?? minutes ?? 0;
+
+  const toggle = async (next) => {
+    if (!next) return pro.saveFiche({ [nameKey]: null, [minutesKey]: null });
+    const est = pick(await pro.estimateAccess());
+    return pro.saveFiche({ [nameKey]: est?.name || null, [minutesKey]: Math.min(est?.minutes ?? 15, MAX_MINUTES) });
+  };
+  const commit = (e) => {
+    const n = Number(e.currentTarget.value);
+    setDraft(null);
+    if (n !== minutes) pro.saveFiche({ [minutesKey]: n });
+  };
+
   return (
-    <div className="p-field">
-      <label htmlFor={id}>
-        Trajet
-        {required ? <Req /> : null}
-      </label>
-      <div className="p-input p-unit">
-        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} required={required} />
-        <span>min</span>
+    <div className="p-toggle-block">
+      <div className="p-toggle">
+        <span id={`${id}-l`}>{label}</span>
+        <Switch on={on} labelledBy={`${id}-l`} onChange={toggle} />
       </div>
-      <Missing when={required && isEmpty(value)} />
+      {on ? (
+        <div className="p-range">
+          <TextField id={`${id}-n`} label={nameKey === "station_name" ? "Nom de la gare" : "Nom de l’aéroport"} value={v[nameKey]} onSave={(t) => pro.saveFiche({ [nameKey]: t || null })} />
+          <div className="p-field">
+            <label htmlFor={`${id}-r`}>Trajet estimé</label>
+            <div className="p-range-row">
+              <input
+                id={`${id}-r`}
+                type="range"
+                min={0}
+                max={MAX_MINUTES}
+                step={5}
+                value={shown}
+                aria-valuetext={`${shown} min`}
+                onChange={(e) => setDraft(Number(e.target.value))}
+                onPointerUp={commit}
+                onKeyUp={commit}
+                onBlur={commit}
+              />
+              <output htmlFor={`${id}-r`}>{shown} min</output>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
+
