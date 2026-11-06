@@ -18,6 +18,7 @@ import { Card, DayBars, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, S
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
 import { pathFromHash, resolvePage } from "@/lib/pilotage/nav";
+import { AGENT_TYPES } from "@/lib/agentsIa";
 
 // ?demo=1 (ou pas de Supabase en local) : la page se dessine avec un jeu d'exemple, jamais de vraies mesures
 function readDemoFlag() {
@@ -247,6 +248,8 @@ function Board({ data, jours, reload }) {
   const gscSplit = splitSeries(gscSeries, jours);
   const organic = alignSeries(joursList, ph?.seo?.series, ["sessions"]);
   const organicSplit = splitSeries(organic, jours);
+  const agentsSeries = alignSeries(joursList, ph?.agents?.series, ["visites", "pages"]);
+  const agentsSplit = splitSeries(agentsSeries, jours);
   const avgPos = (rows) => {
     const seen = rows.filter((r) => r.impressions > 0);
     const imp = sumBy(seen, "impressions");
@@ -443,6 +446,61 @@ function Board({ data, jours, reload }) {
             </Fold>
           ) : null}
         </Folds>
+      </Section>
+
+      <Section id="agents">
+        {ph ? (
+          <>
+            <div className="pl-tiles">
+              <Tile label="Visites d'agents IA" value={sumBy(agentsSplit.current, "visites")} prev={sumBy(agentsSplit.previous, "visites")} hint="Pages lues par des agents qui ne chargent pas le JavaScript (GPTBot, ClaudeBot, PerplexityBot…), reconnus à leur User-Agent. Un User-Agent se falsifie." />
+              <Tile label="Sur le site" value={(ph.agents.sites["www.withmerry.com"] || 0) + (ph.agents.sites["withmerry.com"] || 0)} />
+              <Tile label="Sur l'appli" value={ph.agents.sites["app.withmerry.com"] || 0} />
+              <Tile label="Agents différents" value={ph.agents.familles.length} />
+              <Tile label="Navigateurs pilotés" value={ph.agents.navigateurs.site.sessions + ph.agents.navigateurs.app.sessions} inverse hint="Sessions de navigateurs pilotés par un programme (webdriver, Chrome sans écran), écartées des chiffres du site et de l'appli" />
+            </div>
+            <Card title="Visites d'agents par jour" note="Relevé par le middleware à chaque requête, hors redirections. Aucun profil de personne ni adresse IP n'est gardé.">
+              <DayBars series={agentsSeries} keys={["visites"]} labels={["Visites"]} days={jours} />
+            </Card>
+            <Folds>
+              <Fold open title="Qui lit" icon="rechercher" value={ph.agents.familles.length ? `${fmtInt(ph.agents.familles.length)} agents` : null}>
+                <Table
+                  cols={[
+                    { key: "famille", label: "Agent" },
+                    { key: "operateur", label: "Société" },
+                    { key: "type", label: "Pour quoi", render: (r) => AGENT_TYPES[r.type] || r.type },
+                    { key: "n", label: "Visites", render: (r) => fmtInt(r.n) },
+                    { key: "pages", label: "Pages", render: (r) => fmtInt(r.pages) },
+                    { key: "dernier", label: "Dernier passage", render: (r) => fmtDateTime(r.dernier) },
+                  ]}
+                  rows={ph.agents.familles}
+                  empty="Aucun agent relevé sur la période"
+                />
+              </Fold>
+              <Fold title="Pages lues" icon="document" value={ph.agents.pages.length ? fmtInt(ph.agents.pages.length) : null}>
+                <Ranked rows={ph.agents.pages.map((p) => ({ label: p.chemin, n: p.n, sub: `${fmtInt(p.familles)} agents` }))} />
+              </Fold>
+              <Fold title="Navigateurs pilotés, écartés" icon="securite">
+                <Facts
+                  rows={[
+                    { label: "Sessions sur le site", value: ph.agents.navigateurs.site.sessions, sub: `${fmtInt(ph.agents.navigateurs.site.pages)} pages vues` },
+                    { label: "Sessions sur l'appli", value: ph.agents.navigateurs.app.sessions, sub: `${fmtInt(ph.agents.navigateurs.app.pages)} pages vues` },
+                  ]}
+                />
+              </Fold>
+              <Fold title="Rafales restées dans les chiffres" icon="horloge">
+                <Facts
+                  rows={[
+                    { label: "Sur le site", value: ph.agents.rafales.site?.rafales || 0, sub: `sur ${fmtInt(ph.agents.rafales.site?.sessions || 0)} sessions` },
+                    { label: "Sur l'appli", value: ph.agents.rafales.app?.rafales || 0, sub: `sur ${fmtInt(ph.agents.rafales.app?.sessions || 0)} sessions` },
+                  ]}
+                />
+                <p className="pl-note">Quatre pages ou plus en cinq secondes ou moins : sans doute un programme qui a passé la détection. Ces sessions ne sont pas retirées des autres chiffres.</p>
+              </Fold>
+            </Folds>
+          </>
+        ) : (
+          <div className="pl-empty">PostHog n'est pas lisible : {data.posthog?.raison || "voir la page Santé"}.</div>
+        )}
       </Section>
 
       <Section id="appli">

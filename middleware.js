@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
+import { classifyAgent } from "@/lib/agentsIa";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
 // (/mariage/*) ; l'appli reste sur app.withmerry.com. Les pages réservées à l'appli renvoient vers
@@ -11,7 +12,7 @@ const VITRINE_PATHS = Object.fromEntries(Object.entries(VITRINE_PAGES).map(([pat
 // Les URLs de preview par déploiement (hash-stan-f307.vercel.app) restent intactes pour tester une branche.
 const VERCEL_STABLE_ALIASES = ["merry-brief.vercel.app", "merry-brief-stan-f307.vercel.app"];
 
-export function middleware(req) {
+function route(req) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const { pathname, search } = req.nextUrl;
   // Tâches planifiées Vercel : appelées sur le domaine de production, une redirection les perdrait
@@ -38,6 +39,38 @@ export function middleware(req) {
   if (target) return NextResponse.rewrite(new URL(`${target}${search}`, req.url));
   if (APP_ONLY.test(pathname)) return NextResponse.redirect(`https://app.withmerry.com${pathname}${search}`, 308);
   return NextResponse.next();
+}
+
+// Agents IA (GPTBot, ClaudeBot, PerplexityBot…) : ils n'exécutent pas le JavaScript, donc PostHog côté navigateur ne
+// les voit jamais. On les relève ici, à la requête, sous l'événement `bot_hit` (lu par la page Agents IA du
+// pilotage). Pas de profil de personne, pas d'adresse IP, et la propriété s'appelle `site` (pas `$host`) pour que
+// les requêtes du site et de l'appli ne les comptent pas comme des visiteurs.
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
+
+function reportAgent(req, event, agent) {
+  if (!POSTHOG_KEY) return;
+  const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
+  if (!host || host.includes("localhost")) return;
+  const send = fetch(`${POSTHOG_HOST}/capture/`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      api_key: POSTHOG_KEY,
+      event: "bot_hit",
+      distinct_id: `agent:${agent.famille}`,
+      properties: { ...agent, site: host, chemin: req.nextUrl.pathname, agent_ua: (req.headers.get("user-agent") || "").slice(0, 300), $process_person_profile: false, $lib: "merry-middleware" },
+    }),
+  }).catch(() => {});
+  event?.waitUntil?.(send);
+}
+
+export function middleware(req, event) {
+  const res = route(req);
+  // Une redirection n'est pas une lecture : l'agent est compté sur l'adresse où il atterrit
+  const agent = res.status < 300 || res.status >= 400 ? classifyAgent(req.headers.get("user-agent")) : null;
+  if (agent && !req.nextUrl.pathname.startsWith("/api/interne/")) reportAgent(req, event, agent);
+  return res;
 }
 
 export const config = {
