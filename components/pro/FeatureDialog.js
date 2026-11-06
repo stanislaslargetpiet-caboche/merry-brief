@@ -70,14 +70,13 @@ export default function FeatureDialog({ page, onClose }) {
       <label htmlFor="f-txt" className="p-sr">
         Votre proposition
       </label>
-      <textarea id="f-txt" rows={5} className="p-textarea" placeholder="Décrivez ce qui vous manque, avec vos mots." value={text} onChange={(e) => setText(e.target.value)} autoFocus />
+      <textarea id="f-txt" rows={5} className="p-textarea" placeholder="Décrivez ce qui vous manque." value={text} onChange={(e) => setText(e.target.value)} autoFocus />
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
       <button type="button" className="p-dashed" onClick={() => fileRef.current?.click()}>
         <ProIcon name="image" size={18} />
         {file ? file.name : "Ajouter une capture d’écran"} {file ? null : <span className="p-dashed-note">(facultatif)</span>}
       </button>
       <div className="p-sheet-foot">
-        <span className="p-note">Envoyé depuis : {page}</span>
         <button type="button" className="p-btn p-btn-primary is-big" onClick={send} disabled={busy || !text.trim()}>
           Envoyer
         </button>
