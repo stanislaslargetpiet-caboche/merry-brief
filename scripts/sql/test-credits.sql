@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP on
--- Débit des crédits d'un prestataire : pro_send (première réponse à une demande, coût selon le métier).
+-- Débit des crédits d'un prestataire : pro_send (première réponse à une demande, coût selon le métier), scénarios 1 à 4.
 -- Chaque scénario lève une exception s'il est faux, donc check.sh échoue. Base de test uniquement, tout est annulé.
 begin;
 -- Version de pro_send en production (lue le 6 nov. 2026) : check.sh relance espace-prestataire.sql, qui remet
@@ -82,15 +82,6 @@ do $$ begin
   end if;
 end $$;
 
-\echo '--- 5. Garantie Merry : une demande remboursée recrédite exactement le montant débité'
--- La Garantie n''est pas encore dans la base : aucune fonction de remboursement n''existe (seul le type
--- d''historique « remboursement » existe). Ce scénario échoue tant qu''elle n''est pas écrite ; quand elle
--- le sera, compléter ici : rembourser la demande c…01 (débitée 25) et vérifier solde +25 et une ligne
--- « remboursement » de +25, un second remboursement ne recréditant rien.
-do $$ begin
-  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                 where n.nspname = 'public' and (p.proname ilike '%garantie%' or p.proname ilike '%refund%' or p.proname ilike '%rembours%')) then
-    raise exception '5: aucune fonction de Garantie Merry (remboursement) dans la base';
-  end if;
-end $$;
+-- Garantie Merry : pas de scénario. Elle n'est pas dans la base (recrédit des 100 crédits offerts à la main,
+-- sur demande par mail, comme dans les CGU du 5 nov. 2026). L'écrire en base ouvrira un scénario dédié.
 rollback;

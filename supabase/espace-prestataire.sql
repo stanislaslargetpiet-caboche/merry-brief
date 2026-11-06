@@ -593,6 +593,11 @@ revoke all on function public.pro_thread(uuid) from public, anon;
 grant execute on function public.pro_thread(uuid) to authenticated;
 
 -- Le prestataire écrit au couple : le message arrive sur la fiche du prestataire, dans le Budget du couple
+-- Créée seulement si elle n'existe pas : les versions suivantes (pro-credits-reponse.sql, pro-collaborateurs-noms.sql)
+-- débitent les crédits, et une relance de ce fichier ne doit pas les remplacer par cette version sans débit.
+do $pro_send$ begin
+  if to_regprocedure('public.pro_send(uuid, text)') is null then
+    execute $f$
 create or replace function public.pro_send(c uuid, body text)
 returns uuid
 language plpgsql
@@ -624,6 +629,9 @@ begin
   return out_id;
 end;
 $$;
+    $f$;
+  end if;
+end $pro_send$;
 revoke all on function public.pro_send(uuid, text) from public, anon;
 grant execute on function public.pro_send(uuid, text) to authenticated;
 
