@@ -10,7 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
-import { countUnreadRequests, memberColor, memberInitial, memberName, PRO_SEEN_EVENT } from "@/lib/pro/format";
+import { countUnreadRequests, PRO_SEEN_EVENT, unreadReplies } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
