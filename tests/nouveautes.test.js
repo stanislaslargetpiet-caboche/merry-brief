@@ -99,7 +99,7 @@ describe("mail du samedi", () => {
     expect(await sendIssue(admin, issue, ORIGIN, 1)).toEqual({ envoyes: 1, echecs: 0 });
     expect(sent[0].to).toEqual(["emma@gmail.com"]);
     expect(sent[0].subject).toBe("Du nouveau sur Merry");
-    expect(sent[0].from).toContain("Stan via Merry");
+    expect(sent[0].from).toMatch(/^Merry </);
     expect(sent[0].headers["List-Unsubscribe"]).toContain("k=nouveautes");
     expect(await sendIssue(admin, issue, ORIGIN, 0)).toEqual({ envoyes: 0, echecs: 0 });
     expect(sent).toHaveLength(1);
