@@ -15,6 +15,9 @@ export const runtime = "nodejs";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Une invitation non acceptée expire au bout de 14 jours (audit du 6 nov. 2026) ; « Nouveau lien » la renouvelle
+const INVITE_TTL_MS = 14 * 24 * 3600 * 1000;
+const expired = (member) => !!member.invited_at && Date.now() - new Date(member.invited_at).getTime() > INVITE_TTL_MS;
 const emailHint = (email) => (/@/.test(String(email || "")) ? `${email[0]}•••${email.slice(email.indexOf("@"))}` : null);
 
 // Le compte rejoint l'équipe ; s'il en faisait déjà partie, l'invitation devenue inutile est retirée
@@ -50,8 +53,8 @@ export async function POST(req) {
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   if (!(await allowKey(admin, `invite-ip:${clientIp(req)}`, 30, 3600))) return Response.json({ error: "wait" }, { status: 429 });
 
-  const { data: member } = await admin.from("pro_members").select("id, vendor_id, email, user_id").eq("invite_token", token).maybeSingle();
-  if (!member || member.user_id) return Response.json({ error: "bad_link" }, { status: 404 });
+  const { data: member } = await admin.from("pro_members").select("id, vendor_id, email, user_id, invited_at").eq("invite_token", token).maybeSingle();
+  if (!member || member.user_id || expired(member)) return Response.json({ error: "bad_link" }, { status: 404 });
   const email = String(member.email || "").trim().toLowerCase();
 
   if (body.action === "info") {
@@ -72,6 +75,13 @@ export async function POST(req) {
     const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
     const { data } = bearer ? await admin.auth.getUser(bearer) : { data: null };
     if (!data?.user) return Response.json({ error: "auth" }, { status: 401 });
+    // Le jeton ne suffit pas : seul le compte de l'adresse invitée rejoint l'équipe (un lien transféré ou
+    // fuité ne donne plus accès à l'espace)
+    const accountEmail = String(data.user.email || "").trim().toLowerCase();
+    if (!email || accountEmail !== email) {
+      const { data: already } = await admin.from("pro_members").select("id").eq("vendor_id", member.vendor_id).eq("user_id", data.user.id).maybeSingle();
+      return Response.json({ error: already ? "already_member" : "wrong_account" }, { status: already ? 409 : 403 });
+    }
     // Un membre de l'équipe qui ouvre le lien d'un collègue (pour le vérifier, par exemple) ne doit pas
     // le consommer : sans cette garde, join() retirait l'invitation et la personne invitée trouvait un lien mort.
     if (String(data.user.email || "").trim().toLowerCase() !== email) {
