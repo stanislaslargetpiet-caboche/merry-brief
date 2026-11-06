@@ -5740,3 +5740,68 @@ button.d-help-btn {
     padding-bottom: 0;
   }
 }
+
+/* Chargement : cadre affiché tout de suite, blocs gris dans la page (components/pro/Skeleton.js) */
+.p-sk {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  background: var(--d-line, #ecebe6);
+}
+
+.p-sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: p-sk-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes p-sk-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-sk::after {
+    animation: none;
+  }
+}
+
+.p-sk-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.p-sk-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.p-sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--d-line, #ecebe6);
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+@media (max-width: 700px) {
+  .p-sk-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .p-sk-card {
+    padding: 18px;
+  }
+  .p-sk-col:last-child .p-sk-card:last-child {
+    display: none;
+  }
+}
