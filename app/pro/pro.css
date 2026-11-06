@@ -1768,6 +1768,23 @@ select.p-input {
   right: 6px;
 }
 
+.p-photo-btn.is-grip[aria-expanded="true"] {
+  background: #1c1c1a;
+}
+
+/* Zone tactile de 44 px autour des pastilles de 32 px */
+.p-photo-btn::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.p-photo-menu .d-pop-item {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
 .p-photo-btn.is-remove {
   right: 6px;
   bottom: 6px;

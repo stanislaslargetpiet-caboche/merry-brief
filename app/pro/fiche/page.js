@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { ProIcon } from "@/components/pro/icons";
 import { Pills, Switch } from "@/components/pro/ui";
-import { BusyDots } from "@/components/dash/ui";
+import { BusyDots, Popover } from "@/components/dash/ui";
 import Apercu from "@/components/pro/Apercu";
 import { searchAddress } from "@/lib/pro/geo";
 
@@ -164,13 +164,16 @@ function MaFiche() {
   );
 }
 
-// ---------- Photos : la première sert de couverture (badge), glisser pour changer l'ordre ----------
+// ---------- Photos : la première sert de couverture (badge), glisser ou toucher la poignée pour changer l'ordre ----------
+// Le glisser-déposer du navigateur ne se déclenche pas au toucher : la poignée ouvre aussi un menu
+// (Mettre en couverture, Avancer, Reculer), maquette Vendor-Profil-Photos-Tel du 6 nov. 2026.
 
 function PhotosSection() {
   const pro = usePro();
   const photos = pro.data.photos || [];
   const fileRef = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [menu, setMenu] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const move = (from, to) => {
@@ -179,6 +182,10 @@ function PhotosSection() {
     const [x] = next.splice(from, 1);
     next.splice(to, 0, x);
     pro.setPhotos(next);
+  };
+  const act = (from, to) => {
+    setMenu(null);
+    move(from, to);
   };
 
   return (
@@ -209,14 +216,28 @@ function PhotosSection() {
               <button
                 type="button"
                 className="p-photo-btn is-grip"
-                aria-label={`Déplacer ${label} (flèches gauche et droite)`}
+                aria-label={`Déplacer ${label} (menu, ou flèches gauche et droite)`}
+                aria-haspopup="menu"
+                aria-expanded={menu === i}
+                onClick={() => setMenu(menu === i ? null : i)}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowLeft") move(i, i - 1);
                   if (e.key === "ArrowRight") move(i, i + 1);
                 }}
               >
-                <ProIcon name="grip" size={16} fill="#1c1c1a" stroke="none" />
+                <ProIcon name="grip" size={16} fill={menu === i ? "#ffffff" : "#1c1c1a"} stroke="none" />
               </button>
+              <Popover open={menu === i} onClose={() => setMenu(null)} align="right" className="p-photo-menu">
+                <button type="button" role="menuitem" className="d-pop-item" disabled={i === 0} onClick={() => act(i, 0)}>
+                  Mettre en couverture
+                </button>
+                <button type="button" role="menuitem" className="d-pop-item" disabled={i === 0} onClick={() => act(i, i - 1)}>
+                  Avancer
+                </button>
+                <button type="button" role="menuitem" className="d-pop-item" disabled={i === photos.length - 1} onClick={() => act(i, i + 1)}>
+                  Reculer
+                </button>
+              </Popover>
               <button
                 type="button"
                 className="p-photo-btn is-remove"
@@ -252,6 +273,7 @@ function PhotosSection() {
           </button>
         </li>
       </ul>
+      {photos.length > 1 ? <p className="p-hint">La première photo sert de couverture. Pour changer l’ordre, glissez une photo ou touchez sa poignée.</p> : null}
     </section>
   );
 }
