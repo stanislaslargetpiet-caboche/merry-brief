@@ -14,7 +14,7 @@ FILES=(
   supabase/pense-bete.sql supabase/prestataires.sql supabase/catalog.sql supabase/catalog-filtres.sql
   supabase/lieux-rapides.sql supabase/qualite-photos.sql supabase/commentaires-prestataires.sql supabase/categories-principales.sql
   supabase/espace-prestataire.sql supabase/pro-credits-reponse.sql supabase/prestataires-ajout-manuel.sql supabase/prestataires-ajout-manuel-google.sql
-  supabase/prestataires-ajout-manuel-fix-ambiguite.sql supabase/prestataires-notifier-couple.sql supabase/mail-desinscriptions.sql supabase/mails-planifies.sql
+  supabase/prestataires-ajout-manuel-fix-ambiguite.sql supabase/prestataires-notifier-couple.sql supabase/mail-desinscriptions.sql supabase/mails-planifies.sql supabase/mails-nouveautes.sql
   supabase/site-mariage.sql supabase/site-mariage-moisson.sql supabase/site-visites.sql supabase/invites-recherche.sql
   supabase/note-invites.sql supabase/mise-en-page.sql supabase/pro-fiche-categorie-correction.sql supabase/pilotage.sql supabase/seo-stats.sql supabase/catalogue-reclassement-2026-11-05.sql supabase/pilotage-couts.sql
 )

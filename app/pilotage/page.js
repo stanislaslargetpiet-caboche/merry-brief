@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
+import Nouveautes from "@/components/pilotage/Nouveautes";
 import PilotNav from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
@@ -28,6 +29,7 @@ const SECTIONS = [
   { id: "sante", label: "Santé" },
   { id: "utilisateurs", label: "Utilisateurs" },
   { id: "demandes", label: "Demandes" },
+  { id: "nouveautes", label: "Mail du samedi" },
   { id: "couts", label: "Coûts" },
   { id: "site", label: "Site" },
   { id: "referencement", label: "Référencement" },
@@ -309,6 +311,8 @@ function Board({ data, jours, heure, reload }) {
       <Utilisateurs data={data.utilisateurs} label={periodeUtilisateurs} />
 
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
+
+      <Nouveautes demo={demo} />
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 

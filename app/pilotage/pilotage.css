@@ -230,3 +230,15 @@
 .pl-qui { margin: 12px 0 4px; }
 .pl-qui .pl-grid { margin-top: 12px; }
 .pl-qui-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+
+/* Mail du samedi : aperçu du mail, à sa largeur */
+.pl-mail-preview {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: 1100px;
+  margin: 16px auto 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+}
