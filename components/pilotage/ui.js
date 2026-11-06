@@ -1,9 +1,10 @@
 "use client";
 
-// Briques de la page de pilotage : tuiles, barres par jour, tableaux, entonnoir. Encre et greige, un seul aplat
-// citron pour la période courante ; aucune couleur décorative (DESIGN.md).
+// Briques de la page de pilotage : tuiles, barres, tableaux, entonnoir, menus déroulants. Encre et greige dans les
+// graphes ; aucune couleur décorative (DESIGN.md). Une page tient en cinq chiffres au plus, un graphe, puis ses menus.
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { PilotIcon } from "@/components/pilotage/icons";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
 export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint }) {
@@ -16,11 +17,10 @@ export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false
       <span className="pl-tile-value">{missing ? "–" : format(value)}</span>
       <span className="pl-tile-label">{label}</span>
       {d ? (
-        <span className={`pl-tile-delta${good ? " is-good" : bad ? " is-bad" : ""}`}>
+        <span className={`pl-tile-delta${good ? " is-good" : bad ? " is-bad" : ""}`} title="Par rapport à la période précédente">
           {d.sens === "stable" ? "=" : d.diff > 0 ? "+" : "−"}
           {d.sens === "stable" ? "" : format(Math.abs(d.diff))}
           {d.pct !== null && d.sens !== "stable" ? ` (${d.pct > 0 ? "+" : ""}${d.pct} %)` : ""}
-          <span className="pl-tile-delta-sub"> vs période précédente</span>
         </span>
       ) : sub ? (
         <span className="pl-tile-sub">{sub}</span>
@@ -29,9 +29,29 @@ export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false
   );
 }
 
+// Barre à bout arrondi, carrée sur la ligne de base
+function barPath(x, y, w, h, base) {
+  if (h <= 0) return "";
+  const r = Math.min(4, h, w / 2);
+  return `M${x},${base}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${base}Z`;
+}
+
+function Legend({ items }) {
+  return (
+    <span className="pl-legend">
+      {items.map(([label, color]) => (
+        <span key={label}>
+          <i style={{ background: color }} />
+          {label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 // Barres par jour. `series` : [{ jour, ...valeurs }] ; `keys` : une ou deux mesures, la première en encre, la
 // seconde en greige derrière ; `days` sépare la période courante (encre) de la précédente (greige clair).
-export function DayBars({ series, keys, labels, days, format = fmtInt, height = 96 }) {
+export function DayBars({ series, keys, labels, days, format = fmtInt, height = 120 }) {
   const [hover, setHover] = useState(null);
   const rows = series || [];
   if (!rows.length) return <div className="pl-empty">Pas encore de données</div>;
@@ -57,10 +77,7 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
             ))}
           </span>
         ) : (
-          <span className="pl-muted">
-            {labels?.[0] || main} par jour, période courante en encre
-            {keys[1] ? `, ${labels?.[1] || keys[1]} en retrait` : ""}
-          </span>
+          <Legend items={keys[1] ? [[labels?.[0] || main, "#1c1c1a"], [labels?.[1] || keys[1], "#d9d7cf"]] : [["Cette période", "#1c1c1a"], ...(cut > 0 ? [["Période précédente", "#b8b6ad"]] : [])]} />
         )}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="pl-bars-svg" role="img" aria-label={`${labels?.[0] || main} par jour`}>
@@ -75,15 +92,8 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
           return (
             <g key={r.jour} onMouseEnter={() => setHover(i)} onTouchStart={() => setHover(i)}>
               <rect x={i * bw} y={0} width={bw} height={H} fill="transparent" />
-              {keys[1] ? <rect x={x} y={H - h2} width={w} height={h2} rx={2} fill={current ? "#d9d7cf" : "#ecebe6"} /> : null}
-              <rect
-                x={x}
-                y={H - h1}
-                width={w}
-                height={h1}
-                rx={2}
-                fill={hover === i ? "#6b6a63" : current ? "#1c1c1a" : "#b8b6ad"}
-              />
+              {keys[1] ? <path d={barPath(x, H - h2, w, h2, H)} fill={current ? "#d9d7cf" : "#ecebe6"} /> : null}
+              <path d={barPath(x, H - h1, w, h1, H)} fill={hover === i ? "#6b6a63" : current ? "#1c1c1a" : "#b8b6ad"} />
             </g>
           );
         })}
@@ -94,6 +104,41 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
         <span>{fmtDay(rows[rows.length - 1].jour)}</span>
       </div>
     </div>
+  );
+}
+
+// Colonnes étiquetées : [{ label, n }], pour ce qui ne se lit pas par jour (mois de dépenses)
+export function ColBars({ rows, format = fmtInt, empty = "Rien pour l'instant", height = 120 }) {
+  const list = rows || [];
+  if (!list.length) return <div className="pl-empty">{empty}</div>;
+  const max = Math.max(1, ...list.map((r) => Number(r.n) || 0));
+  return (
+    <ol className="pl-cols" style={{ "--h": `${height}px` }}>
+      {list.map((r) => (
+        <li key={r.label} title={`${r.label} : ${format(r.n)}`}>
+          <span className="pl-cols-value">{format(r.n)}</span>
+          <span className="pl-cols-bar" style={{ height: `${((Number(r.n) || 0) / max) * height}px` }} />
+          <span className="pl-cols-label">{r.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// Chiffres de détail dans un menu : [{ label, value, sub? }], une ligne chacun
+export function Facts({ rows, format = fmtInt }) {
+  return (
+    <dl className="pl-facts">
+      {rows.filter(Boolean).map((r) => (
+        <div key={r.label}>
+          <dt>
+            {r.label}
+            {r.sub ? <span className="pl-muted"> · {r.sub}</span> : null}
+          </dt>
+          <dd>{r.value === null || r.value === undefined ? "–" : typeof r.value === "number" ? format(r.value) : r.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -178,7 +223,7 @@ export function Funnel({ steps }) {
   );
 }
 
-// Cartes repliables : l'état de chacune est gardé dans le navigateur (localStorage, clé pl-fold).
+// Menus repliables : l'état de chacune est gardé dans le navigateur (localStorage, clé pl-fold).
 const FOLD_KEY = "pl-fold";
 const SectionContext = createContext("");
 // La sous-page ouverte : une section ne se dessine que sur la sienne, mais ses composants restent montés
@@ -215,46 +260,47 @@ function useFold(key, defaultOpen, enabled) {
   return [open, set];
 }
 
-// Chaque page a sa teinte, prise dans les quatre pastels du design system (citron, beurre, anis, pistache), pour
-// le filet des chiffres clés et les barres des listes ; l'encre reste la couleur des chiffres.
-const TONES = {
-  comptes: "citron", sante: "pistache", demandes: "beurre", couts: "anis", site: "citron", referencement: "anis",
-  appli: "pistache", couples: "beurre", prestataires: "citron", mails: "anis", bugs: "pistache",
-};
-
 // `right` : le bouton d'action de la page (mail du jour, rafraîchir le SEO)
 export function Section({ id, children, right }) {
   if (useContext(PageContext) !== id) return null;
   return (
-    <section className="pl-section" data-tone={TONES[id] || "citron"}>
+    <section className="pl-section">
       {right ? <div className="pl-section-head">{right}</div> : null}
       <SectionContext.Provider value={id}>{children}</SectionContext.Provider>
     </section>
   );
 }
 
-// Toute carte titrée se replie ; `fold="closed"` la laisse fermée la première fois
-export function Card({ title, children, wide, full, note, fold }) {
-  const section = useContext(SectionContext);
-  const key = `card:${section}/${title}`;
-  const foldable = Boolean(title);
-  const [open, setOpen] = useFold(key, fold !== "closed", foldable);
-  const shown = !foldable || open;
+// Le graphe principal de la page
+export function Card({ title, children, note }) {
   return (
-    <div className={`pl-card${full ? " is-full" : wide ? " is-wide" : ""}${shown ? "" : " is-folded"}`}>
-      {title ? (
-        <h3>
-          {foldable ? (
-            <button type="button" className="pl-fold" aria-expanded={open} onClick={() => setOpen(!open)}>
-              <span className="pl-chev" aria-hidden="true" />
-              {title}
-            </button>
-          ) : (
-            title
-          )}
-        </h3>
-      ) : null}
-      <div hidden={!shown}>
+    <div className="pl-card">
+      {title ? <h3>{title}</h3> : null}
+      {children}
+      {note ? <p className="pl-note">{note}</p> : null}
+    </div>
+  );
+}
+
+// Les menus déroulants de la page, dans une seule carte
+export function Folds({ children }) {
+  return <div className="pl-folds">{children}</div>;
+}
+
+// Un menu : fermé par défaut, `open` pour le premier ; l'état est gardé dans le navigateur. `value` : le chiffre
+// qui le résume, lisible sans l'ouvrir.
+export function Fold({ title, icon = "document", value, open: first = false, note, children }) {
+  const section = useContext(SectionContext);
+  const [open, setOpen] = useFold(`fold:${section}/${title}`, first, true);
+  return (
+    <div className={`pl-fold-item${open ? " is-open" : ""}`}>
+      <button type="button" className="pl-fold" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <PilotIcon name={icon} />
+        <span className="pl-fold-title">{title}</span>
+        {value !== undefined && value !== null ? <span className="pl-fold-value">{value}</span> : null}
+        <span className="pl-chev" aria-hidden="true" />
+      </button>
+      <div className="pl-fold-body" hidden={!open}>
         {children}
         {note ? <p className="pl-note">{note}</p> : null}
       </div>

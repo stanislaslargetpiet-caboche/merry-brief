@@ -5,7 +5,7 @@
 // la fenêtre exacte choisie (1 h comprise).
 
 import { useMemo, useState } from "react";
-import { Card, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, Facts, Fold, Folds, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
 import { fmtAgo, fmtDateTime, fmtInt } from "@/lib/server/pilotage/shape";
 
 const FILTERS = [
@@ -50,40 +50,37 @@ const DETAIL_LISTS = [
 ];
 
 function Qui({ detail }) {
-  const [open, setOpen] = useState(false);
   if (!detail) return null;
   return (
-    <div className="pl-qui">
-      <button type="button" className="pl-chip" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {open ? "Masquer les noms" : "Voir les noms"}
-      </button>
-      {open ? (
-        <div className="pl-grid">
-          {DETAIL_LISTS.map((l) => {
-            const rows = detail[l.key] || [];
-            return (
-              <Card key={l.key} title={`${l.title} (${rows.length})`} fold={rows.length ? undefined : "closed"}>
-                {rows.length ? (
-                  <ul className="pl-qui-list">
-                    {rows.map((x, i) => (
-                      <li key={i}>
-                        <strong>{l.line(x)}</strong> <span className="pl-muted">{l.more(x).filter(Boolean).join(" · ")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="pl-empty">Personne sur la période</div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
+    <Fold title="Voir les noms" icon="invites">
+      <div className="pl-qui">
+        {DETAIL_LISTS.map((l) => {
+          const rows = detail[l.key] || [];
+          return (
+            <div key={l.key}>
+              <h4>
+                {l.title} ({rows.length})
+              </h4>
+              {rows.length ? (
+                <ul className="pl-qui-list">
+                  {rows.map((x, i) => (
+                    <li key={i}>
+                      <strong>{l.line(x)}</strong> <span className="pl-muted">{l.more(x).filter(Boolean).join(" · ")}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="pl-empty">Personne sur la période</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Fold>
   );
 }
 
-export default function Utilisateurs({ data }) {
+export default function Utilisateurs({ data, series, jours }) {
   const [filter, setFilter] = useState("tous");
   const rows = useMemo(() => (data?.mariages || []).filter((FILTERS.find((f) => f.id === filter) || FILTERS[0]).test), [data, filter]);
   if (!data) {
@@ -101,13 +98,14 @@ export default function Utilisateurs({ data }) {
         <Tile label="Connectés" value={f.connectes?.n} prev={f.connectes?.prec} hint="Comptes dont la dernière connexion tombe dans la période (Supabase Auth)" />
         <Tile label="Nouveaux comptes" value={f.comptes_crees?.n} prev={f.comptes_crees?.prec} sub={`${fmtInt(t.comptes)} au total`} />
         <Tile label="Mariages créés" value={f.mariages_crees?.n} prev={f.mariages_crees?.prec} sub={`${fmtInt(t.mariages)} au total`} />
-        <Tile label="Sites créés" value={f.sites_crees?.n} prev={f.sites_crees?.prec} sub={`${fmtInt(t.avec_site)} mariage(s) en ont un, ${fmtInt(t.avec_site_publie)} publié(s)`} />
         <Tile label="Invités ajoutés" value={f.invites_ajoutes?.n} prev={f.invites_ajoutes?.prec} sub={`${fmtInt(t.avec_invites)} mariage(s) en ont au moins un`} />
         <Tile label="Demandes de devis" value={f.devis?.n} prev={f.devis?.prec} sub={`${fmtInt(t.avec_devis)} mariage(s) en ont fait`} />
       </div>
-      <Qui detail={data.detail} />
-      <div className="pl-grid">
-        <Card fold="open" full title="Derniers utilisateurs connectés" note="Supabase date la dernière connexion (mot de passe ou lien), pas chaque ouverture de l'appli avec une session déjà ouverte : un couple qui reste connecté peut y paraître moins récent qu'il ne l'est.">
+      <Card title="Nouveaux comptes par jour">
+        <DayBars series={series} keys={["inscriptions"]} labels={["Nouveaux comptes"]} days={jours} />
+      </Card>
+      <Folds>
+        <Fold open title="Derniers utilisateurs connectés" icon="horloge" value={fmtInt(data.utilisateurs?.length || 0)} note="Supabase date la dernière connexion (mot de passe ou lien), pas chaque ouverture de l'appli avec une session déjà ouverte : un couple qui reste connecté peut y paraître moins récent qu'il ne l'est.">
           <Table
             cols={[
               { key: "email", label: "Utilisateur", render: (r) => <strong>{r.email}</strong> },
@@ -122,8 +120,8 @@ export default function Utilisateurs({ data }) {
             max={12}
             empty="Aucun compte"
           />
-        </Card>
-        <Card fold="open" full title="Où en sont les couples">
+        </Fold>
+        <Fold title="Où en sont les couples" icon="filtrer" value={fmtInt(data.mariages?.length || 0)}>
           <div className="pl-filters" role="group" aria-label="Filtrer les mariages">
             {FILTERS.map((x) => (
               <button key={x.id} type="button" aria-pressed={filter === x.id} className={`pl-chip${filter === x.id ? " is-on" : ""}`} onClick={() => setFilter(x.id)}>
@@ -149,8 +147,17 @@ export default function Utilisateurs({ data }) {
             max={40}
             empty="Aucun mariage dans ce filtre"
           />
-        </Card>
-        <Card fold="closed" full title="Derniers comptes créés">
+        </Fold>
+        <Fold title="Sites créés" icon="document" value={fmtInt(f.sites_crees?.n)}>
+          <Facts
+            rows={[
+              { label: "Créés sur la période", value: f.sites_crees?.n, sub: f.sites_crees?.prec != null ? `${fmtInt(f.sites_crees.prec)} avant` : null },
+              { label: "Mariages avec un site", value: t.avec_site },
+              { label: "Sites publiés", value: t.avec_site_publie },
+            ]}
+          />
+        </Fold>
+        <Fold title="Derniers comptes créés" icon="invites">
           <Table
             cols={[
               { key: "email", label: "Adresse" },
@@ -161,8 +168,9 @@ export default function Utilisateurs({ data }) {
             rows={[...(data.utilisateurs || [])].sort((a, b) => Date.parse(b.cree) - Date.parse(a.cree))}
             max={12}
           />
-        </Card>
-      </div>
+        </Fold>
+        <Qui detail={data.detail} />
+      </Folds>
     </Section>
   );
 }

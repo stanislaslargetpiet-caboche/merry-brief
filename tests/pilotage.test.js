@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
+import { sendsByDay } from "@/lib/server/pilotage/resend";
 
 describe("splitSeries", () => {
   it("sépare la période courante (fin) de la précédente", () => {
@@ -201,5 +202,13 @@ describe("lecture Supabase du pilotage", () => {
     const admin = fake({ data: null, error: { code: "42501", message: "permission denied" } });
     await expect(readSupabase(admin, 7, { pause: 0 })).rejects.toThrow(/permission denied/);
     expect(admin.calls).toHaveLength(1);
+  });
+});
+
+describe("sendsByDay", () => {
+  it("compte les envois par jour, heure de Paris, au format des séries", () => {
+    const rows = sendsByDay([{ quand: "2026-11-05T23:30:00Z" }, { quand: "2026-11-06T08:00:00Z" }, { quand: "2026-11-04T10:00:00Z" }]);
+    expect(rows).toEqual(expect.arrayContaining([["2026-11-06", 2], ["2026-11-04", 1]]));
+    expect(alignSeries(["2026-11-06"], rows, ["envois"])).toEqual([{ jour: "2026-11-06", envois: 2 }]);
   });
 });
