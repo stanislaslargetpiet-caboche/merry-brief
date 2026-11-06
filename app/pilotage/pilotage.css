@@ -310,6 +310,12 @@
 .pl-lectures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .pl-lecture { display: grid; gap: 4px; }
 .pl-lecture p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-muted); }
+.pl-edition { margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.pl-edition summary { cursor: pointer; font-weight: 600; }
+.pl-edition h4 { margin: 14px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink-muted); }
+.pl-edition p { margin: 0 0 6px; color: var(--ink); }
+.pl-edition ul { margin: 0 0 6px; padding-left: 18px; }
+.pl-edition a { color: inherit; font-weight: 600; }
 .pl-compteur { display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 700; color: inherit; text-decoration: none; }
 .pl-compteur span { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .pl-compteur:hover { border-color: var(--border-strong); }

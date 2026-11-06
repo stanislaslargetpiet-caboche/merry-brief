@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, Tile } from "@/components/pilotage/ui";
-import { buildFil, etatFil, itemAction, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
+import { buildFil, etatFil, itemAction, lireEdition, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
@@ -244,6 +244,45 @@ function Meetings({ status }) {
   );
 }
 
+function Morceaux({ liste }) {
+  return liste.map((m, i) =>
+    m.lien ? (
+      <a key={i} href={m.lien} target="_blank" rel="noreferrer">
+        {m.texte}
+      </a>
+    ) : m.gras ? (
+      <strong key={i}>{m.gras}</strong>
+    ) : (
+      <span key={i}>{m.texte}</span>
+    ),
+  );
+}
+
+function Edition({ texte }) {
+  return (
+    <details className="pl-edition">
+      <summary>Lire</summary>
+      {lireEdition(texte).map((b, i) =>
+        b.type === "titre" ? (
+          <h4 key={i}>{b.texte}</h4>
+        ) : b.type === "liste" ? (
+          <ul key={i}>
+            {b.lignes.map((l, j) => (
+              <li key={j}>
+                <Morceaux liste={l} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i}>
+            <Morceaux liste={b.morceaux} />
+          </p>
+        ),
+      )}
+    </details>
+  );
+}
+
 function BlocLecture({ titre, items, today }) {
   const lecture = items.filter((i) => i.type === "lecture" && i.projet === titre).sort((a, b) => String(b.echeance).localeCompare(String(a.echeance)))[0];
   return (
@@ -259,6 +298,7 @@ function BlocLecture({ titre, items, today }) {
             <strong>{lecture.titre}</strong>
           )}
           {lecture.detail ? <p>{lecture.detail}</p> : null}
+          {lecture.contenu ? <Edition texte={lecture.contenu} /> : null}
         </div>
       ) : (
         <p className="pl-empty">Pas encore publiée</p>

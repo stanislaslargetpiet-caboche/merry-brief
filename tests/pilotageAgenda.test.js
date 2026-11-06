@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { meetingsExterieurs, nomInvite } from "@/lib/pilotage/agenda";
-import { validatePublication } from "@/lib/pilotage/items";
+import { lireEdition, validatePublication } from "@/lib/pilotage/items";
 
 const JOUR = "2026-11-05";
 const moi = { email: "stan@example.com", self: true, responseStatus: "accepted" };
@@ -42,8 +42,8 @@ describe("nomInvite", () => {
 
 describe("validatePublication", () => {
   it("donne une ligne par rubrique et par jour", () => {
-    const v = validatePublication({ rubrique: "news", titre: " Titre ", detail: "Résumé", lien: "https://slack.com/x" }, JOUR);
-    expect(v.valeur).toEqual({ type: "lecture", projet: "News of the Day", titre: "Titre", detail: "Résumé", lien: "https://slack.com/x", echeance: JOUR, cle: `news:${JOUR}` });
+    const v = validatePublication({ rubrique: "news", titre: " Titre ", detail: "Résumé", lien: "https://exemple.fr/x", contenu: " Texte " }, JOUR);
+    expect(v.valeur).toEqual({ type: "lecture", projet: "News of the Day", titre: "Titre", detail: "Résumé", contenu: "Texte", lien: "https://exemple.fr/x", echeance: JOUR, cle: `news:${JOUR}` });
   });
   it("refuse une rubrique inconnue, un titre vide, un long résumé et un lien non https", () => {
     expect(validatePublication(null, JOUR).erreur).toBe("rubrique");
@@ -51,5 +51,21 @@ describe("validatePublication", () => {
     expect(validatePublication({ rubrique: "feature", titre: " " }, JOUR).erreur).toBe("titre");
     expect(validatePublication({ rubrique: "feature", titre: "x", detail: "y".repeat(1001) }, JOUR).erreur).toBe("detail");
     expect(validatePublication({ rubrique: "feature", titre: "x", lien: "javascript:alert(1)" }, JOUR).erreur).toBe("lien");
+  });
+});
+
+describe("lireEdition", () => {
+  it("lit titres, listes, gras et liens https", () => {
+    expect(lireEdition("**HOW IT WORKS**\n1. Pay **now**\n2. Done\n\n[Site](https://a.fr)")).toEqual([
+      { type: "titre", texte: "HOW IT WORKS" },
+      { type: "liste", lignes: [[{ texte: "Pay " }, { gras: "now" }], [{ texte: "Done" }]] },
+      { type: "texte", morceaux: [{ lien: "https://a.fr", texte: "Site" }] },
+    ]);
+  });
+  it("laisse en texte un lien qui n'est pas https", () => {
+    expect(lireEdition("[x](javascript:alert(1))")[0].morceaux).toEqual([{ texte: "[x](javascript:alert(1))" }]);
+  });
+  it("une phrase en gras reste du texte, pas un titre", () => {
+    expect(lireEdition("**Couples turn it into a registry.**")[0].type).toBe("texte");
   });
 });
