@@ -7,6 +7,7 @@ import { readUnsubLink } from "@/lib/server/mailOptouts";
 export const runtime = "nodejs";
 
 const KIND = "vendor_message";
+const SIGNED_KINDS = new Set(["nouveautes"]);
 
 export async function POST(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,21 +20,23 @@ export async function POST(req) {
   } catch {
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
-  const email = readUnsubLink(body.e, body.t);
+  const linkKind = SIGNED_KINDS.has(body.k) ? body.k : undefined;
+  const kind = linkKind || KIND;
+  const email = readUnsubLink(body.e, body.t, linkKind);
   if (!email) return Response.json({ error: "bad_link" }, { status: 403 });
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   if (body.action === "desinscrire") {
-    const { error } = await admin.from("mail_optouts").upsert({ email, kind: KIND }, { onConflict: "email,kind", ignoreDuplicates: true });
+    const { error } = await admin.from("mail_optouts").upsert({ email, kind }, { onConflict: "email,kind", ignoreDuplicates: true });
     if (error) return Response.json({ error: "failed" }, { status: 502 });
     return Response.json({ email, out: true });
   }
   if (body.action === "reabonner") {
-    const { error } = await admin.from("mail_optouts").delete().eq("email", email).eq("kind", KIND);
+    const { error } = await admin.from("mail_optouts").delete().eq("email", email).eq("kind", kind);
     if (error) return Response.json({ error: "failed" }, { status: 502 });
     return Response.json({ email, out: false });
   }
-  const { data, error } = await admin.from("mail_optouts").select("email").eq("email", email).eq("kind", KIND).maybeSingle();
+  const { data, error } = await admin.from("mail_optouts").select("email").eq("email", email).eq("kind", kind).maybeSingle();
   if (error) return Response.json({ error: "failed" }, { status: 502 });
   return Response.json({ email, out: !!data });
 }

@@ -13,7 +13,7 @@ async function call(params, action) {
     const res = await fetch("/api/desinscription", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ e: params.e, t: params.t, action }),
+      body: JSON.stringify({ e: params.e, t: params.t, k: params.k, action }),
     });
     return await res.json();
   } catch {
@@ -21,14 +21,26 @@ async function call(params, action) {
   }
 }
 
+const TEXTS = {
+  nouveautes: {
+    ask: "Tu ne recevras plus les nouveautés de Merry. Ton mariage reste sur Merry, et les mails qui le concernent continuent d’arriver.",
+    done: "ne recevra plus les nouveautés de Merry. Les mails qui concernent ton mariage continuent d’arriver.",
+  },
+  vendor: {
+    ask: "Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.",
+    done: "ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.",
+  },
+};
+
 export default function Desinscription() {
   const [params, setParams] = useState(null);
   const [state, setState] = useState({ status: "loading" });
   const [busy, setBusy] = useState(false);
+  const texts = params?.k === "nouveautes" ? TEXTS.nouveautes : TEXTS.vendor;
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
-    const found = { e: query.get("e"), t: query.get("t"), demo: query.get("demo") === "1" };
+    const found = { e: query.get("e"), t: query.get("t"), k: query.get("k"), demo: query.get("demo") === "1" };
     setParams(found);
     if (found.demo) {
       setState({ status: "ready", email: DEMO_MAIL, out: false });
@@ -64,7 +76,7 @@ export default function Desinscription() {
       {state.status === "ready" && !state.out ? (
         <>
           <h1>Ne plus recevoir ces mails&nbsp;?</h1>
-          <p className="unsub-text">Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.</p>
+          <p className="unsub-text">{texts.ask}</p>
           <div className="unsub-mail">{state.email}</div>
           <button type="button" className="unsub-btn" disabled={busy} onClick={() => change("desinscrire")}>
             Me désinscrire
@@ -78,7 +90,7 @@ export default function Desinscription() {
             <path d="M8 12l3 3 5-6" fill="none" stroke="#1f6b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h1 className="is-done">C’est noté.</h1>
-          <p className="unsub-text">{state.email} ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.</p>
+          <p className="unsub-text">{state.email} {texts.done}</p>
           <button type="button" className="unsub-btn is-ghost" disabled={busy} onClick={() => change("reabonner")}>
             Me réabonner
           </button>
