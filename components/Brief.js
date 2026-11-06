@@ -382,6 +382,9 @@ export default function Brief() {
 
   const isMail = (str) => /.+@.+\..+/.test(str);
 
+  // Message sous le mot de passe tant qu'il est commencé mais trop court : sinon le bouton reste grisé sans explication.
+  const pwdShort = data.password.length > 0 && data.password.length < 8;
+
   const canContinue = useMemo(() => {
     switch (step) {
       case 0:
@@ -642,7 +645,8 @@ export default function Brief() {
               </div>
               <div className="ob-field">
                 <label htmlFor="password">{t.passwordLabel}</label>
-                <input id="password" className="ob-input" type="password" placeholder={t.passwordPlaceholder} value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" />
+                <input id="password" className="ob-input" type="password" placeholder={t.passwordPlaceholder} value={data.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" aria-describedby={pwdShort ? "password-hint" : undefined} />
+                {pwdShort ? <p id="password-hint" className="ob-error" role="status">{t.passwordTooShort}</p> : null}
               </div>
               {status === "error" ? <p className="ob-error">{errorMsg}</p> : null}
               <p className="ob-footnote">
