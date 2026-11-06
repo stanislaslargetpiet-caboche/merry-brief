@@ -4095,8 +4095,23 @@ button.p-dem-item {
 }
 
 .p-thread-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   color: var(--d-muted);
+}
+
+.p-thread-face {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .p-thread p {
@@ -5978,4 +5993,59 @@ button.p-dem-item {
   margin: 0;
   font-size: 16px;
   line-height: 1.5;
+}
+
+/* ---------- Collaborateurs : modifier le nom et la couleur ---------- */
+
+.p-collab-edit {
+  list-style: none;
+  padding: 4px 0 14px 50px;
+}
+
+.p-collab-edit form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+  align-items: end;
+}
+
+.p-collab-colors {
+  grid-column: 1 / -1;
+}
+
+.p-collab-colors > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.p-collab-swatch {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.p-collab-swatch.is-on {
+  border-color: var(--d-ink);
+}
+
+.p-collab-edit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .p-collab-edit {
+    padding-left: 0;
+  }
+  .p-collab-edit form {
+    grid-template-columns: 1fr;
+  }
 }

@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePro } from "@/lib/pro/store";
 import { isoDate, shortDate, toDate } from "@/lib/dash/format";
-import { dateLong, faceColor, firstName, isPastClient, STAGES } from "@/lib/pro/format";
+import { dateLong, faceColor, firstName, messageAuthor, isPastClient, STAGES } from "@/lib/pro/format";
 import { ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
@@ -78,7 +78,7 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
     setBusy(false);
     if (ok) {
       setMsg("");
-      if (pro.mode === "demo") setThread((t) => [...t, { id: String(Date.now()), from_vendor: true, body: msg.trim(), sent_at: new Date().toISOString() }]);
+      if (pro.mode === "demo") setThread((t) => [...t, { id: String(Date.now()), from_vendor: true, author_id: (pro.data.members || []).find((x) => x.user_id && x.user_id === pro.data.user?.id)?.id, body: msg.trim(), sent_at: new Date().toISOString() }]);
       else pro.loadThread(c.id).then(setThread);
     }
   }
@@ -191,19 +191,22 @@ export default function ClientPanel({ c, write, onClose, onCreated, backLabel })
                   <div className="p-rule is-flat" />
                   <section className="p-msgs">
                     <h3>Messages</h3>
-                    {thread.map((m) => (
+                    {thread.map((m) => {
+                      const a = m.from_vendor ? messageAuthor(m, pro.data.members, pro.data.user) : null;
+                      return (
                       <div key={m.id} className="p-msg">
-                        <span aria-hidden="true" className="p-msg-face" style={{ background: m.from_vendor ? "#e4e2dc" : faceColor(c.names) }}>
-                          {m.from_vendor ? vendorInitials(v.name) : firstName(c.names)[0]}
+                        <span aria-hidden="true" className="p-msg-face" style={{ background: a ? a.color.mid : m.from_vendor ? "#e4e2dc" : faceColor(c.names), color: a ? a.color.ink : undefined }}>
+                          {a ? a.initial : m.from_vendor ? vendorInitials(v.name) : firstName(c.names)[0]}
                         </span>
                         <div>
                           <span className="p-msg-who">
-                            <strong>{m.from_vendor ? "Vous" : firstName(c.names)}</strong> <span className="p-muted">· {shortDate(String(m.sent_at).slice(0, 10))}</span>
+                            <strong>{m.from_vendor ? (a ? (a.mine ? `${a.name} (vous)` : a.name) : "Vous") : firstName(c.names)}</strong> <span className="p-muted">· {shortDate(String(m.sent_at).slice(0, 10))}</span>
                           </span>
                           <span className={`p-msg-body${m.from_vendor ? " is-me" : ""}`}>{m.body}</span>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     <div className="p-composer">
                       <label htmlFor="msg" className="p-sr">
                         Écrire à {firstName(c.names)}

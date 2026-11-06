@@ -10,7 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover, PageLoader } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
-import { collabColor, countUnreadRequests, PRO_SEEN_EVENT } from "@/lib/pro/format";
+import { countUnreadRequests, memberColor, memberInitial, memberName, PRO_SEEN_EVENT } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
@@ -259,7 +259,7 @@ function CollabTeam() {
   const members = pro.data.members || [];
   if (!members.length) return null;
   const pending = members.filter((m) => !m.user_id);
-  const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${pending[0].display_name || pending[0].email} n’a pas encore rejoint.`) : null;
+  const note = pending.length ? (pending.length > 1 ? `${pending.length} collaborateurs n’ont pas encore rejoint.` : `${memberName(pending[0])} n’a pas encore rejoint.`) : null;
   return (
     <div className="d-team">
       <Link href="/pro/compte#collaborateurs" onClick={() => showCollab(false)} className="d-team-title" style={{ textDecoration: "none", color: "inherit" }}>
@@ -274,8 +274,8 @@ function CollabTeam() {
                 width: 32,
                 height: 32,
                 borderRadius: 999,
-                background: collabColor(m.id).mid,
-                color: collabColor(m.id).ink,
+                background: memberColor(m).mid,
+                color: memberColor(m).ink,
                 border: "2px solid #ffffff",
                 display: "inline-flex",
                 alignItems: "center",
@@ -284,7 +284,7 @@ function CollabTeam() {
                 fontWeight: 700,
               }}
             >
-              {(m.display_name || m.email || "?")[0].toUpperCase()}
+              {memberInitial(m)}
             </span>
           </span>
         ))}
