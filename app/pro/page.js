@@ -11,6 +11,7 @@ import { usePro } from "@/lib/pro/store";
 import { completeness, guestsText, isPastClient, since, weddingWhen } from "@/lib/pro/format";
 import { CreditsCoins, ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
+import Guide from "@/components/pro/Guide";
 
 export default function ProHome() {
   const pro = usePro();
@@ -35,6 +36,8 @@ export default function ProHome() {
           Toutes les demandes
         </Link>
       </div>
+
+      <Guide />
 
       <div className="p-acc-stats">
         <div>
