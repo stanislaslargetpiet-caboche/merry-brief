@@ -137,25 +137,17 @@ function MaFiche() {
         </section>
       ) : null}
 
+      <section className="p-sec" id="acces">
+        <h2 className="p-sec-title">Gare et aéroport</h2>
+        <div className="p-toggles">
+          <TransportRow id="gare" kind="station" label="Gare à proximité" noun={{ indef: "une gare", of: "de la gare", def: "cette gare" }} nameKey="station_name" minutesKey="station_minutes" pick={(a) => a?.station} />
+          <TransportRow id="aero" kind="airport" label="Aéroport à proximité" noun={{ indef: "un aéroport", of: "de l’aéroport", def: "cet aéroport" }} nameKey="airport_name" minutesKey="airport_minutes" pick={(a) => a?.airport} />
+        </div>
+      </section>
+
       {isLieu ? (
-        <section className="p-sec" id="acces">
-          <div className="p-sec-row">
-            <h2 className="p-sec-title">Accès</h2>
-            {v.address ? (
-              <button type="button" className="p-btn p-btn-ghost" onClick={() => pro.calcAccess()}>
-                Recalculer depuis l’adresse
-              </button>
-            ) : null}
-          </div>
-          <p className="p-hint">Estimés depuis l’adresse de la section Présentation ; modifiables à la main.</p>
-          <div className="p-access">
-            <TextField required id="aero" label="Aéroport le plus proche" value={v.airport_name} onSave={(t) => save({ airport_name: t })} />
-            <MinutesField required id="aero-t" value={v.airport_minutes} onSave={(n) => save({ airport_minutes: num(n) })} />
-          </div>
-          <div className="p-access">
-            <TextField required id="gare" label="Gare TGV" value={v.station_name} onSave={(t) => save({ station_name: t })} />
-            <MinutesField required id="gare-t" value={v.station_minutes} onSave={(n) => save({ station_minutes: num(n) })} />
-          </div>
+        <section className="p-sec" id="parking">
+          <h2 className="p-sec-title">Accès</h2>
           <div className="p-toggles">
             <div className="p-toggle">
               <span id="park">Parking sur place</span>
@@ -536,18 +528,99 @@ function NumberField({ id, label, value, onSave, required }) {
   );
 }
 
-function MinutesField({ id, value, onSave, required }) {
+// Gare ou aéroport à proximité : « oui » enregistre un trajet de départ (estimé depuis l'adresse, 15 min à
+// défaut), « non » vide tout. Le premier va dans les colonnes *_name et *_minutes de vendors (lues par les
+// couples) ; « Ajouter » en met d'autres dans details.extra_access ({ kind, name, minutes }).
+// La jauge ne part qu'au relâchement pour ne pas enregistrer à chaque cran.
+const MAX_MINUTES = 120;
+function TransportRow({ id, kind, label, noun, nameKey, minutesKey, pick }) {
+  const pro = usePro();
+  const v = pro.data.vendor;
+  const minutes = v[minutesKey];
+  const on = minutes !== null && minutes !== undefined;
+  const all = v.details?.extra_access || [];
+  const extras = all.filter((x) => x.kind === kind);
+  const setExtras = (list) => pro.saveFiche({ extra_access: [...all.filter((x) => x.kind !== kind), ...list] });
+
+  const toggle = async (next) => {
+    if (!next) {
+      await setExtras([]);
+      return pro.saveFiche({ [nameKey]: null, [minutesKey]: null });
+    }
+    const est = pick(await pro.estimateAccess());
+    return pro.saveFiche({ [nameKey]: est?.name || null, [minutesKey]: Math.min(est?.minutes ?? 15, MAX_MINUTES) });
+  };
+  const patchExtra = (i, patch) => setExtras(extras.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+
   return (
-    <div className="p-field">
-      <label htmlFor={id}>
-        Trajet
-        {required ? <Req /> : null}
-      </label>
-      <div className="p-input p-unit">
-        <TextInput id={id} type="number" className="p-unit-input" value={value ?? ""} onSave={onSave} required={required} />
-        <span>min</span>
+    <div className="p-toggle-block">
+      <div className="p-toggle">
+        <span id={`${id}-l`}>{label}</span>
+        <Switch on={on} labelledBy={`${id}-l`} onChange={toggle} />
       </div>
-      <Missing when={required && isEmpty(value)} />
+      {on ? (
+        <>
+          <AccessItem id={id} noun={noun} name={v[nameKey]} minutes={minutes} onName={(t) => pro.saveFiche({ [nameKey]: t || null })} onMinutes={(n) => pro.saveFiche({ [minutesKey]: n })} />
+          {extras.map((x, i) => (
+            <AccessItem
+              key={i}
+              id={`${id}-${i + 2}`}
+              noun={noun}
+              name={x.name}
+              minutes={x.minutes}
+              onName={(t) => patchExtra(i, { name: t || "" })}
+              onMinutes={(n) => patchExtra(i, { minutes: n })}
+              onRemove={() => setExtras(extras.filter((_, j) => j !== i))}
+            />
+          ))}
+          <div className="p-range-add">
+            <button type="button" className="p-btn p-btn-ghost" onClick={() => setExtras([...extras, { kind, name: "", minutes: 15 }])}>
+              + Ajouter {noun.indef}
+            </button>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
+
+function AccessItem({ id, noun, name, minutes, onName, onMinutes, onRemove }) {
+  const [draft, setDraft] = useState(null);
+  const shown = draft ?? minutes ?? 0;
+  const commit = (e) => {
+    const n = Number(e.currentTarget.value);
+    setDraft(null);
+    if (n !== minutes) onMinutes(n);
+  };
+  return (
+    <div className="p-range">
+      <TextField id={`${id}-n`} label={`Nom ${noun.of}`} value={name} onSave={onName} />
+      <div className="p-field">
+        <label htmlFor={`${id}-r`}>Trajet estimé</label>
+        <div className="p-range-row">
+          <input
+            id={`${id}-r`}
+            type="range"
+            min={0}
+            max={MAX_MINUTES}
+            step={5}
+            value={shown}
+            aria-valuetext={`${shown} min`}
+            style={{ "--fill": `${(shown / MAX_MINUTES) * 100}%` }}
+            onChange={(e) => setDraft(Number(e.target.value))}
+            onPointerUp={commit}
+            onKeyUp={commit}
+            onBlur={commit}
+          />
+          <output htmlFor={`${id}-r`}>{shown} min</output>
+        </div>
+      </div>
+      {onRemove ? (
+        <button type="button" className="p-btn p-btn-ghost p-range-remove" onClick={onRemove}>
+          Retirer {noun.def}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
