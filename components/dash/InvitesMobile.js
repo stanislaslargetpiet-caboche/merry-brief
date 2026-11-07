@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import { GUEST_STATUS_LABEL, guestLabel, guestStatus } from "@/lib/dash/model";
 import { fullName } from "@/lib/dash/format";
 import { RSVP, RSVP_ORDER, pastel } from "@/lib/dash/theme";
+import TeamChanges from "./TeamChanges";
 import { Icon } from "./icons";
 import { trapTab } from "./ui";
 
@@ -105,19 +106,22 @@ export default function InvitesMobile({ data, shown, stats, events, groups, idx,
         </Link>
       </div>
 
-      <label className="d-msearch">
-        <Icon name="search" size={16} sw={2} />
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" enterKeyHint="search" />
-        {query ? (
-          <button type="button" className="d-msearch-clear" aria-label="Effacer la recherche" onClick={() => setQuery("")}>
-            <Icon name="x" size={14} sw={2.4} />
+      <div className="d-mbar">
+        <label className="d-msearch">
+          <Icon name="search" size={16} sw={2} />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher un invité" aria-label="Chercher un invité" enterKeyHint="search" />
+          {query ? (
+            <button type="button" className="d-msearch-clear" aria-label="Effacer la recherche" onClick={() => setQuery("")}>
+              <Icon name="x" size={14} sw={2.4} />
+            </button>
+          ) : null}
+          <button type="button" className={`d-msearch-filters${filterCount ? " is-on" : ""}`} onClick={onFilters} aria-label={filterCount ? `Filtres, ${filterCount} actifs` : "Filtres"}>
+            <Icon name="list" size={16} sw={2.2} />
+            {filterCount ? <span>{filterCount}</span> : null}
           </button>
-        ) : null}
-        <button type="button" className={`d-msearch-filters${filterCount ? " is-on" : ""}`} onClick={onFilters} aria-label={filterCount ? `Filtres, ${filterCount} actifs` : "Filtres"}>
-          <Icon name="list" size={16} sw={2.2} />
-          {filterCount ? <span>{filterCount}</span> : null}
-        </button>
-      </label>
+        </label>
+        <TeamChanges data={data} phone />
+      </div>
 
       <div className="d-mlist-group" role="group" aria-label="Grouper par">
         {[
