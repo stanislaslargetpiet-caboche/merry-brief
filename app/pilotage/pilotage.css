@@ -304,6 +304,7 @@
   /* La période tient sur une ligne, Actualiser réduit à son icône */
   .pl-period { margin: 0 16px; padding: 0; grid-template-columns: minmax(0, 1fr) auto; background: none; }
   .pl-ranges { grid-template-columns: repeat(4, 1fr); }
+  .pl-langue { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
   .pl-seg { min-height: 30px; padding: 0 2px; font-size: 12px; background: var(--surface); }
   .pl-refresh { width: 34px; min-height: 34px; padding: 0; }
   .pl-refresh span, .pl-generated { display: none; }

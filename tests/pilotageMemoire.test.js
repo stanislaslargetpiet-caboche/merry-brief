@@ -64,10 +64,10 @@ describe("validateHistorique", () => {
 });
 
 describe("lireMemoire", () => {
-  it("recolle l'historique et renvoie les éditions datées", async () => {
+  it("recolle l'historique et renvoie les éditions datées, une version par jour", async () => {
     const admin = faux({
       contenu: { data: [{ contenu: "a" }, { contenu: "b" }], error: null },
-      "echeance, titre, contenu": { data: [{ echeance: JOUR, titre: "T", contenu: "C" }], error: null },
+      "echeance, titre, contenu, cle": { data: [{ echeance: JOUR, titre: "T", contenu: "C", cle: `news:${JOUR}:fr` }, { echeance: JOUR, titre: "T en", contenu: "C en", cle: `news:${JOUR}:en` }], error: null },
     });
     expect(await lireMemoire(admin, "news", "2026-07-10")).toEqual({ historique: "a\nb", editions: [{ date: JOUR, titre: "T", contenu: "C" }] });
   });

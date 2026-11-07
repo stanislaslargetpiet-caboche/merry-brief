@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, Tile } from "@/components/pilotage/ui";
-import { buildFil, etatFil, itemAction, lireEdition, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
+import { buildFil, choisirLecture, etatFil, itemAction, lireEdition, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
@@ -258,10 +258,10 @@ function Morceaux({ liste }) {
   );
 }
 
-function Edition({ texte }) {
+function Edition({ texte, langue }) {
   return (
     <details className="pl-edition">
-      <summary>Lire</summary>
+      <summary>{langue === "en" ? "Read" : "Lire"}</summary>
       {lireEdition(texte).map((b, i) =>
         b.type === "titre" ? (
           <h4 key={i}>{b.texte}</h4>
@@ -283,8 +283,8 @@ function Edition({ texte }) {
   );
 }
 
-function BlocLecture({ titre, items, today }) {
-  const lecture = items.filter((i) => i.type === "lecture" && i.projet === titre).sort((a, b) => String(b.echeance).localeCompare(String(a.echeance)))[0];
+function BlocLecture({ titre, items, today, langue }) {
+  const lecture = choisirLecture(items, titre, langue);
   return (
     <Card title={titre}>
       {lecture ? (
@@ -298,7 +298,7 @@ function BlocLecture({ titre, items, today }) {
             <strong>{lecture.titre}</strong>
           )}
           {lecture.detail ? <p>{lecture.detail}</p> : null}
-          {lecture.contenu ? <Edition texte={lecture.contenu} /> : null}
+          {lecture.contenu ? <Edition texte={lecture.contenu} langue={langue} /> : null}
         </div>
       ) : (
         <p className="pl-empty">Pas encore publiée</p>
@@ -307,7 +307,7 @@ function BlocLecture({ titre, items, today }) {
   );
 }
 
-export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, indicateurs = "lus" }) {
+export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, langue = "fr", indicateurs = "lus" }) {
   const go = useGo();
   const pageTaches = `${pilotagePath("taches", "liste")}${search}`;
   const [retires, setRetires] = useState([]);
@@ -355,8 +355,8 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, 
         </div>
       </div>
       <div className="pl-lectures">
-        <BlocLecture titre="News of the Day" items={items} today={today} />
-        <BlocLecture titre="Feature of the Day" items={items} today={today} />
+        <BlocLecture titre="News of the Day" items={items} today={today} langue={langue} />
+        <BlocLecture titre="Feature of the Day" items={items} today={today} langue={langue} />
       </div>
     </>
   );
