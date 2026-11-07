@@ -20,6 +20,7 @@ import { ResizeHandle, useColumnLayout } from "@/components/dash/Columns";
 import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnModal";
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
+import TeamChanges from "@/components/dash/TeamChanges";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -1215,6 +1216,7 @@ export default function Invites() {
               onDelete={(id) => dash.saveGuestViews((wedding.guest_views || []).filter((v) => v.id !== id))}
               shared={data.viewsSetup !== false}
             />
+            <TeamChanges data={data} />
             {here.length ? (
               <span className="d-presence" title="Sur la liste en ce moment, comme vous">
                 {here.slice(0, 3).map((x) => (
