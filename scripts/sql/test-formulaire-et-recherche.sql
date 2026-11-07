@@ -8,9 +8,10 @@ insert into public.wedding_sites (wedding_id, slug, published) values
   ('22222222-2222-2222-2222-222222222222', 'zoe-yann-zy34', true);
 insert into public.events (id, wedding_id, name, short_name, position) values ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Dîner', 'Dîner', 0);
 insert into public.guest_forms (wedding_id, slug, fields, event_ids) values
-  ('11111111-1111-1111-1111-111111111111', 'alice-ben-form1', '[{"key":"tel","mode":"opt"},{"key":"adresse","mode":"opt"},{"key":"presence","mode":"req"}]', array['33333333-3333-3333-3333-333333333333']::uuid[]);
+  ('11111111-1111-1111-1111-111111111111', 'alice-ben-form1', '[{"key":"tel","mode":"opt"},{"key":"adresse","mode":"opt"},{"key":"presence","mode":"req"},{"key":"plusun","mode":"opt"}]', array['33333333-3333-3333-3333-333333333333']::uuid[]);
 insert into public.guests (id, wedding_id, first_name, last_name, email, phone, position) values
-  ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Marie', 'Dupont', 'marie@example.com', '0600000000', 0);
+  ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Marie', 'Dupont', 'marie@example.com', '0600000000', 0),
+  ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'Camille', 'Dupont', 'camille@example.com', '0600000001', 1);
 
 \echo '--- finder: wildcard must return null'
 select public.merry_find_wedding(null, '%', null, '2027-06-12') as wildcard;
@@ -22,12 +23,39 @@ select public.merry_find_wedding(null, 'zoe', null, '2027-06-12') ->> 'slug' as 
 \echo '--- finder: code still works'
 select public.merry_find_wedding('ALICE-BEN-AB12', null, null, null) ->> 'slug' as by_code;
 
-\echo '--- form: stranger with same name and other email must NOT overwrite, only fill blanks'
-select public.merry_form_submit('alice-ben-form1', '{"first_name":"Marie","last_name":"Dupont","email":"attacker@evil.com","phone":"0699999999","address":"1 rue X","answers":{"33333333-3333-3333-3333-333333333333":"non"}}');
-select email, phone, address from public.guests where id = '44444444-4444-4444-4444-444444444444';
-\echo '--- form: same email -> trusted, replaces phone'
-select public.merry_form_submit('alice-ben-form1', '{"first_name":"marie","last_name":"DUPONT","email":"Marie@example.com","phone":"0611111111","answers":{"33333333-3333-3333-3333-333333333333":"oui"}}') ->> 'known' as known_must_be_null;
-select email, phone, address from public.guests where id = '44444444-4444-4444-4444-444444444444';
+\echo '--- form: the answer replaces the contact details already in the list'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Marie","last_name":"Dupont","email":"marie.nouveau@example.com","phone":"0699999999","address":"1 rue X","answers":{"33333333-3333-3333-3333-333333333333":"non"}}');
+do $$ begin
+  if not exists (select 1 from public.guests where id = '44444444-4444-4444-4444-444444444444' and email = 'marie.nouveau@example.com' and phone = '0699999999' and address = '1 rue X') then
+    raise exception 'answer did not replace contact details';
+  end if;
+end $$;
+\echo '--- form: a field left empty keeps its value; the reply gives no hint about the list'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"marie","last_name":"DUPONT","email":"marie.nouveau@example.com","phone":"","answers":{"33333333-3333-3333-3333-333333333333":"oui"}}') ->> 'known' as known_must_be_null;
+do $$ begin
+  if not exists (select 1 from public.guests where id = '44444444-4444-4444-4444-444444444444' and phone = '0699999999' and address = '1 rue X') then
+    raise exception 'empty field erased a value';
+  end if;
+end $$;
+\echo '--- form: a plus-one already in the list updates that guest, without a second row'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Marie","last_name":"Dupont","email":"marie.nouveau@example.com","answers":{"33333333-3333-3333-3333-333333333333":"oui"},"plus_one":{"first_name":"camille","last_name":"DUPONT","email":"camille.nouveau@example.com","phone":"0688888888","same_address":false}}');
+do $$ begin
+  if (select count(*) from public.guests where wedding_id = '11111111-1111-1111-1111-111111111111' and lower(first_name) = 'camille') <> 1 then
+    raise exception 'plus-one duplicated a guest of the list';
+  end if;
+  if not exists (select 1 from public.guests g join public.guest_responses r on r.guest_id = g.id
+                  where g.id = '55555555-5555-5555-5555-555555555555' and g.first_name = 'Camille' and g.email = 'camille.nouveau@example.com'
+                    and g.phone = '0688888888' and g.plus_one_of is null and r.status = 'oui') then
+    raise exception 'plus-one in the list did not receive the answer';
+  end if;
+end $$;
+\echo '--- form: a plus-one unknown to the list becomes a +1 of the guest'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Marie","last_name":"Dupont","email":"marie.nouveau@example.com","answers":{},"plus_one":{"first_name":"Jean","last_name":"Durand","email":"jean@example.com"}}');
+do $$ begin
+  if not exists (select 1 from public.guests where first_name = 'Jean' and email = 'jean@example.com' and plus_one_of = '44444444-4444-4444-4444-444444444444') then
+    raise exception 'new plus-one not created';
+  end if;
+end $$;
 \echo '--- form: new guest -> created with its contact'
 select public.merry_form_submit('alice-ben-form1', '{"first_name":"Paul","last_name":"Martin","email":"paul@example.com","answers":{}}');
 select first_name, email from public.guests where wedding_id = '11111111-1111-1111-1111-111111111111' order by position;
