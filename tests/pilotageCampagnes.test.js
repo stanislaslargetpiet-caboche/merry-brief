@@ -30,6 +30,18 @@ describe("campagnes emails", () => {
     expect(c.problemes[0]).toMatchObject({ numero: 1, a: "b@x.fr", etat: "Rebond", detail: "Permanent" });
   });
 
+  it("ne compte pas le test parti dans l'heure qui suit l'envoi, au même destinataire", () => {
+    const c = build([
+      ev("vrai", "email.sent", DEPART, { to_email: "stan@x.fr" }),
+      ev("vrai", "email.delivered", DEPART, { to_email: "stan@x.fr" }),
+      ev("test", "email.sent", "2026-11-07T07:37:16Z", { to_email: "stan@x.fr" }),
+      ev("test", "email.delivered", "2026-11-07T07:37:17Z", { to_email: "stan@x.fr" }),
+      ev("autre", "email.sent", DEPART, { to_email: "zoe@x.fr" }),
+    ]);
+    expect(c.numeros[1]).toMatchObject({ envoyes: 2, delivres: 1 });
+    expect(c.periode.envoyes).toBe(2);
+  });
+
   it("ne dit pas parti ce qui attend chez Resend", () => {
     const c = build([], { now: Date.parse("2026-11-06T20:00:00Z") });
     expect(c.numeros[1].statut).toBe("Programmé");
