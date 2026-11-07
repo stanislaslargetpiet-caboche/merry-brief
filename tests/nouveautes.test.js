@@ -56,7 +56,8 @@ describe("mail du samedi", () => {
     expect(subject).toBe("Du nouveau sur Merry");
     expect(html).toContain("https://x/d?e=1&amp;t=2");
     expect(html).toContain(`${ORIGIN}/mail/nouveautes/${issue.image}`);
-    expect(html).toContain(`${ORIGIN}${issue.lien}`);
+    expect(text).toContain(`${ORIGIN}${issue.lien}?utm_source=mail&utm_medium=email&utm_campaign=samedi-${issue.numero}`);
+    expect(html).toContain(`${ORIGIN}${issue.lien}?utm_source=mail&amp;utm_medium=email&amp;utm_campaign=samedi-${issue.numero}`);
     expect(text).toContain("https://x/d?e=1&t=2");
     expect(text).toContain(issue.promesse);
   });

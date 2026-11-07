@@ -61,9 +61,9 @@ describe("pilotage : synthèse des événements", () => {
       { email_id: "b", type: "email.delivered" },
       { email_id: "c", type: "email.bounced" },
     ]);
-    expect(s).toMatchObject({ actif: true, envoyes: 3, delivres: 2, ouverts: 1, cliques: 1, rebonds: 1, taux_ouverture: 50, taux_clic: 50 });
+    expect(s).toMatchObject({ actif: true, envoyes: 3, delivres: 2, rebonds: 1 });
   });
   it("reste inactif sans événement", () => {
-    expect(summarizeEvents([])).toMatchObject({ actif: false, envoyes: 0, taux_ouverture: null });
+    expect(summarizeEvents([])).toMatchObject({ actif: false, envoyes: 0 });
   });
 });
