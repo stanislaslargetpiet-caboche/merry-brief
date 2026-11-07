@@ -5,7 +5,7 @@
 // la fenêtre exacte choisie (1 h comprise).
 
 import { useMemo, useState } from "react";
-import { DayBars, Facts, Fold, Folds, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { DayBars, Facts, Fold, Folds, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { fmtAgo, fmtDateTime, fmtInt } from "@/lib/server/pilotage/shape";
 
 const FILTERS = [
@@ -145,6 +145,9 @@ export default function Utilisateurs({ data, series, jours }) {
             empty="Aucun mariage dans ce filtre"
           />
         </Fold>
+        <Fold open title="Inscriptions par source" icon="lien" value={fmtInt(f.comptes_crees?.n)} note="Lien d'arrivée enregistré avec le brief (?source=meta-a…). Les campagnes Meta se lisent ici, cookies acceptés ou non.">
+          <Ranked rows={data.sources} empty="Aucune inscription sur la période" />
+        </Fold>
         <Fold title="Sites créés" icon="document" value={fmtInt(f.sites_crees?.n)}>
           <Facts
             rows={[
@@ -159,6 +162,7 @@ export default function Utilisateurs({ data, series, jours }) {
             cols={[
               { key: "email", label: "Adresse" },
               { key: "couple", label: "Couple", render: (r) => r.couple || <span className="pl-muted">sans mariage</span> },
+              { key: "source", label: "Source", render: (r) => r.source || <span className="pl-muted">sans brief</span> },
               { key: "cree", label: "Créé", render: (r) => fmtDateTime(r.cree) },
               { key: "derniere_connexion", label: "Dernière connexion", render: (r) => fmtAgo(r.derniere_connexion) },
             ]}
