@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUtilisateurs } from "@/lib/server/pilotage/utilisateurs";
+import { buildUtilisateurs, sourceLabel } from "@/lib/server/pilotage/utilisateurs";
 import { fmtAgo } from "@/lib/server/pilotage/shape";
 
 const NOW = Date.parse("2026-11-06T12:00:00Z");
@@ -57,5 +57,24 @@ describe("fmtAgo", () => {
     expect(fmtAgo(min(180), NOW)).toBe("il y a 3 h");
     expect(fmtAgo(min(60 * 24 * 5), NOW)).toBe("il y a 5 j");
     expect(fmtAgo(null, NOW)).toBe("jamais");
+  });
+});
+
+describe("inscriptions par source", () => {
+  it("lit la source du lien d'arrivée enregistré avec le brief", () => {
+    expect(sourceLabel("?source=meta-a&lang=en")).toBe("meta-a");
+    expect(sourceLabel("?lang=en")).toBe("Autre lien");
+    expect(sourceLabel(null)).toBe("Sans source");
+    const now = Date.parse("2026-11-07T12:00:00Z");
+    const users = [{ id: "u1", email: "a@x.fr", created_at: "2026-11-07T10:00:00Z" }, { id: "u2", email: "b@x.fr", created_at: "2026-11-01T10:00:00Z" }, { id: "u3", email: "c@x.fr", created_at: "2026-11-07T11:00:00Z" }];
+    const briefs = [
+      { user_id: "u1", source: "?source=meta-a", created_at: "2026-11-07T10:00:00Z" },
+      { user_id: "u2", source: "?source=meta-a", created_at: "2026-11-01T10:00:00Z" },
+      { user_id: "u3", source: null, created_at: "2026-11-07T11:00:00Z" },
+    ];
+    const r = buildUtilisateurs({ users, briefs }, 24 * 3600 * 1000, now);
+    expect(r.sources.find((s) => s.label === "meta-a")).toMatchObject({ n: 1, total: 2 });
+    expect(r.sources.find((s) => s.label === "Sans source")).toMatchObject({ n: 1, total: 1 });
+    expect(r.utilisateurs.find((u) => u.id === "u1").source).toBe("meta-a");
   });
 });
