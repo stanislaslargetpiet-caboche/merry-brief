@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayLabel, dePrefix, namesLine, teamChanges, timeLabel } from "@/lib/dash/activity";
+import { dayLabel, dePrefix, guestChanges, namesLine, teamChanges, timeLabel } from "@/lib/dash/activity";
 
 const NOW = Date.parse("2026-11-07T15:00:00");
 const at = (minutesAgo) => new Date(NOW - minutesAgo * 60000).toISOString();
@@ -47,5 +47,51 @@ describe("modifications de l'équipe", () => {
     expect(dayLabel("2026-11-07T09:00:00", new Date(NOW))).toBe("Aujourd'hui");
     expect(dayLabel("2026-11-06T22:00:00", new Date(NOW))).toBe("Hier");
     expect(dayLabel("2026-11-05T09:00:00", new Date(NOW))).toBe("Jeudi 5 novembre");
+  });
+});
+
+describe("réponses au formulaire", () => {
+  const form = (id, minutesAgo, extra) => row(id, minutesAgo, { source: "formulaire", member_id: null, guest_id: "claire", guest_name: "Claire Dubois", ...extra });
+
+  it("fait un élément par envoi, l'accompagnant compris, sans les organisateurs ni au-delà de 3 jours", () => {
+    const items = guestChanges(
+      [
+        form("r1", 2, { kind: "reponse", field: null, event_id: "diner", old_value: "attente", new_value: "oui" }),
+        form("r2", 2, { kind: "reponse", field: null, event_id: "cocktail", old_value: "attente", new_value: "non" }),
+        form("m1", 2, { field: "email" }),
+        form("p1", 2, { kind: "ajout", field: null, guest_id: "paul", guest_name: "Paul Henry" }),
+        form("p2", 2, { field: "phone", guest_id: "paul", guest_name: "Paul Henry" }),
+        row("o1", 3),
+        form("old", 4 * 24 * 60, { kind: "reponse", field: null, event_id: "diner", new_value: "non" }),
+      ],
+      [{ id: "claire" }, { id: "paul", plus_one_of: "claire" }],
+      NOW,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      guest_id: "claire",
+      name: "Claire Dubois",
+      added: false,
+      fields: ["email"],
+      plus: { id: "paul", name: "Paul Henry", added: true },
+    });
+    expect(items[0].answers).toEqual([
+      { event_id: "diner", status: "oui" },
+      { event_id: "cocktail", status: "non" },
+    ]);
+  });
+
+  it("sépare deux envois éloignés et garde la dernière réponse par moment", () => {
+    const items = guestChanges(
+      [
+        form("r2", 5, { kind: "reponse", field: null, event_id: "diner", new_value: "non" }),
+        form("r1", 120, { kind: "reponse", field: null, event_id: "diner", new_value: "oui" }),
+        form("a1", 121, { kind: "ajout", field: null }),
+      ],
+      [],
+      NOW,
+    );
+    expect(items.map((i) => i.answers[0].status)).toEqual(["non", "oui"]);
+    expect(items.map((i) => i.added)).toEqual([false, true]);
   });
 });

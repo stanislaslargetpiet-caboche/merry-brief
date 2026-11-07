@@ -16505,19 +16505,6 @@ body.d-noscroll {
   min-width: 0;
 }
 
-/* Les autres organisateurs sur la liste en ce moment */
-.d-presence {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--d-muted);
-}
-
-.d-presence .d-avatar + .d-avatar {
-  margin-left: -8px;
-}
-
 /* Modifications de l'équipe : pastille de la liste des invités et son panneau */
 .d-tc-pill {
   flex: none;
@@ -16559,6 +16546,48 @@ body.d-noscroll {
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
+}
+
+.d-tc-pill.is-plain {
+  padding-left: 12px;
+}
+
+.d-tc-tabs {
+  gap: 22px;
+  width: auto;
+  margin: 4px 18px 0;
+  padding: 0;
+  border-bottom: 1px solid var(--d-line);
+}
+
+.d-tc-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.d-tc-tabs button:disabled {
+  color: #b5b3aa;
+  cursor: default;
+}
+
+.d-tc-tabcount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-muted);
+}
+
+.d-tc-sheet .d-tc-tabs {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.d-tc-answer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .d-pop.d-tc-pop {
@@ -17002,10 +17031,6 @@ button.d-gcard-status.is-open svg {
     flex: 0 1 auto;
     min-height: 38px;
     padding: 0 12px;
-  }
-
-  .d-itoolbar .d-presence {
-    width: 100%;
   }
 
   /* Cartes : plus d'air, réponses par moment dépliées sur une ligne qui va à la ligne */

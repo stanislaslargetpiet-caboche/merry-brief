@@ -445,8 +445,6 @@ export default function Invites() {
   };
   const fresh = seen ? (data.log || []).filter((l) => l.source === "formulaire" && l.created_at > seen && (l.status === "oui" || l.status === "non")) : [];
   const freshGuests = [...new Set(fresh.map((l) => l.guest_id))];
-  // Les autres organisateurs sur la liste en ce moment
-  const here = (dash.presence || []).filter((x) => String(x.page || "").startsWith("/dashboard/invites"));
 
   // Une colonne supprimée ne reste pas filtrée
   const activeFieldFilter = fieldFilter && fields.some((f) => f.id === fieldFilter.fieldId) ? fieldFilter : null;
@@ -1217,16 +1215,6 @@ export default function Invites() {
               shared={data.viewsSetup !== false}
             />
             <TeamChanges data={data} />
-            {here.length ? (
-              <span className="d-presence" title="Sur la liste en ce moment, comme vous">
-                {here.slice(0, 3).map((x) => (
-                  <Avatar key={x.member_id} member={{ display_name: x.name, initial: x.initial, color: x.color }} size={22} />
-                ))}
-                <span>
-                  {here.length === 1 ? `${here[0].name || "Quelqu'un"} est aussi sur la liste` : `${here.map((x) => x.name || "quelqu'un").slice(0, 2).join(" et ")}${here.length > 2 ? ` et ${here.length - 2} autre${here.length > 3 ? "s" : ""}` : ""} sont aussi sur la liste`}
-                </span>
-              </span>
-            ) : null}
           </div>
           {guests.length ? (
             <span className="d-filters d-desk-only">

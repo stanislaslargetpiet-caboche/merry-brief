@@ -1,8 +1,9 @@
 "use client";
 
-// Pastille « Modifications » de la liste des invités : ce que les autres organisateurs ont changé sur les
-// 3 derniers jours, par jour, avec l'ancienne et la nouvelle valeur. Sur ordinateur, un panneau sous la
-// pastille ; sur téléphone, une feuille qui monte du bas. Rien à montrer : pas de pastille.
+// Pastille « Modifications » de la liste des invités : sur les 3 derniers jours, ce que les autres
+// organisateurs ont changé (ancienne et nouvelle valeur) et ce que les invités ont répondu au formulaire,
+// dans deux onglets, par jour. Sur ordinateur, un panneau sous la pastille ; sur téléphone, une feuille
+// qui monte du bas. Rien à montrer : pas de pastille.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,7 +11,7 @@ import Link from "next/link";
 import { Icon } from "./icons";
 import { Avatar, Faces, Popover } from "./ui";
 import { RSVP } from "@/lib/dash/theme";
-import { dayLabel, dePrefix, fieldLabel, namesLine, teamChanges, timeLabel } from "@/lib/dash/activity";
+import { dayLabel, dePrefix, fieldLabel, guestChanges, namesLine, teamChanges, timeLabel } from "@/lib/dash/activity";
 
 function Status({ value }) {
   const s = RSVP[value];
@@ -112,7 +113,50 @@ function Change({ item, data, guestIds, onPick }) {
   return <div className="d-tc-item">{body}</div>;
 }
 
-function ChangesList({ items, data, onPick }) {
+// Une réponse au formulaire : les moments, les informations données, l'accompagnant
+function GuestChange({ item, data, guestIds, onPick }) {
+  const subs = [];
+  if (item.answers.length) {
+    subs.push(
+      <span key="r" className="d-tc-sub">
+        {item.answers.map((a) => (
+          <span key={a.event_id} className="d-tc-answer">
+            {data.events.find((e) => e.id === a.event_id)?.name || "Un moment"} <Status value={a.status} />
+          </span>
+        ))}
+      </span>,
+    );
+  }
+  const notes = [];
+  if (item.added) notes.push("Nouvelle fiche");
+  if (item.fields.length) notes.push(`Mis à jour : ${item.fields.map((f) => fieldLabel(f, data.fields)).join(", ")}`);
+  if (item.plus) notes.push(`Avec ${item.plus.name || "un accompagnant"}${item.plus.added ? " (nouvelle fiche)" : ""}`);
+  if (notes.length) subs.push(<span key="n" className="d-tc-sub">{notes.join(" · ")}</span>);
+  const body = (
+    <>
+      <Avatar member={{ display_name: item.name }} size={30} />
+      <span className="d-tc-body">
+        <span className="d-tc-line">
+          <b>{item.name}</b> a répondu au formulaire
+        </span>
+        {subs}
+      </span>
+      <time className="d-tc-time" dateTime={item.at}>
+        {timeLabel(item.at)}
+      </time>
+    </>
+  );
+  if (guestIds.has(item.guest_id)) {
+    return (
+      <Link href={`/dashboard/invites/${item.guest_id}`} className="d-tc-item" onClick={onPick}>
+        {body}
+      </Link>
+    );
+  }
+  return <div className="d-tc-item">{body}</div>;
+}
+
+function ChangesList({ items, data, onPick, Row = Change }) {
   const guestIds = useMemo(() => new Set(data.guests.map((g) => g.id)), [data.guests]);
   const days = [];
   for (const it of items) {
@@ -127,7 +171,7 @@ function ChangesList({ items, data, onPick }) {
           {i ? <span className="d-tc-sep" aria-hidden="true" /> : null}
           <h3>{d.label}</h3>
           {d.items.map((it) => (
-            <Change key={it.id} item={it} data={data} guestIds={guestIds} onPick={onPick} />
+            <Row key={it.id} item={it} data={data} guestIds={guestIds} onPick={onPick} />
           ))}
         </section>
       ))}
@@ -153,7 +197,7 @@ function Sheet({ onClose, children }) {
   return createPortal(
     <div className="d-msheet-layer">
       <div className="d-msheet-scrim" aria-hidden="true" onClick={onClose} />
-      <div ref={ref} className="d-msheet d-tc-sheet" role="dialog" aria-modal="true" aria-label="Modifications de l'équipe">
+      <div ref={ref} className="d-msheet d-tc-sheet" role="dialog" aria-modal="true" aria-label="Modifications">
         <div className="d-msheet-grip" aria-hidden="true" />
         {children}
       </div>
@@ -162,52 +206,86 @@ function Sheet({ onClose, children }) {
   );
 }
 
+const TABS = [
+  { key: "team", label: "Organisateurs" },
+  { key: "guests", label: "Invités" },
+];
+
 export default function TeamChanges({ data, phone }) {
   const [open, setOpen] = useState(false);
-  const items = useMemo(() => teamChanges(data.activity, data.meId), [data.activity, data.meId]);
-  if (!items.length) return null;
-  const authors = [...new Set(items.map((it) => it.member_id))].map((id) => data.members.find((m) => m.id === id)).filter(Boolean);
+  const team = useMemo(() => teamChanges(data.activity, data.meId), [data.activity, data.meId]);
+  const guests = useMemo(() => guestChanges(data.activity, data.guests), [data.activity, data.guests]);
+  const lists = { team, guests };
+  // À l'ouverture, l'onglet du changement le plus récent
+  const latest = guests.length && (!team.length || guests[0].at > team[0].at) ? "guests" : "team";
+  const [tab, setTab] = useState(latest);
+  const total = team.length + guests.length;
+  if (!total) return null;
+  const authors = [...new Set(team.map((it) => it.member_id))].map((id) => data.members.find((m) => m.id === id)).filter(Boolean);
+  const toggle = () => {
+    if (!open) setTab(latest);
+    setOpen((o) => !o);
+  };
   const close = () => setOpen(false);
   const head = (
-    <div className="d-tc-head">
-      <div>
-        <h2>Modifications de l'équipe</h2>
-        <small>3 derniers jours</small>
+    <>
+      <div className="d-tc-head">
+        <div>
+          <h2>Modifications</h2>
+          <small>3 derniers jours</small>
+        </div>
+        {phone ? (
+          <button type="button" className="d-icon-btn" onClick={close} aria-label="Fermer">
+            <Icon name="x" size={16} sw={2.2} />
+          </button>
+        ) : null}
       </div>
-      {phone ? (
-        <button type="button" className="d-icon-btn" onClick={close} aria-label="Fermer">
-          <Icon name="x" size={16} sw={2.2} />
-        </button>
-      ) : null}
-    </div>
+      <div role="tablist" aria-label="Modifications" className="d-pr-tabs d-tc-tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={tab === t.key ? "is-on" : ""}
+            disabled={!lists[t.key].length}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+            <span className="d-tc-tabcount">{lists[t.key].length}</span>
+          </button>
+        ))}
+      </div>
+    </>
   );
-  const label = `${items.length} modification${items.length > 1 ? "s" : ""} de l'équipe`;
+  const list = <ChangesList items={lists[tab]} data={data} onPick={close} Row={tab === "guests" ? GuestChange : Change} />;
+  const label = `${total} modification${total > 1 ? "s" : ""}`;
   return (
     <span className="d-anchor">
       <button
         type="button"
-        className={`d-tc-pill${open ? " is-on" : ""}${phone ? " is-phone" : ""}`}
-        onClick={() => setOpen((o) => !o)}
+        className={`d-tc-pill${open ? " is-on" : ""}${phone ? " is-phone" : ""}${authors.length ? "" : " is-plain"}`}
+        onClick={toggle}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={phone ? label : undefined}
         title={phone ? undefined : label}
       >
-        <Faces members={authors.slice(0, 3)} size={24} />
+        {authors.length ? <Faces members={authors.slice(0, 3)} size={24} /> : <Icon name="pencil" size={15} sw={2.2} />}
         {phone ? null : "Modifications"}
-        <span className="d-tc-count">{items.length}</span>
+        <span className="d-tc-count">{total}</span>
       </button>
       {phone ? (
         open ? (
           <Sheet onClose={close}>
             {head}
-            <ChangesList items={items} data={data} onPick={close} />
+            {list}
           </Sheet>
         ) : null
       ) : (
         <Popover open={open} onClose={close} className="d-tc-pop">
           {head}
-          <ChangesList items={items} data={data} onPick={close} />
+          {list}
         </Popover>
       )}
     </span>
