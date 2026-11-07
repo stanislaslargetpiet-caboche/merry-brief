@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
-import Nouveautes from "@/components/pilotage/Nouveautes";
+import Campagnes from "@/components/pilotage/Campagnes";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotPeriod, PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
@@ -237,6 +237,7 @@ function Board({ data, jours, reload, liste, today, search }) {
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
   const rs = data.resend?.disponible ? data.resend : null;
+  const mails = rs?.hors_campagnes || rs;
   const vc = data.vercel?.disponible ? data.vercel : null;
   const gsc = data.google?.disponible ? data.google : null;
   const seo = data.seo?.disponible ? data.seo : null;
@@ -277,7 +278,7 @@ function Board({ data, jours, reload, liste, today, search }) {
   };
   const sitemapGsc = gsc?.sitemaps?.[0] || null;
   const clickRate = gsc ? pctOf(sumBy(gscSplit.current, "clics"), sumBy(gscSplit.current, "impressions")) : null;
-  const mailSeries = alignSeries(joursList, rs?.par_jour, ["envois"]);
+  const mailSeries = alignSeries(joursList, mails?.par_jour, ["envois"]);
 
   const appS = ph?.app?.sessions;
   const appP = ph?.app?.sessions_prec;
@@ -346,7 +347,7 @@ function Board({ data, jours, reload, liste, today, search }) {
 
       <Reseau reseau={data.reseau} demo={demo} onChange={reload} />
 
-      <Nouveautes demo={demo} />
+      <Campagnes data={data.campagnes} joursList={joursList} jours={jours} demo={demo} onChange={reload} />
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 
@@ -733,22 +734,22 @@ function Board({ data, jours, reload, liste, today, search }) {
         {rs ? (
           <>
             <div className="pl-tiles">
-              <Tile label="Envoyés" value={rs.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} />
-              <Tile label="Délivrés" value={rs.par_etat.delivered || 0} sub={fmtPct(rs.par_etat.delivered || 0, rs.envoyes)} />
+              <Tile label="Envoyés" value={mails.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} />
+              <Tile label="Délivrés" value={mails.par_etat.delivered || 0} sub={fmtPct(mails.par_etat.delivered || 0, mails.envoyes)} />
               {rs.suivi?.actif ? (
                 <>
                   <Tile label="Ouverts" value={rs.suivi.ouverts} sub={rs.suivi.taux_ouverture == null ? null : `${rs.suivi.taux_ouverture} % des délivrés`} hint="Webhook Resend ; il faut le suivi des ouvertures activé sur le domaine" />
                   <Tile label="Cliqués" value={rs.suivi.cliques} sub={rs.suivi.taux_clic == null ? null : `${rs.suivi.taux_clic} % des délivrés`} />
                 </>
               ) : null}
-              <Tile label="Rebonds et plaintes" value={(rs.par_etat.bounced || 0) + (rs.par_etat.complained || 0)} inverse prev={null} />
+              <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse prev={null} />
             </div>
             <Card title="Envois par jour" note={rs.tronque ? "Sur les 100 derniers envois seulement." : null}>
               <DayBars series={mailSeries} keys={["envois"]} labels={["Envois"]} days={jours} />
             </Card>
             <Folds>
-              {rs.problemes.length ? (
-                <Fold open title="En difficulté" icon="securite" value={fmtInt(rs.problemes.length)}>
+              {mails.problemes.length ? (
+                <Fold open title="En difficulté" icon="securite" value={fmtInt(mails.problemes.length)}>
                   <Table
                     cols={[
                       { key: "quand", label: "Quand", render: (r) => fmtDateTime(r.quand) },
@@ -756,12 +757,12 @@ function Board({ data, jours, reload, liste, today, search }) {
                       { key: "sujet", label: "Sujet" },
                       { key: "etat", label: "État", render: (r) => <Pill tone="bad">{r.etat}</Pill> },
                     ]}
-                    rows={rs.problemes}
+                    rows={mails.problemes}
                   />
                 </Fold>
               ) : null}
-              <Fold open={!rs.problemes.length} title="Par type de mail" icon="email" value={fmtInt(rs.sujets.length)}>
-                <Ranked rows={rs.sujets.map((s) => ({ label: s.sujet, n: s.n }))} />
+              <Fold open={!mails.problemes.length} title="Par type de mail" icon="email" value={fmtInt(mails.sujets.length)}>
+                <Ranked rows={mails.sujets.map((s) => ({ label: s.sujet, n: s.n }))} />
               </Fold>
               <Fold title="Derniers envois" icon="horloge">
                 <Table
@@ -770,7 +771,7 @@ function Board({ data, jours, reload, liste, today, search }) {
                     { key: "sujet", label: "Sujet" },
                     { key: "etat", label: "État", render: (r) => <Pill tone={r.etat === "delivered" ? "ok" : ["bounced", "complained", "failed"].includes(r.etat) ? "bad" : "neutral"}>{r.etat}</Pill> },
                   ]}
-                  rows={rs.derniers}
+                  rows={mails.derniers}
                   max={8}
                 />
               </Fold>
