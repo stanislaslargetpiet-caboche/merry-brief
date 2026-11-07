@@ -145,7 +145,7 @@ export default function Utilisateurs({ data, series, jours }) {
             empty="Aucun mariage dans ce filtre"
           />
         </Fold>
-        <Fold open title="Inscriptions par source" icon="lien" value={fmtInt(f.comptes_crees?.n)} note="Lien d'arrivée enregistré avec le brief (?source=meta-a…). Les campagnes Meta se lisent ici, cookies acceptés ou non.">
+        <Fold open title="Inscriptions par source" icon="lien" value={fmtInt((data.sources || []).reduce((acc, x) => acc + x.n, 0))} note="Lien d'arrivée enregistré avec le brief (?source=meta-a…). Les campagnes Meta se lisent ici, cookies acceptés ou non.">
           <Ranked rows={data.sources} empty="Aucune inscription sur la période" />
         </Fold>
         <Fold title="Sites créés" icon="document" value={fmtInt(f.sites_crees?.n)}>

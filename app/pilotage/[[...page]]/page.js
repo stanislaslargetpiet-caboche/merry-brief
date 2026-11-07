@@ -23,6 +23,7 @@ import { titreJour } from "@/lib/pilotage/items";
 import { pathFromHash, resolvePage } from "@/lib/pilotage/nav";
 import { parisDay } from "@/lib/server/pilotage/reseau";
 import { AGENT_TYPES } from "@/lib/agentsIa";
+import { ETAPES } from "@/lib/compteur";
 
 // ?demo=1 (ou pas de Supabase en local) : la page se dessine avec un jeu d'exemple, jamais de vraies mesures
 function readDemoFlag() {
@@ -189,6 +190,14 @@ function Gate({ title, text, children }) {
       </div>
     </div>
   );
+}
+
+// Entonnoir du compteur anonyme, complété des inscriptions de la période (briefs, section Utilisateurs)
+function entonnoirAvecInscriptions(rows, sources) {
+  const inscrits = new Map((sources || []).map((x) => [x.label, x.n]));
+  const lignes = (rows || []).map((r) => ({ ...r, inscriptions: inscrits.get(r.source) || 0 }));
+  for (const [label, n] of inscrits) if (n && !lignes.some((r) => r.source === label)) lignes.push({ source: label, ...Object.fromEntries(ETAPES.map((e) => [e.id, 0])), inscriptions: n });
+  return lignes;
 }
 
 const LABEL_PERIODE = { 1: "24 h", 7: "7 jours", 30: "30 jours" };
@@ -371,6 +380,18 @@ function Board({ data, jours, reload, liste, today, search }) {
             <Folds>
               <Fold open title="D'où viennent les sessions" icon="lieu" value={ph.site.sources.length ? `${fmtInt(ph.site.sources.length)} sources` : null}>
                 <Ranked rows={ph.site.sources} label="source" />
+              </Fold>
+              <Fold open title="Entonnoir par source" icon="filtrer" value={ph.site.entonnoir?.length ? `${fmtInt(ph.site.entonnoir.length)} sources` : null} note="Compteur sans cookie : chaque passage compte, cookies acceptés ou non, sans relier les étapes d'une même personne. Inscriptions lues sur les briefs.">
+                <Table
+                  cols={[
+                    { key: "source", label: "Source", render: (r) => <strong>{r.source}</strong> },
+                    ...ETAPES.map((e) => ({ key: e.id, label: e.label, num: true })),
+                    { key: "inscriptions", label: "Inscriptions", num: true },
+                  ]}
+                  rows={entonnoirAvecInscriptions(ph.site.entonnoir, data.utilisateurs?.sources)}
+                  max={12}
+                  empty="Rien de compté sur la période"
+                />
               </Fold>
               <Fold title="Chiffres par jour" icon="date" value={`${fmtInt(jours)} jours`}>
                 <Table
