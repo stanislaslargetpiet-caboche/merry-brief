@@ -15,7 +15,8 @@ import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Ite
 import { PilotPeriod, PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
-import { Card, DayBars, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, DayLine, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { cumulSerie } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
 import { titreJour } from "@/lib/pilotage/items";
@@ -247,6 +248,11 @@ function Board({ data, jours, reload, liste, today, search }) {
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
   const site = useMemo(() => alignSeries(joursList, ph?.site?.series, ["visiteurs", "pages", "sessions"]), [joursList, ph]);
   const siteSplit = useMemo(() => splitSeries(site, jours), [site, jours]);
+  // Rebond et durée par jour : null quand personne n'est venu, pour que la courbe saute le jour plutôt que tomber à zéro
+  const siteQualite = useMemo(
+    () => alignSeries(joursList, ph?.site?.qualite, ["rebonds", "sessions", "duree"]).map((r) => ({ jour: r.jour, rebond: pctOf(r.rebonds, r.sessions), duree: r.sessions ? Math.round(r.duree) : null })),
+    [joursList, ph]
+  );
   const app = useMemo(() => alignSeries(joursList, ph?.app?.series, ["sessions", "pages", "duree", "sessions2"]), [joursList, ph]);
   const appPeople = useMemo(() => alignSeries(joursList, ph?.app?.personnes_series, ["personnes"]), [joursList, ph]);
   const appMerged = useMemo(() => app.map((r, i) => ({ ...r, personnes: appPeople[i]?.personnes || 0 })), [app, appPeople]);
@@ -267,6 +273,7 @@ function Board({ data, jours, reload, liste, today, search }) {
 
   const gscSeries = alignSeries(joursList, gsc?.series, ["clics", "impressions", "position"]);
   const gscSplit = splitSeries(gscSeries, jours);
+  const gscPosition = gscSeries.map((r) => ({ jour: r.jour, position: r.impressions > 0 ? Math.round(r.position * 10) / 10 : null }));
   const organic = alignSeries(joursList, ph?.seo?.series, ["sessions"]);
   const organicSplit = splitSeries(organic, jours);
   const agentsSeries = alignSeries(joursList, ph?.agents?.series, ["visites", "pages"]);
@@ -288,12 +295,12 @@ function Board({ data, jours, reload, liste, today, search }) {
 
   // Cinq chiffres au plus : Search Console d'abord, puis ce qui reste lisible sans elle
   const seoTiles = [
-    gsc && <Tile key="clics" label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" />,
-    gsc && <Tile key="impressions" label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" />,
-    gsc && <Tile key="position" label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" />,
+    gsc && <Tile key="clics" label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" chart={<DayBars title="Clics par jour" series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} />} />,
+    gsc && <Tile key="impressions" label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" chart={<DayBars title="Impressions par jour" series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} />} />,
+    gsc && <Tile key="position" label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" chart={<DayLine title="Position moyenne par jour" series={gscPosition} valeur="position" label="Position" days={jours} format={(v) => Number(v).toLocaleString("fr-FR")} />} />,
     gsc && <Tile key="indexees" label="Pages indexées" value={sitemapGsc ? sitemapGsc.indexes : null} sub={sitemapGsc ? `sur ${fmtInt(sitemapGsc.soumis)} soumises` : "sitemap pas encore soumis"} />,
     seo && <Tile key="defauts" label="Pages en défaut" value={seo.pages_en_defaut} sub={`sur ${fmtInt(seo.pages.length)} relues aujourd'hui`} inverse />,
-    ph && <Tile key="moteurs" label="Sessions venues d'un moteur" value={sumBy(organicSplit.current, "sessions")} prev={sumBy(organicSplit.previous, "sessions")} hint="PostHog : première page de la session ouverte depuis Google, Bing, Qwant… (après accord cookies)" />,
+    ph && <Tile key="moteurs" label="Sessions venues d'un moteur" value={sumBy(organicSplit.current, "sessions")} prev={sumBy(organicSplit.previous, "sessions")} hint="PostHog : première page de la session ouverte depuis Google, Bing, Qwant… (après accord cookies)" chart={<DayBars title="Sessions venues d'un moteur, par jour" series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} />} />,
     seo && <Tile key="sitemap" label="Pages dans le sitemap" value={seo.sitemap.urls} sub={seo.sitemap.statut === 200 ? "sitemap.xml lisible" : `réponse ${seo.sitemap.statut}`} />,
   ].filter(Boolean).slice(0, 5);
 
@@ -354,22 +361,30 @@ function Board({ data, jours, reload, liste, today, search }) {
       <Section id="site">
         {ph ? (
           <>
-            <div className="pl-tiles">
-              <Tile label="Visiteurs" value={sumBy(siteSplit.current, "visiteurs")} prev={sumBy(siteSplit.previous, "visiteurs")} hint="Personnes distinctes ayant vu au moins une page (PostHog, après accord cookies)" />
-              <Tile label="Pages vues" value={sumBy(siteSplit.current, "pages")} prev={sumBy(siteSplit.previous, "pages")} />
-              <Tile label="Sessions" value={siteB?.sessions || 0} prev={siteBP?.sessions} />
-              <Tile label="Taux de rebond" value={pctOf(siteB?.rebonds, siteB?.sessions)} prev={pctOf(siteBP?.rebonds, siteBP?.sessions)} format={(v) => `${v} %`} inverse hint="Sessions d'une seule page" />
-              <Tile label="Durée moyenne" value={Math.round(siteB?.duree || 0)} prev={Math.round(siteBP?.duree || 0)} format={fmtDuration} />
-            </div>
-            <Card title="Visiteurs par jour">
-              <DayBars series={site} keys={["visiteurs"]} labels={["Visiteurs"]} days={jours} />
-            </Card>
+            <TileChart>
+              <Tile label="Visiteurs" value={sumBy(siteSplit.current, "visiteurs")} prev={sumBy(siteSplit.previous, "visiteurs")} hint="Personnes distinctes ayant vu au moins une page (PostHog, après accord cookies)" chart={<DayBars title="Visiteurs par jour" series={site} keys={["visiteurs"]} labels={["Visiteurs"]} days={jours} />} />
+              <Tile label="Pages vues" value={sumBy(siteSplit.current, "pages")} prev={sumBy(siteSplit.previous, "pages")} chart={<DayBars title="Pages vues par jour" series={site} keys={["pages"]} labels={["Pages vues"]} days={jours} />} />
+              <Tile label="Sessions" value={siteB?.sessions || 0} prev={siteBP?.sessions} chart={<DayBars title="Sessions par jour" series={site} keys={["sessions"]} labels={["Sessions"]} days={jours} />} />
+              <Tile label="Taux de rebond" value={pctOf(siteB?.rebonds, siteB?.sessions)} prev={pctOf(siteBP?.rebonds, siteBP?.sessions)} format={(v) => `${v} %`} inverse hint="Sessions d'une seule page" chart={<DayLine title="Taux de rebond par jour" series={siteQualite} valeur="rebond" label="Taux de rebond" days={jours} format={(v) => `${v} %`} />} />
+              <Tile label="Durée moyenne" value={Math.round(siteB?.duree || 0)} prev={Math.round(siteBP?.duree || 0)} format={fmtDuration} chart={<DayLine title="Durée moyenne par jour" series={siteQualite} valeur="duree" label="Durée moyenne" days={jours} format={fmtDuration} />} />
+            </TileChart>
             <Folds>
               <Fold open title="D'où viennent les sessions" icon="lieu" value={ph.site.sources.length ? `${fmtInt(ph.site.sources.length)} sources` : null}>
                 <Ranked rows={ph.site.sources} label="source" />
               </Fold>
-              <Fold title="Pages vues par jour" icon="date">
-                <DayBars series={site} keys={["pages"]} labels={["Pages vues"]} days={jours} height={80} />
+              <Fold title="Chiffres par jour" icon="date" value={`${fmtInt(jours)} jours`}>
+                <Table
+                  max={31}
+                  cols={[
+                    { key: "jour", label: "Jour", render: (r) => fmtDay(r.jour) },
+                    { key: "visiteurs", label: "Visiteurs", num: true },
+                    { key: "pages", label: "Pages vues", num: true },
+                    { key: "sessions", label: "Sessions", num: true },
+                    { key: "rebond", label: "Rebond", num: true, render: (r) => (r.rebond === null ? "–" : `${r.rebond} %`) },
+                    { key: "duree", label: "Durée", num: true, render: (r) => (r.duree === null ? "–" : fmtDuration(r.duree)) },
+                  ]}
+                  rows={siteSplit.current.map((r, i) => ({ ...r, ...siteQualite[siteQualite.length - siteSplit.current.length + i] })).reverse()}
+                />
               </Fold>
               <Fold title="Pages les plus vues" icon="document">
                 <Ranked rows={ph.site.pages.map((p) => ({ label: p.chemin, n: p.vues, sub: `${fmtInt(p.visiteurs)} visiteurs` }))} />
@@ -395,16 +410,7 @@ function Board({ data, jours, reload, liste, today, search }) {
       </Section>
 
       <Section id="referencement" right={demo ? null : <RefreshSeo />}>
-        <div className="pl-tiles">{seoTiles}</div>
-        {gsc ? (
-          <Card title="Clics par jour">
-            <DayBars series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} />
-          </Card>
-        ) : ph ? (
-          <Card title="Sessions venues d'un moteur, par jour">
-            <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} />
-          </Card>
-        ) : null}
+        <TileChart>{seoTiles}</TileChart>
         <Folds>
           {gsc ? (
             <>
@@ -422,9 +428,6 @@ function Board({ data, jours, reload, liste, today, search }) {
                   empty="Google n'a encore remonté aucune requête pour cette période"
                 />
               </Fold>
-              <Fold title="Impressions par jour" icon="date">
-                <DayBars series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} height={80} />
-              </Fold>
               <Fold title="Pages qui ressortent" icon="document">
                 <Ranked rows={gsc.pages.map((p) => ({ label: p.page, n: p.impressions, sub: `${fmtInt(p.clics)} clic(s)` }))} empty="Aucune page vue dans les résultats" />
                 <div style={{ height: 10 }} />
@@ -438,8 +441,6 @@ function Board({ data, jours, reload, liste, today, search }) {
           )}
           {ph ? (
             <Fold title="Arrivées depuis un moteur" icon="lieu" value={fmtInt(sumBy(organicSplit.current, "sessions"))}>
-              {gsc ? <DayBars series={organic} keys={["sessions"]} labels={["Sessions"]} days={jours} height={80} /> : null}
-              <div style={{ height: 10 }} />
               <Ranked rows={ph.seo.moteurs} max={6} empty="Aucune arrivée depuis un moteur" />
               <div style={{ height: 10 }} />
               <Ranked rows={ph.seo.entrees.map((p) => ({ label: p.chemin, n: p.n, sub: `${(Math.round(p.pages * 10) / 10).toLocaleString("fr-FR")} page(s) vue(s)` }))} empty="Aucune arrivée depuis un moteur sur la période" />
@@ -484,16 +485,13 @@ function Board({ data, jours, reload, liste, today, search }) {
       <Section id="agents">
         {ph ? (
           <>
-            <div className="pl-tiles">
-              <Tile label="Visites d'agents IA" value={sumBy(agentsSplit.current, "visites")} prev={sumBy(agentsSplit.previous, "visites")} hint="Pages lues par des agents qui ne chargent pas le JavaScript (GPTBot, ClaudeBot, PerplexityBot…), reconnus à leur User-Agent. Un User-Agent se falsifie." />
+            <TileChart>
+              <Tile label="Visites d'agents IA" value={sumBy(agentsSplit.current, "visites")} prev={sumBy(agentsSplit.previous, "visites")} hint="Pages lues par des agents qui ne chargent pas le JavaScript (GPTBot, ClaudeBot, PerplexityBot…), reconnus à leur User-Agent. Un User-Agent se falsifie." note="Relevé par le middleware à chaque requête, hors redirections. Aucun profil de personne ni adresse IP n'est gardé." chart={<DayBars title="Visites d'agents par jour" series={agentsSeries} keys={["visites"]} labels={["Visites"]} days={jours} />} />
               <Tile label="Sur le site" value={(ph.agents.sites["www.withmerry.com"] || 0) + (ph.agents.sites["withmerry.com"] || 0)} />
               <Tile label="Sur l'appli" value={ph.agents.sites["app.withmerry.com"] || 0} />
               <Tile label="Agents différents" value={ph.agents.familles.length} />
               <Tile label="Navigateurs pilotés" value={ph.agents.navigateurs.site.sessions + ph.agents.navigateurs.app.sessions} inverse hint="Sessions de navigateurs pilotés par un programme (webdriver, Chrome sans écran), écartées des chiffres du site et de l'appli" />
-            </div>
-            <Card title="Visites d'agents par jour" note="Relevé par le middleware à chaque requête, hors redirections. Aucun profil de personne ni adresse IP n'est gardé.">
-              <DayBars series={agentsSeries} keys={["visites"]} labels={["Visites"]} days={jours} />
-            </Card>
+            </TileChart>
             <Folds>
               <Fold open title="Qui lit" icon="rechercher" value={ph.agents.familles.length ? `${fmtInt(ph.agents.familles.length)} agents` : null}>
                 <Table
@@ -537,22 +535,17 @@ function Board({ data, jours, reload, liste, today, search }) {
       </Section>
 
       <Section id="appli">
-        <div className="pl-tiles">
-          <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} />
-          <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} />
+        <TileChart>
+          <Tile label="Comptes au total" value={t.comptes} sub={`${fmtInt(t.comptes_actifs)} connectés sur ${periode}`} chart={<DayLine cumul title="Comptes au total" series={cumulSerie(sb?.series, "inscriptions", t.comptes)} valeur="cumul" label="Comptes" days={jours} />} />
+          <Tile label="Nouveaux comptes" value={cur("inscriptions")} prev={prev("inscriptions")} chart={<DayBars title="Nouveaux comptes par jour" series={sb?.series} keys={["inscriptions", "mariages"]} labels={["Comptes", "Mariages créés"]} days={jours} />} />
           {ph ? (
             <>
-              <Tile label="Sessions" value={appS?.n || 0} prev={appP?.n} />
-              <Tile label="Durée moyenne" value={Math.round(appS?.duree || 0)} prev={Math.round(appP?.duree || 0)} format={fmtDuration} hint={`Médiane ${fmtDuration(appS?.mediane || 0)}`} />
+              <Tile ouvert label="Sessions" value={appS?.n || 0} prev={appP?.n} chart={<DayBars title="Sessions et personnes par jour" series={appMerged} keys={["sessions", "personnes"]} labels={["Sessions", "Personnes"]} days={jours} />} />
+              <Tile label="Durée moyenne" value={Math.round(appS?.duree || 0)} prev={Math.round(appP?.duree || 0)} format={fmtDuration} hint={`Médiane ${fmtDuration(appS?.mediane || 0)}`} chart={<DayLine title="Durée moyenne par jour" series={appMerged.map((r) => ({ jour: r.jour, duree: r.sessions ? Math.round(r.duree) : null }))} valeur="duree" label="Durée moyenne" days={jours} format={fmtDuration} />} />
               <Tile label="Sessions d'une minute ou plus" value={pctOf(appS?.engagees, appS?.n)} prev={pctOf(appP?.engagees, appP?.n)} format={(v) => `${v} %`} />
             </>
           ) : null}
-        </div>
-        {ph ? (
-          <Card title="Sessions et personnes par jour">
-            <DayBars series={appMerged} keys={["sessions", "personnes"]} labels={["Sessions", "Personnes"]} days={jours} />
-          </Card>
-        ) : null}
+        </TileChart>
         <Folds>
           <Fold open title="Entonnoir d'onboarding" icon="filtrer" value={ph ? `${fmtInt(ph.app.funnel.termine)} comptes` : null} note="Personnes distinctes ayant vu chaque écran, puis comptes créés. PostHog ne compte que les visiteurs qui acceptent les cookies.">
             {ph ? (
@@ -569,9 +562,6 @@ function Board({ data, jours, reload, liste, today, search }) {
               <div className="pl-empty">PostHog non lu</div>
             )}
             {ph?.app.funnel.echecs ? <p className="pl-note">{fmtInt(ph.app.funnel.echecs)} échec(s) de création de compte.</p> : null}
-          </Fold>
-          <Fold title="Nouveaux comptes par jour" icon="invites" value={fmtInt(cur("inscriptions"))}>
-            <DayBars series={sb?.series} keys={["inscriptions", "mariages"]} labels={["Comptes", "Mariages créés"]} days={jours} height={80} />
           </Fold>
           <Fold title="Autres mesures" icon="reglages">
             <Facts
@@ -608,19 +598,16 @@ function Board({ data, jours, reload, liste, today, search }) {
       </Section>
 
       <Section id="couples">
-        <div className="pl-tiles">
-          <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} />
+        <TileChart>
+          <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(t.mariages_avec_date)} avec une date`} chart={<DayLine cumul title="Mariages au total" series={cumulSerie(sb?.series, "mariages", t.mariages)} valeur="cumul" label="Mariages" days={jours} />} />
           <Tile label="Invités saisis" value={t.invites} sub={t.mariages_avec_invites != null ? `dans ${fmtInt(t.mariages_avec_invites)} mariage(s)` : null} />
-          <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={prev("reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" />
-          <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} sub={`${fmtInt(t.demandes_devis)} au total`} />
+          <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={prev("reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" chart={<DayBars title="Réponses RSVP par jour" series={sb?.series} keys={["reponses_rsvp"]} labels={["Réponses"]} days={jours} />} />
+          <Tile ouvert label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} sub={`${fmtInt(t.demandes_devis)} au total`} chart={<DayBars title="Demandes de devis par jour" series={sb?.series} keys={["demandes"]} labels={["Demandes de devis"]} days={jours} />} />
           <Tile label="Sites publiés" value={t.sites_publies} sub={sb?.repli ? null : `${fmtInt(cur("visites_sites"))} visite(s) sur ${periode}`} />
-        </div>
-        <Card title="Demandes de devis par jour">
-          <DayBars series={sb?.series} keys={["demandes"]} labels={["Demandes de devis"]} days={jours} />
-        </Card>
+        </TileChart>
         <Folds>
           <Fold open title="Messages" icon="messagerie" value={fmtInt(cur("messages_couple") + cur("messages_pro"))}>
-            <DayBars series={sb?.series} keys={["messages_couple", "messages_pro"]} labels={["Couple vers prestataire", "Prestataire vers couple"]} days={jours} height={80} />
+            <DayBars series={sb?.series} keys={["messages_couple", "messages_pro"]} labels={["Couple vers prestataire", "Prestataire vers couple"]} days={jours} height={140} />
             <Facts
               rows={[
                 { label: "Couple vers prestataire", value: cur("messages_couple"), sub: `${fmtInt(prev("messages_couple"))} avant` },
@@ -629,7 +616,7 @@ function Board({ data, jours, reload, liste, today, search }) {
             />
           </Fold>
           <Fold title="Réponses RSVP et visites des sites" icon="date" value={fmtInt(cur("reponses_rsvp"))}>
-            <DayBars series={sb?.series} keys={["reponses_rsvp", "visites_sites"]} labels={["Réponses", "Visites"]} days={jours} height={80} />
+            <DayBars series={sb?.series} keys={["reponses_rsvp", "visites_sites"]} labels={["Réponses", "Visites"]} days={jours} height={140} />
           </Fold>
           <Fold title="Formulaires et sites" icon="document" value={fmtInt((t.formulaires_publies || 0) + (t.sites_publies || 0))}>
             <Facts
@@ -650,7 +637,7 @@ function Board({ data, jours, reload, liste, today, search }) {
             />
           </Fold>
           <Fold title="Appels IA" icon="reglages" value={fmtInt(cur("appels_ia"))} note="Import d'invités, lecture de devis, comparaison de prestataires.">
-            <DayBars series={sb?.series} keys={["appels_ia"]} labels={["Appels IA"]} days={jours} height={80} />
+            <DayBars series={sb?.series} keys={["appels_ia"]} labels={["Appels IA"]} days={jours} height={140} />
           </Fold>
           <Fold title="Dernières demandes de devis" icon="email">
             <Table
@@ -667,16 +654,13 @@ function Board({ data, jours, reload, liste, today, search }) {
       </Section>
 
       <Section id="prestataires">
-        <div className="pl-tiles">
+        <TileChart>
           <Tile label="Prestataires actifs" value={t.catalogue_actifs} sub={t.catalogue_fermes != null ? `${fmtInt(t.catalogue_candidats)} candidats, ${fmtInt(t.catalogue_fermes)} fermés` : `${fmtInt(t.catalogue_candidats)} candidats`} />
           <Tile label="Fiches revendiquées" value={t.fiches_revendiquees} sub={t.fiches_revendiquees_periode != null ? `${fmtInt(t.fiches_revendiquees_periode)} sur ${periode} · ${fmtInt(t.comptes_pro)} compte(s) pro` : `${fmtInt(t.comptes_pro)} compte(s) pro`} />
           <Tile label="Crédits dépensés" value={t.credits_depenses_periode} hint="Réponses payées en crédits sur la période" />
-          <Tile label="Vues de fiches" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" />
+          <Tile label="Vues de fiches" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" chart={<DayBars title="Vues de fiches par jour" series={sb?.series} keys={["vues_pro"]} labels={["Vues de fiches"]} days={jours} />} />
           <Tile label="Clients côté pro" value={t.clients_pro} sub={t.clients_pro_repondus != null ? `${fmtInt(t.clients_pro_repondus)} avec une réponse` : null} />
-        </div>
-        <Card title="Vues de fiches par jour">
-          <DayBars series={sb?.series} keys={["vues_pro"]} labels={["Vues de fiches"]} days={jours} />
-        </Card>
+        </TileChart>
         <Folds>
           <Fold open title="Qualité du catalogue" icon="photo" value={`${fmtInt(t.catalogue_sans_photo)} sans photo`}>
             <Facts
@@ -733,14 +717,11 @@ function Board({ data, jours, reload, liste, today, search }) {
       <Section id="mails">
         {rs ? (
           <>
-            <div className="pl-tiles">
-              <Tile label="Envoyés" value={mails.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} />
+            <TileChart>
+              <Tile label="Envoyés" value={mails.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} note={rs.tronque ? "Sur les 100 derniers envois seulement." : null} chart={<DayBars title="Envois par jour" series={mailSeries} keys={["envois"]} labels={["Envois"]} days={jours} />} />
               <Tile label="Délivrés" value={mails.par_etat.delivered || 0} sub={fmtPct(mails.par_etat.delivered || 0, mails.envoyes)} />
               <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse prev={null} />
-            </div>
-            <Card title="Envois par jour" note={rs.tronque ? "Sur les 100 derniers envois seulement." : null}>
-              <DayBars series={mailSeries} keys={["envois"]} labels={["Envois"]} days={jours} />
-            </Card>
+            </TileChart>
             <Folds>
               {mails.problemes.length ? (
                 <Fold open title="En difficulté" icon="securite" value={fmtInt(mails.problemes.length)}>
@@ -787,16 +768,13 @@ function Board({ data, jours, reload, liste, today, search }) {
       <Section id="bugs">
         {ph ? (
           <>
-            <div className="pl-tiles">
-              <Tile label="Erreurs JavaScript" value={exceptionsCur} prev={exceptionsPrev} inverse />
-              <Tile label="Clics de rage" value={rageCur} prev={sumBy(bugsSplit.previous, "rage")} inverse />
-              <Tile label="Clics morts" value={sumBy(bugsSplit.current, "morts")} prev={sumBy(bugsSplit.previous, "morts")} inverse hint="Clics sans aucun effet visible" />
+            <TileChart>
+              <Tile label="Erreurs JavaScript" value={exceptionsCur} prev={exceptionsPrev} inverse chart={<DayBars title="Erreurs par jour" series={bugs} keys={["exceptions"]} labels={["Erreurs"]} days={jours} />} />
+              <Tile label="Clics de rage" value={rageCur} prev={sumBy(bugsSplit.previous, "rage")} inverse chart={<DayBars title="Clics de rage par jour" series={bugs} keys={["rage"]} labels={["Clics de rage"]} days={jours} />} />
+              <Tile label="Clics morts" value={sumBy(bugsSplit.current, "morts")} prev={sumBy(bugsSplit.previous, "morts")} inverse hint="Clics sans aucun effet visible" chart={<DayBars title="Clics morts par jour" series={bugs} keys={["morts"]} labels={["Clics morts"]} days={jours} />} />
               <Tile label="Bugs vus en replay" value={ph.bugs.replays?.bugs || 0} sub={`sur ${fmtInt(ph.bugs.replays?.analysees || 0)} analysée(s)`} inverse />
               {vc ? <Tile label="Déploiements" value={vc.total} sub={`${fmtInt(vc.erreurs)} en échec, ${fmtInt(vc.en_cours)} en cours`} /> : null}
-            </div>
-            <Card title="Erreurs par jour">
-              <DayBars series={bugs} keys={["exceptions", "rage"]} labels={["Erreurs", "Clics de rage"]} days={jours} />
-            </Card>
+            </TileChart>
             <Folds>
               <Fold open title="Web vitals (p75)" icon="horloge" note="LCP sous 2,5 s, INP sous 200 ms et CLS sous 0,1 sont les seuils de Google.">
                 {ph.bugs.vitals.length ? (
