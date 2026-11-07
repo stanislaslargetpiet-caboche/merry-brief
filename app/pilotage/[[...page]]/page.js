@@ -12,7 +12,7 @@ import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
-import { PilotPeriod, PilotSide, PilotSubnav } from "@/components/pilotage/PilotNav";
+import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, DayLine, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
@@ -66,6 +66,7 @@ function useToken() {
 export default function PilotagePage() {
   const auth = useToken();
   const [periode, setPeriode] = useState("7j");
+  const [langue, setLangue] = useLangue();
   const range = RANGES.find((r) => r.id === periode) || RANGES[2];
   const jours = range.jours;
   const heure = Boolean(range.heure);
@@ -148,7 +149,9 @@ export default function PilotagePage() {
           busy={busy}
           canRefresh={auth.status !== "demo"}
           stamp={data ? (data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Lu le ${fmtDateTime(data.genere)}`) : null}
-        />
+        >
+          <PilotLangue value={langue} onChange={setLangue} />
+        </PilotPeriod>
       </PilotSide>
       <main className="pl-main">
         <div className="pl-wrap">
@@ -165,13 +168,13 @@ export default function PilotagePage() {
           ) : null}
           {!data && quotidien ? (
             <section className="pl-section">
-              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={TUILES_JOUR.map((label) => ({ label }))} reload={() => {}} search={search} indicateurs={error ? "erreur" : "lecture"} />
+              <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={TUILES_JOUR.map((label) => ({ label }))} reload={() => {}} search={search} langue={langue} indicateurs={error ? "erreur" : "lecture"} />
             </section>
           ) : null}
           {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
-              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} search={search} />
+              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} search={search} langue={langue} />
             </PageContext.Provider>
           ) : null}
         </div>
@@ -242,7 +245,7 @@ function RefreshSeo() {
   );
 }
 
-function Board({ data, jours, reload, liste, today, search }) {
+function Board({ data, jours, reload, liste, today, search, langue }) {
   const demo = Boolean(data.demo);
   const sb = data.supabase;
   const ph = data.posthog?.disponible ? data.posthog : null;
@@ -324,7 +327,7 @@ function Board({ data, jours, reload, liste, today, search }) {
   return (
     <>
       <Section id="jour">
-        <Aujourdhui liste={liste} data={data} sante={sante} today={today} tuiles={tuilesJour} reload={reload} search={search} />
+        <Aujourdhui liste={liste} data={data} sante={sante} today={today} tuiles={tuilesJour} reload={reload} search={search} langue={langue} />
       </Section>
 
       <Section id="sante" right={demo ? null : <SendBrief />}>

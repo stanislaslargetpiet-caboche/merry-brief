@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFil, etatFil, itemAction, parseCapture, rangerTaches, titreJour, validateItem } from "@/lib/pilotage/items";
+import { buildFil, choisirLecture, etatFil, itemAction, parseCapture, rangerTaches, titreJour, validateItem, validatePublication } from "@/lib/pilotage/items";
 import { buildSante } from "@/lib/pilotage/sante";
 
 const LUNDI = "2026-11-09";
@@ -116,5 +116,26 @@ describe("etatFil", () => {
   it("dit ce qui manque quand une lecture échoue", () => {
     expect(etatFil({ charge: true, indicateurs: "erreur" })).toEqual({ complet: false, message: "Réseau, demandes et alertes non lus" });
     expect(etatFil({ charge: false, err: "Liste non lue : erreur 502", indicateurs: "lecture" })).toEqual({ complet: false, message: "Liste non lue" });
+  });
+});
+
+describe("éditions par langue", () => {
+  const today = "2026-11-08";
+  const pub = { rubrique: "news", titre: "Titre" };
+
+  it("range la langue dans la clé, et garde l'ancienne clé sans langue", () => {
+    expect(validatePublication({ ...pub, langue: "en" }, today).valeur.cle).toBe("news:2026-11-08:en");
+    expect(validatePublication(pub, today).valeur.cle).toBe("news:2026-11-08");
+    expect(validatePublication({ ...pub, langue: "de" }, today)).toEqual({ ok: false, erreur: "langue" });
+  });
+
+  it("prend le jour le plus récent dans la langue choisie, sinon une autre version de ce jour", () => {
+    const l = (cle, echeance) => ({ type: "lecture", projet: "News of the Day", cle, echeance, titre: cle });
+    const items = [l("news:2026-11-07", "2026-11-07"), l("news:2026-11-08:fr", "2026-11-08"), l("news:2026-11-08:en", "2026-11-08")];
+    expect(choisirLecture(items, "News of the Day", "en").cle).toBe("news:2026-11-08:en");
+    expect(choisirLecture(items, "News of the Day", "fr").cle).toBe("news:2026-11-08:fr");
+    expect(choisirLecture(items.slice(0, 2), "News of the Day", "en").cle).toBe("news:2026-11-08:fr");
+    expect(choisirLecture(items.slice(0, 1), "News of the Day", "en").cle).toBe("news:2026-11-07");
+    expect(choisirLecture(items, "Feature of the Day", "fr")).toBeNull();
   });
 });

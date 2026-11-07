@@ -1,10 +1,10 @@
 "use client";
 
-// Navigation du pilotage : barre latérale citron (cinq boutons, puis la période et Actualiser, valables sur toutes
+// Navigation du pilotage : barre latérale citron (cinq boutons, puis la langue, la période et Actualiser, valables sur toutes
 // les pages) et sous-pages en pilules, comme l'espace prestataire.
 // Le changement de page passe par l'historique du navigateur, sans recharger : les données lues restent en mémoire.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { PILOTAGE_NAV, pilotagePath } from "@/lib/pilotage/nav";
 
@@ -54,9 +54,10 @@ export function PilotSide({ group, search, badges, children }) {
   );
 }
 
-export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefresh, stamp }) {
+export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefresh, stamp, children }) {
   return (
     <div className="pl-period">
+      {children}
       <div className="pl-ranges" role="group" aria-label="Période">
         {ranges.map((r) => (
           <button key={r.id} type="button" aria-pressed={value === r.id} className={`pl-seg${value === r.id ? " is-on" : ""}`} disabled={busy} onClick={() => onChange(r.id)}>
@@ -69,6 +70,46 @@ export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefre
         <span>Actualiser</span>
       </button>
       {stamp ? <span className="pl-generated">{stamp}</span> : null}
+    </div>
+  );
+}
+
+// Langue des éditions News et Feature : gardée dans le navigateur (localStorage, clé pl-langue)
+const LANGUE_KEY = "pl-langue";
+const LANGUES = [
+  { id: "fr", label: "Français" },
+  { id: "en", label: "English" },
+];
+
+export function useLangue() {
+  const [langue, setState] = useState("fr");
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(LANGUE_KEY);
+      if (LANGUES.some((l) => l.id === v)) setState(v);
+    } catch {
+      /* navigation privée : le choix ne dure que le temps de la page */
+    }
+  }, []);
+  const set = (next) => {
+    setState(next);
+    try {
+      window.localStorage.setItem(LANGUE_KEY, next);
+    } catch {
+      /* idem */
+    }
+  };
+  return [langue, set];
+}
+
+export function PilotLangue({ value, onChange }) {
+  return (
+    <div className="pl-ranges pl-langue" role="group" aria-label="Langue des éditions">
+      {LANGUES.map((l) => (
+        <button key={l.id} type="button" aria-pressed={value === l.id} className={`pl-seg${value === l.id ? " is-on" : ""}`} onClick={() => onChange(l.id)}>
+          {l.label}
+        </button>
+      ))}
     </div>
   );
 }
