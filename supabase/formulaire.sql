@@ -131,7 +131,8 @@ grant execute on function public.merry_form_public(text) to anon, authenticated;
 -- ---------------------------------------------------------------------------
 -- Envoi d'une réponse. Un invité déjà dans la liste est reconnu par son prénom et
 -- son nom (sans tenir compte des majuscules ni des espaces) : sa ligne est
--- complétée au lieu d'être dupliquée. L'accompagnant devient un invité « +1 ».
+-- mise à jour au lieu d'être dupliquée. L'accompagnant devient un invité « +1 », sauf s'il est
+-- déjà dans la liste : sa fiche reçoit alors sa réponse et ses coordonnées.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.merry_clip(v text, n int)
@@ -300,8 +301,6 @@ declare
   diet_txt   text;
   p          jsonb;
   addr       text;
-  is_new     boolean := false;
-  trusted    boolean := false;
   n_hour     integer := 0;
 begin
   select * into f from public.guest_forms where slug = form_slug and published;
@@ -404,25 +403,19 @@ begin
   -- Invité principal : reconnu par son nom (fautes de frappe tolérées), sinon ajouté en fin de liste
   main_id := public.merry_find_guest(w, v_first, v_last);
   if main_id is null then
-    is_new := true;
     select coalesce(max(position) + 1, 0) into pos from public.guests where wedding_id = w;
     insert into public.guests (wedding_id, first_name, last_name, position)
     values (w, v_first, v_last, pos) returning id into main_id;
   end if;
-  -- Un invité reconnu par son nom seulement : ses coordonnées déjà connues ne sont pas écrasées par
-  -- un inconnu qui taperait le même nom. Elles ne sont remplacées que si l'adresse mail envoyée est
-  -- celle de la fiche (ou si la fiche n'en a pas encore) ; sinon on ne fait que compléter les vides.
-  select lower(btrim(coalesce(email, ''))) = lower(coalesce(public.merry_clip(payload ->> 'email', 200), '')) or btrim(coalesce(email, '')) = ''
-    into trusted from public.guests where id = main_id;
-  trusted := is_new or coalesce(trusted, false);
+  -- La réponse de l'invité fait foi : ce qu'il renseigne remplace ce que la liste contenait ;
+  -- un champ laissé vide ou non demandé garde sa valeur.
   update public.guests
      set last_name = case when btrim(last_name) = '' then v_last else last_name end,
-         email   = case when trusted then coalesce(public.merry_clip(payload ->> 'email', 200), email) else coalesce(email, public.merry_clip(payload ->> 'email', 200)) end,
+         email   = coalesce(public.merry_clip(payload ->> 'email', 200), email),
          phone   = case when coalesce(modes ->> 'tel', 'off') = 'off' then phone
-                        when trusted then coalesce(public.merry_clip(payload ->> 'phone', 40), phone)
-                        else coalesce(phone, public.merry_clip(payload ->> 'phone', 40)) end,
-         address = case when trusted then coalesce(addr, address) else coalesce(address, addr) end,
-         diet    = case when trusted then coalesce(diet_txt, diet) else coalesce(diet, diet_txt) end,
+                        else coalesce(public.merry_clip(payload ->> 'phone', 40), phone) end,
+         address = coalesce(addr, address),
+         diet    = coalesce(diet_txt, diet),
          custom  = custom || custom_out
    where id = main_id;
 
@@ -445,9 +438,19 @@ begin
     v_last := public.merry_clip(p ->> 'last_name', 80);
     select id into plus_id from public.guests
      where wedding_id = w and plus_one_of = main_id
-       and ((lower(btrim(first_name)) = lower(coalesce(v_first, '')) and lower(btrim(last_name)) = lower(coalesce(v_last, '')))
-            or (btrim(first_name) = '' and btrim(last_name) = ''))
+       and lower(btrim(first_name)) = lower(coalesce(v_first, '')) and lower(btrim(last_name)) = lower(coalesce(v_last, ''))
      order by created_at limit 1;
+    -- Déjà dans la liste comme invité : sa fiche sert, sans la rattacher à l'invité qu'il accompagne
+    -- (retirer l'un retirerait l'autre).
+    if plus_id is null and v_first is not null and v_last is not null then
+      plus_id := nullif(public.merry_find_guest(w, v_first, v_last), main_id);
+    end if;
+    -- Sinon, un « +1 » encore sans nom, ajouté par les organisateurs
+    if plus_id is null then
+      select id into plus_id from public.guests
+       where wedding_id = w and plus_one_of = main_id and btrim(first_name) = '' and btrim(last_name) = ''
+       order by created_at limit 1;
+    end if;
     if plus_id is null then
       select coalesce(max(position) + 1, 0) into pos from public.guests where wedding_id = w;
       insert into public.guests (wedding_id, group_id, first_name, last_name, plus_one_of, position)
@@ -455,8 +458,8 @@ begin
       returning id into plus_id;
     end if;
     update public.guests
-       set first_name = coalesce(v_first, first_name),
-           last_name  = coalesce(v_last, last_name),
+       set first_name = case when btrim(first_name) = '' then coalesce(v_first, first_name) else first_name end,
+           last_name  = case when btrim(last_name) = '' then coalesce(v_last, last_name) else last_name end,
            email      = coalesce(public.merry_clip(p ->> 'email', 200), email),
            phone      = coalesce(public.merry_clip(p ->> 'phone', 40), phone),
            address    = case when coalesce(modes ->> 'adresse', 'off') = 'off' then address
