@@ -27,6 +27,13 @@ describe("import : texte collé", () => {
       ["Paul", "Martin", ""],
     ]);
   });
+  it("reconnaît la colonne mail, avec ou sans tiret", () => {
+    for (const head of ["E-mail", "Email", "Mail", "Courriel", "Adresse mail", "Adresse e-mail"]) {
+      const out = parseText(`Prénom;Nom;${head}\nLéa;Dupont;lea@example.com\nPaul;Martin;paul@example.com`);
+      expect(out.guests[0].email).toBe("lea@example.com");
+      expect(out.extraColumns).toEqual([]);
+    }
+  });
   it("lit une liste libre, une personne par ligne", () => {
     const out = parseText("Léa Dupont\nPaul Martin");
     expect(out.guests).toHaveLength(2);
