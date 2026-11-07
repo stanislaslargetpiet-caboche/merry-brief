@@ -22,23 +22,18 @@ describe("campagnes emails", () => {
       ev("test", "email.sent", "2026-11-06T15:05:18Z"),
       ev("a", "email.sent"),
       ev("a", "email.delivered"),
-      ev("a", "email.opened", "2026-11-07T09:00:00Z"),
-      ev("a", "email.clicked", "2026-11-07T09:01:00Z", { link: "https://app.withmerry.com/dashboard/budget?utm=1" }),
       ev("b", "email.sent"),
       ev("b", "email.bounced", DEPART, { to_email: "b@x.fr", bounce_type: "Permanent" }),
     ]);
-    expect(c.periode).toMatchObject({ envoyes: 2, delivres: 1, ouverts: 1, cliques: 1, echecs: 1 });
-    expect(c.numeros[1]).toMatchObject({ numero: 1, statut: "Parti", prevus: 2, envoyes: 2 });
-    expect(c.liens).toEqual([{ label: "/dashboard/budget", n: 1 }]);
+    expect(c.periode).toMatchObject({ envoyes: 2, delivres: 1, echecs: 1 });
+    expect(c.numeros[1]).toMatchObject({ numero: 1, campagne: "samedi-1", statut: "Parti", prevus: 2, envoyes: 2 });
     expect(c.problemes[0]).toMatchObject({ numero: 1, a: "b@x.fr", etat: "Rebond", detail: "Permanent" });
-    expect(c.ouvertures_suivies).toBe(true);
   });
 
   it("ne dit pas parti ce qui attend chez Resend", () => {
     const c = build([], { now: Date.parse("2026-11-06T20:00:00Z") });
     expect(c.numeros[1].statut).toBe("Programmé");
     expect(c.numeros[0].statut).toBe("À envoyer");
-    expect(c.ouvertures_suivies).toBe(false);
   });
 
   it("signale un départ passé sans aucun retour du webhook", () => {

@@ -103,7 +103,7 @@ function Frame({ children }) {
   }, [dash.status, dash.mode, dash.user]);
 
   useEffect(() => {
-    if (dash.status === "signedout") router.replace(`/connexion?next=${encodeURIComponent(pathname)}`);
+    if (dash.status === "signedout") router.replace(`/connexion?next=${encodeURIComponent(pathname + window.location.search)}`);
     if (dash.status === "mustreset") window.location.replace("/connexion?reset=1");
   }, [dash.status, pathname, router]);
 

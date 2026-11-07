@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, DayBars, Fold, Folds, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, Fold, Folds, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
 import { alignSeries, fmtDateTime, fmtPct } from "@/lib/server/pilotage/shape";
 
 async function call(init) {
@@ -32,8 +32,7 @@ const COLONNES = [
   { key: "statut", label: "État", render: (r) => <Pill tone={TON[r.statut]}>{r.statut}</Pill> },
   { key: "envoyes", label: "Envoyés", num: true },
   { key: "delivres", label: "Délivrés", num: true },
-  { key: "ouverts", label: "Ouverts", num: true },
-  { key: "cliques", label: "Cliqués", num: true },
+  { key: "visites", label: "Visites", num: true },
   { key: "echecs", label: "Échecs", num: true },
   { key: "desinscrits", label: "Désinscrits", num: true },
 ];
@@ -41,17 +40,18 @@ const COLONNES = [
 // Campagnes sans envoi depuis le pilotage pour l'instant : une ligne, en attendant leurs chiffres
 const A_VENIR = [{ id: "prestataires", label: "Série prestataires", etat: "Pas envoyée", detail: "5 mails" }];
 
-function Chiffres({ data, joursList, jours }) {
+const sommeDe = (visites, cle) => (visites ? visites.reduce((total, v) => total + v[cle], 0) : null);
+
+function Chiffres({ data, visites, joursList, jours }) {
   const p = data.periode;
   const prev = data.precedente;
-  const sansOuvertures = !data.ouvertures_suivies;
   return (
     <>
       <div className="pl-tiles">
         <Tile label="Envoyés" value={p.envoyes} prev={prev.envoyes} />
         <Tile label="Délivrés" value={p.delivres} sub={fmtPct(p.delivres, p.envoyes)} />
-        <Tile label="Ouverts" value={sansOuvertures ? null : p.ouverts} sub={sansOuvertures ? "Suivi coupé chez Resend" : fmtPct(p.ouverts, p.delivres)} />
-        <Tile label="Cliqués" value={p.cliques} sub={fmtPct(p.cliques, p.delivres)} />
+        <Tile label="Visites depuis le mail" value={sommeDe(visites, "periode")} prev={sommeDe(visites, "precedente")} hint="Sessions PostHog venues du mail, avec accord cookies" />
+        <Tile label="Désinscrits" value={p.desinscrits} prev={prev.desinscrits} inverse />
         <Tile label="Échecs" value={p.echecs} prev={prev.echecs} inverse hint="Rebonds, plaintes, échecs d'envoi et adresses bloquées" />
       </div>
       <Card title="Envois par jour">
@@ -61,7 +61,7 @@ function Chiffres({ data, joursList, jours }) {
   );
 }
 
-function MailDuSamedi({ data, demo, onChange }) {
+function MailDuSamedi({ data, visites, demo, onChange }) {
   const [state, setState] = useState(demo ? data?.envoi : null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -112,7 +112,7 @@ function MailDuSamedi({ data, demo, onChange }) {
   };
 
   const left = state?.restants.length || 0;
-  const numeros = data?.numeros || [];
+  const lignes = (data?.numeros || []).map((n) => ({ ...n, visites: visites ? visites.find((v) => v.campagne === n.campagne)?.total || 0 : null }));
   return (
     <>
       <h2 className="pl-bloc-titre">Mail du samedi</h2>
@@ -146,9 +146,9 @@ function MailDuSamedi({ data, demo, onChange }) {
           </div>
         </div>
       ) : null}
-      {numeros.length ? (
+      {lignes.length ? (
         <Card>
-          <Table cols={data.ouvertures_suivies ? COLONNES : COLONNES.filter((c) => c.key !== "ouverts")} rows={numeros} max={60} />
+          <Table cols={COLONNES} rows={lignes} max={60} />
         </Card>
       ) : null}
       <Folds>
@@ -164,11 +164,6 @@ function MailDuSamedi({ data, demo, onChange }) {
               ]}
               rows={data.problemes}
             />
-          </Fold>
-        ) : null}
-        {data?.liens?.length ? (
-          <Fold title="Liens cliqués" icon="croissance" value={data.liens.length}>
-            <Ranked rows={data.liens} />
           </Fold>
         ) : null}
         {state ? (
@@ -197,12 +192,12 @@ function MailDuSamedi({ data, demo, onChange }) {
   );
 }
 
-export default function Campagnes({ data, joursList, jours, demo, onChange }) {
+export default function Campagnes({ data, visites, joursList, jours, demo, onChange }) {
   const lu = data?.disponible ? data : null;
   return (
     <Section id="campagnes">
-      {lu ? <Chiffres data={lu} joursList={joursList} jours={jours} /> : <div className="pl-empty">Suivi des campagnes non lu : {data?.raison || "voir la page Santé"}.</div>}
-      <MailDuSamedi data={lu} demo={demo} onChange={onChange} />
+      {lu ? <Chiffres data={lu} visites={visites} joursList={joursList} jours={jours} /> : <div className="pl-empty">Suivi des campagnes non lu : {data?.raison || "voir la page Santé"}.</div>}
+      <MailDuSamedi data={lu} visites={visites} demo={demo} onChange={onChange} />
       {A_VENIR.map((c) => (
         <div key={c.id} className="pl-bloc">
           <h2 className="pl-bloc-titre">{c.label}</h2>

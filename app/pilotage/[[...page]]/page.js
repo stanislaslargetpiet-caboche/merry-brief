@@ -347,7 +347,7 @@ function Board({ data, jours, reload, liste, today, search }) {
 
       <Reseau reseau={data.reseau} demo={demo} onChange={reload} />
 
-      <Campagnes data={data.campagnes} joursList={joursList} jours={jours} demo={demo} onChange={reload} />
+      <Campagnes data={data.campagnes} visites={ph?.mails} joursList={joursList} jours={jours} demo={demo} onChange={reload} />
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
 
@@ -736,12 +736,6 @@ function Board({ data, jours, reload, liste, today, search }) {
             <div className="pl-tiles">
               <Tile label="Envoyés" value={mails.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} />
               <Tile label="Délivrés" value={mails.par_etat.delivered || 0} sub={fmtPct(mails.par_etat.delivered || 0, mails.envoyes)} />
-              {rs.suivi?.actif ? (
-                <>
-                  <Tile label="Ouverts" value={rs.suivi.ouverts} sub={rs.suivi.taux_ouverture == null ? null : `${rs.suivi.taux_ouverture} % des délivrés`} hint="Webhook Resend ; il faut le suivi des ouvertures activé sur le domaine" />
-                  <Tile label="Cliqués" value={rs.suivi.cliques} sub={rs.suivi.taux_clic == null ? null : `${rs.suivi.taux_clic} % des délivrés`} />
-                </>
-              ) : null}
               <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse prev={null} />
             </div>
             <Card title="Envois par jour" note={rs.tronque ? "Sur les 100 derniers envois seulement." : null}>
