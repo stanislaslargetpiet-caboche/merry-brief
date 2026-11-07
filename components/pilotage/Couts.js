@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, ColBars, Fold, Folds, Pill, Ranked, Section, Table, Tile } from "@/components/pilotage/ui";
+import { ColBars, Fold, Folds, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { fmtDay, fmtEur } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
 
@@ -101,14 +101,11 @@ export default function Couts({ couts, demo, onChange }) {
         </div>
       ) : (
         <>
-          <div className="pl-tiles">
-            <Tile label={`Dépensé en ${MOIS(mois)}`} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour (${couts.jours_mois} jours écoulés) · ${eur(couts.mois_precedent)} le mois précédent`} />
+          <TileChart>
+            <Tile label={`Dépensé en ${MOIS(mois)}`} chart={<ColBars title="Dépenses par mois" rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" courant={MOIS(mois)} />} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour (${couts.jours_mois} jours écoulés) · ${eur(couts.mois_precedent)} le mois précédent`} />
             <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
             <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
-          </div>
-          <Card title="Dépenses par mois">
-            <ColBars rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" />
-          </Card>
+          </TileChart>
           <Folds>
             <Fold open title="Par catégorie" icon="filtrer" note="Cumul depuis la première dépense saisie">
               <Ranked rows={couts.par_categorie.map((c) => ({ label: c.label, n: c.depense }))} format={eur} empty="Aucune dépense saisie" />

@@ -5,7 +5,7 @@
 // la fenêtre exacte choisie (1 h comprise).
 
 import { useMemo, useState } from "react";
-import { Card, DayBars, Facts, Fold, Folds, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
+import { DayBars, Facts, Fold, Folds, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { fmtAgo, fmtDateTime, fmtInt } from "@/lib/server/pilotage/shape";
 
 const FILTERS = [
@@ -94,16 +94,13 @@ export default function Utilisateurs({ data, series, jours }) {
   const t = data.totaux || {};
   return (
     <Section id="comptes">
-      <div className="pl-tiles">
+      <TileChart>
         <Tile label="Connectés" value={f.connectes?.n} prev={f.connectes?.prec} hint="Comptes dont la dernière connexion tombe dans la période (Supabase Auth)" />
-        <Tile label="Nouveaux comptes" value={f.comptes_crees?.n} prev={f.comptes_crees?.prec} sub={`${fmtInt(t.comptes)} au total`} />
-        <Tile label="Mariages créés" value={f.mariages_crees?.n} prev={f.mariages_crees?.prec} sub={`${fmtInt(t.mariages)} au total`} />
+        <Tile label="Nouveaux comptes" value={f.comptes_crees?.n} prev={f.comptes_crees?.prec} sub={`${fmtInt(t.comptes)} au total`} chart={<DayBars title="Nouveaux comptes par jour" series={series} keys={["inscriptions"]} labels={["Nouveaux comptes"]} days={jours} />} />
+        <Tile label="Mariages créés" value={f.mariages_crees?.n} prev={f.mariages_crees?.prec} sub={`${fmtInt(t.mariages)} au total`} chart={<DayBars title="Mariages créés par jour" series={series} keys={["mariages"]} labels={["Mariages créés"]} days={jours} />} />
         <Tile label="Invités ajoutés" value={f.invites_ajoutes?.n} prev={f.invites_ajoutes?.prec} sub={`${fmtInt(t.avec_invites)} mariage(s) en ont au moins un`} />
-        <Tile label="Demandes de devis" value={f.devis?.n} prev={f.devis?.prec} sub={`${fmtInt(t.avec_devis)} mariage(s) en ont fait`} />
-      </div>
-      <Card title="Nouveaux comptes par jour">
-        <DayBars series={series} keys={["inscriptions"]} labels={["Nouveaux comptes"]} days={jours} />
-      </Card>
+        <Tile label="Demandes de devis" value={f.devis?.n} prev={f.devis?.prec} sub={`${fmtInt(t.avec_devis)} mariage(s) en ont fait`} chart={<DayBars title="Demandes de devis par jour" series={series} keys={["demandes"]} labels={["Demandes de devis"]} days={jours} />} />
+      </TileChart>
       <Folds>
         <Fold open title="Derniers utilisateurs connectés" icon="horloge" value={fmtInt(data.utilisateurs?.length || 0)} note="Supabase date la dernière connexion (mot de passe ou lien), pas chaque ouverture de l'appli avec une session déjà ouverte : un couple qui reste connecté peut y paraître moins récent qu'il ne l'est.">
           <Table

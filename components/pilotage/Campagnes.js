@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, DayBars, Fold, Folds, Pill, Section, Table, Tile } from "@/components/pilotage/ui";
+import { Card, DayBars, Fold, Folds, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { alignSeries, fmtDateTime, fmtPct } from "@/lib/server/pilotage/shape";
 
 async function call(init) {
@@ -47,16 +47,13 @@ function Chiffres({ data, visites, joursList, jours }) {
   const prev = data.precedente;
   return (
     <>
-      <div className="pl-tiles">
-        <Tile label="Envoyés" value={p.envoyes} prev={prev.envoyes} />
+      <TileChart>
+        <Tile label="Envoyés" value={p.envoyes} prev={prev.envoyes} chart={<DayBars title="Envois par jour" series={alignSeries(joursList, data.par_jour, ["envois"])} keys={["envois"]} labels={["Envois"]} days={jours} />} />
         <Tile label="Délivrés" value={p.delivres} sub={fmtPct(p.delivres, p.envoyes)} />
         <Tile label="Visites depuis le mail" value={sommeDe(visites, "periode")} prev={sommeDe(visites, "precedente")} hint="Sessions PostHog venues du mail, avec accord cookies" />
         <Tile label="Désinscrits" value={p.desinscrits} prev={prev.desinscrits} inverse />
         <Tile label="Échecs" value={p.echecs} prev={prev.echecs} inverse hint="Rebonds, plaintes, échecs d'envoi et adresses bloquées" />
-      </div>
-      <Card title="Envois par jour">
-        <DayBars series={alignSeries(joursList, data.par_jour, ["envois"])} keys={["envois"]} labels={["Envois"]} days={jours} />
-      </Card>
+      </TileChart>
     </>
   );
 }
