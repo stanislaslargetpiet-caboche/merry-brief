@@ -8,6 +8,7 @@ import { BRIEF_TEXT, VIBE_UNSURE } from "@/lib/i18n/brief";
 import LangSwitch from "@/components/LangSwitch";
 import "@/app/onboarding.css";
 import { trackEvent } from "@/lib/analytics";
+import { compterEtape } from "@/lib/compteurClient";
 import { searchPlaces } from "@/lib/places";
 import { displayName } from "@/lib/server/names";
 
@@ -362,6 +363,7 @@ export default function Brief() {
   useEffect(() => {
     if (status === "done" || status === "confirm") return;
     trackEvent("onboarding_step_viewed", { step, step_key: STEP_KEYS[step] || String(step) });
+    if (STEP_KEYS[step]) compterEtape(STEP_KEYS[step]);
   }, [step, status]);
 
   const set = (key, value) => setData((d) => ({ ...d, [key]: value }));
@@ -418,6 +420,7 @@ export default function Brief() {
     if (step === 2) {
       setPreparing(true);
       trackEvent("onboarding_step_viewed", { step: 2.5, step_key: "preparation" });
+      compterEtape("preparation");
       return;
     }
     setStep((st) => Math.min(st + 1, TOTAL - 1));

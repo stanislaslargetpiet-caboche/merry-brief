@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 import { classifyAgent } from "@/lib/agentsIa";
+import { compter, isPageVisit, sourceOf } from "@/lib/compteur";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
 // (/mariage/*) ; l'appli reste sur app.withmerry.com. Les pages réservées à l'appli renvoient vers
@@ -65,11 +66,25 @@ function reportAgent(req, event, agent) {
   event?.waitUntil?.(send);
 }
 
+// Compteur anonyme (lib/compteur.js) : une page du site vitrine, ou l'onboarding de l'appli, ouverts par un navigateur
+function etapeDe(req) {
+  const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
+  if (VITRINE_HOSTS.includes(host) && VITRINE_PAGES[req.nextUrl.pathname]) return "site";
+  if (host === "app.withmerry.com" && req.nextUrl.pathname === "/") return "appli";
+  return null;
+}
+
 export function middleware(req, event) {
   const res = route(req);
+  const landed = res.status < 300 || res.status >= 400;
   // Une redirection n'est pas une lecture : l'agent est compté sur l'adresse où il atterrit
-  const agent = res.status < 300 || res.status >= 400 ? classifyAgent(req.headers.get("user-agent")) : null;
+  const agent = landed ? classifyAgent(req.headers.get("user-agent")) : null;
   if (agent && !req.nextUrl.pathname.startsWith("/api/interne/")) reportAgent(req, event, agent);
+  const etape = landed && !agent ? etapeDe(req) : null;
+  if (etape && isPageVisit(req.headers, req.method)) {
+    const send = compter({ etape, source: sourceOf(req.nextUrl.search), site: (req.headers.get("host") || "").split(":")[0].toLowerCase() });
+    if (send) event?.waitUntil?.(send);
+  }
   return res;
 }
 

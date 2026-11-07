@@ -33,8 +33,26 @@ describe("middleware : relevé des agents IA", () => {
     expect(body.properties).toMatchObject({ famille: "GPTBot", operateur: "OpenAI", type: "entrainement", site: "www.withmerry.com", chemin: "/mariage/lieux/yvelines", $process_person_profile: false });
     expect(body.properties.$host).toBeUndefined();
   });
-  it("ne relève pas un navigateur ordinaire", async () => {
-    await run("https://www.withmerry.com/", CHROME);
+  it("ne relève pas un navigateur ordinaire comme agent : il passe au compteur anonyme", async () => {
+    await run("https://www.withmerry.com/?source=meta-c&fbclid=abc", CHROME);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.event).toBe("compteur");
+    expect(body.properties).toMatchObject({ etape: "site", source: "meta-c", site: "www.withmerry.com", $process_person_profile: false, $ip: null });
+    expect(body.distinct_id).toMatch(/^compteur:/);
+  });
+  it("compte l'ouverture de l'onboarding, pas les autres pages de l'appli", async () => {
+    await run("https://app.withmerry.com/?source=meta-c", CHROME);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).properties).toMatchObject({ etape: "appli", source: "meta-c" });
+    fetchMock.mockClear();
+    await run("https://app.withmerry.com/dashboard", CHROME);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("ne compte pas un agent IA ni un aperçu de lien comme une visite", async () => {
+    await run("https://www.withmerry.com/", GPT);
+    expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).event)).toEqual(["bot_hit"]);
+    fetchMock.mockClear();
+    await run("https://www.withmerry.com/", "facebookexternalhit/1.1");
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it("ne compte pas une redirection (l'agent est compté là où il atterrit)", async () => {
