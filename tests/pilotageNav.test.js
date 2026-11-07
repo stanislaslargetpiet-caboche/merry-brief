@@ -27,7 +27,8 @@ describe("pathFromHash", () => {
     const anciens = ["sante", "utilisateurs", "demandes", "reseau", "nouveautes", "couts", "site", "referencement", "appli", "produit", "prestataires", "mails", "bugs"];
     for (const id of anciens) expect(pathFromHash(`#${id}`)).toMatch(/^\/pilotage\/[a-z]+\/[a-z]+$/);
     expect(pathFromHash("#demandes")).toBe(pilotagePath("coulisses", "demandes"));
-    expect(pathFromHash("#nouveautes")).toBe(pilotagePath("croissance", "samedi"));
+    expect(pathFromHash("#nouveautes")).toBe(pilotagePath("croissance", "campagnes"));
+    expect(resolvePage("/pilotage/croissance/samedi").page.id).toBe("campagnes");
   });
   it("sans ancre connue, rien", () => {
     expect(pathFromHash("")).toBe(null);

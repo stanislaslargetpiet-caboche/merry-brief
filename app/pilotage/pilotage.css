@@ -236,6 +236,11 @@
 .pl-qui h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
 .pl-qui-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 
+/* Campagnes emails : un bloc par type de campagne */
+.pl-bloc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.pl-bloc-titre { margin: 16px 0 0; font-size: 18px; font-weight: 700; line-height: 1.25; }
+.pl-ligne { display: block; font-size: 14px; }
+
 /* Mail du samedi : aperçu du mail, à sa largeur */
 .pl-mail-preview {
   display: block;
