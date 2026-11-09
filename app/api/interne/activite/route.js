@@ -1,4 +1,4 @@
-// Mail de 20 h (Paris) « Nouvelle activité sur ton compte Merry », seulement aux organisateurs dont le mariage a
+// Mail de 20 h (Paris) « Nouvelles activités sur votre mariage », seulement aux organisateurs dont le mariage a
 // bougé depuis la veille à 20 h (lib/server/activiteJob.js). Appelée deux fois par jour par Vercel (18 h et 19 h UTC,
 // vercel.json) : l'offre Hobby lance une tâche n'importe quand dans l'heure indiquée et ne connaît pas l'heure d'été,
 // donc la route ne travaille que si l'heure de Paris est 20 ou 21 ; une clé par mariage, adresse et jour dans
