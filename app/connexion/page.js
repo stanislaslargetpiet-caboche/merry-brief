@@ -10,6 +10,7 @@ import { SITE_URL } from "@/lib/site";
 import { INVITE_KEY, RESET_KEY } from "@/lib/dash/store";
 import { useLang } from "@/lib/lang";
 import { CONNEXION_TEXT } from "@/lib/i18n/connexion";
+import { formError } from "@/lib/connexionForm";
 import LangSwitch from "@/components/LangSwitch";
 
 /*
@@ -178,6 +179,11 @@ export default function Connexion() {
 
   async function submit(e) {
     e.preventDefault();
+    const invalide = formError(mode, { firstName, email, password });
+    if (invalide) {
+      setError(s.errors[invalide]);
+      return;
+    }
     setError("");
     setBusy(true);
     try {
@@ -186,7 +192,6 @@ export default function Connexion() {
         if (err) throw new Error(s.errors.badLogin);
         afterAuth();
       } else if (mode === "signup") {
-        if (password.length < 8) throw new Error(s.errors.passwordTooShort);
         const { data, error: err } = await supabase.auth.signUp({
           email,
           password,
@@ -329,7 +334,7 @@ export default function Connexion() {
         ) : null}
 
         {supabase && isForm ? (
-          <form onSubmit={submit} className="cx-form">
+          <form onSubmit={submit} className="cx-form" noValidate>
             {mode === "reset" ? <p className="cx-help">{s.resetHelp(user?.email)}</p> : null}
             {mode === "signup" && token ? <p className="cx-help">{s.signupInvitedHelp}</p> : null}
             {mode === "signup" ? (
