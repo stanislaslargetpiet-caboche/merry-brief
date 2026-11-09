@@ -24,9 +24,9 @@ describe("compteur anonyme", () => {
   });
 
   it("range les passages par source et par étape", () => {
-    const rows = entonnoir([["meta-a", "site", "3"], ["meta-a", "fete", "1"], ["", "site", "10"], ["meta-a", "inconnue", "5"]]);
-    expect(rows[0]).toMatchObject({ source: "Sans source", site: 10, fete: 0 });
-    expect(rows[1]).toMatchObject({ source: "meta-a", site: 3, fete: 1, compte: 0 });
+    const rows = entonnoir([["meta-a", "site", "3"], ["meta-a", "equipe", "1"], ["", "site", "10"], ["meta-a", "inconnue", "5"]]);
+    expect(rows[0]).toMatchObject({ source: "Sans source", site: 10, equipe: 0 });
+    expect(rows[1]).toMatchObject({ source: "meta-a", site: 3, equipe: 1, compte: 0 });
     expect(rows[1].inconnue).toBeUndefined();
   });
 
