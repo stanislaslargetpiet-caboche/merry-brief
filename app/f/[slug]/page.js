@@ -24,7 +24,16 @@ export default function GuestFormPage() {
   if (state.status !== "ready") {
     return (
       <main className="gf" style={style}>
-        <p className="gf-state">{state.status === "loading" ? "Chargement du formulaire…" : "Ce formulaire n'existe pas ou n'est plus ouvert. Vérifiez le lien reçu des mariés."}</p>
+        {state.status === "loading" ? (
+          <div className="gf-loader" role="status" aria-label="Chargement du formulaire">
+            <span className="gf-loader-word">Merry</span>
+            <span className="gf-loadbar">
+              <span />
+            </span>
+          </div>
+        ) : (
+          <p className="gf-state">Ce formulaire n'existe pas ou n'est plus ouvert. Vérifiez le lien reçu des mariés.</p>
+        )}
       </main>
     );
   }
@@ -52,11 +61,15 @@ export default function GuestFormPage() {
           ) : null}
         </section>
 
-        <GuestForm form={form} slug={String(slug)} />
+        <GuestForm form={form} slug={String(slug)} brand />
 
-        <div className="gf-foot">
-          Formulaire créé avec <b>Merry</b>
-        </div>
+        <a className="gf-foot" href="https://withmerry.com" target="_blank" rel="noreferrer">
+          <span className="gf-foot-line">
+            Formulaire créé avec <b>Merry</b>
+          </span>
+          <span className="gf-foot-sub">Merry simplifie l'organisation du mariage de A à Z</span>
+          <span className="gf-foot-url">withmerry.com</span>
+        </a>
       </div>
     </main>
   );

@@ -350,8 +350,12 @@ export default function FormulaireInvites() {
             <span>
               <span className="d-fm-dot" aria-hidden="true" />
               <strong>En ligne</strong>
-              {replies ? ` · ${replies} réponse${replies > 1 ? "s" : ""}` : ""}
             </span>
+            {replies ? (
+              <span className="d-fm-count">
+                {replies} réponse{replies > 1 ? "s" : ""}
+              </span>
+            ) : null}
             <button type="button" className="d-link d-mob-only-inline" onClick={openGuestPage}>
               Voir comme un invité
             </button>
@@ -408,7 +412,7 @@ export default function FormulaireInvites() {
             </p>
           ) : null}
           <div className="d-mob-only">
-            <Btn kind="ghost" icon="pencil" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
+            <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={() => setSheet({ kind: "look" })}>
               Modifier l'apparence
             </Btn>
           </div>
@@ -416,7 +420,7 @@ export default function FormulaireInvites() {
 
         <aside className="d-fm-side d-desk-only">
           <h2 className="d-fm-h">Ce que voient vos invités</h2>
-          <Btn kind="strong" className="d-btn-block" onClick={() => setSheet({ kind: "look" })}>
+          <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={() => setSheet({ kind: "look" })}>
             Modifier l'apparence
           </Btn>
           <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">

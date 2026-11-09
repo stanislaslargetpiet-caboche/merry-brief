@@ -14021,6 +14021,31 @@ body.d-noscroll {
   color: var(--d-ink);
 }
 
+.d-fm-status > span:first-child {
+  gap: 8px;
+}
+
+.d-fm-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--d-limetint);
+  border: 1px solid #ece78a;
+  color: var(--d-ink);
+  font-size: 14px;
+  font-weight: 600;
+  margin-right: auto;
+  margin-left: 2px;
+}
+
+.d-fm-look {
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 2px 0 var(--d-ink);
+}
+
 .d-fm-dot {
   width: 8px;
   height: 8px;
