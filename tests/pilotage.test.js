@@ -202,9 +202,10 @@ describe("lecture Supabase du pilotage", () => {
     expect(admin.calls).toHaveLength(3);
     expect(admin.calls[0]).toEqual(["pilotage_stats", { days: 7 }]);
   });
-  it("renonce après trois essais en rendant l'erreur de la base", async () => {
+  it("passe au repli léger après trois dépassements", async () => {
     const admin = fake(timeout);
-    await expect(readSupabase(admin, 7, { pause: 0 })).rejects.toThrow(/statement timeout/);
+    const lite = async (_, days) => ({ repli: true, jours: days, totaux: { comptes: 27 } });
+    expect(await readSupabase(admin, 7, { pause: 0, lite })).toEqual({ repli: "delai", jours: 7, totaux: { comptes: 27 } });
     expect(admin.calls).toHaveLength(3);
   });
   it("ne réessaie pas une autre erreur", async () => {
