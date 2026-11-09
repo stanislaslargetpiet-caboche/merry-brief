@@ -9,7 +9,7 @@ import { PilotIcon } from "@/components/pilotage/icons";
 import { barPath, courbePath, echelle, indicesAxe, pasAxe } from "@/lib/pilotage/graphes";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
-export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint, sansPct = false, selected, onSelect }) {
+export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint, sansPct = false, selected, onSelect, href, onGo }) {
   const missing = value === null || value === undefined;
   const d = missing || prev === undefined || prev === null ? null : delta(value, prev);
   const good = d && (inverse ? d.sens === "baisse" : d.sens === "hausse");
@@ -29,6 +29,7 @@ export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false
       ) : null}
     </>
   );
+  if (href) return <a className="pl-tile is-link" href={href} title={hint} onClick={onGo ? (e) => onGo(e, href) : undefined}>{contenu}</a>;
   if (!onSelect) return <div className="pl-tile" title={hint}>{contenu}</div>;
   return (
     <button type="button" className={`pl-tile is-tab${selected ? " is-on" : ""}`} title={hint} aria-pressed={Boolean(selected)} onClick={onSelect}>

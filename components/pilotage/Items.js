@@ -10,7 +10,7 @@ import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, PilotDots, Tile } from "@/components/pilotage/ui";
 import { buildFil, choisirLecture, etatFil, grilleMois, itemAction, libelleEcheance, lireEdition, moisDecale, parseCapture, rangerTaches, raccourcisDate, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
-import { briefAgent } from "@/lib/pilotage/agent";
+import { briefAgent, estAlerteBug } from "@/lib/pilotage/agent";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { CRENEAUX, parisDay } from "@/lib/server/pilotage/reseau";
 import { demoAgenda, demoItems } from "@/lib/server/pilotage/demo";
@@ -249,15 +249,15 @@ function LigneTache({ l, ...gestes }) {
 
 const ETATS_AGENT = { audit: "Audit lancé", reparer: "Réparation lancée" };
 
-// Un bug : le constat en deux lignes (lisible en entier), puis Auditer et Réparer lancent un agent
-function CarteBug({ l, demo, ...gestes }) {
-  const g = useGestes(l, gestes);
-  const [ouvert, setOuvert] = useState(false);
+// Auditer et Réparer : lancent l'agent, ou copient la consigne quand aucun agent n'est branché
+function useAgent(l, demo) {
   const [agent, setAgent] = useState(null);
+  const alerte = l.source === "alerte";
   const lancer = async (mode) => {
     setAgent({ mode, etat: "envoi" });
     try {
-      const r = demo ? { ok: true, lance: false, brief: briefAgent(l.item, mode) } : await call("POST", { id: l.id, mode }, URL_AGENT);
+      const corps = alerte ? { alerte: { titre: l.titre, detail: l.sous }, mode } : { id: l.id, mode };
+      const r = demo ? { ok: true, lance: false, brief: briefAgent(alerte ? { titre: l.titre, detail: l.sous } : l.item, mode, alerte) } : await call("POST", corps, URL_AGENT);
       if (r.lance) return setAgent({ mode, etat: "lance", session: r.session });
       await navigator.clipboard?.writeText(r.brief).catch(() => {});
       setAgent({ mode, etat: "copie" });
@@ -265,7 +265,31 @@ function CarteBug({ l, demo, ...gestes }) {
       setAgent({ mode, etat: "echec", message: x.message });
     }
   };
-  const envoi = agent?.etat === "envoi";
+  return { agent, lancer, envoi: agent?.etat === "envoi" };
+}
+
+function EtatAgent({ agent }) {
+  if (!agent) return null;
+  return (
+    <span className={`pl-agent-etat${agent.etat === "echec" ? " is-echec" : ""}`} role="status">
+      {agent.etat === "envoi" ? "Envoi…" : null}
+      {agent.etat === "lance" ? ETATS_AGENT[agent.mode] : null}
+      {agent.etat === "copie" ? "Consigne copiée, à coller dans Claude Code" : null}
+      {agent.etat === "echec" ? `Non lancé : ${agent.message}` : null}
+      {agent.session ? (
+        <a href={agent.session} target="_blank" rel="noreferrer">
+          Voir la session
+        </a>
+      ) : null}
+    </span>
+  );
+}
+
+// Un bug : le constat en deux lignes (lisible en entier), puis Auditer et Réparer lancent un agent
+function CarteBug({ l, demo, ...gestes }) {
+  const g = useGestes(l, gestes);
+  const [ouvert, setOuvert] = useState(false);
+  const { agent, lancer, envoi } = useAgent(l, demo);
   return (
     <li className="pl-bug">
       <span className="pl-bug-ico">
@@ -291,19 +315,7 @@ function CarteBug({ l, demo, ...gestes }) {
             <PilotIcon name="agent" size={16} />
             Réparer
           </button>
-          {agent ? (
-            <span className={`pl-agent-etat${agent.etat === "echec" ? " is-echec" : ""}`} role="status">
-              {agent.etat === "envoi" ? "Envoi…" : null}
-              {agent.etat === "lance" ? ETATS_AGENT[agent.mode] : null}
-              {agent.etat === "copie" ? "Consigne copiée, à coller dans Claude Code" : null}
-              {agent.etat === "echec" ? `Non lancé : ${agent.message}` : null}
-              {agent.session ? (
-                <a href={agent.session} target="_blank" rel="noreferrer">
-                  Voir la session
-                </a>
-              ) : null}
-            </span>
-          ) : null}
+          <EtatAgent agent={agent} />
         </div>
       </div>
       <span className="pl-ligne-a">
@@ -338,18 +350,39 @@ function LigneReseau({ l, ...gestes }) {
   );
 }
 
-function LigneAlerte({ l, ...gestes }) {
+// Une alerte se traite ou s'écarte : Auditer et Réparer pour celles qui parlent de bugs, Écarter quand elle est déjà traitée
+// ou n'est plus d'actualité (elle revient si son texte change)
+function LigneAlerte({ l, demo, ...gestes }) {
   const g = useGestes(l, gestes);
+  const { agent, lancer, envoi } = useAgent(l, demo);
+  const bug = l.source === "alerte" && estAlerteBug(l.titre);
   return (
-    <li className="pl-ligne">
-      <Tick l={l} g={g} />
+    <li className="pl-ligne pl-ligne-alerte">
       <span className="pl-ligne-t">
         <strong>{l.titre}</strong>
         {l.sous ? <small>{l.sous}</small> : null}
+        <EtatAgent agent={agent} />
       </span>
       <Pill tone={l.tone}>{l.tag}</Pill>
       <span className="pl-ligne-a">
+        {bug ? (
+          <>
+            <button type="button" className="pl-btn is-agent" onClick={() => lancer("audit")} disabled={envoi}>
+              <PilotIcon name="audit" size={16} />
+              Auditer
+            </button>
+            <button type="button" className="pl-btn is-agent" onClick={() => lancer("reparer")} disabled={envoi}>
+              <PilotIcon name="agent" size={16} />
+              Réparer
+            </button>
+          </>
+        ) : null}
         <Ouvrir l={l} />
+        {l.source !== "demande" ? (
+          <button type="button" className="pl-btn is-primary" onClick={g.fait} disabled={g.busy} title="Déjà traitée ou plus à jour : elle revient si son texte change">
+            Écarter
+          </button>
+        ) : null}
       </span>
     </li>
   );
@@ -417,7 +450,7 @@ function FilGroupe({ fil, gestes, demo }) {
         <Section icone="alerte" titre="Alertes" n={alertes.length}>
           <ul className="pl-lignes">
             {alertes.map((l) => (
-              <LigneAlerte key={l.cle} l={l} {...gestes} />
+              <LigneAlerte key={l.cle} l={l} demo={demo} {...gestes} />
             ))}
           </ul>
         </Section>
@@ -512,6 +545,14 @@ function BlocLecture({ titre, items, today, langue }) {
   );
 }
 
+// Chaque chiffre du bandeau mène à la page qui le détaille
+const TUILES_LIENS = {
+  Visiteurs: pilotagePath("croissance", "site"),
+  "Comptes créés": pilotagePath("utilisateurs", "comptes"),
+  "Mariages créés": pilotagePath("utilisateurs", "comptes"),
+  "Demandes de devis": pilotagePath("utilisateurs", "comptes"),
+};
+
 export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, langue = "fr", indicateurs = "lus" }) {
   const go = useGo();
   const pageTaches = `${pilotagePath("taches", "liste")}${search}`;
@@ -526,7 +567,7 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, 
     <>
       <div className="pl-tiles">
         {tuiles.map((t) => (
-          <Tile key={t.label} {...t} sansPct />
+          <Tile key={t.label} {...t} sansPct href={TUILES_LIENS[t.label] ? `${TUILES_LIENS[t.label]}${search}` : undefined} onGo={go} />
         ))}
       </div>
       {mot ? (
