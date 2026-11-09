@@ -16,7 +16,7 @@ import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Ite
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtDay, fmtDuration, fmtInt, fmtPct, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
-import { Card, DayBars, DayLine, Facts, Fold, Folds, Funnel, PageContext, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { Card, DayBars, DayLine, Facts, Fold, Folds, Funnel, PageContext, Pill, PilotDots, PilotLoader, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
@@ -126,7 +126,12 @@ export default function PilotagePage() {
   const badges = { demandes: data?.demandes?.en_attente?.length || 0 };
   const quotidien = group.id === "aujourdhui";
 
-  if (auth.status === "loading") return <Gate title="Pilotage" text="Un instant…" />;
+  if (auth.status === "loading")
+    return (
+      <div className="pl-root">
+        <PilotLoader />
+      </div>
+    );
   if (auth.status === "signedout" || error === "connexion")
     return (
       <Gate title="Pilotage" text="Connectez-vous avec le compte Merry autorisé pour lire les indicateurs.">
@@ -171,7 +176,7 @@ export default function PilotagePage() {
               <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={TUILES_JOUR.map((label) => ({ label }))} reload={() => {}} search={search} langue={langue} indicateurs={error ? "erreur" : "lecture"} />
             </section>
           ) : null}
-          {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading">Lecture de Supabase, PostHog, Resend et Vercel…</div> : null}
+          {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading"><PilotDots label="Lecture des indicateurs" /></div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
               <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} search={search} langue={langue} />

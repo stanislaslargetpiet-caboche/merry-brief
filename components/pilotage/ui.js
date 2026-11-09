@@ -536,3 +536,25 @@ export function Fold({ title, icon = "document", value, open: first = false, not
 export function Pill({ tone = "neutral", children }) {
   return <span className={`pl-pill is-${tone}`}>{children}</span>;
 }
+
+// Chargements : le logo et la barre citron à l'ouverture, trois points pour une lecture en cours
+export function PilotLoader() {
+  return (
+    <div className="pl-loader" role="status" aria-label="Chargement">
+      <span className="pl-loader-word">Merry</span>
+      <span className="pl-loadbar">
+        <span />
+      </span>
+    </div>
+  );
+}
+
+export function PilotDots({ label = "Chargement" }) {
+  return (
+    <span className="pl-dots" role="status" aria-label={label}>
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
