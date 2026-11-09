@@ -38,7 +38,7 @@ export async function POST(req) {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { authorization: `Bearer ${jeton}`, "content-type": "application/json", ...(process.env.PILOTAGE_AGENT_BETA ? { "anthropic-beta": process.env.PILOTAGE_AGENT_BETA } : {}) },
+      headers: { authorization: `Bearer ${jeton}`, "content-type": "application/json", "anthropic-version": "2023-06-01", ...(process.env.PILOTAGE_AGENT_BETA ? { "anthropic-beta": process.env.PILOTAGE_AGENT_BETA } : {}) },
       body: JSON.stringify({ text: brief }),
       signal: AbortSignal.timeout(15000),
     });
