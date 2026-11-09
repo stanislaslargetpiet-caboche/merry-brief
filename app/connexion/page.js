@@ -51,6 +51,8 @@ export default function Connexion() {
   const [mode, setMode] = useState("checking");
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  // Compte créé à l'instant depuis un lien d'invitation : la bienvenue part après merry_join
+  const [freshAccount, setFreshAccount] = useState(false);
   const [invite, setInvite] = useState(null); // { partner1, partner2, invited_as } ou { vendor_name }
   const [inviteKind, setInviteKind] = useState("wedding"); // wedding | pro
   const [next, setNext] = useState("/dashboard");
@@ -172,6 +174,7 @@ export default function Connexion() {
     // Prévient le reste de l'équipe (best-effort, n'attend pas la réponse)
     supabase.auth.getSession().then(({ data }) => {
       const at = data?.session?.access_token;
+      if (freshAccount) sendWelcomeMail(at, id);
       if (at) fetch("/api/nouveau-membre", { method: "POST", headers: { authorization: `Bearer ${at}`, "content-type": "application/json" }, body: JSON.stringify({ weddingId: id }) }).catch(() => {});
     });
     window.location.replace("/dashboard");
@@ -200,7 +203,8 @@ export default function Connexion() {
         if (err) throw new Error(/registered|already/i.test(err.message) ? s.errors.alreadyRegistered : s.errors.signupFailed);
         if (!data.session) setMode("confirm");
         else {
-          if (!token) sendWelcomeMail(data.session.access_token);
+          if (token) setFreshAccount(true);
+          else sendWelcomeMail(data.session.access_token);
           afterAuth();
         }
       } else if (mode === "forgot") {
