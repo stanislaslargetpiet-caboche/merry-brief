@@ -393,3 +393,38 @@
   .pl-ligne .pl-pill { margin-left: 34px; }
   .pl-ligne-a { margin-left: auto; }
 }
+
+/* Aujourd'hui : le fil en blocs (mes tâches, bugs, réseau, alertes), une icône citron par bloc */
+.pl-fil { display: grid; gap: 16px; min-width: 0; }
+.pl-section h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pl-section h3 svg { flex: none; }
+.pl-section-n { margin-left: auto; min-width: 26px; padding: 1px 9px; border-radius: 999px; background: var(--sunken); color: var(--ink-muted); font-size: 12px; font-weight: 700; text-align: center; }
+.pl-section.is-miennes { background: var(--accent-veil); border-color: var(--accent); border-width: 2px; }
+.pl-section.is-miennes .pl-section-n { background: var(--accent); color: var(--ink); }
+.pl-section.is-miennes .pl-ligne { border-top-color: #f1ecb0; }
+.pl-ligne-mienne { min-height: 62px; }
+.pl-ligne-mienne .pl-ligne-t strong { font-size: 16px; font-weight: 700; }
+.pl-ligne-mienne .pl-tick { width: 24px; height: 24px; border-color: var(--ink); background: #fff; }
+.pl-marque { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.pl-bugs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pl-bug { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.pl-bug-ico { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--sunken); }
+.pl-bug-corps { flex: 1; min-width: 0; display: grid; gap: 6px; justify-items: start; }
+.pl-bug-tete { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-bug-tete strong { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.pl-bug-texte { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.pl-bug-texte.is-ouvert { display: block; }
+.pl-bug-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.pl-btn.is-agent { display: inline-flex; align-items: center; gap: 6px; }
+.pl-btn.is-primary.is-agent svg { filter: none; }
+.pl-agent-etat { font-size: 12px; font-weight: 600; color: var(--success-text); display: inline-flex; gap: 8px; }
+.pl-agent-etat.is-echec { color: var(--error-text); }
+.pl-agent-etat a { color: inherit; text-decoration: underline; }
+.pl-creneau + .pl-creneau { margin-top: 12px; }
+.pl-creneau h4 { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; font-size: 13px; font-weight: 700; color: var(--ink-muted); }
+.pl-canal { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--sunken); }
+.pl-ligne-reseau { min-height: 50px; }
+@media (max-width: 700px) {
+  .pl-bug { flex-wrap: wrap; }
+  .pl-bug .pl-ligne-a { margin-left: auto; }
+}
