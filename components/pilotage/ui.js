@@ -375,10 +375,28 @@ export function Ranked({ rows, label = "label", value = "n", format = fmtInt, em
 export function Table({ cols, rows, empty = "Rien sur la période", max = 12 }) {
   const list = (rows || []).slice(0, max);
   if (!list.length) return <div className="pl-empty">{empty}</div>;
+  // Colonnes voisines au même `group` : un intitulé commun au-dessus d'elles
+  const groups = cols.some((c) => c.group)
+    ? cols.reduce((acc, c) => {
+        const last = acc[acc.length - 1];
+        if (last && c.group && last.label === c.group) last.span += 1;
+        else acc.push({ label: c.group || "", span: 1 });
+        return acc;
+      }, [])
+    : null;
   return (
     <div className="pl-table-wrap">
-      <table className="pl-table">
+      <table className={groups ? "pl-table has-groups" : "pl-table"}>
         <thead>
+          {groups ? (
+            <tr className="pl-table-groups">
+              {groups.map((g, i) => (
+                <th key={i} colSpan={g.span}>
+                  {g.label}
+                </th>
+              ))}
+            </tr>
+          ) : null}
           <tr>
             {cols.map((c) => (
               <th key={c.key} className={c.num ? "is-num" : ""}>
