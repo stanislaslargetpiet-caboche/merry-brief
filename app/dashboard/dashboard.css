@@ -16315,6 +16315,11 @@ body.d-noscroll {
   align-items: center;
 }
 
+/* Plein écran : sa propre ligne sous la recherche, alignée à gauche */
+.d-ifull-row {
+  margin-bottom: 12px;
+}
+
 /* Vues enregistrées : la ligne du menu porte le nom (appliquer) et une croix (supprimer) */
 .d-view-item {
   gap: 6px;
