@@ -1190,7 +1190,7 @@ export default function Invites() {
         </div>
       ) : null}
 
-      {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter / plein écran /
+      {/* Une seule barre au-dessus du tableau : recherche, filtres et vues à gauche, ajouter et
           colonnes à droite. Quand des invités sont cochés, la barre d'actions groupées prend sa place,
           à la même hauteur : le tableau ne bouge pas sous la souris. */}
       {phone ? null : selIds.length ? <div className="d-desk-only">{selBar}</div> : (
@@ -1218,11 +1218,8 @@ export default function Invites() {
           </div>
           {guests.length ? (
             <span className="d-filters d-desk-only">
-              <Btn kind="lime" icon="plus" onClick={() => setAdding(true)}>
+              <Btn kind="primary" icon="plus" onClick={() => setAdding(true)}>
                 Ajouter des invités
-              </Btn>
-              <Btn kind="ghost" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
-                Plein écran
               </Btn>
               <span className="d-anchor">
                 <button type="button" className="d-pill" onClick={() => setRestoring((o) => !o)} aria-haspopup="menu" aria-expanded={restoring}>
@@ -1281,6 +1278,16 @@ export default function Invites() {
           ) : null}
         </div>
       )}
+
+      {/* Plein écran sous la recherche, sur sa propre ligne : elle reste là pendant une sélection,
+          le tableau ne bouge donc pas quand la barre d'actions groupées remplace la barre d'outils. */}
+      {!phone && guests.length ? (
+        <div className="d-desk-only d-ifull-row">
+          <Btn kind="lime" icon="expand" onClick={() => setFull(true)} title="Travailler la liste en plein écran, au clavier">
+            Plein écran
+          </Btn>
+        </div>
+      ) : null}
 
       {phone ? (
         <InvitesMobile
