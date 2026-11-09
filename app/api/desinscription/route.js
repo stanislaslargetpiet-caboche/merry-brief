@@ -7,7 +7,7 @@ import { readUnsubLink } from "@/lib/server/mailOptouts";
 export const runtime = "nodejs";
 
 const KIND = "vendor_message";
-const SIGNED_KINDS = new Set(["nouveautes"]);
+const SIGNED_KINDS = new Set(["nouveautes", "activite"]);
 
 export async function POST(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

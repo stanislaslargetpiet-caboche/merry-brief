@@ -26,6 +26,10 @@ const TEXTS = {
     ask: "Tu ne recevras plus les nouveautés de Merry. Ton mariage reste sur Merry, et les mails qui le concernent continuent d’arriver.",
     done: "ne recevra plus les nouveautés de Merry. Les mails qui concernent ton mariage continuent d’arriver.",
   },
+  activite: {
+    ask: "Tu ne recevras plus le mail de 20 h sur l’activité de ton compte. Tu retrouves tout sur Merry, et les autres mails continuent d’arriver.",
+    done: "ne recevra plus le mail de 20 h sur l’activité de son compte. Les autres mails continuent d’arriver.",
+  },
   vendor: {
     ask: "Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.",
     done: "ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.",
@@ -36,7 +40,7 @@ export default function Desinscription() {
   const [params, setParams] = useState(null);
   const [state, setState] = useState({ status: "loading" });
   const [busy, setBusy] = useState(false);
-  const texts = params?.k === "nouveautes" ? TEXTS.nouveautes : TEXTS.vendor;
+  const texts = TEXTS[params?.k] || TEXTS.vendor;
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
