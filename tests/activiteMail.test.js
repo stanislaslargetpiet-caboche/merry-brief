@@ -25,7 +25,7 @@ describe("buildActivite", () => {
       activity: {
         reponses: [{ name: "Léa Martin", comes: true }, { name: "Paul Dupuis", comes: false }],
         ajouts: [{ name: "Inès Garnier" }],
-        ajoutsParEquipe: [{ author: "Julien", count: 3 }],
+        ajoutsParEquipe: [{ count: 3 }, { count: 2 }],
         prestataires: [{ name: "Studio Aube" }],
         messages: [{ name: "Domaine des Lilas", count: 2 }],
       },
@@ -33,9 +33,10 @@ describe("buildActivite", () => {
       ...ctx,
     });
     expect(mail.subject).toBe("Nouvelle activité sur ton compte Merry");
-    expect(mail.preheader).toBe("2 réponses d'invités, 4 invités ajoutés, 1 réponse de prestataire, 2 messages");
-    for (const s of ["Bonjour Camille,", "Invités", "Prestataires", "Messages", "VIENT", "NE VIENT PAS", "AJOUTÉ", "Julien a ajouté 3 invités", "Studio Aube", "Domaine des Lilas", "Aller sur Merry"]) expect(mail.body).toContain(s);
-    expect(mail.text).toContain("Julien a ajouté 3 invités");
+    expect(mail.preheader).toBe("2 réponses d'invités, 6 invités ajoutés, 1 réponse de prestataire, 2 messages");
+    for (const s of ["Bonjour Camille,", "Invités", "Prestataires", "Messages", "VIENT", "NE VIENT PAS", "AJOUTÉ", "5 invités ajoutés aujourd&#39;hui par les organisateurs", "Studio Aube", "Domaine des Lilas", "Aller sur Merry"]) expect(mail.body).toContain(s);
+    expect(mail.text).toContain("5 invités ajoutés aujourd'hui par les organisateurs");
+    expect(mail.body).not.toContain("Julien");
   });
 
   it("plafonne chaque bloc à 4 lignes", () => {
@@ -105,6 +106,7 @@ describe("runActivite", () => {
     expect(mails[0].html).toContain("Léa Martin");
     expect(mails[0].html).toContain("Inès Garnier");
     expect(mails[0].html).not.toContain("a ajouté");
+    expect(mails[0].html).not.toContain("par un organisateur");
     expect((await runActivite(admin, "https://app.withmerry.com", now)).envoyes).toBe(0);
     expect(mails).toHaveLength(1);
   });
