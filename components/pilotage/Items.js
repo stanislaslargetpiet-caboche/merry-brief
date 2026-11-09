@@ -10,14 +10,16 @@ import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, Tile } from "@/components/pilotage/ui";
 import { buildFil, choisirLecture, etatFil, itemAction, lireEdition, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
+import { briefAgent } from "@/lib/pilotage/agent";
 import { fmtDay } from "@/lib/server/pilotage/shape";
-import { parisDay } from "@/lib/server/pilotage/reseau";
+import { CRENEAUX, parisDay } from "@/lib/server/pilotage/reseau";
 import { demoAgenda, demoItems } from "@/lib/server/pilotage/demo";
 
 const URL_ITEMS = "/api/interne/pilotage/items";
 const URL_CONTACT = "/api/interne/pilotage/reseau";
 const URL_PLAN = "/api/interne/pilotage/reseau/plan";
 const URL_AGENDA = "/api/interne/pilotage/agenda";
+const URL_AGENT = "/api/interne/pilotage/agent";
 
 async function call(method, body, url = URL_ITEMS) {
   const { data } = await supabase.auth.getSession();
@@ -173,7 +175,8 @@ export function Capture({ agir, disponible, defaut, today }) {
   );
 }
 
-function LigneFil({ l, agir, reload, retirer, premier }) {
+// Les gestes d'une ligne du fil : fait, plus tard
+function useGestes(l, { agir, reload, retirer }) {
   const [busy, setBusy] = useState(false);
   const geste = async (fn) => {
     setBusy(true);
@@ -181,11 +184,12 @@ function LigneFil({ l, agir, reload, retirer, premier }) {
     setBusy(false);
     if (ok) retirer(l.cle);
   };
+  const autre = l.source === "plan" ? URL_PLAN : URL_CONTACT;
   const fait = () => {
     if (l.source === "item") return geste(() => agir("PATCH", { id: l.id, action: "fait" }));
     if (l.source === "alerte") return geste(() => agir("POST", { alerte: l.cle }));
     return geste(async () => {
-      const ok = await agir("PATCH", { id: l.id, action: "fait" }, l.source === "plan" ? URL_PLAN : URL_CONTACT);
+      const ok = await agir("PATCH", { id: l.id, action: "fait" }, autre);
       if (ok) reload();
       return ok;
     });
@@ -193,35 +197,236 @@ function LigneFil({ l, agir, reload, retirer, premier }) {
   const tard = () => {
     if (l.source === "item") return geste(() => agir("PATCH", { id: l.id, action: "plus_tard" }));
     return geste(async () => {
-      const ok = await agir("PATCH", { id: l.id, action: "reporter" }, l.source === "plan" ? URL_PLAN : URL_CONTACT);
+      const ok = await agir("PATCH", { id: l.id, action: "reporter" }, autre);
       if (ok) reload();
       return ok;
     });
   };
-  const cochable = l.source !== "demande";
+  return { busy, fait, tard, reportable: ["item", "plan", "contact"].includes(l.source) };
+}
+
+const Ouvrir = ({ l, primaire }) =>
+  l.lien ? (
+    <a className={`pl-btn${primaire ? " is-primary" : ""}`} href={l.lien} target={l.lien.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+      Ouvrir
+    </a>
+  ) : null;
+
+const Tick = ({ l, g }) => (l.source !== "demande" ? <button type="button" className="pl-tick" aria-label={`Fait : ${l.titre}`} onClick={g.fait} disabled={g.busy} /> : <span className="pl-tick is-vide" />);
+const PlusTard = ({ g }) =>
+  g.reportable ? (
+    <button type="button" className="pl-chip" onClick={g.tard} disabled={g.busy}>
+      Plus tard
+    </button>
+  ) : null;
+
+// Une tâche de Stan : marque citron, titre plus grand, priorité et retard en clair
+function LigneTache({ l, ...gestes }) {
+  const g = useGestes(l, gestes);
   return (
-    <li className={`pl-ligne${premier ? " is-first" : ""}`}>
-      {cochable ? <button type="button" className="pl-tick" aria-label={`Fait : ${l.titre}`} onClick={fait} disabled={busy} /> : <span className="pl-tick is-vide" />}
+    <li className={`pl-ligne pl-ligne-mienne${l.prioritaire ? " is-prio" : ""}`}>
+      <Tick l={l} g={g} />
+      <span className="pl-ligne-t">
+        <strong>{l.titre}</strong>
+        {l.sous && !l.retard ? <small>{l.sous}</small> : null}
+      </span>
+      {l.prioritaire ? (
+        <span className="pl-marque">
+          <PilotIcon name="priorite" size={16} />
+          Prioritaire
+        </span>
+      ) : null}
+      {l.retard ? <Pill tone="warn">En retard</Pill> : null}
+      {l.projet ? <Pill tone="neutral">{l.projet}</Pill> : null}
+      {l.tag === "Campagne" || l.tag === "Décision" ? <Pill tone="lime">{l.tag}</Pill> : null}
+      <span className="pl-ligne-a">
+        <PlusTard g={g} />
+        <Ouvrir l={l} />
+      </span>
+    </li>
+  );
+}
+
+const ETATS_AGENT = { audit: "Audit lancé", reparer: "Réparation lancée" };
+
+// Un bug : le constat en deux lignes (lisible en entier), puis Auditer et Réparer lancent un agent
+function CarteBug({ l, demo, ...gestes }) {
+  const g = useGestes(l, gestes);
+  const [ouvert, setOuvert] = useState(false);
+  const [agent, setAgent] = useState(null);
+  const lancer = async (mode) => {
+    setAgent({ mode, etat: "envoi" });
+    try {
+      const r = demo ? { ok: true, lance: false, brief: briefAgent(l.item, mode) } : await call("POST", { id: l.id, mode }, URL_AGENT);
+      if (r.lance) return setAgent({ mode, etat: "lance", session: r.session });
+      await navigator.clipboard?.writeText(r.brief).catch(() => {});
+      setAgent({ mode, etat: "copie" });
+    } catch (x) {
+      setAgent({ mode, etat: "echec", message: x.message });
+    }
+  };
+  const envoi = agent?.etat === "envoi";
+  return (
+    <li className="pl-bug">
+      <span className="pl-bug-ico">
+        <PilotIcon name="bug" size={26} />
+      </span>
+      <div className="pl-bug-corps">
+        <div className="pl-bug-tete">
+          <strong>{l.titre}</strong>
+          {l.retard ? <Pill tone="warn">En retard</Pill> : null}
+        </div>
+        {l.sous ? <p className={`pl-bug-texte${ouvert ? " is-ouvert" : ""}`}>{l.sous}</p> : null}
+        {l.sous && l.sous.length > 160 ? (
+          <button type="button" className="pl-link" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
+            {ouvert ? "Réduire" : "Tout lire"}
+          </button>
+        ) : null}
+        <div className="pl-bug-actions">
+          <button type="button" className="pl-btn is-agent" onClick={() => lancer("audit")} disabled={envoi}>
+            <PilotIcon name="audit" size={16} />
+            Auditer
+          </button>
+          <button type="button" className="pl-btn is-primary is-agent" onClick={() => lancer("reparer")} disabled={envoi}>
+            <PilotIcon name="agent" size={16} />
+            Réparer
+          </button>
+          {agent ? (
+            <span className={`pl-agent-etat${agent.etat === "echec" ? " is-echec" : ""}`} role="status">
+              {agent.etat === "envoi" ? "Envoi…" : null}
+              {agent.etat === "lance" ? ETATS_AGENT[agent.mode] : null}
+              {agent.etat === "copie" ? "Consigne copiée, à coller dans Claude Code" : null}
+              {agent.etat === "echec" ? `Non lancé : ${agent.message}` : null}
+              {agent.session ? (
+                <a href={agent.session} target="_blank" rel="noreferrer">
+                  Voir la session
+                </a>
+              ) : null}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <span className="pl-ligne-a">
+        <PlusTard g={g} />
+        <button type="button" className="pl-tick" aria-label={`Fait : ${l.titre}`} onClick={g.fait} disabled={g.busy} />
+      </span>
+    </li>
+  );
+}
+
+const ICONES_CANAL = { linkedin: "linkedin", mail: "email", appel: "telephone", intro: "intro" };
+
+function LigneReseau({ l, ...gestes }) {
+  const g = useGestes(l, gestes);
+  return (
+    <li className="pl-ligne pl-ligne-reseau">
+      <Tick l={l} g={g} />
+      <span className="pl-canal">
+        <PilotIcon name={ICONES_CANAL[l.canal] || "reseau"} size={22} />
+      </span>
+      <span className="pl-ligne-t">
+        <strong>{l.titre}</strong>
+        {l.sous ? <small>{l.sous}</small> : null}
+      </span>
+      {l.pret ? <Pill tone="lime">Message prêt</Pill> : null}
+      {l.retard ? <Pill tone="warn">En retard</Pill> : null}
+      <span className="pl-ligne-a">
+        <PlusTard g={g} />
+        <Ouvrir l={l} />
+      </span>
+    </li>
+  );
+}
+
+function LigneAlerte({ l, ...gestes }) {
+  const g = useGestes(l, gestes);
+  return (
+    <li className="pl-ligne">
+      <Tick l={l} g={g} />
       <span className="pl-ligne-t">
         <strong>{l.titre}</strong>
         {l.sous ? <small>{l.sous}</small> : null}
       </span>
       <Pill tone={l.tone}>{l.tag}</Pill>
       <span className="pl-ligne-a">
-        {["item", "plan", "contact"].includes(l.source) ? (
-          <button type="button" className="pl-chip" onClick={tard} disabled={busy}>
-            Plus tard
-          </button>
-        ) : null}
-        {l.lien ? (
-          <a className={`pl-btn${premier ? " is-primary" : ""}`} href={l.lien} target={l.lien.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
-            Ouvrir
-          </a>
-        ) : null}
+        <Ouvrir l={l} />
       </span>
     </li>
   );
 }
+
+function Section({ icone, titre, n, className = "", children }) {
+  return (
+    <section className={`pl-card pl-section ${className}`.trim()}>
+      <h3>
+        <PilotIcon name={icone} size={24} />
+        {titre}
+        <span className="pl-section-n">{n}</span>
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+// Le fil du jour en quatre blocs : ce que Stan a ajouté, les bugs, le réseau, les alertes
+function FilGroupe({ fil, gestes, demo }) {
+  const du = (g) => fil.filter((l) => l.groupe === g);
+  const taches = du("taches");
+  const bugs = du("bugs");
+  const reseau = du("reseau");
+  const alertes = du("alertes");
+  const creneaux = [...new Set(reseau.map((l) => l.creneau))].map((id) => ({ id, label: id === "relance" ? "Relances du pipeline" : CRENEAUX_LABELS[id] || "Réseau", lignes: reseau.filter((l) => l.creneau === id) }));
+  return (
+    <div className="pl-fil">
+      {taches.length ? (
+        <Section icone="taches" titre="Mes tâches" n={taches.length} className="is-miennes">
+          <ul className="pl-lignes">
+            {taches.map((l) => (
+              <LigneTache key={l.cle} l={l} {...gestes} />
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+      {bugs.length ? (
+        <Section icone="bug" titre="Bugs" n={bugs.length}>
+          <ul className="pl-bugs">
+            {bugs.map((l) => (
+              <CarteBug key={l.cle} l={l} demo={demo} {...gestes} />
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+      {reseau.length ? (
+        <Section icone="reseau" titre="Réseau" n={reseau.length}>
+          {creneaux.map((c) => (
+            <div key={c.id} className="pl-creneau">
+              <h4>
+                <PilotIcon name="horloge" size={16} />
+                {c.label}
+              </h4>
+              <ul className="pl-lignes">
+                {c.lignes.map((l) => (
+                  <LigneReseau key={l.cle} l={l} {...gestes} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </Section>
+      ) : null}
+      {alertes.length ? (
+        <Section icone="alerte" titre="Alertes" n={alertes.length}>
+          <ul className="pl-lignes">
+            {alertes.map((l) => (
+              <LigneAlerte key={l.cle} l={l} {...gestes} />
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+    </div>
+  );
+}
+
+const CRENEAUX_LABELS = Object.fromEntries(CRENEAUX.map((c) => [c.id, c.label]));
 
 function Meetings({ status }) {
   const agenda = useAgenda(status);
@@ -332,20 +537,16 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, 
       {!liste.disponible ? <div className="pl-errors">{liste.raison}</div> : null}
       {liste.err ? <div className="pl-errors">{liste.err}</div> : null}
       <div className="pl-jour has-side">
-        <Card title={`À faire${fil.length ? ` · ${fil.length}` : ""}`}>
-          {fil.length ? (
-            <>
-              <ul className="pl-lignes">
-                {fil.map((l, i) => (
-                  <LigneFil key={l.cle} l={l} agir={liste.agir} reload={reload} retirer={retirer} premier={i === 0} />
-                ))}
-              </ul>
-              {etat.complet ? null : <p className="pl-empty">{etat.message}</p>}
-            </>
-          ) : (
+        {fil.length ? (
+          <>
+            <FilGroupe fil={fil} gestes={{ agir: liste.agir, reload, retirer }} demo={liste.status === "demo"} />
+            {etat.complet ? null : <p className="pl-empty">{etat.message}</p>}
+          </>
+        ) : (
+          <Card title="À faire">
             <p className="pl-empty">{etat.message}</p>
-          )}
-        </Card>
+          </Card>
+        )}
         <div className="pl-jour-side">
           <Meetings status={liste.status} />
           <a className="pl-card pl-compteur" href={pageTaches} onClick={(e) => go(e, pageTaches)}>
