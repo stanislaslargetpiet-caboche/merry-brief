@@ -32,7 +32,7 @@ describe("buildActivite", () => {
       firstName: "Camille",
       ...ctx,
     });
-    expect(mail.subject).toBe("Nouvelle activité sur ton compte Merry");
+    expect(mail.subject).toBe("Nouvelles activités sur votre mariage");
     expect(mail.preheader).toBe("2 réponses d'invités, 6 invités ajoutés, 1 réponse de prestataire, 2 messages");
     for (const s of ["Bonjour Camille,", "Invités", "Prestataires", "Messages", "VIENT", "NE VIENT PAS", "AJOUTÉ", "5 invités ajoutés aujourd&#39;hui par les organisateurs", "Studio Aube", "Domaine des Lilas", "Aller sur Merry"]) expect(mail.body).toContain(s);
     expect(mail.text).toContain("5 invités ajoutés aujourd'hui par les organisateurs");
