@@ -36,12 +36,13 @@ export async function POST(req) {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.error("[merry] agent pilotage", res.status);
-      return Response.json({ error: "agent", statut: res.status, brief }, { status: 502, headers: NO_STORE });
+      const raison = String(json?.error?.message || json?.message || "").slice(0, 160);
+      console.error("[merry] agent pilotage", res.status, raison);
+      return Response.json({ error: `agent refusé (${res.status})${raison ? ` : ${raison}` : ""}`, brief }, { status: 502, headers: NO_STORE });
     }
     return Response.json({ ok: true, lance: true, session: typeof json.claude_code_session_url === "string" ? json.claude_code_session_url : "" }, { headers: NO_STORE });
   } catch (e) {
     console.error("[merry] agent pilotage", e?.message || e);
-    return Response.json({ error: "agent", brief }, { status: 502, headers: NO_STORE });
+    return Response.json({ error: `agent injoignable : ${String(e?.message || e).slice(0, 120)}`, brief }, { status: 502, headers: NO_STORE });
   }
 }
