@@ -2,6 +2,8 @@
 // confirmation Supabase sur /connexion, avant la redirection vers le tableau de bord).
 // Nécessite RESEND_API_KEY côté serveur (Vercel > Settings > Environment Variables).
 // Sans clé, la route répond 501 : la redirection vers le tableau de bord n'attend pas ce mail.
+// Avec { weddingId } dans le corps (compte créé depuis une invitation, après merry_join), le mail
+// accueille la personne dans l'équipe du couple au lieu de lui parler de « son » mariage.
 
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
@@ -26,20 +28,37 @@ export async function POST(req) {
 
   if (!(await allowUser(sb, "welcome_mail", 1, 86400))) return Response.json({ error: "quota" }, { status: 429 });
 
+  let invitedTo = "";
+  try {
+    invitedTo = String((await req.json())?.weddingId || "");
+  } catch {
+    /* corps vide : bienvenue d'un compte qui crée son mariage */
+  }
+  const meta = user.user.user_metadata || {};
+
   // Le mariage n'existe pas forcément encore à cet instant (il se crée au premier chargement du
   // tableau de bord à partir du questionnaire d'accueil) : on personnalise quand on peut, sinon
   // on retombe sur un mail générique plutôt que de bloquer l'envoi.
-  const { data: member } = await sb.from("wedding_members").select("wedding_id").eq("user_id", user.user.id).maybeSingle();
-  let couple = "";
+  let member = null;
+  if (invitedTo) {
+    // Lecture sous les règles d'accès : on ne retrouve que sa propre ligne de membre
+    ({ data: member } = await sb.from("wedding_members").select("wedding_id").eq("wedding_id", invitedTo).eq("user_id", user.user.id).maybeSingle());
+    if (!member) return Response.json({ error: "not_found" }, { status: 404 });
+  } else {
+    ({ data: member } = await sb.from("wedding_members").select("wedding_id").eq("user_id", user.user.id).maybeSingle());
+  }
+  const names = [];
   if (member?.wedding_id) {
     const { data: wedding } = await sb.from("weddings").select("partner1, partner2").eq("id", member.wedding_id).maybeSingle();
-    couple = [wedding?.partner1, wedding?.partner2].filter(Boolean).map(displayName).join(" et ");
+    names.push(...[wedding?.partner1, wedding?.partner2].map(displayName).filter(Boolean));
   }
-  const meta = user.user.user_metadata || {};
-  const greeting = couple || [meta.first_name, meta.partner_first_name].map(displayName).filter(Boolean).join(" et ");
+  const couple = names.join(" et ");
+  const greeting = invitedTo
+    ? displayName(meta.first_name)
+    : couple || [meta.first_name, meta.partner_first_name].map(displayName).filter(Boolean).join(" et ");
 
   const origin = publicOrigin(req);
-  const { subject, text, html } = welcomeMail({ greeting, link: `${origin}/dashboard`, assets: `${origin}/mail` });
+  const { subject, text, html } = welcomeMail({ greeting, link: `${origin}/dashboard`, assets: `${origin}/mail`, team: invitedTo ? { couple, plural: names.length > 1 } : null });
 
   if (!(await sendMail({ to, subject, text, html, label: "mail bienvenue" }))) return Response.json({ error: "send_failed" }, { status: 502 });
   return Response.json({ ok: true, to });
