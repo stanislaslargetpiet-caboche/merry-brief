@@ -19,13 +19,13 @@ import { displayName } from "@/lib/server/names";
 /*  Textes FR/EN : voir lib/i18n/brief.js.                              */
 /* ------------------------------------------------------------------ */
 
-const TOTAL = 4;
+const TOTAL = 3;
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "/dashboard";
 
 // Un nom stable par écran (indépendant de la langue affichée), pour que le
 // funnel PostHog ("onboarding_step_viewed") reste lisible : à quelle étape
 // les couples s'arrêtent.
-const STEP_KEYS = ["fete", "equipe", "essentiel", "compte"];
+const STEP_KEYS = ["equipe", "essentiel", "compte"];
 
 // Bornes des jauges : la valeur maximale vaut « et plus ».
 const GUESTS = { max: 300, step: 10 };
@@ -54,7 +54,7 @@ const EMPTY = {
   password: "",
 };
 
-const STORAGE_KEY = "merry-brief-draft-v4";
+const STORAGE_KEY = "merry-brief-draft-v5";
 const PENDING_KEY = "merry-brief-pending";
 
 // Les 12 prochains mois, à partir du mois suivant : « 2027-06 »
@@ -124,23 +124,6 @@ function Check({ size = 26 }) {
     </svg>
   );
 }
-
-function Heart() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 21s-7-4.35-9.5-8.5C.8 9 2.2 5.5 5.5 5c2-.3 3.8.7 4.8 2.3L12 9l1.7-1.7C14.7 5.7 16.5 4.7 18.5 5c3.3.5 4.7 4 3 7.5C19 16.65 12 21 12 21z" />
-    </svg>
-  );
-}
-
-// Fêtes à venir : fond pastel très clair, icône de la même teinte (canvas, 27 oct.)
-const SOON_LOOK = [
-  { bg: "#f4f9fd", ink: "#a9c2d8", path: <><path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z" /><path d="M12 13v5M9 21h6" /></> },
-  { bg: "#fdf9ee", ink: "#d8c184", path: <><path d="M4 11h16v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8z" /><path d="M3 8h18v3H3zM12 8V4M9 5c0-1.5 1-2 3-3 0 1-1 2 0 3M15 5c0-1.5-1-2-3-3" /></> },
-  { bg: "#fdf6f7", ink: "#d8a9ad", path: <><path d="M12 4L3 20h18L12 4z" /><path d="M12 10l5 10M12 4v16" /></> },
-  { bg: "#f4faf5", ink: "#a0c9a8", path: <><rect x="3" y="8" width="18" height="12" rx="2" /><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" /></> },
-  { bg: "#fdf8f3", ink: "#d8b48e", path: <path d="M12 3l2.1 5.6 6 .3-4.6 3.8 1.6 5.8L12 15.6 6.9 18.5l1.6-5.8-4.6-3.8 6-.3L12 3z" /> },
-];
 
 // Jauge à deux poignées (minimum et maximum)
 function RangeSlider({ min, max, step, low, high, onChange, lowAria, highAria, disabled }) {
@@ -394,16 +377,14 @@ export default function Brief() {
   const canContinue = useMemo(() => {
     switch (step) {
       case 0:
-        return data.event === "mariage";
-      case 1:
         return !!data.team && !!data.stage;
-      case 2:
+      case 1:
         return (
           (data.region_unknown || !!data.region_pick || (placesDown && data.region.trim().length > 0)) &&
           (data.date_mode === "precise" ? !!data.wedding_date : data.flex_months.length > 0) &&
           data.vibes.length > 0
         );
-      case 3:
+      case 2:
         return (
           data.first_name.trim().length > 0 &&
           data.partner_first_name.trim().length > 0 &&
@@ -417,9 +398,9 @@ export default function Brief() {
 
   // Après l'essentiel, l'écran de préparation s'intercale avant le compte.
   const next = () => {
-    if (step === 2) {
+    if (step === 1) {
       setPreparing(true);
-      trackEvent("onboarding_step_viewed", { step: 2.5, step_key: "preparation" });
+      trackEvent("onboarding_step_viewed", { step: 1.5, step_key: "preparation" });
       compterEtape("preparation");
       return;
     }
@@ -478,32 +459,8 @@ export default function Brief() {
 
   function renderStep() {
     switch (step) {
-      case 0:
-        return (
-          <>
-            <button type="button" className="ob-event" aria-pressed={data.event === "mariage"} onClick={() => set("event", "mariage")}>
-              <span className="ob-event-icon"><Heart /></span>
-              <span className="ob-event-name">{s.wedding}</span>
-              <Check />
-            </button>
-            <div className="ob-soon">
-              <span className="ob-marker">{s.soon}</span>
-              <div className="ob-soon-grid">
-                {s.soonEvents.map((name, i) => (
-                  <span key={name} className="ob-soon-item" style={{ background: SOON_LOOK[i].bg }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={SOON_LOOK[i].ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      {SOON_LOOK[i].path}
-                    </svg>
-                    {name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </>
-        );
-
-      case 1: {
-        const t = s.steps[1];
+      case 0: {
+        const t = s.steps[0];
         return (
           <>
             <div className="ob-group">
@@ -526,8 +483,8 @@ export default function Brief() {
         );
       }
 
-      case 2: {
-        const t = s.steps[2];
+      case 1: {
+        const t = s.steps[1];
         const guestsMaxLabel = data.guests_max >= GUESTS.max ? `${GUESTS.max}+` : data.guests_max;
         const budgetMaxLabel = s.euros(data.budget_max) + (data.budget_max >= BUDGET.max ? "+" : "");
         return (
@@ -631,8 +588,8 @@ export default function Brief() {
         );
       }
 
-      case 3: {
-        const t = s.steps[3];
+      case 2: {
+        const t = s.steps[2];
         return (
           <>
             <h2 className="ob-title">{t.title}</h2>
@@ -684,7 +641,7 @@ export default function Brief() {
   const n = step + 1;
 
   // Les réponses du couple, en étiquettes qui arrivent de partout sur l'écran de préparation.
-  const t2 = s.steps[2];
+  const t2 = s.steps[1];
   const monthsPicked = data.flex_months
     .slice()
     .sort()
@@ -721,7 +678,7 @@ export default function Brief() {
           chips={prepChips}
           onDone={() => {
             setPreparing(false);
-            setStep(3);
+            setStep(2);
           }}
         />
       ) : finished ? (
@@ -734,7 +691,7 @@ export default function Brief() {
           <a className="ob-link" href={SITE_URL}>{s.done.backToSite}</a>
         </main>
       ) : (
-        <main className={"ob-main" + (step === 2 ? " wide" : step === 3 ? " narrow" : "")} key={step}>
+        <main className={"ob-main" + (step === 1 ? " wide" : step === 2 ? " narrow" : "")} key={step}>
           <div className="ob-top">
             <div className="ob-tagline">
               {step > 0 ? (
@@ -756,7 +713,7 @@ export default function Brief() {
             ) : null}
             {isLast ? (
               <>
-                <a className="ob-link ob-login" href="/connexion">{s.steps[3].loginLink}</a>
+                <a className="ob-link ob-login" href="/connexion">{s.steps[2].loginLink}</a>
                 <button type="button" className="ob-btn accent" onClick={submit} disabled={!canContinue || status === "sending"}>
                   {status === "sending" ? s.submitting : s.submitDone}
                 </button>

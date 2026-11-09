@@ -764,74 +764,6 @@ h1.question {
   font-weight: 700;
 }
 
-/* Étape 1 : la fête */
-.ob-event {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 92px;
-  padding: 20px 24px;
-  border-radius: 20px;
-  border: 2px solid var(--ink);
-  background: var(--lime);
-  text-align: left;
-  cursor: pointer;
-}
-
-.ob-event-icon {
-  flex: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ob-event-name {
-  flex: 1;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.ob-soon {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ob-marker {
-  align-self: flex-start;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: linear-gradient(transparent 45%, var(--lime) 45%);
-  padding: 0 4px;
-}
-
-.ob-soon-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.ob-soon-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 60px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  font-size: 16px;
-  color: #8a887f;
-}
-
-.ob-soon-item svg {
-  flex: none;
-}
-
 /* Étape 3 : l'essentiel, dans une carte à rangées */
 .ob-box {
   border: 1.5px solid var(--line);
@@ -1622,26 +1554,6 @@ h1.question {
   .ob-chips.small .ob-chip {
     min-height: 42px;
     padding: 9px 14px;
-    font-size: 14px;
-  }
-
-  .ob-event {
-    min-height: 84px;
-    padding: 16px 18px;
-  }
-
-  .ob-event-name {
-    font-size: 17px;
-  }
-
-  .ob-soon-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .ob-soon-item {
-    min-height: 56px;
-    padding: 12px;
     font-size: 14px;
   }
 

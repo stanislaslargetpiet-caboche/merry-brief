@@ -561,7 +561,6 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
             {ph ? (
               <Funnel
                 steps={[
-                  { label: "La fête", n: ph.app.funnel.fete },
                   { label: "L'équipe", n: ph.app.funnel.equipe },
                   { label: "L'essentiel", n: ph.app.funnel.essentiel },
                   { label: "Le compte", n: ph.app.funnel.compte },
