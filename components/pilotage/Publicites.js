@@ -9,12 +9,17 @@ import { fmtInt, pctOf } from "@/lib/server/pilotage/shape";
 
 const somme = (rows, key) => rows.reduce((acc, r) => acc + (r[key] || 0), 0);
 
-const COLS = [
-  { key: "source", label: "Source", render: (r) => <strong>{r.source}</strong> },
-  ...ETAPES.map((e) => ({ key: e.id, label: e.label, num: true })),
-  { key: "inscriptions", label: "Inscriptions", num: true },
-  { key: "conversion", label: "Taux", num: true, render: (r) => (r.site ? `${pctOf(r.inscriptions, r.site)} %` : "–") },
+// Noms des variantes du test « Test mariage nov » (7 au 9 nov. 2026), affichés à la place du lien
+const VARIANTES = { "meta-a": "A Budget", "meta-b": "B Liste", "meta-c": "C Formulaire", "meta-d": "D Prestataires", "meta-e": "E Rétroplanning" };
+
+const colonnes = (premiere) => [
+  { key: "source", label: premiere, render: (r) => <strong title={r.source}>{VARIANTES[r.source] || r.source}</strong> },
+  ...ETAPES.map((e) => ({ key: e.id, label: e.label, num: true, group: e.onboarding ? "Écrans de l'onboarding" : null })),
+  { key: "inscriptions", label: "Inscrits", num: true },
+  { key: "conversion", label: "Inscrits / visites", num: true, render: (r) => (r.site ? `${pctOf(r.inscriptions, r.site)} %` : "–") },
 ];
+const COLS_PUBS = colonnes("Pub");
+const COLS_AUTRES = colonnes("Source");
 
 export default function Publicites({ entonnoir, sources }) {
   if (!entonnoir) {
@@ -38,11 +43,11 @@ export default function Publicites({ entonnoir, sources }) {
         <Tile label="Inscriptions" value={inscriptions} sub={site ? `${pctOf(inscriptions, site)} % des visites` : null} />
       </TileChart>
       <Folds>
-        <Fold open title="Par variante" icon="filtrer" value={fmtInt(pubs.length)} note="Taux : inscriptions sur visites du site. Clics, impressions et dépense : Ads Manager.">
-          <Table cols={COLS} rows={pubs} max={20} empty="Aucune visite venue d'une publicité sur la période" />
+        <Fold open title="Par variante" icon="filtrer" value={fmtInt(pubs.length)} note="Chaque colonne compte des passages, pas des personnes : un visiteur peut revenir sur un écran. Clics, impressions et dépense : Ads Manager.">
+          <Table cols={COLS_PUBS} rows={pubs} max={20} empty="Aucune visite venue d'une publicité sur la période" />
         </Fold>
         <Fold title="Le reste du trafic" icon="lieu" value={fmtInt(somme(autres, "site"))}>
-          <Table cols={COLS} rows={autres} max={12} empty="Rien de compté sur la période" />
+          <Table cols={COLS_AUTRES} rows={autres} max={12} empty="Rien de compté sur la période" />
         </Fold>
       </Folds>
     </Section>
