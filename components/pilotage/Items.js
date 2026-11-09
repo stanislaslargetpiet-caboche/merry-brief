@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { useGo } from "@/components/pilotage/PilotNav";
-import { Card, Pill, Tile } from "@/components/pilotage/ui";
+import { Card, Pill, PilotDots, Tile } from "@/components/pilotage/ui";
 import { buildFil, choisirLecture, etatFil, itemAction, lireEdition, parseCapture, rangerTaches, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
 import { briefAgent } from "@/lib/pilotage/agent";
@@ -443,7 +443,7 @@ function Meetings({ status }) {
           ))}
         </dl>
       ) : (
-        <p className="pl-empty">{!agenda ? "Lecture de l'agenda…" : agenda.disponible ? "Aucun aujourd'hui" : agenda.raison}</p>
+        <p className="pl-empty">{!agenda ? <PilotDots label="Lecture de l'agenda" /> : agenda.disponible ? "Aucun aujourd'hui" : agenda.raison}</p>
       )}
     </Card>
   );
@@ -617,7 +617,7 @@ export function Taches({ liste, today }) {
           </ul>
         </Card>
       ))}
-      {!groupes.length && liste.disponible && (liste.charge || !liste.err) ? <p className="pl-empty">{liste.charge ? "Rien à faire" : "Lecture de la liste…"}</p> : null}
+      {!groupes.length && liste.disponible && (liste.charge || !liste.err) ? <p className="pl-empty">{liste.charge ? "Rien à faire" : <PilotDots label="Lecture de la liste" />}</p> : null}
       {liste.faits.length ? (
         <Card title="Faites récemment">
           <ul className="pl-lignes">
