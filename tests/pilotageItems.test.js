@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFil, choisirLecture, etatFil, itemAction, parseCapture, rangerTaches, titreJour, validateItem, validatePublication } from "@/lib/pilotage/items";
+import { buildFil, choisirLecture, etatFil, grilleMois, itemAction, libelleEcheance, moisDecale, parseCapture, raccourcisDate, rangerTaches, titreJour, validateItem, validatePublication } from "@/lib/pilotage/items";
 import { buildSante } from "@/lib/pilotage/sante";
 
 const LUNDI = "2026-11-09";
@@ -137,5 +137,50 @@ describe("éditions par langue", () => {
     expect(choisirLecture(items.slice(0, 2), "News of the Day", "en").cle).toBe("news:2026-11-08:fr");
     expect(choisirLecture(items.slice(0, 1), "News of the Day", "en").cle).toBe("news:2026-11-07");
     expect(choisirLecture(items, "Feature of the Day", "fr")).toBeNull();
+  });
+});
+
+describe("libelleEcheance", () => {
+  it("nomme le jour comme Todoist", () => {
+    expect(libelleEcheance(null, LUNDI)).toBe(null);
+    expect(libelleEcheance(LUNDI, LUNDI)).toEqual({ texte: "Aujourd'hui", ton: "jour" });
+    expect(libelleEcheance("2026-11-10", LUNDI)).toEqual({ texte: "Demain", ton: "demain" });
+    expect(libelleEcheance("2026-11-14", LUNDI)).toEqual({ texte: "Samedi", ton: "semaine" });
+  });
+  it("marque le retard et date le plus lointain", () => {
+    expect(libelleEcheance("2026-11-08", LUNDI)).toEqual({ texte: "Hier", ton: "retard" });
+    expect(libelleEcheance("2026-11-07", LUNDI)).toEqual({ texte: "7 nov", ton: "retard" });
+    expect(libelleEcheance("2026-11-16", LUNDI)).toEqual({ texte: "16 nov", ton: "plus-tard" });
+    expect(libelleEcheance("2027-01-05", LUNDI).texte).toBe("5 janv 2027");
+  });
+});
+
+describe("raccourcisDate", () => {
+  it("propose aujourd'hui, demain, le week-end et le lundi suivant", () => {
+    expect(raccourcisDate(LUNDI).map((r) => [r.label, r.jour, r.repere])).toEqual([
+      ["Aujourd'hui", "2026-11-09", "Lun"],
+      ["Demain", "2026-11-10", "Mar"],
+      ["Ce week-end", "2026-11-14", "Sam"],
+      ["Semaine prochaine", "2026-11-16", "Lun 16 nov"],
+    ]);
+  });
+  it("un samedi, le week-end est le suivant", () => {
+    expect(raccourcisDate("2026-11-14")[2].jour).toBe("2026-11-21");
+  });
+});
+
+describe("grilleMois", () => {
+  it("rend les semaines du lundi au dimanche", () => {
+    const g = grilleMois("2026-11");
+    expect(g.titre).toBe("novembre 2026");
+    expect(g.semaines).toHaveLength(6);
+    expect(g.semaines[0][0]).toEqual({ jour: "2026-10-26", dansMois: false });
+    expect(g.semaines[0][6]).toEqual({ jour: "2026-11-01", dansMois: true });
+    expect(g.semaines[5][0]).toEqual({ jour: "2026-11-30", dansMois: true });
+    expect(grilleMois("2026-10").semaines[0].map((c) => c.dansMois)).toEqual([false, false, false, true, true, true, true]);
+  });
+  it("passe d'un mois à l'autre", () => {
+    expect(moisDecale("2026-12", 1)).toBe("2027-01");
+    expect(moisDecale("2026-01", -1)).toBe("2025-12");
   });
 });
