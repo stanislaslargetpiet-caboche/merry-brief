@@ -91,7 +91,6 @@
 .wv-stats { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 14px 40px; }
 .wv-stat b { display: inline-block; font-size: clamp(17px, 2.04vw, 26px); font-weight: 500; background: #fff700; padding: 0 6px; }
 .wv-stat span { display: block; margin-top: 8px; font-size: 16px; max-width: 200px; }
-.wv-car { width: min(760px, 100%); }
 
 .wv-faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 6vw; }
 .wv-acc { display: flex; flex-direction: column; margin-top: 32px; }
