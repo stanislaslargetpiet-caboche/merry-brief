@@ -1373,6 +1373,13 @@ button.d-rsvp:hover {
   box-sizing: border-box;
 }
 
+/* Un montant calculé (reste d'un acompte) : gris comme les cases de la fiche d'un poste, pas une case à remplir */
+.d-input[readonly] {
+  background: var(--d-panel);
+  border-color: var(--d-panel);
+  font-weight: 600;
+}
+
 .d-textarea {
   min-height: 96px;
   resize: vertical;

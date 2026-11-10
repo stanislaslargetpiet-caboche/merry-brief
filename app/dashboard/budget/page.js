@@ -143,9 +143,15 @@ export default function Budget() {
       </button>
     );
 
-  // Le montant d'une ligne : payé (sur le montant prévu), sinon le montant prévu, sinon le budget
+  // Le montant d'une ligne : le total prévu, avec ce qui en est déjà payé dessous ; tout payé, le payé ;
+  // sans total prévu, le payé, sinon le budget. Changer le total prévu dans la fiche change donc la liste.
   const amountCell = (f) =>
-    f.paid > 0 ? (
+    f.hasPlan && f.paid > 0 && !f.fullyPaid ? (
+      <span className="d-amount-stack">
+        <span>{euros(f.quote)}</span>
+        <small>{euros(f.paid)} payés</small>
+      </span>
+    ) : f.paid > 0 ? (
       <span>{euros(f.paid)}</span>
     ) : f.hasPlan ? (
       <span className="d-muted">{euros(f.quote)}</span>

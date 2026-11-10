@@ -23,7 +23,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
   const [full, setFull] = useState(true); // paiement intégral, sinon acompte avec un reste
-  const [rest, setRest] = useState("");
+  const [deposit, setDeposit] = useState(""); // montant de l'acompte ; le reste se calcule sur le montant total
   const [statutPaid, setStatutPaid] = useState(true); // déjà payée, sinon à payer
   const [paidAt, setPaidAt] = useState(todayIso());
   const [dueDate, setDueDate] = useState(""); // date prévue d'une dépense à payer
@@ -36,13 +36,16 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
 
   const isNew = itemId === "new" || !items.length;
   const item = items.find((i) => i.id === itemId);
-  const value = parseAmount(amount);
+  const total = parseAmount(amount);
   const vendor = item?.vendor_id ? (dash.data.vendors || []).find((v) => v.id === item.vendor_id) : null;
-  const label = what.trim().slice(0, 120) || vendor?.name || "Paiement";
   // Un poste qui a déjà un montant prévu (devis signé) : le reste se déduit du devis, rien à saisir
   const hadQuote = !isNew && item?.quote_amount !== null && item?.quote_amount !== undefined;
-  const restAmount = !hadQuote && !full ? parseAmount(rest) || 0 : 0;
-  const ready = value !== null && value > 0 && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
+  const isDeposit = !hadQuote && !full;
+  // Un acompte : on saisit le montant total et l'acompte, le reste devient une échéance « Solde »
+  const value = isDeposit ? parseAmount(deposit) : total;
+  const label = what.trim().slice(0, 120) || vendor?.name || (isDeposit ? "Acompte" : "Paiement");
+  const restAmount = isDeposit && total !== null && value !== null ? Math.max(0, total - value) : 0;
+  const ready = value !== null && value > 0 && (!isDeposit || (total !== null && value <= total)) && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
 
   async function save(e) {
     e?.preventDefault();
@@ -121,7 +124,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
         <Field label="Nom de la dépense ou du prestataire" full>
           <input className="d-input" value={what} onChange={(e) => setWhat(e.target.value)} maxLength={120} placeholder={vendor ? `Acompte ${vendor.name}` : "Acompte, robe, Maison Lemoine…"} />
         </Field>
-        <Field label="Montant (€)">
+        <Field label={isDeposit ? "Montant total (€)" : "Montant (€)"}>
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />
         </Field>
         {hadQuote ? null : (
@@ -136,10 +139,13 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           </div>
         </Field>
         )}
-        {!hadQuote && !full ? (
+        {isDeposit ? (
           <>
-            <Field label="Reste à payer (€)">
-              <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="300" />
+            <Field label="Acompte (€)">
+              <input className="d-input" inputMode="decimal" value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="300" />
+            </Field>
+            <Field label="Reste à payer">
+              <input className="d-input" value={total !== null && value !== null && value <= total ? euros(restAmount) : "–"} readOnly tabIndex={-1} aria-live="polite" />
             </Field>
             <Field label="Reste à payer le · facultatif">
               <input className="d-input" type="date" value={restDue} onChange={(e) => setRestDue(e.target.value)} />
