@@ -362,6 +362,17 @@ create policy "mariage: modification" on public.weddings for update to authentic
 -- Le lien vers le brief et l'auteur du mariage ne se modifient pas depuis l'appli.
 revoke insert, update, delete on public.weddings from authenticated, anon;
 grant update (partner1, partner2, wedding_date, venue, region, budget_total) on public.weddings to authenticated;
+-- Le revoke ci-dessus efface aussi les droits des colonnes ajoutées par d'autres fichiers (mise-en-page.sql,
+-- fiche-et-vues-invites.sql, note-invites.sql) : relancer ce fichier les rendait non modifiables (10 nov. 2026).
+do $$
+declare c text;
+begin
+  foreach c in array array['layouts', 'guest_views', 'guests_note'] loop
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'weddings' and column_name = c) then
+      execute format('grant update (%I) on public.weddings to authenticated', c);
+    end if;
+  end loop;
+end $$;
 
 -- Organisateurs : visibles et gérables par les autres organisateurs du même mariage.
 drop policy if exists "organisateurs: lecture" on public.wedding_members;
