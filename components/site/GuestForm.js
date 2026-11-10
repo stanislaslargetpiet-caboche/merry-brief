@@ -93,7 +93,7 @@ const YESNO = [
 
 const EMPTY_PERSON = { first_name: "", last_name: "", email: "", phone: "", address: "", diet: null, allergies: "" };
 
-export default function GuestForm({ form, slug, onAnswered, brand = false }) {
+export default function GuestForm({ form, slug, onAnswered }) {
   const [me, setMe] = useState(EMPTY_PERSON);
   const [plus, setPlus] = useState(null); // "oui" | "non" | null
   const [other, setOther] = useState({ ...EMPTY_PERSON, same_address: true });
@@ -435,17 +435,11 @@ export default function GuestForm({ form, slug, onAnswered, brand = false }) {
       }}
     >
       {done && !done.error ? (
-        <div className="gf-done" role="status">
+        <div className="gf-done gf-done-ok" role="status">
           <strong>Merci, c'est noté.</strong>
           <span>
             Votre réponse est arrivée chez les mariés. Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
           </span>
-          {brand ? (
-            <a className="gf-done-brand" href="https://withmerry.com" target="_blank" rel="noreferrer">
-              <b>Merry</b>
-              <span>La solution mariage de A à Z</span>
-            </a>
-          ) : null}
         </div>
       ) : closed ? (
         <div className="gf-done" role="status">

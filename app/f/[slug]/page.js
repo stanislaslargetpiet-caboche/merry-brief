@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { longDate } from "@/lib/dash/format";
-import { formTheme } from "@/lib/dash/form";
+import { formTheme, merryProof } from "@/lib/dash/form";
 import GuestForm, { useGuestForm } from "@/components/site/GuestForm";
+
+// Lien vers le site : la source fait compter ces visites et inscriptions à part dans le pilotage (Croissance › Site)
+const MERRY = "https://withmerry.com/?source=formulaire-invites";
 
 /*
  * Page publique du formulaire invités : le lien que le couple partage sur
@@ -21,6 +24,7 @@ export default function GuestFormPage() {
   const form = state.form;
   const theme = formTheme(form?.theme);
   const style = useMemo(() => ({ "--gf-bg": theme.bg, "--gf-deep": theme.deep, "--gf-accent": theme.accent }), [theme]);
+  const [answered, setAnswered] = useState(false);
 
   if (state.status !== "ready") {
     return (
@@ -62,14 +66,55 @@ export default function GuestFormPage() {
           ) : null}
         </section>
 
-        <GuestForm form={form} slug={String(slug)} brand />
+        <GuestForm form={form} slug={String(slug)} onAnswered={() => setAnswered(true)} />
 
-        <a className="gf-foot" href="https://withmerry.com" target="_blank" rel="noreferrer">
-          <span className="gf-foot-line">
-            Formulaire créé avec <b>Merry</b>
-          </span>
-          <span className="gf-foot-sub">Merry simplifie l'organisation du mariage de A à Z</span>
-          <span className="gf-foot-url">withmerry.com</span>
+        {answered ? (
+          <section className="gf-merry" aria-label="Merry">
+            <span className="gf-merry-by">
+              Créé avec <b>Merry</b>
+            </span>
+            <div className="gf-merry-head">
+              <p>{merryProof(form)}</p>
+              <h2>Et toi, c'est pour quand&nbsp;?</h2>
+            </div>
+            <ul className="gf-merry-tags">
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="9" cy="8" r="3.5" />
+                  <path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5" />
+                  <circle cx="17" cy="9" r="2.5" />
+                  <path d="M16 14.6c2.6.2 4.6 2 5.3 5.4" />
+                </svg>
+                Liste d'invités
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="6" width="18" height="13" rx="2" />
+                  <path d="M3 10h18M16.5 14.5h1.5" />
+                </svg>
+                Budget
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="10" cy="10" r="6" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+                Prestataires
+              </li>
+            </ul>
+            <a className="gf-merry-cta" href={MERRY} target="_blank" rel="noreferrer">
+              Organiser mon mariage
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+            <span className="gf-merry-free">Gratuit pour les mariés.</span>
+          </section>
+        ) : null}
+
+        <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
+          <b>Merry</b>
+          <span>withmerry.com</span>
         </a>
       </div>
     </main>

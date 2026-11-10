@@ -411,13 +411,123 @@ textarea.gf-input {
   color: #4a4a45;
 }
 
-.gf-foot {
+/* Réponse bien arrivée, sur la page publique : le vert de confirmation, pas la couleur du couple */
+.gf .gf-done-ok {
+  background: #dff3e1;
+}
+
+.gf .gf-done-ok strong {
+  color: #1f6b30;
+}
+
+/* Carte Merry après l'envoi (page publique seulement) : aux couleurs du formulaire, pas au citron de Merry */
+.gf-merry {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 18px;
+  padding: clamp(28px, 5vw, 48px);
+  border-radius: 24px;
+  background: var(--gf-deep);
   text-align: center;
+}
+
+.gf-merry-by {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.gf-merry-by b {
+  font-family: var(--font-logo);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.gf-merry-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.gf-merry-head p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.gf-merry-head h2 {
+  margin: 0;
+  text-wrap: balance;
+  font-size: clamp(28px, 5vw, 36px);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.gf-merry-tags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gf-merry-tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gf-merry-tags svg {
+  flex: none;
+  color: var(--gf-accent);
+}
+
+.gf-merry-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  background: var(--gf-accent);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.gf-merry-free {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gf-foot {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-top: 6px;
+  box-sizing: border-box;
   font-size: 13px;
   color: #4a4a45;
   text-decoration: none;
@@ -426,43 +536,15 @@ textarea.gf-input {
 .gf-foot b {
   font-family: var(--font-logo);
   font-weight: 400;
-  font-size: 26px;
+  font-size: 22px;
+  line-height: 1;
   color: #1c1c1a;
 }
 
-.gf-foot-line {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.gf-foot-sub {
-  font-size: 14px;
-  color: #1c1c1a;
-}
-
-.gf-foot-url {
+.gf-foot span {
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.gf-done-brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-top: 14px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(28, 28, 26, 0.12);
-  color: #1c1c1a;
-  text-decoration: none;
-}
-
-.gf-done-brand b {
-  font-family: var(--font-logo);
-  font-weight: 400;
-  font-size: 34px;
 }
 
 .gf-loader {
@@ -531,6 +613,31 @@ textarea.gf-input {
 
   .gf-pill {
     min-width: 80px;
+  }
+
+  .gf-merry {
+    gap: 16px;
+    padding: 28px 20px;
+  }
+
+  .gf-merry-by {
+    gap: 8px;
+    font-size: 16px;
+  }
+
+  .gf-merry-by b {
+    font-size: 34px;
+  }
+
+  .gf-merry-tags li {
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 14px 0 10px;
+    font-size: 13px;
+  }
+
+  .gf-merry-cta {
+    align-self: stretch;
   }
 }
 
