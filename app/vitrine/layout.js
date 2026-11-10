@@ -30,7 +30,7 @@ const ORGANIZATION = {
   "@type": "Organization",
   name: "Merry",
   url: SITE,
-  logo: `${SITE}/apple-icon`,
+  logo: `${SITE}/vitrine/apple-icon`,
   sameAs: [],
 };
 
