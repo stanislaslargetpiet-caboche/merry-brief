@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUtilisateurs, sourceLabel, withPostHog } from "@/lib/server/pilotage/utilisateurs";
+import { buildUtilisateurs, readDernieresSessions, sourceLabel, withPostHog, withSessions } from "@/lib/server/pilotage/utilisateurs";
 import { fmtAgo } from "@/lib/server/pilotage/shape";
 
 const NOW = Date.parse("2026-11-06T12:00:00Z");
@@ -97,6 +97,44 @@ describe("withPostHog", () => {
     // Connecté il y a 12 min, dernier replay il y a 6 jours : plus rien d'enregistré depuis
     const ancien = withPostHog(buildUtilisateurs(raw, 60 * 60000, NOW), { u1: { dernier: min(60 * 24 * 6), sessions_7j: 0, replay: replay(60 * 24 * 6) } });
     expect(ancien.mariages.find((m) => m.id === "w1")).toMatchObject({ posthog: "ancien", derniere_visite: min(12) });
+  });
+});
+
+describe("withSessions", () => {
+  // u2 (Théo, w2) s'est connecté il y a 30 min ; u1 (Emma, w1) il y a 2 jours, mais sa session a été rafraîchie il y a
+  // 10 min : sans cookies, c'est la seule trace de sa visite
+  const sansCookies = { ...raw, users: raw.users.map((u) => (u.id === "u1" ? { ...u, last_sign_in_at: min(60 * 48) } : u)) };
+  const out = withSessions(buildUtilisateurs(sansCookies, 60 * 60000, NOW), [
+    { user_id: "u1", dernier: min(10) },
+    { user_id: "u2", dernier: min(60 * 24) },
+  ]);
+  const w1 = out.mariages.find((m) => m.id === "w1");
+
+  it("prend la dernière session quand elle est plus récente que la connexion, sans toucher la connexion", () => {
+    expect(w1.derniere_visite).toBe(min(10));
+    expect(w1.derniere_connexion).toBe(min(60 * 48));
+    expect(w1.visite_par).toBe("emma@x.fr");
+  });
+  it("garde la connexion quand la session est plus ancienne, et reclasse les couples", () => {
+    expect(out.mariages.find((m) => m.id === "w2").derniere_visite).toBe(min(30));
+    expect(out.mariages.map((m) => m.id)).toEqual(["w1", "w2"]);
+  });
+  it("laisse PostHog l'emporter quand il a vu une visite plus récente, et inversement", () => {
+    const both = withPostHog(withSessions(buildUtilisateurs(sansCookies, 60 * 60000, NOW), [{ user_id: "u1", dernier: min(10) }]), { u1: { dernier: min(3), sessions_7j: 1, replay: null } });
+    expect(both.mariages.find((m) => m.id === "w1").derniere_visite).toBe(min(3));
+    const avant = withPostHog(withSessions(buildUtilisateurs(sansCookies, 60 * 60000, NOW), [{ user_id: "u1", dernier: min(10) }]), { u1: { dernier: min(60 * 40), sessions_7j: 1, replay: null } });
+    expect(avant.mariages.find((m) => m.id === "w1").derniere_visite).toBe(min(10));
+  });
+});
+
+describe("readDernieresSessions", () => {
+  const admin = (result) => ({ rpc: async (name) => (name === "pilotage_dernieres_sessions" ? result : { error: { message: "autre" } }) });
+  it("lit une ligne par compte", async () => {
+    await expect(readDernieresSessions(admin({ data: [{ user_id: "u1", dernier: min(10) }], error: null }))).resolves.toEqual([{ user_id: "u1", dernier: min(10) }]);
+  });
+  it("se passe de la fonction tant qu'elle n'est pas collée, mais signale les autres erreurs", async () => {
+    await expect(readDernieresSessions(admin({ data: null, error: { code: "PGRST202", message: "Could not find the function public.pilotage_dernieres_sessions" } }))).resolves.toEqual([]);
+    await expect(readDernieresSessions(admin({ data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }))).rejects.toThrow("statement timeout");
   });
 });
 
