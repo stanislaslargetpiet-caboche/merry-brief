@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildActivite, windowEnd, windowStart } from "../lib/server/activiteMail.js";
-import { runActivite } from "../lib/server/activiteJob.js";
+import { collectActivite, runActivite } from "../lib/server/activiteJob.js";
 
 const ctx = { origin: "https://app.withmerry.com", unsub: "https://app.withmerry.com/desinscription?x", link: "https://app.withmerry.com/dashboard" };
 
@@ -45,6 +45,25 @@ describe("buildActivite", () => {
     expect(mail.body).toContain("Invité 3");
     expect(mail.body).not.toContain("Invité 4");
     expect(mail.body).toContain("et 3 autres lignes, à voir sur Merry");
+  });
+
+  it("détaille une réponse partagée entre événements, pas une réponse unanime", () => {
+    const mail = buildActivite({
+      activity: {
+        reponses: [
+          { name: "Léa Martin", comes: true, events: [{ label: "Cocktail", comes: true }, { label: "Dîner", comes: false }] },
+          { name: "Paul Dupuis", comes: true, events: [{ label: "Cocktail", comes: true }, { label: "Dîner", comes: true }] },
+          { name: "Inès Garnier", comes: false, events: [{ label: "Cocktail", comes: false }, { label: "Dîner", comes: false }] },
+        ],
+      },
+      ...ctx,
+    });
+    expect(mail.body).toContain("Cocktail : oui · Dîner : non");
+    expect(mail.body.match(/Cocktail : /g)).toHaveLength(1);
+    expect(mail.body.match(/>VIENT</g)).toHaveLength(2);
+    expect(mail.text).toContain("- Léa Martin : vient (Cocktail : oui · Dîner : non)");
+    expect(mail.text).toContain("- Paul Dupuis : vient\n");
+    expect(mail.preheader).toBe("3 réponses d'invités");
   });
 
   it("échappe les noms", () => {
@@ -109,6 +128,26 @@ describe("runActivite", () => {
     expect(mails[0].html).not.toContain("par un organisateur");
     expect((await runActivite(admin, "https://app.withmerry.com", now)).envoyes).toBe(0);
     expect(mails).toHaveLength(1);
+  });
+
+  it("lit chaque événement, quel que soit l'ordre des lignes d'une même réponse", async () => {
+    const at = "2026-11-09T13:54:36.588Z";
+    const oui = { wedding_id: "w1", guest_id: "g1", event_id: "e2", status: "oui", created_at: at };
+    const non = { wedding_id: "w1", guest_id: "g1", event_id: "e3", status: "non", created_at: at };
+    for (const log of [[oui, non], [non, oui]]) {
+      const admin = fakeAdmin({
+        ...tables,
+        guest_response_log: log,
+        events: [
+          { id: "e3", name: "Dîner", short_name: "", position: 3 },
+          { id: "e2", name: "Cocktail dînatoire", short_name: "Cocktail", position: 2 },
+        ],
+      });
+      const { activity } = await collectActivite(admin, new Date("2026-11-08T19:00:00Z"), new Date("2026-11-09T19:00:00Z"));
+      expect(activity.get("w1").reponses).toEqual([
+        { name: "Léa Martin", comes: true, events: [{ label: "Cocktail", comes: true }, { label: "Dîner", comes: false }] },
+      ]);
+    }
   });
 
   it("n'envoie rien sans activité", async () => {
