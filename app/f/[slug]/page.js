@@ -70,7 +70,9 @@ export default function GuestFormPage() {
 
         {answered ? (
           <section className="gf-merry" aria-label="Merry">
-            <span className="gf-merry-logo">Merry</span>
+            <span className="gf-merry-by">
+              Créé avec <b>Merry</b>
+            </span>
             <div className="gf-merry-head">
               <p>{merryProof(form)}</p>
               <h2>Et toi, c'est pour quand&nbsp;?</h2>
@@ -108,11 +110,11 @@ export default function GuestFormPage() {
             </a>
             <span className="gf-merry-free">Gratuit pour les mariés.</span>
           </section>
-        ) : null}
-
-        <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
-          Créé avec <b>Merry</b>
-        </a>
+        ) : (
+          <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
+            Créé avec <b>Merry</b>
+          </a>
+        )}
       </div>
     </main>
   );
