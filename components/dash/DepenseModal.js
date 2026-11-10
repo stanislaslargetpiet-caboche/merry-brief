@@ -23,7 +23,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
   const [full, setFull] = useState(true); // paiement intégral, sinon acompte avec un reste
-  const [rest, setRest] = useState("");
+  const [deposit, setDeposit] = useState(""); // montant de l'acompte ; le reste se calcule sur le montant total
   const [statutPaid, setStatutPaid] = useState(true); // déjà payée, sinon à payer
   const [paidAt, setPaidAt] = useState(todayIso());
   const [dueDate, setDueDate] = useState(""); // date prévue d'une dépense à payer
@@ -33,19 +33,33 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const fileInput = useRef(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState(false); // « Ajouter » touché sans poste choisi
+  const pick = useRef(null);
 
   const isNew = itemId === "new" || !items.length;
   const item = items.find((i) => i.id === itemId);
-  const value = parseAmount(amount);
+  const total = parseAmount(amount);
   const vendor = item?.vendor_id ? (dash.data.vendors || []).find((v) => v.id === item.vendor_id) : null;
-  const label = what.trim().slice(0, 120) || vendor?.name || "Paiement";
   // Un poste qui a déjà un montant prévu (devis signé) : le reste se déduit du devis, rien à saisir
   const hadQuote = !isNew && item?.quote_amount !== null && item?.quote_amount !== undefined;
-  const restAmount = !hadQuote && !full ? parseAmount(rest) || 0 : 0;
-  const ready = value !== null && value > 0 && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
+  const isDeposit = !hadQuote && !full;
+  // Un acompte : on saisit le montant total et l'acompte, le reste devient une échéance « Solde »
+  const value = isDeposit ? parseAmount(deposit) : total;
+  const label = what.trim().slice(0, 120) || vendor?.name || (isDeposit ? "Acompte" : "Paiement");
+  const restAmount = isDeposit && total !== null && value !== null ? Math.max(0, total - value) : 0;
+  const hasPoste = isNew ? Boolean(newLabel.trim()) : Boolean(item);
+  // Le bouton ne grise que pour un montant manquant : sans poste choisi (liste hors de l'écran sur téléphone,
+  // retour d'un couple le 10 nov.), il remonte au choix du poste au lieu de rester grisé sans raison visible
+  const amountOk = value !== null && value > 0 && (!isDeposit || (total !== null && value <= total));
+  const ready = amountOk && hasPoste;
 
   async function save(e) {
     e?.preventDefault();
+    if (amountOk && !hasPoste) {
+      setMissing(true);
+      pick.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     if (!ready || busy) return;
     setBusy(true);
     let id = item?.id;
@@ -90,15 +104,15 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           <Btn kind="ghost" onClick={onClose}>
             Annuler
           </Btn>
-          <Btn onClick={save} disabled={!ready || busy}>
+          <Btn onClick={save} disabled={!amountOk || busy}>
             Ajouter la dépense
           </Btn>
         </>
       }
     >
       <form className="d-form-grid" onSubmit={save}>
-        <Field label="Pour quel poste ?" full group>
-          <div className="d-poste-pick" role="radiogroup" aria-label="Pour quel poste ?">
+        <Field label="Pour quel poste ?" full group className={missing && !hasPoste ? "is-missing" : ""} hint={missing && !isNew && !item ? "Choisir un poste" : null}>
+          <div ref={pick} className="d-poste-pick" role="radiogroup" aria-label="Pour quel poste ?">
             {items.map((i) => (
               <button key={i.id} type="button" role="radio" aria-checked={!isNew && itemId === i.id} className={`d-poste-opt${!isNew && itemId === i.id ? " is-on" : ""}`} onClick={() => setItemId(i.id)}>
                 <Tile name={i.icon || guessIcon(i.label)} size={28} />
@@ -114,14 +128,14 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           </div>
         </Field>
         {isNew ? (
-          <Field label="Nom du nouveau poste" full>
+          <Field label="Nom du nouveau poste" full className={missing && !hasPoste ? "is-missing" : ""} hint={missing && !hasPoste ? "Donner un nom au poste" : null}>
             <input className="d-input" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Faire-part, coiffure, navette…" />
           </Field>
         ) : null}
         <Field label="Nom de la dépense ou du prestataire" full>
           <input className="d-input" value={what} onChange={(e) => setWhat(e.target.value)} maxLength={120} placeholder={vendor ? `Acompte ${vendor.name}` : "Acompte, robe, Maison Lemoine…"} />
         </Field>
-        <Field label="Montant (€)">
+        <Field label={isDeposit ? "Montant total (€)" : "Montant (€)"}>
           <input className="d-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="690" />
         </Field>
         {hadQuote ? null : (
@@ -136,10 +150,13 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           </div>
         </Field>
         )}
-        {!hadQuote && !full ? (
+        {isDeposit ? (
           <>
-            <Field label="Reste à payer (€)">
-              <input className="d-input" inputMode="decimal" value={rest} onChange={(e) => setRest(e.target.value)} placeholder="300" />
+            <Field label="Acompte (€)">
+              <input className="d-input" inputMode="decimal" value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="300" />
+            </Field>
+            <Field label="Reste à payer">
+              <input className="d-input" value={total !== null && value !== null && value <= total ? euros(restAmount) : "–"} readOnly tabIndex={-1} aria-live="polite" />
             </Field>
             <Field label="Reste à payer le · facultatif">
               <input className="d-input" type="date" value={restDue} onChange={(e) => setRestDue(e.target.value)} />

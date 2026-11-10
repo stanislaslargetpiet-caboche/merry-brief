@@ -1359,6 +1359,10 @@ button.d-rsvp:hover {
   color: var(--d-muted);
 }
 
+.d-field.is-missing .d-field-hint {
+  color: var(--d-red-ink);
+}
+
 .d-input,
 .d-select,
 .d-textarea {
@@ -1371,6 +1375,13 @@ button.d-rsvp:hover {
   font: inherit;
   font-size: 14px;
   box-sizing: border-box;
+}
+
+/* Un montant calculé (reste d'un acompte) : gris comme les cases de la fiche d'un poste, pas une case à remplir */
+.d-input[readonly] {
+  background: var(--d-panel);
+  border-color: var(--d-panel);
+  font-weight: 600;
 }
 
 .d-textarea {
