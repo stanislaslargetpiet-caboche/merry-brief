@@ -27,6 +27,8 @@ function route(req) {
   if (publicPath && (host === "app.withmerry.com" || VITRINE_HOSTS.includes(host))) {
     return NextResponse.redirect(`https://www.withmerry.com${publicPath}${search}`, 308);
   }
+  // /mariage seul n'a pas de page : il mène à la première liste plutôt qu'à une 404
+  if (pathname.replace(/\/$/, "") === "/mariage") return NextResponse.redirect(`https://www.withmerry.com/mariage/lieux${search}`, 308);
   if (host === "app.withmerry.com" && SEO_ONLY.test(pathname)) {
     return NextResponse.redirect(`https://www.withmerry.com${pathname}${search}`, 308);
   }
@@ -76,6 +78,8 @@ function etapeDe(req) {
 
 export function middleware(req, event) {
   const res = route(req);
+  // L'appli (app.withmerry.com) n'a rien à faire dans Google : le site et les pages SEO vivent sur www
+  if ((req.headers.get("host") || "").split(":")[0].toLowerCase() === "app.withmerry.com") res.headers.set("X-Robots-Tag", "noindex");
   const landed = res.status < 300 || res.status >= 400;
   // Une redirection n'est pas une lecture : l'agent est compté sur l'adresse où il atterrit
   const agent = landed ? classifyAgent(req.headers.get("user-agent")) : null;
