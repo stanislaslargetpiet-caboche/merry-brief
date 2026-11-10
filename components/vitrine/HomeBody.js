@@ -9,7 +9,7 @@ import Carrousel from "./Carrousel";
 import { SIGNUP } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
 import { formatProof } from "@/lib/vitrine/proofFormat";
-import { ACCUEIL_TEXT, ACCUEIL_STEPS, ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
+import { ACCUEIL_TEXT, ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
 import proposition, { en as propositionEn } from "@/lib/vitrine/blocks/proposition";
 
 export default function HomeBody({ links, proof: rawProof }) {
@@ -47,45 +47,15 @@ export default function HomeBody({ links, proof: rawProof }) {
         <Block fr={proposition} en={propositionEn} className="wv-hero-media" />
       </section>
 
-      <section className="wv-how" aria-labelledby="wv-how-t">
-        <div className="wv-center">
-          <h2 id="wv-how-t" className="wv-h3">
-            {t.howTitle}
-          </h2>
-        </div>
-        <ol className="wv-how-g">
-          {ACCUEIL_STEPS.map(([img, titleFr, textFr, titleEn, textEn], idx) => (
-            <li key={img} className="wv-how-card">
-              <div className="wv-how-shot">
-                <Image
-                  src={`/vitrine/etapes/${img}.webp`}
-                  alt=""
-                  width={1800}
-                  height={1013}
-                  sizes="(max-width: 760px) 92vw, 30vw"
-                  loading={idx === 0 ? "eager" : "lazy"}
-                />
-              </div>
-              <span className="wv-how-n" aria-hidden="true">
-                {idx + 1}
-              </span>
-              <h3>{lang === "en" ? titleEn : titleFr}</h3>
-              <p>{lang === "en" ? textEn : textFr}</p>
-            </li>
-          ))}
-        </ol>
-        <div className="wv-btns" style={{ justifyContent: "center", marginTop: 40 }}>
-          <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="how_organise">
-            {t.organise}
-          </a>
-        </div>
-      </section>
-
-      <section className="wv-sec wv-lime wv-center" aria-label="Fonctionnalités">
-        <h2 className="wv-h3" style={{ maxWidth: 900 }}>
-          {t.featTitle}
+      {/* « Comment ça marche » : les trois étapes et le carrousel en une seule section (D-228) */}
+      <section className="wv-sec wv-lime wv-center" aria-labelledby="wv-how-t">
+        <h2 id="wv-how-t" className="wv-h3" style={{ maxWidth: 900 }}>
+          {t.howTitle}
         </h2>
         <Carrousel />
+        <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="how_organise">
+          {t.organise}
+        </a>
       </section>
 
       <section className="wv-sec wv-split" aria-label="Modèle">

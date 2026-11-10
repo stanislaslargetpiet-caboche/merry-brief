@@ -50,8 +50,8 @@ describe("textes du carrousel de l'accueil", () => {
     expect(shape(CARROUSEL.en)).toEqual(shape(CARROUSEL.fr));
   });
 
-  it("tutoie partout (D-076), sauf dans les messages écrits par le couple et par l'invité", () => {
-    const own = strings(CARROUSEL.fr).filter(([path]) => !path.startsWith("request.lines") && path !== "form.note");
+  it("tutoie partout (D-076), sauf dans le message écrit par le couple au lieu", () => {
+    const own = strings(CARROUSEL.fr).filter(([path]) => !path.startsWith("request.lines"));
     expect(own.filter(([, text]) => /\b(vous|votre|vos)\b/i.test(text))).toEqual([]);
   });
 
@@ -65,11 +65,12 @@ describe("textes du carrousel de l'accueil", () => {
     expect(all.filter(([, text]) => /\d (\d{3}\b|[€%])/.test(text))).toEqual([]);
   });
 
-  it("quatre onglets de trois scènes, chaque titre de scène finit par un point", () => {
+  it("trois étapes (D-228), chaque phrase d'étape et chaque titre de scène finit par un point", () => {
     for (const lang of ["fr", "en"]) {
       const t = CARROUSEL[lang];
-      expect(t.tabs).toHaveLength(4);
-      const titles = ["vendors", "request", "quotes", "budget", "payers", "payments", "guests", "form", "site", "timeline", "tasks", "docs"].map((k) => t[k].title);
+      expect(t.steps).toHaveLength(3);
+      expect(t.steps.every((step) => step.title.endsWith(".") && step.text.endsWith("."))).toBe(true);
+      const titles = ["wedding", "timeline", "budget", "vendors", "request", "quotes", "guests", "site", "payments", "tasks"].map((k) => t[k].title);
       expect(titles.every((title) => title.endsWith("."))).toBe(true);
     }
   });
