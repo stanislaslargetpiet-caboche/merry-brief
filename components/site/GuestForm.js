@@ -569,11 +569,14 @@ export default function GuestForm({ form, slug, onAnswered, fullscreen = false }
             </svg>
           </span>
           <strong>Merci pour ta réponse.</strong>
-          <span>{sent.mailed ? "On t'envoie la confirmation par mail." : "Ta réponse est bien arrivée chez les mariés."}</span>
+          {sent.mailed ? null : <span className="gf-fly-sub">Ta réponse est bien arrivée chez les mariés.</span>}
         </div>
       )}
     </div>
   ) : null;
+
+  // Page publique, après le merci : le formulaire s'efface, la page n'affiche plus que Merry (GuestFormPage)
+  if (fullscreen && sent?.step === "done") return null;
 
   return (
     <form

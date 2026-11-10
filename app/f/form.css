@@ -471,20 +471,16 @@ textarea.gf-input {
 
 /* Après l'envoi, la page reste blanche, sans photo ni titre : le merci en haut, puis la carte Merry */
 .gf.is-answered {
+  padding-bottom: 0;
   background: #ffffff;
 }
 
 .gf.is-answered .gf-wrap {
+  min-height: 100dvh;
   margin-top: 0;
-  padding-top: clamp(16px, 6vh, 56px);
-}
-
-.gf.is-answered .gf-merry {
-  animation-delay: 0.55s;
-}
-
-.gf.is-answered .gf-foot {
-  animation: gf-fade 0.4s ease 1s both;
+  padding-top: 0;
+  box-sizing: border-box;
+  justify-content: center;
 }
 
 /* Dans le site de mariage, la carte est plus étroite (560 px) : les pastilles se resserrent */
@@ -598,14 +594,18 @@ textarea.gf-input {
   font-weight: 700;
 }
 
-.gf-fly-ok > span:last-child {
+.gf-fly-sub {
   font-size: 16px;
   line-height: 1.4;
   color: #4a4a45;
 }
 
-.s-root .gf-embed .gf-fly-ok > span:last-child {
+.s-root .gf-embed .gf-fly-sub {
   color: var(--s-soft);
+}
+
+.gf-screen .gf-fly.is-merci .gf-fly-ok {
+  animation: gf-leave 0.35s ease 1.5s both;
 }
 
 .gf-fly.is-merci .gf-fly-tick {
@@ -620,7 +620,7 @@ textarea.gf-input {
   animation: gf-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s both;
 }
 
-.gf-fly.is-merci .gf-fly-ok > span:last-child {
+.gf-fly.is-merci .gf-fly-sub {
   animation: gf-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
 }
 
@@ -679,6 +679,16 @@ textarea.gf-input {
   100% { opacity: 1; transform: scale(1); }
 }
 
+@keyframes gf-leave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes gf-tag {
+  from { opacity: 0; transform: translateY(12px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes gf-draw {
   from { stroke-dashoffset: 40; }
   to { stroke-dashoffset: 0; }
@@ -694,57 +704,23 @@ textarea.gf-input {
   to { opacity: 1; transform: none; }
 }
 
-/* Carte Merry après l'envoi (page publique seulement) : aux couleurs du formulaire, pas au citron de Merry */
+/* Après le merci, la page n'affiche plus que Merry, sans fond ni carte : le logo, trois pastilles qui arrivent
+   l'une après l'autre, puis le bouton. Pastilles et bouton aux couleurs du formulaire, pas au citron de Merry */
 .gf-merry {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  padding: clamp(28px, 5vw, 48px);
-  border-radius: 24px;
-  background: var(--gf-deep);
+  gap: 32px;
   text-align: center;
-  animation: gf-arrive 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
 }
 
-.gf-merry-by {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.gf-merry-by b {
+.gf-merry-logo {
   font-family: var(--font-logo);
-  font-size: 40px;
+  font-size: clamp(52px, 12vw, 76px);
   font-weight: 400;
   line-height: 1;
-}
-
-.gf-merry-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.gf-merry-head p {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-wrap: balance;
-}
-
-.gf-merry-head h2 {
-  margin: 0;
-  text-wrap: balance;
-  font-size: clamp(28px, 5vw, 36px);
-  line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  color: #1c1c1a;
+  animation: gf-arrive 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
 }
 
 .gf-merry-tags {
@@ -754,19 +730,32 @@ textarea.gf-input {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .gf-merry-tags li {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 0 16px 0 12px;
+  min-height: 52px;
+  padding: 0 22px 0 16px;
   border-radius: 999px;
-  background: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--gf-bg);
+  font-size: 17px;
+  font-weight: 700;
+  animation: gf-tag 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.gf-merry-tags li:nth-child(1) {
+  animation-delay: 0.8s;
+}
+
+.gf-merry-tags li:nth-child(2) {
+  animation-delay: 1.1s;
+}
+
+.gf-merry-tags li:nth-child(3) {
+  animation-delay: 1.4s;
 }
 
 .gf-merry-tags svg {
@@ -778,20 +767,16 @@ textarea.gf-input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 52px;
-  padding: 0 26px;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 36px;
   border-radius: 999px;
   background: var(--gf-accent);
   color: #ffffff;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   text-decoration: none;
-}
-
-.gf-merry-free {
-  font-size: 13px;
-  font-weight: 600;
+  animation: gf-tag 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) 1.9s both;
 }
 
 .gf-foot {
@@ -868,8 +853,9 @@ textarea.gf-input {
 @media (prefers-reduced-motion: reduce) {
   .gf-loader-word,
   .gf-loadbar > span,
-  .gf-merry,
-  .gf.is-answered .gf-foot {
+  .gf-merry-logo,
+  .gf-merry-tags li,
+  .gf-merry-cta {
     animation: none;
   }
 }
@@ -893,28 +879,20 @@ textarea.gf-input {
   }
 
   .gf-merry {
-    gap: 16px;
-    padding: 28px 20px;
-  }
-
-  .gf-merry-by {
-    gap: 8px;
-    font-size: 16px;
-  }
-
-  .gf-merry-by b {
-    font-size: 34px;
+    gap: 26px;
   }
 
   .gf-merry-tags li {
     gap: 6px;
-    min-height: 36px;
-    padding: 0 14px 0 10px;
-    font-size: 13px;
+    min-height: 46px;
+    padding: 0 18px 0 14px;
+    font-size: 15px;
   }
 
   .gf-merry-cta {
-    align-self: stretch;
+    min-height: 56px;
+    padding: 0 32px;
+    font-size: 16px;
   }
 
   .gf-fly,
@@ -937,7 +915,7 @@ textarea.gf-input {
     font-size: 22px;
   }
 
-  .gf-fly-ok > span:last-child {
+  .gf-fly-sub {
     font-size: 15px;
   }
 }
