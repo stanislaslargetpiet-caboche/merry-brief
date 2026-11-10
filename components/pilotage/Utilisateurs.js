@@ -1,37 +1,135 @@
 "use client";
 
-// Page « Couples › Par couple » du pilotage : un seul tableau, un mariage par ligne, le plus récemment connecté
-// d'abord (site, invités, formulaire, devis, couleur, replay). Les données viennent de /api/interne/pilotage (clé
-// `utilisateurs`).
+// Page « Couples › Par couple » du pilotage : un seul tableau, un mariage par ligne, le plus récemment venu d'abord.
+// Pour chaque couple : ses comptes, sa dernière visite et le replay PostHog de sa dernière session enregistrée, puis
+// ce qu'il a fait dans l'appli (site, invités, formulaire, tâches, budget, devis) et sa couleur. Les données viennent
+// de /api/interne/pilotage (clé `utilisateurs`), croisées avec PostHog par withPostHog.
 
-import { useMemo } from "react";
 import { Card, Pill, Section, Table } from "@/components/pilotage/ui";
-import { fmtAgo, fmtDateTime, fmtInt } from "@/lib/server/pilotage/shape";
+import { ACCENTS } from "@/lib/dash/accent";
+import { PASTELS } from "@/lib/dash/theme";
+import { fmtAgo, fmtDateTime, fmtInt, replayUrl } from "@/lib/server/pilotage/shape";
 
 // Fiche PostHog de la personne, ouverte sur l'onglet des replays. Le distinct_id est l'id Supabase (posthog.identify
-// dans lib/analytics.js) ; le projet est celui de lib/server/pilotage/posthog.js. Seules les personnes qui ont accepté
-// les cookies ont des sessions.
+// dans lib/analytics.js) ; le projet est celui de lib/server/pilotage/posthog.js.
 const posthogPersonUrl = (id) => `https://eu.posthog.com/project/321035/person/${encodeURIComponent(id)}#activeTab=sessionRecordings`;
 
-// `posthog_dernier` : dernier événement reçu pour cette personne (undefined si PostHog n'a pas été lu, null si aucun)
-const NO_CONSENT_DAYS = 3;
-const posthogCell = (r) => {
-  const link = (text) => <a className="pl-link" href={posthogPersonUrl(r.id)} target="_blank" rel="noopener noreferrer">{text}</a>;
-  if (r.posthog_dernier === undefined) return link("PostHog");
-  const last = Date.parse(r.posthog_dernier);
-  const lastLogin = r.derniere_connexion ? Date.parse(r.derniere_connexion) : 0;
-  if (!last) return <span className="pl-muted" title="Aucun événement PostHog en 90 jours : cookies refusés, jamais acceptés, ou PostHog bloqué par le navigateur.">Aucun consentement</span>;
-  // Connecté après le dernier événement reçu (marge de 3 jours) : il utilise l'appli mais PostHog ne voit plus rien
-  if (lastLogin - last > NO_CONSENT_DAYS * 86400000) {
-    return <span className="pl-muted" title={`Dernier événement PostHog : ${fmtDateTime(r.posthog_dernier)}. Il s'est connecté depuis : probablement plus de consentement aux cookies (ou PostHog bloqué).`}>Aucun consentement depuis le {new Date(r.posthog_dernier).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Europe/Paris" })} · {link("ancien replay")}</span>;
+const DAY = 86400000;
+const ts = (iso) => (iso ? Date.parse(iso) : 0);
+const handle = (email) => (email ? email.split("@")[0] : "sans adresse");
+const fmtDay = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
+const fmtWedding = (date) => new Date(`${date}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
+const fmtActive = (s) => (s < 60 ? `${s} s` : `${Math.round(s / 60)} min`);
+const muted = (text) => <span className="pl-muted">{text}</span>;
+const num = (n) => (n ? fmtInt(n) : muted("0"));
+
+const PillLink = ({ tone, href, title, children }) => (
+  <a className={`pl-pill is-${tone} is-link`} href={href} title={title} target="_blank" rel="noopener noreferrer">
+    {children}
+  </a>
+);
+
+// Pastel des personnes (lib/dash/theme.js), dans l'ordre des comptes : le premier est celui venu en dernier
+const PERSONNES = ["lavande", "peche", "bleu", "sauge", "rose"];
+const MAX_PERSONNES = 2;
+function comptesCell(r) {
+  const comptes = r.comptes || r.emails.map((email) => ({ email }));
+  if (!comptes.length) return muted("aucun");
+  const extra = comptes.slice(MAX_PERSONNES);
+  return (
+    <span className="pl-people">
+      {comptes.slice(0, MAX_PERSONNES).map((c, i) => {
+        const p = PASTELS[PERSONNES[i % PERSONNES.length]];
+        return (
+          <span key={c.email || i} className="pl-person" style={{ background: p.bg, color: p.ink }} title={`${c.email || "sans adresse"}${c.derniere_visite ? ` · venu ${fmtAgo(c.derniere_visite)}` : " · jamais venu"}`}>
+            {handle(c.email)}
+          </span>
+        );
+      })}
+      {extra.length ? <Pill>{`+${extra.length}`}</Pill> : null}
+    </span>
+  );
+}
+
+// Couleur de la pastille selon l'ancienneté de la dernière visite
+const recence = (iso) => {
+  const age = Date.now() - ts(iso);
+  return age <= DAY ? "ok" : age <= 7 * DAY ? "lime" : age <= 30 * DAY ? "warn" : "bad";
+};
+function visiteCell(r) {
+  const at = r.derniere_visite === undefined ? r.derniere_connexion : r.derniere_visite;
+  if (!at) return <Pill>jamais</Pill>;
+  const detail = [`Dernière visite : ${fmtDateTime(at)}`, r.visite_par ? `par ${r.visite_par}` : null, r.derniere_connexion ? `Dernière connexion (mot de passe ou lien) : ${fmtDateTime(r.derniere_connexion)}` : null];
+  return (
+    <span title={detail.filter(Boolean).join("\n")}>
+      <Pill tone={recence(at)}>{fmtAgo(at)}</Pill>
+      {r.comptes?.length > 1 && r.visite_par ? <span className="pl-cell-sub">{handle(r.visite_par)}</span> : null}
+    </span>
+  );
+}
+
+// Dernière session enregistrée par PostHog, tous comptes du couple confondus (withPostHog)
+function replayCell(r) {
+  const first = r.comptes?.[0];
+  if (r.posthog === undefined) return first?.id ? <PillLink tone="neutral" href={posthogPersonUrl(first.id)} title="PostHog non lu : fiche de la personne">PostHog</PillLink> : "–";
+  if (r.posthog === "jamais") return <span title="Aucun événement PostHog en 90 jours : cookies refusés ou jamais acceptés, ou PostHog bloqué par le navigateur."><Pill>sans cookies</Pill></span>;
+  if (r.posthog === "sans_replay") {
+    return (
+      <PillLink tone="neutral" href={posthogPersonUrl(first.id)} title={`PostHog voit des sessions (${fmtInt(r.sessions_7j)} sur 7 jours) mais aucune n'a été enregistrée. Ouvrir la fiche de ${first.email}.`}>
+        pas de replay
+      </PillLink>
+    );
   }
-  return link("PostHog");
+  const x = r.replay;
+  const detail = `Session de ${x.email} le ${fmtDateTime(x.debut)} : ${fmtActive(x.actif_s)} d'activité, ${fmtInt(x.clics)} clic(s)${x.erreurs ? `, ${fmtInt(x.erreurs)} erreur(s) de console` : ""}.`;
+  if (r.posthog === "ancien") {
+    return (
+      <PillLink tone="warn" href={replayUrl(x.session)} title={`${detail}\nVisites plus récentes sans enregistrement : plus d'accord aux cookies, ou PostHog bloqué.`}>
+        ▶ {fmtDay(x.debut)}
+      </PillLink>
+    );
+  }
+  return (
+    <PillLink tone={x.erreurs ? "bad" : "lime"} href={replayUrl(x.session)} title={`${detail}\nOuvrir le replay dans PostHog.`}>
+      ▶ {fmtActive(x.actif_s)}
+      {x.erreurs ? ` · ${fmtInt(x.erreurs)} err.` : ""}
+    </PillLink>
+  );
+}
+
+const statutCell = (statut, href, quoi) => {
+  if (!statut) return muted("aucun");
+  const label = statut === "publié" ? "Publié" : "Brouillon";
+  const tone = statut === "publié" ? "ok" : "warn";
+  return href ? <PillLink tone={tone} href={href} title={`Ouvrir ${quoi}`}>{label}</PillLink> : <Pill tone={tone}>{label}</Pill>;
 };
 
-const sitePill = (site) => (site === "publié" ? <Pill tone="ok">Site publié</Pill> : site === "brouillon" ? <Pill tone="warn">Site brouillon</Pill> : <span className="pl-muted">aucun</span>);
+function coupleCell(r) {
+  const passe = r.date && ts(`${r.date}T23:59:59Z`) < Date.now();
+  return (
+    <>
+      <strong>{r.couple}</strong>
+      <span className="pl-cell-sub">{r.date ? `${fmtWedding(r.date)}${passe ? " · passé" : ""}` : "date à fixer"}</span>
+    </>
+  );
+}
+
+// Couleur de chaque compte (elle suit la personne, pas le couple)
+function couleurCell(r) {
+  const choisies = (r.comptes || []).filter((c) => c.accent);
+  if (!choisies.length) return muted("pas choisi");
+  const keys = [...new Set(choisies.map((c) => c.accent))];
+  return (
+    <span className="pl-swatches" title={choisies.map((c) => `${c.email} : ${ACCENTS.find((a) => a.key === c.accent)?.label || "ancienne couleur"}`).join("\n")}>
+      {keys.map((k) => (
+        <span key={k} className="pl-swatch" style={{ background: ACCENTS.find((a) => a.key === k)?.color || "var(--border-strong)" }} />
+      ))}
+      {keys.length === 1 ? ACCENTS.find((a) => a.key === keys[0])?.label || "Ancienne" : null}
+    </span>
+  );
+}
 
 export default function Utilisateurs({ data }) {
-  const parEmail = useMemo(() => new Map((data?.utilisateurs || []).map((u) => [u.email, u])), [data]);
   if (!data) {
     return (
       <Section id="comptes">
@@ -39,22 +137,24 @@ export default function Utilisateurs({ data }) {
       </Section>
     );
   }
-  // Couleur et replay : ceux du premier compte du mariage
-  const compte = (r) => parEmail.get(r.emails[0]);
   return (
     <Section id="comptes">
       <Card>
         <Table
           cols={[
-            { key: "couple", label: "Couple", render: (r) => <strong>{r.couple}</strong> },
-            { key: "emails", label: "Compte", render: (r) => r.emails.join(", ") || "–" },
-            { key: "derniere_connexion", label: "Dernière connexion", render: (r) => (r.derniere_connexion ? <span title={fmtDateTime(r.derniere_connexion)}>{fmtAgo(r.derniere_connexion)}</span> : <span className="pl-muted">jamais</span>) },
-            { key: "site", label: "Site", render: (r) => sitePill(r.site) },
-            { key: "invites", label: "Invités", num: true, render: (r) => (r.invites ? fmtInt(r.invites) : <span className="pl-muted">0</span>) },
-            { key: "formulaire", label: "Formulaire", render: (r) => (r.formulaire ? `${r.formulaire}${r.reponses_formulaire ? ` · ${fmtInt(r.reponses_formulaire)} réponse(s)` : ""}` : <span className="pl-muted">aucun</span>) },
-            { key: "devis", label: "Devis", num: true, render: (r) => fmtInt(r.devis) },
-            { key: "couleur", label: "Couleur", render: (r) => compte(r)?.couleur || <span className="pl-muted">pas choisi</span> },
-            { key: "replay", label: "Replay", render: (r) => (compte(r) ? posthogCell(compte(r)) : "–") },
+            { key: "couple", label: "Couple", render: coupleCell },
+            { key: "comptes", label: "Comptes", render: comptesCell },
+            { key: "visite", group: "Dernière visite", label: "Quand", render: visiteCell },
+            { key: "replay", group: "Dernière visite", label: "PostHog", render: replayCell },
+            { key: "sessions", group: "Dernière visite", label: "Sessions 7 j", num: true, render: (r) => (r.sessions_7j === undefined ? "–" : num(r.sessions_7j)) },
+            { key: "site", group: "Avancement", label: "Site", render: (r) => statutCell(r.site, r.site_slug ? `/s/${r.site_slug}` : null, "le site") },
+            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites) },
+            { key: "formulaire", group: "Avancement", label: "Formulaire", render: (r) => statutCell(r.formulaire, r.formulaire_slug ? `/f/${r.formulaire_slug}` : null, "le formulaire") },
+            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire) },
+            { key: "taches", group: "Avancement", label: "Tâches faites", num: true, render: (r) => (r.taches ? `${fmtInt(r.taches_faites)} / ${fmtInt(r.taches)}` : muted("0")) },
+            { key: "budget", group: "Avancement", label: "Postes budget", num: true, render: (r) => num(r.budget) },
+            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => (r.devis ? <Pill tone="lime">{fmtInt(r.devis)}</Pill> : muted("0")) },
+            { key: "couleur", label: "Couleur", render: couleurCell },
           ]}
           rows={data.mariages}
           max={300}

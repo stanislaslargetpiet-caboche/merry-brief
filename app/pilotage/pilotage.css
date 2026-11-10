@@ -229,6 +229,16 @@
 .pl-pill.is-warn { background: var(--warning-bg); color: var(--warning-text); }
 .pl-pill.is-bad { background: var(--error-bg); color: var(--error-text); }
 .pl-pill.is-lime { background: var(--accent-tint); color: var(--accent-ink); }
+.pl-pill.is-link { text-decoration: none; cursor: pointer; }
+.pl-pill.is-link:hover { box-shadow: inset 0 0 0 1px currentColor; }
+.pl-pill.is-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---- Couples › Par couple : une deuxième ligne discrète, une pastille pastel par personne, la couleur choisie ---- */
+.pl-cell-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; }
+.pl-people { display: inline-flex; gap: 4px; align-items: center; }
+.pl-person { display: inline-block; max-width: 130px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.pl-swatches { display: inline-flex; gap: 6px; align-items: center; }
+.pl-swatch { width: 14px; height: 14px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(28, 28, 26, 0.12); }
 
 .pl-health { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .pl-health-item { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 14px; line-height: 1.4; }
