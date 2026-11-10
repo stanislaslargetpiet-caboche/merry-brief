@@ -85,8 +85,13 @@ function fakeAdmin(tables, { optouts = [] } = {}) {
         delete: () => ({ eq: async (_c, key) => sentKeys.delete(key) }),
       };
     }
-    const rows = table === "mail_optouts" ? optouts.map((email) => ({ email })) : tables[table] || [];
-    const chain = { select: () => chain, eq: () => chain, in: () => chain, gte: () => chain, lt: () => chain, not: () => chain, order: () => chain, then: (ok) => ok({ data: rows }) };
+    let rows = table === "mail_optouts" ? optouts.map((email) => ({ email })) : tables[table] || [];
+    // eq filtre les lignes qui portent la colonne, comme deux requêtes distinctes sur guest_activity
+    const eq = (col, val) => {
+      rows = rows.filter((r) => !(col in r) || r[col] === val);
+      return chain;
+    };
+    const chain = { select: () => chain, eq, in: () => chain, gte: () => chain, lt: () => chain, not: () => chain, order: () => chain, then: (ok) => ok({ data: rows }) };
     return chain;
   };
   return { from, sentKeys, auth: { admin: { getUserById: async () => ({ data: { user: { email: "camille@gmail.com" } } }) } } };
@@ -138,6 +143,7 @@ describe("runActivite", () => {
       const admin = fakeAdmin({
         ...tables,
         guest_response_log: log,
+        guest_activity: [],
         events: [
           { id: "e3", name: "Dîner", short_name: "", position: 3 },
           { id: "e2", name: "Cocktail dînatoire", short_name: "Cocktail", position: 2 },
@@ -148,6 +154,33 @@ describe("runActivite", () => {
         { name: "Léa Martin", comes: true, events: [{ label: "Cocktail", comes: true }, { label: "Dîner", comes: false }] },
       ]);
     }
+  });
+
+  it("compte les réponses d'un formulaire sans question de présence", async () => {
+    const admin = fakeAdmin({
+      ...tables,
+      guest_response_log: [],
+      guest_activity: [
+        { wedding_id: "w1", guest_id: "g5", guest_name: "Hugo Roux", kind: "champ", source: "formulaire", created_at: "2026-11-09T08:00:00Z" },
+        { wedding_id: "w1", guest_id: "g2", guest_name: "inès garnier", kind: "ajout", source: "formulaire", member_id: null, created_at: "2026-11-09T07:00:00Z" },
+        { wedding_id: "w1", guest_id: "g2", guest_name: "inès garnier", kind: "champ", source: "formulaire", created_at: "2026-11-09T07:00:00Z" },
+        { wedding_id: "w1", guest_id: "g5", guest_name: "Hugo Roux", kind: "champ", source: "formulaire", created_at: "2026-11-09T08:00:00Z" },
+        { wedding_id: "w1", guest_id: "g6", guest_name: "Zoé", kind: "champ", source: "organisateur", created_at: "2026-11-09T09:00:00Z" },
+      ],
+    });
+    const { activity } = await collectActivite(admin, new Date("2026-11-08T19:00:00Z"), new Date("2026-11-09T19:00:00Z"));
+    expect(activity.get("w1").reponses).toEqual([
+      { name: "Inès Garnier", comes: null, added: true, events: [] },
+      { name: "Hugo Roux", comes: null, added: false, events: [] },
+    ]);
+    expect(activity.get("w1").ajouts).toEqual([]);
+    const mail = buildActivite({ activity: activity.get("w1"), ...ctx });
+    expect(mail.body).toContain("<b>2</b> nouvelles réponses à ton invitation");
+    expect(mail.body).toContain(">AJOUTÉ<");
+    expect(mail.body).toContain(">A RÉPONDU<");
+    expect(mail.body).not.toContain("VIENT");
+    expect(mail.text).toContain("- Hugo Roux : a répondu");
+    expect(mail.preheader).toBe("2 réponses d'invités");
   });
 
   it("n'envoie rien sans activité", async () => {
