@@ -222,16 +222,18 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
 }
 
 // Courbe par jour, pour ce qui se lit comme un niveau (taux, durée, position, cumul) ou se compare d'une semaine à
-// l'autre (visites). La période en cours en encre, la
-// précédente en greige, jour pour jour. `valeur` : la clé ; un jour sans mesure vaut null et la courbe le saute.
-// `cumul` : toute la série, seule, avec son aire ; une courbe seule a son aire, deux courbes n'en ont pas.
+// l'autre (visites, réponses). La période en cours en encre, la précédente en greige, jour pour jour, dès qu'elle a
+// deux jours mesurés. `valeur` : la clé ; un jour sans mesure vaut null et la courbe le saute. `cumul` : un niveau,
+// qui ne se dessine jamais en barres : sur 24 h, la veille et aujourd'hui sur une seule courbe. Une courbe seule a
+// son aire, deux courbes n'en ont pas.
 export function DayLine({ series, valeur, label, days, format = fmtInt, height = 240, title, cumul = false }) {
   const [ref, W] = useLargeur();
   const [hover, setHover] = useState(null);
   const rows = series || [];
   const lire = (r) => (r?.[valeur] === null || r?.[valeur] === undefined ? null : Number(r[valeur]));
-  const courant = cumul ? rows : rows.slice(-days);
-  const passe = cumul ? [] : rows.slice(Math.max(0, rows.length - 2 * days), Math.max(0, rows.length - days));
+  const entier = cumul && days < 2;
+  const courant = entier ? rows : rows.slice(-days);
+  const passe = entier ? [] : rows.slice(Math.max(0, rows.length - 2 * days), Math.max(0, rows.length - days));
   const vus = [...courant, ...passe].map(lire).filter((v) => v !== null);
   if (!cumul && days < 2) return <DayBars series={rows} keys={[valeur]} labels={[label]} days={days} format={format} height={height} title={title} />;
   if (courant.length < 2 || !vus.length) {
@@ -266,7 +268,7 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
   return (
     <div className="pl-chart">
       <ChartHead title={title}>
-        {cumul ? null : <span><i className="is-line" style={{ background: "var(--ink)" }} />{cettePeriode}</span>}
+        {entier ? null : <span><i className="is-line" style={{ background: "var(--ink)" }} />{cettePeriode}</span>}
         {avant.length > 1 ? <span><i className="is-line" style={{ background: "var(--border-strong)" }} />{periodeAvant}</span> : null}
         {dernier.jour === auj && lire(dernier) !== null ? <span><i className="is-now" />Aujourd'hui, en cours</span> : null}
       </ChartHead>
@@ -304,7 +306,7 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
         {hovered ? (
           <Bulle x={X(hover)} W={W} jour={hovered.jour}>
             <strong>{lire(hovered) === null ? "Pas de mesure" : format(lire(hovered))}</strong>
-            {!cumul && lire(passe[hover]) !== null && passe[hover] ? <small>{format(lire(passe[hover]))} il y a {days} jours</small> : null}
+            {!entier && lire(passe[hover]) !== null && passe[hover] ? <small>{format(lire(passe[hover]))} il y a {days} jours</small> : null}
           </Bulle>
         ) : null}
       </div>

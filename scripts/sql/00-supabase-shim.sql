@@ -22,6 +22,7 @@ create table if not exists auth.sessions (
   updated_at timestamptz default now(),
   refreshed_at timestamp
 );
+create table if not exists auth.refresh_tokens (id bigserial primary key, user_id varchar(255), session_id uuid, revoked boolean, created_at timestamptz default now(), updated_at timestamptz);
 create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create or replace function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
 create or replace function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
