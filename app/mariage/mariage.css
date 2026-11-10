@@ -28,6 +28,7 @@
 .sm-root .sm-tabs a.is-on { border-bottom-color: #1c1c1a; color: #1c1c1a; font-weight: 600; }
 
 .sm-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; border-top: 1px solid #ecebe6; border-bottom: 1px solid #ecebe6; padding: 24px 0; }
+.sm-intro { margin: 18px 0 0; font-size: 15px; line-height: 1.55; color: #3d3d39; }
 .sm-fig { display: flex; flex-direction: column; gap: 6px; }
 .sm-fig b { font: 600 40px/1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; }
 .sm-fig span { font-size: 14px; font-weight: 500; }
