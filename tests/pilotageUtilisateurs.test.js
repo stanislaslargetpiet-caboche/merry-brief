@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUtilisateurs, sourceLabel } from "@/lib/server/pilotage/utilisateurs";
+import { buildUtilisateurs, sourceLabel, withPostHog } from "@/lib/server/pilotage/utilisateurs";
 import { fmtAgo } from "@/lib/server/pilotage/shape";
 
 const NOW = Date.parse("2026-11-06T12:00:00Z");
@@ -57,6 +57,46 @@ describe("buildUtilisateurs", () => {
   it("rattache chaque utilisateur à son couple", () => {
     expect(out.utilisateurs[0]).toMatchObject({ couple: "Emma et Lucas", site: "publié", invites: 2 });
     expect(out.utilisateurs[3].couple).toBe(null);
+  });
+});
+
+describe("withPostHog", () => {
+  // w1 a deux comptes : u1 s'est connecté il y a 2 jours mais est revenu sans reconnexion il y a 5 min (PostHog) ;
+  // u5 a un replay plus ancien. w2 (u2) n'a jamais été vu par PostHog.
+  const twoAccounts = {
+    ...raw,
+    users: [...raw.users.map((u) => (u.id === "u1" ? { ...u, last_sign_in_at: min(60 * 48) } : u)), { id: "u5", email: "lucas@x.fr", created_at: min(60 * 24 * 9), last_sign_in_at: min(60 * 30) }],
+    members: [...raw.members, { wedding_id: "w1", user_id: "u5" }],
+  };
+  const replay = (fin, extra = {}) => ({ session: `s-${fin}`, debut: min(fin + 20), fin: min(fin), actif_s: 300, clics: 40, erreurs: 0, ...extra });
+  const sessions = {
+    u1: { dernier: min(5), sessions_7j: 4, replay: replay(5) },
+    u5: { dernier: min(60 * 30), sessions_7j: 1, replay: replay(60 * 30) },
+  };
+  const out = withPostHog(buildUtilisateurs(twoAccounts, 60 * 60000, NOW), sessions);
+  const w1 = out.mariages.find((m) => m.id === "w1");
+
+  it("prend la visite PostHog quand elle est plus récente que la connexion", () => {
+    expect(w1.derniere_visite).toBe(min(5));
+    expect(w1.derniere_connexion).toBe(min(60 * 30));
+    expect(w1.visite_par).toBe("emma@x.fr");
+    expect(w1.comptes.map((c) => c.email)).toEqual(["emma@x.fr", "lucas@x.fr"]);
+  });
+  it("garde le replay le plus récent du couple et additionne les sessions", () => {
+    expect(w1.replay).toMatchObject({ session: "s-5", email: "emma@x.fr" });
+    expect(w1.sessions_7j).toBe(5);
+    expect(w1.posthog).toBe("ok");
+  });
+  it("classe les couples par dernière visite", () => {
+    expect(out.mariages.map((m) => m.id)).toEqual(["w1", "w2"]);
+  });
+  it("distingue jamais vu, sessions sans replay et ancien replay", () => {
+    expect(out.mariages.find((m) => m.id === "w2")).toMatchObject({ posthog: "jamais", replay: null, sessions_7j: 0 });
+    const sansReplay = withPostHog(buildUtilisateurs(raw, 60 * 60000, NOW), { u1: { dernier: min(5), sessions_7j: 2, replay: null } });
+    expect(sansReplay.mariages.find((m) => m.id === "w1").posthog).toBe("sans_replay");
+    // Connecté il y a 12 min, dernier replay il y a 6 jours : plus rien d'enregistré depuis
+    const ancien = withPostHog(buildUtilisateurs(raw, 60 * 60000, NOW), { u1: { dernier: min(60 * 24 * 6), sessions_7j: 0, replay: replay(60 * 24 * 6) } });
+    expect(ancien.mariages.find((m) => m.id === "w1")).toMatchObject({ posthog: "ancien", derniere_visite: min(12) });
   });
 });
 
