@@ -2,8 +2,9 @@
 
 // Le formulaire invités, le même sur la page publique (/f/[slug]) et dans la rubrique « Votre réponse »
 // du site de mariage (GuestFormInline). Les questions suivent l'ordre choisi par le couple
-// (lib/dash/form.js, formQuestions) ; la réponse part par merry_form_submit et reste dans le
-// navigateur (RESPONSE_KEY) pour que le site la rappelle à l'invité.
+// (lib/dash/form.js, formQuestions) ; la réponse part par /api/formulaire/repondre (merry_form_submit,
+// puis mail de confirmation à l'invité) et reste dans le navigateur (RESPONSE_KEY) pour que le site la
+// rappelle à l'invité.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -52,6 +53,21 @@ export function useGuestForm(slug, { preview = false } = {}) {
     };
   }, [slug, preview]);
   return state;
+}
+
+// La réponse passe par la route Merry, qui l'enregistre puis envoie à l'invité un mail de confirmation.
+// Route indisponible (serveur sans Supabase : 501) : envoi direct à Supabase, sans mail.
+async function sendAnswer(slug, payload) {
+  try {
+    const res = await fetch("/api/formulaire/repondre", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, payload }) });
+    if (res.status !== 501 && res.status !== 404) {
+      const body = await res.json().catch(() => ({}));
+      return { error: res.ok ? null : { message: String(body.error || res.status) } };
+    }
+  } catch (e) {
+    return { error: { message: e?.message || "réseau" } };
+  }
+  return supabase.rpc("merry_form_submit", { form_slug: slug, payload });
 }
 
 function Pills({ options, value, onChange, label, missing }) {
@@ -196,7 +212,7 @@ export default function GuestForm({ form, slug, onAnswered, brand = false }) {
       onAnswered?.();
       return;
     }
-    const { data, error } = await supabase.rpc("merry_form_submit", { form_slug: String(slug), payload });
+    const { error } = await sendAnswer(String(slug), payload);
     setSending(false);
     if (error) {
       console.error("[merry] envoi du formulaire", error);
