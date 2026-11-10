@@ -4,9 +4,11 @@
 // du site de mariage (GuestFormInline). Les questions suivent l'ordre choisi par le couple
 // (lib/dash/form.js, formQuestions) ; la réponse part par /api/formulaire/repondre (merry_form_submit,
 // puis mail de confirmation à l'invité) et reste dans le navigateur (RESPONSE_KEY) pour que le site la
-// rappelle à l'invité.
+// rappelle à l'invité. Pendant l'envoi, les réponses en pastilles entrent dans le cercle (comme la
+// préparation de l'onboarding), puis « Merci pour ta réponse » s'affiche seul, puis la carte reprend sa
+// place (planches 3e2 du canvas) ; sans animation si l'invité les a réduites.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { dayMonth } from "@/lib/dash/format";
 import { DIETS, fieldLabel, fieldMode, formQuestions, isClosed, withPresets } from "@/lib/dash/form";
@@ -56,19 +58,39 @@ export function useGuestForm(slug, { preview = false } = {}) {
 }
 
 // La réponse passe par la route Merry, qui l'enregistre puis envoie à l'invité un mail de confirmation.
-// Route indisponible (serveur sans Supabase : 501) : envoi direct à Supabase, sans mail.
+// Route indisponible (serveur sans Supabase : 501) : envoi direct à Supabase, sans mail (mailed: false).
 async function sendAnswer(slug, payload) {
   try {
     const res = await fetch("/api/formulaire/repondre", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, payload }) });
     if (res.status !== 501 && res.status !== 404) {
       const body = await res.json().catch(() => ({}));
-      return { error: res.ok ? null : { message: String(body.error || res.status) } };
+      return { error: res.ok ? null : { message: String(body.error || res.status) }, mailed: res.ok };
     }
   } catch (e) {
     return { error: { message: e?.message || "réseau" } };
   }
-  return supabase.rpc("merry_form_submit", { form_slug: slug, payload });
+  const { error } = await supabase.rpc("merry_form_submit", { form_slug: slug, payload });
+  return { error, mailed: false };
 }
+
+// Durées de l'envoi animé, accordées aux animations de app/f/form.css (.gf-fly) : les pastilles entrent
+// dans le cercle, puis le merci reste seul un moment avant que la carte reprenne sa place
+const GATHER_MS = 2500;
+const MERCI_MS = 1900;
+
+// Emplacements des pastilles autour du cercle : x, y (px sur ordinateur, resserrés sur téléphone par
+// form.css) et inclinaison ; le dernier, en haut au centre, reçoit le petit mot, plus long
+const SLOTS = [
+  [-230, -110, -6],
+  [210, -120, 5],
+  [-250, 40, 4],
+  [240, 30, -5],
+  [-150, 130, -3],
+  [170, 135, 6],
+  [0, -175, 3],
+];
+
+const clip = (text, n) => (text.length > n ? `${text.slice(0, n - 1).trimEnd()}…` : text);
 
 function Pills({ options, value, onChange, label, missing }) {
   return (
@@ -105,8 +127,19 @@ export default function GuestForm({ form, slug, onAnswered }) {
   const [missing, setMissing] = useState([]);
   const [attempt, setAttempt] = useState(0);
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(null);
+  const [done, setDone] = useState(null); // { error } après un envoi refusé
+  const [sent, setSent] = useState(null); // envoi animé : { step: "gather" | "wait" | "merci" | "done", pills, mailed }
   const root = useRef(null);
+  const fly = useRef(null);
+  const flyHeight = useRef(0);
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const mode = (key) => fieldMode(form, key);
   const label = (key) => fieldLabel(form, key);
@@ -164,6 +197,46 @@ export default function GuestForm({ form, slug, onAnswered }) {
     input?.focus({ preventScroll: true });
   }, [attempt]);
 
+  // Envoi animé : la scène se centre à l'écran ; à la fin, elle se resserre sur le merci et, sur la page
+  // publique, la carte remonte en haut de l'écran pour laisser voir la carte Merry dessous
+  useLayoutEffect(() => {
+    const el = fly.current;
+    if (!el) {
+      flyHeight.current = 0;
+      return;
+    }
+    const h = el.getBoundingClientRect().height;
+    if (sent?.step === "gather") el.scrollIntoView({ block: "center" });
+    if (sent?.step === "done" && flyHeight.current > h) {
+      el.animate?.([{ height: `${flyHeight.current}px` }, { height: `${h}px` }], { duration: 600, easing: "cubic-bezier(0.65, 0, 0.35, 1)" });
+      if (!root.current?.closest(".gf-embed")) root.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    flyHeight.current = h;
+  }, [sent?.step]);
+
+  // Envoi refusé après l'animation : on ramène l'invité au message, à côté du bouton
+  useEffect(() => {
+    if (done?.error) root.current?.querySelector("[data-gf-error]")?.scrollIntoView({ block: "center" });
+  }, [done]);
+
+  // Les pastilles de l'envoi animé : qui répond, puis ses réponses, puis le petit mot
+  function answerPills(payload) {
+    const list = [`${payload.first_name} ${payload.last_name}`.trim()];
+    if (globalPresence) {
+      if (answers.all) list.push(`Présence · ${answers.all}`);
+    } else {
+      for (const e of events) if (payload.answers[e.id]) list.push(`${e.name} · ${payload.answers[e.id]}`);
+    }
+    if (payload.plus_one) list.push(`Avec ${payload.plus_one.first_name.trim()}`);
+    if (payload.diet && payload.diet !== "Aucun") list.push(payload.diet);
+    if (payload.enfants && payload.enfants !== "Aucun") list.push(payload.enfants);
+    if (payload.hebergement) list.push(`Hébergement · ${payload.hebergement.toLowerCase()}`);
+    const pills = list.filter(Boolean).slice(0, 6).map((text, i) => ({ text: clip(text, 28), slot: SLOTS[i] }));
+    const word = payload.mot.trim();
+    if (word) pills.push({ text: `« ${clip(word, 34)} »`, slot: SLOTS[6] });
+    return pills;
+  }
+
   async function submit() {
     const miss = check();
     setMissing(miss.map((m) => m.key));
@@ -203,26 +276,43 @@ export default function GuestForm({ form, slug, onAnswered }) {
         // stockage indisponible : le site invitera simplement à répondre
       }
     };
-    setSending(true);
-    if (form.demo || !supabase) {
-      console.info("[merry] démo : réponse simulée", payload);
-      remember();
-      setDone({ ok: true });
-      setSending(false);
-      onAnswered?.();
-      return;
+    const demo = form.demo || !supabase;
+    if (demo) console.info("[merry] démo : réponse simulée", payload);
+    const request = demo ? Promise.resolve({ error: null, mailed: false }) : sendAnswer(String(slug), payload);
+    let arrived = false;
+    const mark = () => {
+      arrived = true;
+    };
+    request.then(mark, mark);
+    const animate = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    setDone(null);
+    if (animate) {
+      // Les pastilles entrent dans le cercle pendant l'envoi ; si la base tarde, le cercle attend en respirant
+      setSent({ step: "gather", pills: answerPills(payload), mailed: false });
+      await new Promise((r) => setTimeout(r, GATHER_MS));
+      if (!alive.current) return;
+      if (!arrived) setSent((s) => s && { ...s, step: "wait" });
+    } else {
+      setSending(true);
     }
-    const { error } = await sendAnswer(String(slug), payload);
+    const { error, mailed } = await request;
     setSending(false);
+    if (!alive.current) return;
     if (error) {
       console.error("[merry] envoi du formulaire", error);
+      setSent(null);
       setMissing([]);
       const msg = error.message || "";
       setDone({ error: /Liste complète/.test(msg) ? "full" : /Date limite/.test(msg) ? "closed" : /Trop de réponses/.test(msg) ? "busy" : "failed" });
       return;
     }
     remember();
-    setDone({ ok: true });
+    if (animate) {
+      setSent((s) => s && { ...s, step: "merci", mailed });
+      await new Promise((r) => setTimeout(r, MERCI_MS));
+      if (!alive.current) return;
+    }
+    setSent((s) => ({ pills: [], ...s, step: "done", mailed }));
     onAnswered?.();
   }
 
@@ -417,6 +507,11 @@ export default function GuestForm({ form, slug, onAnswered }) {
   // Le titre « Tes informations » coiffe le bloc prénom, nom et mail ; s'il n'ouvre pas le formulaire, « Ta réponse » le fait
   const identFirst = questions[0]?.kind === "ident";
 
+  const couple = [form.partner1, form.partner2]
+    .map((n) => String(n || "").trim())
+    .filter(Boolean)
+    .join(" & ");
+
   const errorText = {
     full: "La liste des mariés est complète : contacte-les directement.",
     closed: "La date limite de réponse est passée : contacte directement les mariés.",
@@ -427,19 +522,43 @@ export default function GuestForm({ form, slug, onAnswered }) {
   return (
     <form
       ref={root}
-      className="gf-card"
+      className={`gf-card${sent && sent.step !== "done" ? " is-flying" : ""}`}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      {done && !done.error ? (
-        <div className="gf-done gf-done-ok" role="status">
-          <strong>Merci, c'est noté.</strong>
-          <span>
-            Ta réponse est arrivée chez les mariés. Pour la changer, renvoie simplement le formulaire avec les mêmes prénom et nom.
-          </span>
+      {sent ? (
+        <div ref={fly} className={`gf-fly is-${sent.step}`}>
+          {sent.step !== "done" ? (
+            <div className="gf-fly-orbit" aria-hidden="true">
+              <span className="gf-fly-core" />
+              {sent.step !== "merci"
+                ? sent.pills.map((p, i) => (
+                    <span key={i} className="gf-fly-pill" style={{ "--i": i, "--x": `${p.slot[0]}px`, "--y": `${p.slot[1]}px`, "--r": `${p.slot[2]}deg` }}>
+                      {p.text}
+                    </span>
+                  ))
+                : null}
+            </div>
+          ) : null}
+          {sent.step === "gather" || sent.step === "wait" ? (
+            <p className="gf-fly-line" role="status">
+              <span>On rassemble tes réponses…</span>
+              <span>{couple ? `On les envoie à ${couple}…` : "On les envoie aux mariés…"}</span>
+            </p>
+          ) : (
+            <div className="gf-fly-ok" role="status">
+              <span className="gf-fly-tick" aria-hidden="true">
+                <svg width="64" height="64" viewBox="0 0 64 64">
+                  <path d="M20 33l8 8 16-18" />
+                </svg>
+              </span>
+              <strong>Merci pour ta réponse.</strong>
+              <span>{sent.mailed ? "On t'envoie la confirmation par mail." : "Ta réponse est bien arrivée chez les mariés."}</span>
+            </div>
+          )}
         </div>
       ) : closed ? (
         <div className="gf-done" role="status">
@@ -474,7 +593,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
             </div>
           ) : null}
           {done?.error ? (
-            <div className="gf-missing" role="alert">
+            <div className="gf-missing" role="alert" data-gf-error>
               {errorText[done.error] || errorText.failed}
             </div>
           ) : null}

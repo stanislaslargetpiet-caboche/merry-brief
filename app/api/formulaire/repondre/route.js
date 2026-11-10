@@ -60,7 +60,7 @@ export async function POST(req) {
     return Response.json({ error: error.message || "failed" }, { status: 400 });
   }
 
-  // Après la réponse : l'invité voit « Merci, c'est noté » sans attendre le mail
+  // Après la réponse : l'invité voit « Merci pour ta réponse » sans attendre le mail
   const job = { url, anon, slug, payload, ip: clientIp(req), origin: publicOrigin(req) };
   after(() => confirm(job).catch((e) => console.error("[merry] mail confirmation formulaire", e?.message || e)));
   return Response.json({ ok: true });
