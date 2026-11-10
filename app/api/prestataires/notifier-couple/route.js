@@ -7,7 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { esc, heroBlock, mailShell } from "@/lib/server/mailShell";
 import { sendMail } from "@/lib/server/sendMail";
 import { optedOut } from "@/lib/server/mailOptouts";
 
@@ -78,7 +78,7 @@ export async function POST(req) {
   // Reprend la planche V20 du canvas (page « 7 - mails ») : logo, titre, carte prestataire et aperçu,
   // bouton, bandeau sécurité, pied de page.
 
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(vendorName)} ${verb}.</h1>`;
+  const titleBlock = `${esc(vendorName)} ${verb}.`;
 
   const areaPill = area ? `<span style="background:#ebe6fb;color:#4a3d99;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600">${esc(area)}</span>` : "";
   const subtitle = category || area ? `<div style="margin-top:3px;font-size:12px;line-height:1.6;color:#6b6a63">${category ? `${esc(category)} ` : ""}${areaPill}</div>` : "";
@@ -88,7 +88,7 @@ export async function POST(req) {
 
   const messageBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
+<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#e6f7dc;color:#2f5a1a;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
 <td style="padding-left:10px;font-size:15px;font-weight:700">${esc(vendorName)}${subtitle}</td>
 </tr></table>
 ${excerptBox}
@@ -109,8 +109,7 @@ ${excerptBox}
 
   const preheader = excerpt.slice(0, 140) || `Lis le message de ${vendorName} et réponds directement depuis Merry.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
-${logoBlock}
-${titleBlock}
+${heroBlock({ title: titleBlock })}
 ${messageBox}
 ${ctaBlock}
 ${securityBlock}

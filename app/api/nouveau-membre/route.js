@@ -8,7 +8,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { esc, heroBlock, mailShell } from "@/lib/server/mailShell";
 import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 import { optedOut } from "@/lib/server/mailOptouts";
@@ -70,11 +70,11 @@ export async function POST(req) {
   // Reprend à l'identique la planche V26 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page.
 
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(newMemberName)} a rejoint ton mariage.</h1>`;
+  const titleBlock = `${esc(newMemberName)} a rejoint ton mariage.`;
 
   const memberCard = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;border-radius:20px;border-collapse:separate"><tr><td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
+<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#e6f7dc;color:#2f5a1a;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
 <td style="padding-left:10px;font-size:15px;font-weight:700">${esc(newMemberName)}</td>
 </tr></table>
 </td></tr></table>`;
@@ -92,8 +92,7 @@ export async function POST(req) {
 
   const preheader = `${newMemberName} fait maintenant partie de l'équipe qui organise ton mariage.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
-${logoBlock}
-${titleBlock}
+${heroBlock({ title: titleBlock })}
 ${memberCard}
 <p style="margin:20px 0 0;font-size:15px;line-height:1.6">${esc(newMemberName)} fait maintenant partie de l'équipe et peut consulter et modifier ton tableau de bord Merry&nbsp;: invités, budget, prestataires, rétroplanning.</p>
 ${ctaBlock}

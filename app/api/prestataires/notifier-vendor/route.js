@@ -7,7 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { allowUser } from "@/lib/server/rate";
-import { esc, logoBlock, mailShell } from "@/lib/server/mailShell";
+import { esc, heroBlock, mailShell } from "@/lib/server/mailShell";
 import { sendMail } from "@/lib/server/sendMail";
 import { displayName } from "@/lib/server/names";
 import { unsubLink } from "@/lib/server/mailOptouts";
@@ -89,10 +89,10 @@ export async function POST(req) {
   // était rognée et « DATE » collé à sa valeur). Reprend à l'identique la planche V21 du canvas
   // (page « 7 - mails ») : logo, titre, carte message + tuiles, questions, bouton, pied de page —
   // seules les icônes SVG des tuiles restent absentes (Outlook desktop ne les rend pas).
-  const titleBlock = `<h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.15;color:#1c1c1a">${esc(couple)} ${esc(verb)}.</h1>`;
+  const titleBlock = `${esc(couple)} ${esc(verb)}.`;
 
   const headerBlock = `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#fffdb8;color:#574e00;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
+<td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:18px;background:#e6f7dc;color:#2f5a1a;font-size:13px;font-weight:700;line-height:36px">${esc(initials)}</td>
 <td style="padding-left:10px;font-size:15px;font-weight:700">${esc(couple)}</td>
 </tr></table>`;
 
@@ -150,8 +150,7 @@ ${tilesBlock}
   for (const [to, link] of recipients) {
     const text = [...plainParts, `Répondre sur Merry : ${link}`].join("\n\n");
     const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
-${logoBlock}
-${titleBlock}
+${heroBlock({ title: titleBlock })}
 ${messageBox}
 ${messageParts}
 ${otherDatesBlock}
