@@ -53,24 +53,49 @@ function pendingSentence(pending) {
   return `${name} n'a pas encore accès.`;
 }
 
+// Rappels d'import fermés depuis la croix, sur l'appareil : la liste reste dans Importer une liste
+const HIDDEN_IMPORTS_KEY = "merry-imports-hidden";
+function readHiddenImports() {
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_IMPORTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+function writeHiddenImports(ids) {
+  try {
+    window.localStorage.setItem(HIDDEN_IMPORTS_KEY, JSON.stringify(ids));
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
 // Import de liste en cours ou prêt, visible sur toutes les pages : la lecture continue même quand on quitte la page d'import
 function ImportBadge() {
   const dash = useDash();
   const pathname = usePathname();
-  const { jobs } = useImports();
+  const { jobs: all } = useImports();
   const seen = useRef(new Map());
+  const [hidden, setHidden] = useState([]);
+
+  useEffect(() => {
+    setHidden(readHiddenImports());
+  }, []);
 
   // Une fois la lecture terminée, un message le dit, où que l'on soit
   useEffect(() => {
-    for (const j of jobs) {
+    for (const j of all) {
       const before = seen.current.get(j.id);
       seen.current.set(j.id, j.status);
       if (before === "encours" && j.status !== "encours" && !pathname.startsWith("/dashboard/invites/importer")) {
         dash.setToast(j.status === "lue" ? { kind: "ok", text: `« ${j.name} » est lue : ${j.guests.length} nom${j.guests.length > 1 ? "s" : ""} à vérifier dans Importer une liste.` } : { kind: "error", text: `« ${j.name} » n'a pas pu être lue.` });
       }
     }
-  }, [jobs, pathname, dash]);
+  }, [all, pathname, dash]);
 
+  // Une lecture en cours reste toujours affichée ; une liste lue disparaît du rappel une fois fermée
+  const jobs = all.filter((j) => j.status === "encours" || !hidden.includes(j.id));
   if (!jobs.length || pathname.startsWith("/dashboard/invites/importer")) return null;
   const running = jobs.filter((j) => j.status === "encours");
   const job = running[0] || jobs[jobs.length - 1];
@@ -81,12 +106,28 @@ function ImportBadge() {
       : job.status === "lue"
         ? `« ${job.name} » est lue : ${job.guests.length} nom${job.guests.length > 1 ? "s" : ""} à vérifier`
         : `« ${job.name} » n'a pas pu être lue`;
+
+  function close() {
+    // Les identifiants d'imports disparus (validés, retirés, nettoyés) ne sont pas gardés
+    const ids = all.map((j) => j.id);
+    const next = [...new Set([...hidden.filter((id) => ids.includes(id)), ...jobs.map((j) => j.id)])];
+    setHidden(next);
+    writeHiddenImports(next);
+  }
+
   return (
-    <Link href="/dashboard/invites/importer" className={`d-import-badge${running.length ? " is-running" : ""}`} role="status">
-      <span className="d-import-dot" aria-hidden="true" />
-      <span>{text}</span>
-      <strong>{running.length ? "Voir" : "Vérifier"}</strong>
-    </Link>
+    <div className={`d-import-badge${running.length ? " is-running" : ""}`} role="status">
+      <Link href="/dashboard/invites/importer" className="d-import-link">
+        <span className="d-import-dot" aria-hidden="true" />
+        <span className="d-import-text">{text}</span>
+        <strong>{running.length ? "Voir" : "Vérifier"}</strong>
+      </Link>
+      {running.length ? null : (
+        <button type="button" className="d-import-close" onClick={close} aria-label="Fermer">
+          <Icon name="x" size={14} sw={2.2} />
+        </button>
+      )}
+    </div>
   );
 }
 
