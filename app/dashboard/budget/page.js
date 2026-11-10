@@ -158,6 +158,13 @@ export default function Budget() {
       <span className="d-muted">–</span>
     );
 
+  // Le montant d'une ligne ouvre sa fiche (total prévu, paiements), sur ordinateur comme dans un poste groupé sur téléphone
+  const amountButton = (it, f) => (
+    <button type="button" className="d-amount-btn" onClick={() => openPayments(it)} aria-label={`Paiements de ${posteName(it)}`} title="Voir la fiche du poste">
+      {amountCell(f)}
+    </button>
+  );
+
   // Téléphone : un poste à plusieurs lignes, déplié ou replié
   const renderGroupCard = (g) => {
     const gf = groupFinance(g, payments);
@@ -185,7 +192,7 @@ export default function Budget() {
                     {v ? <Link href={`/dashboard/budget/prestataires/${v.id}`}>{v.name}</Link> : <small>Prestataire à choisir</small>}
                   </span>
                   <span className="d-line-amount">
-                    <strong>{amountCell(f)}</strong>
+                    <strong>{amountButton(it, f)}</strong>
                     {lineAction(it, f)}
                   </span>
                 </div>
@@ -328,7 +335,7 @@ export default function Budget() {
             </span>
           </div>
         </td>
-        <td className="is-num">{amountCell(f)}</td>
+        <td className="is-num">{amountButton(it, f)}</td>
         <td>
           {f.fullyPaid ? (
             <button type="button" className="d-status is-done is-btn" onClick={() => openPayments(it)} title="Voir les paiements, changer le statut">
