@@ -27,6 +27,8 @@ describe("bugs du pilotage", () => {
         const ordre = ["1. Verdict", "2. Effet", "3. À faire", "4. Détail technique"].map((r) => brief.indexOf(r));
         expect(ordre.every((i) => i > -1)).toBe(true);
         expect([...ordre].sort((a, b) => a - b)).toEqual(ordre);
+        expect(brief).toContain("en le tutoyant");
+        expect(brief).toContain("Je recommande A");
       }
     }
   });
