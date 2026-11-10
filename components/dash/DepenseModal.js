@@ -33,6 +33,8 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const fileInput = useRef(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState(false); // « Ajouter » touché sans poste choisi
+  const pick = useRef(null);
 
   const isNew = itemId === "new" || !items.length;
   const item = items.find((i) => i.id === itemId);
@@ -45,10 +47,19 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
   const value = isDeposit ? parseAmount(deposit) : total;
   const label = what.trim().slice(0, 120) || vendor?.name || (isDeposit ? "Acompte" : "Paiement");
   const restAmount = isDeposit && total !== null && value !== null ? Math.max(0, total - value) : 0;
-  const ready = value !== null && value > 0 && (!isDeposit || (total !== null && value <= total)) && (isNew ? Boolean(newLabel.trim()) : Boolean(item));
+  const hasPoste = isNew ? Boolean(newLabel.trim()) : Boolean(item);
+  // Le bouton ne grise que pour un montant manquant : sans poste choisi (liste hors de l'écran sur téléphone,
+  // retour d'un couple le 10 nov.), il remonte au choix du poste au lieu de rester grisé sans raison visible
+  const amountOk = value !== null && value > 0 && (!isDeposit || (total !== null && value <= total));
+  const ready = amountOk && hasPoste;
 
   async function save(e) {
     e?.preventDefault();
+    if (amountOk && !hasPoste) {
+      setMissing(true);
+      pick.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     if (!ready || busy) return;
     setBusy(true);
     let id = item?.id;
@@ -93,15 +104,15 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           <Btn kind="ghost" onClick={onClose}>
             Annuler
           </Btn>
-          <Btn onClick={save} disabled={!ready || busy}>
+          <Btn onClick={save} disabled={!amountOk || busy}>
             Ajouter la dépense
           </Btn>
         </>
       }
     >
       <form className="d-form-grid" onSubmit={save}>
-        <Field label="Pour quel poste ?" full group>
-          <div className="d-poste-pick" role="radiogroup" aria-label="Pour quel poste ?">
+        <Field label="Pour quel poste ?" full group className={missing && !hasPoste ? "is-missing" : ""} hint={missing && !isNew && !item ? "Choisir un poste" : null}>
+          <div ref={pick} className="d-poste-pick" role="radiogroup" aria-label="Pour quel poste ?">
             {items.map((i) => (
               <button key={i.id} type="button" role="radio" aria-checked={!isNew && itemId === i.id} className={`d-poste-opt${!isNew && itemId === i.id ? " is-on" : ""}`} onClick={() => setItemId(i.id)}>
                 <Tile name={i.icon || guessIcon(i.label)} size={28} />
@@ -117,7 +128,7 @@ export default function DepenseModal({ onClose, itemId: initialItem }) {
           </div>
         </Field>
         {isNew ? (
-          <Field label="Nom du nouveau poste" full>
+          <Field label="Nom du nouveau poste" full className={missing && !hasPoste ? "is-missing" : ""} hint={missing && !hasPoste ? "Donner un nom au poste" : null}>
             <input className="d-input" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Faire-part, coiffure, navette…" />
           </Field>
         ) : null}

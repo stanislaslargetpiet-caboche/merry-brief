@@ -1359,6 +1359,10 @@ button.d-rsvp:hover {
   color: var(--d-muted);
 }
 
+.d-field.is-missing .d-field-hint {
+  color: var(--d-red-ink);
+}
+
 .d-input,
 .d-select,
 .d-textarea {
