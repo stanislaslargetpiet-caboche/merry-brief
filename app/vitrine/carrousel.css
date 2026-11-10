@@ -1,7 +1,7 @@
 /* Section « Comment ça marche » de l'accueil (components/vitrine/Carrousel.js) : lot 2 du 10 nov. 2026 (planches
    Site-Blocs-* du canvas) et fusion D-228 (planches Site-Fusion-*).
    Jetons du système de design v2 : encre #1c1c1a, gris #6b6a63, fonds #f6f5f1, bordures #ecebe6 / #d9d7cf, citron
-   #fff700 / #fffdb8 / #574e00, vert de confirmation #dff3e1 / #1f6b30, attente #ffe6cc / #8a4b0f. Pastel pour les
+   #bfe9a6 / #e6f7dc / #2f5a1a, vert de confirmation #dff3e1 / #1f6b30, attente #ffe6cc / #8a4b0f. Pastel pour les
    personnes seulement. Texte de 14 px minimum, 13 px pour les étiquettes en capitales. */
 
 .cr { width: min(1120px, 100%); text-align: left; color: #1c1c1a; font-family: "Alan Sans", Helvetica, Arial, sans-serif; }
@@ -14,7 +14,7 @@
 .cr-tab i { font-style: normal; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 999px; background: #f6f5f1; font-size: 14px; font-weight: 700; }
 .cr-tab:hover { background: #f6f5f1; }
 .cr-tab.is-on { background: #1c1c1a; color: #ffffff; }
-.cr-tab.is-on i { background: #fff700; color: #1c1c1a; }
+.cr-tab.is-on i { background: #bfe9a6; color: #1c1c1a; }
 .cr-tab:focus-visible, .cr-pause:focus-visible { outline: 2px solid #1c1c1a; outline-offset: 3px; }
 /* Progression détachée sous l'onglet actif, en encre sur le fond citron */
 .cr-prog { position: absolute; left: 24px; right: 24px; bottom: -12px; height: 3px; border-radius: 999px; background: rgba(28, 28, 26, 0.16); overflow: hidden; }
@@ -51,8 +51,8 @@
 .cr-ok { background: #dff3e1; color: #1f6b30; }
 .cr-wait { background: #ffe6cc; color: #8a4b0f; }
 .cr-off { background: #f6f5f1; color: #6b6a63; }
-.cr-tag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; background: #fffdb8; color: #574e00; font-size: 14px; font-weight: 700; white-space: nowrap; }
-.cr-tag-full { background: #fff700; color: #1c1c1a; }
+.cr-tag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; background: #e6f7dc; color: #2f5a1a; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.cr-tag-full { background: #bfe9a6; color: #1c1c1a; }
 .cr-stats { display: grid; gap: 12px; background: #f6f5f1; border-radius: 20px; padding: 18px 20px; }
 .cr-stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cr-stats-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -65,14 +65,14 @@
 .cr-av1 { background: #ebe6fb; color: #4a3d99; }
 .cr-av2 { background: #fde9d9; color: #8c4229; }
 .cr-av3 { background: #e1edf8; color: #2f557a; }
-.cr-av4 { background: #fffdb8; color: #574e00; }
+.cr-av4 { background: #e6f7dc; color: #2f5a1a; }
 .cr-ph { display: block; background-color: #e9e7e0; background-position: center; background-size: cover; background-repeat: no-repeat; }
 .cr-stack { display: flex; flex: none; }
 .cr-thumb { width: 44px; height: 44px; border-radius: 10px; border: 2px solid #ffffff; }
 .cr-stack .cr-thumb + .cr-thumb { margin-left: -12px; }
 .cr-thumb-lg { width: 48px; height: 48px; border: 0; }
 .cr-track { display: block; height: 8px; border-radius: 999px; background: #f6f5f1; overflow: hidden; }
-.cr-track b { display: block; height: 100%; border-radius: 999px; background: #fff700; box-shadow: inset 0 0 0 1px rgba(87, 78, 0, 0.18); }
+.cr-track b { display: block; height: 100%; border-radius: 999px; background: #bfe9a6; box-shadow: inset 0 0 0 1px rgba(87, 78, 0, 0.18); }
 
 /* Ton mariage (étape 1) */
 .cr-wedding { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
@@ -94,7 +94,7 @@
 .cr-vc-heart .cr-swap { line-height: 0; }
 .cr-vc-body { display: flex; flex-direction: column; gap: 10px; padding: 0 6px 6px; }
 .cr-area { font-size: 14px; color: #5f5e58; }
-.cr-area span { font-weight: 600; color: #1c1c1a; background: linear-gradient(transparent 55%, #fff700 55%); padding: 0 2px; }
+.cr-area span { font-weight: 600; color: #1c1c1a; background: linear-gradient(transparent 55%, #bfe9a6 55%); padding: 0 2px; }
 .cr-specs { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; }
 .cr-specs > span { display: inline-flex; align-items: center; gap: 6px; }
 .cr-vc-price { display: block; padding-top: 10px; border-top: 1px solid #e4e2dc; font-size: 14px; color: #5f5e58; }
@@ -157,7 +157,7 @@
 .cr-tl-when { font-size: 15px; font-weight: 600; color: #6b6a63; text-align: right; }
 .cr-dot { position: relative; z-index: 1; justify-self: center; width: 18px; height: 18px; border: 2px solid #1c1c1a; border-radius: 999px; background: #ffffff; }
 .cr-dot.is-past { background: #1c1c1a; }
-.cr-dot.is-now { width: 24px; height: 24px; background: #fff700; }
+.cr-dot.is-now { width: 24px; height: 24px; background: #bfe9a6; }
 .cr-box { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1.5px solid #1c1c1a; border-radius: 7px; }
 .cr-box.is-on { background: #1c1c1a; color: #ffffff; }
 .cr-name.is-done { color: #9c9a90; text-decoration: line-through; }
@@ -165,7 +165,7 @@
 .cr-tasks .cr-row { padding: 13px 0; }
 .cr-who { display: inline-flex; align-items: center; gap: 10px; }
 .cr-who-name { width: 64px; font-size: 15px; }
-.cr-tile { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: #fffdb8; }
+.cr-tile { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: #e6f7dc; }
 
 /* Animations : la scène arrive complète, seul un détail bouge (délai --d depuis le début de la scène) */
 .cr-swap { display: inline-grid; }

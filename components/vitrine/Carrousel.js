@@ -26,27 +26,27 @@ const STROKE = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeL
 const ICONS = {
   lieu: (
     <>
-      <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />
       <circle cx="12" cy="10" r="2.4" fill="#ffffff" stroke="#1c1c1a" strokeWidth="1.3" />
     </>
   ),
   date: (
     <>
-      <rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" />
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" />
       <path d="M8 3v4M16 3v4M3.5 10h17" stroke="#1c1c1a" strokeWidth="1.5" strokeLinecap="round" />
     </>
   ),
   invites: (
     <>
-      <path d="M16 14.6c2.6.2 4.6 2 5.3 5.4H13c0-2.3.9-4.3 3-5.4z" fill="#fffdb8" stroke="#1c1c1a" strokeWidth="1.3" strokeLinejoin="round" />
-      <circle cx="17" cy="9" r="2.5" fill="#fffdb8" stroke="#1c1c1a" strokeWidth="1.3" />
-      <path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5z" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />
-      <circle cx="9" cy="8" r="3.5" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" />
+      <path d="M16 14.6c2.6.2 4.6 2 5.3 5.4H13c0-2.3.9-4.3 3-5.4z" fill="#e6f7dc" stroke="#1c1c1a" strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="17" cy="9" r="2.5" fill="#e6f7dc" stroke="#1c1c1a" strokeWidth="1.3" />
+      <path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5z" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx="9" cy="8" r="3.5" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" />
     </>
   ),
   budget: (
     <>
-      <rect x="3" y="6" width="18" height="13" rx="2" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" />
+      <rect x="3" y="6" width="18" height="13" rx="2" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" />
       <path d="M3 10h18" stroke="#1c1c1a" strokeWidth="1.5" />
       <path d="M16.5 14.5h1.5" stroke="#1c1c1a" strokeWidth="1.8" strokeLinecap="round" />
     </>
