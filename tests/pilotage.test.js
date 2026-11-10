@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, replayUrl, splitSeries, sumBy, templatePath } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, replayUrl, splitSeries, sumBy, sumMesure, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
-import { sendsByDay } from "@/lib/server/pilotage/resend";
+import { envoisAuto, sendsByDay } from "@/lib/server/pilotage/resend";
+import { SUBJECT } from "@/lib/server/nouveautesMail";
 
 describe("splitSeries", () => {
   it("sépare la période courante (fin) de la précédente", () => {
@@ -220,5 +221,28 @@ describe("sendsByDay", () => {
     const rows = sendsByDay([{ quand: "2026-11-05T23:30:00Z" }, { quand: "2026-11-06T08:00:00Z" }, { quand: "2026-11-04T10:00:00Z" }]);
     expect(rows).toEqual(expect.arrayContaining([["2026-11-06", 2], ["2026-11-04", 1]]));
     expect(alignSeries(["2026-11-06"], rows, ["envois"])).toEqual([{ jour: "2026-11-06", envois: 2 }]);
+  });
+});
+
+describe("envoisAuto", () => {
+  it("compte les envois automatiques par jour, sans les campagnes ni les doublons, depuis le premier événement", () => {
+    const envois = [
+      { email_id: "a", subject: "Bienvenue sur Merry", occurred_at: "2026-11-07T09:00:00Z" },
+      { email_id: "a", subject: "Bienvenue sur Merry", occurred_at: "2026-11-07T09:00:01Z" },
+      { email_id: "b", subject: "Nouvelle demande de devis", occurred_at: "2026-11-06T23:30:00Z" },
+      { email_id: "c", subject: SUBJECT, occurred_at: "2026-11-07T08:00:00Z" },
+    ];
+    const r = envoisAuto(envois, "2026-11-06T13:00:00Z");
+    expect(r.depuis).toBe("2026-11-06");
+    expect(r.par_jour).toEqual([["2026-11-07", 2]]);
+    expect(envoisAuto([], null)).toBeNull();
+  });
+});
+
+describe("sumMesure", () => {
+  it("ne totalise qu'une période mesurée chaque jour", () => {
+    expect(sumMesure([{ n: 2 }, { n: 0 }], "n")).toBe(2);
+    expect(sumMesure([{ n: null }, { n: 3 }], "n")).toBeNull();
+    expect(sumMesure([], "n")).toBeNull();
   });
 });

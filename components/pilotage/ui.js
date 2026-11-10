@@ -221,7 +221,8 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
   );
 }
 
-// Courbe par jour, pour ce qui se lit comme un niveau : taux, durée, position, cumul. La période en cours en encre, la
+// Courbe par jour, pour ce qui se lit comme un niveau (taux, durée, position, cumul) ou se compare d'une semaine à
+// l'autre (visites). La période en cours en encre, la
 // précédente en greige, jour pour jour. `valeur` : la clé ; un jour sans mesure vaut null et la courbe le saute.
 // `cumul` : toute la série, seule, avec son aire ; une courbe seule a son aire, deux courbes n'en ont pas.
 export function DayLine({ series, valeur, label, days, format = fmtInt, height = 240, title, cumul = false }) {
@@ -266,14 +267,14 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
     <div className="pl-chart">
       <ChartHead title={title}>
         {cumul ? null : <span><i className="is-line" style={{ background: "var(--ink)" }} />{cettePeriode}</span>}
-        {avant.length ? <span><i className="is-line" style={{ background: "var(--border-strong)" }} />{periodeAvant}</span> : null}
+        {avant.length > 1 ? <span><i className="is-line" style={{ background: "var(--border-strong)" }} />{periodeAvant}</span> : null}
         {dernier.jour === auj && lire(dernier) !== null ? <span><i className="is-now" />Aujourd'hui, en cours</span> : null}
       </ChartHead>
       <div ref={ref} className="pl-plot-box" style={{ height: H }} onMouseLeave={() => setHover(null)}>
         {W ? (
           <svg width={W} height={H} role="img" aria-label={`${title || label}, par jour`}>
             <Grille W={W} top={top} base={base} left={left} right={W - right + 12} max={max} ticks={ticks} format={format} />
-            {!avant.length && lignes.length > 1 ? <path d={`${trace}V${base}H${lignes[0].x}Z`} className="pl-c-aire" /> : null}
+            {avant.length < 2 && lignes.length > 1 ? <path d={`${trace}V${base}H${lignes[0].x}Z`} className="pl-c-aire" /> : null}
             {avant.length > 1 ? <path d={courbePath(avant)} className="pl-c-ligne-prev" /> : null}
             <path d={trace} className="pl-c-ligne" />
             {pointHover ? (

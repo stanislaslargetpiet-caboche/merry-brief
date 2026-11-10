@@ -15,7 +15,7 @@ import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
-import { alignSeries, dayList, fmtDateTime, fmtInt, pctOf, splitSeries, sumBy } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, fmtDateTime, fmtInt, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
 import { DayBars, DayLine, PageContext, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
@@ -255,10 +255,13 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
   const site = useMemo(() => alignSeries(joursList, ph?.site?.series, ["visiteurs", "pages", "sessions"]), [joursList, ph]);
   const siteSplit = useMemo(() => splitSeries(site, jours), [site, jours]);
-  // Visites du compteur sans cookie et comptes créés, jour par jour : le taux saute les jours sans visite
+  // Visites du compteur sans cookie et comptes créés, jour par jour : le taux saute les jours sans visite. Le compteur
+  // n'existe que depuis le 7 nov. 2026 (D-187) : avant sa première visite, un jour n'a pas de mesure (null), pas zéro.
   const arrivees = useMemo(() => {
     const comptes = new Map((sb?.series || []).map((r) => [r.jour, Number(r.inscriptions) || 0]));
-    return alignSeries(joursList, ph?.site?.visites, ["visites"]).map((r) => ({ ...r, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
+    const visites = alignSeries(joursList, ph?.site?.visites, ["visites"]);
+    const debut = visites.findIndex((r) => r.visites > 0);
+    return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
   }, [joursList, ph, sb]);
   const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
   const bugs = useMemo(() => alignSeries(joursList, ph?.bugs?.series, ["exceptions", "rage", "morts"]), [joursList, ph]);
@@ -280,7 +283,13 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
     const imp = sumBy(seen, "impressions");
     return imp ? Math.round((seen.reduce((a, r) => a + r.position * r.impressions, 0) / imp) * 10) / 10 : null;
   };
-  const mailSeries = alignSeries(joursList, mails?.par_jour, ["envois"]);
+  // Envois automatiques par jour : suivi par webhook quand il est lu (mesuré depuis son premier événement), sinon les
+  // 100 derniers envois de l'API, qui ne remontent souvent pas jusqu'à la période d'avant
+  const envois = data.envois;
+  const mailSeries = envois
+    ? alignSeries(joursList, envois.par_jour, ["envois"]).map((r) => (r.jour < envois.depuis ? { ...r, envois: null } : r))
+    : alignSeries(joursList, mails?.par_jour, ["envois"]);
+  const mailSplit = splitSeries(mailSeries, jours);
   const u = data.utilisateurs?.fenetre || {};
 
   const tuilesJour = [
@@ -325,7 +334,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="site">
         {ph ? (
           <TileChart>
-            <Tile label="Visites" value={sumBy(arriveesSplit.current, "visites")} prev={sumBy(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes en arrivant, cookies acceptés ou non (compteur sans cookie)" chart={<DayBars title="Visites par jour" series={arrivees} keys={["visites"]} labels={["Visites"]} days={jours} />} />
+            <Tile label="Visites" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes en arrivant, cookies acceptés ou non (compteur sans cookie)" chart={<DayLine title="Visites par jour" series={arrivees} valeur="visites" label="Visites" days={jours} />} />
             <Tile label="Comptes créés" value={cur("inscriptions")} prev={prev("inscriptions")} chart={<DayBars title="Comptes créés par jour" series={sb?.series} keys={["inscriptions"]} labels={["Comptes créés"]} days={jours} />} />
             <Tile label="Taux d'inscription" value={pctOf(cur("inscriptions"), sumBy(arriveesSplit.current, "visites"))} prev={pctOf(prev("inscriptions"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title="Taux d'inscription par jour" series={arrivees} valeur="taux" label="Taux d'inscription" days={jours} format={pct} />} />
           </TileChart>
@@ -366,7 +375,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="mails">
         {rs ? (
           <TileChart>
-            <Tile label="Envoyés" value={mails.envoyes} sub={rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayBars title="Envois par jour" series={mailSeries} keys={["envois"]} labels={["Envois"]} days={jours} />} />
+            <Tile label="Envoyés" value={envois ? sumBy(mailSplit.current, "envois") : mails.envoyes} prev={envois ? sumMesure(mailSplit.previous, "envois") : null} sub={!envois && rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayLine title="Envois par jour" series={mailSeries} valeur="envois" label="Envois" days={jours} />} />
             <Tile label="Taux de délivrance" value={pctOf(mails.par_etat.delivered || 0, mails.envoyes)} format={pct} />
             <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse />
           </TileChart>
