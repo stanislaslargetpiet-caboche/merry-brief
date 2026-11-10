@@ -17,7 +17,7 @@ import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/c
 import { supabase } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
-import { cumulSerie } from "@/lib/pilotage/graphes";
+import { cumulSerie, mesureDepuis } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
 import { titreJour } from "@/lib/pilotage/items";
@@ -41,6 +41,10 @@ const RANGES = [
   { id: "7j", jours: 7, label: "7 jours" },
   { id: "30j", jours: 30, label: "30 jours" },
 ];
+
+// Le journal des réponses RSVP (guest_response_log) n'existe que depuis le 3 nov. 2026 au soir (premier relevé en base) :
+// avant, un jour n'a pas de mesure
+const DEBUT_JOURNAL_RSVP = "2026-11-03";
 
 // Le bandeau garde sa place pendant la lecture des indicateurs : la liste ne saute pas sous le doigt
 const TUILES_JOUR = ["Visiteurs", "Comptes créés", "Mariages créés", "Demandes de devis"];
@@ -264,6 +268,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
     return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
   }, [joursList, ph, sb]);
   const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
+  const rsvp = useMemo(() => mesureDepuis(sb?.series, "reponses_rsvp", DEBUT_JOURNAL_RSVP), [sb]);
+  const rsvpSplit = useMemo(() => splitSeries(rsvp, jours), [rsvp, jours]);
   const bugs = useMemo(() => alignSeries(joursList, ph?.bugs?.series, ["exceptions", "rage", "morts"]), [joursList, ph]);
   const bugsSplit = useMemo(() => splitSeries(bugs, jours), [bugs, jours]);
 
@@ -310,9 +316,9 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="activite">
         <TileChart>
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(cur("mariages"))} créé(s) sur la période`} chart={<DayLine cumul title="Mariages au total" series={cumulSerie(sb?.series, "mariages", t.mariages)} valeur="cumul" label="Mariages" days={jours} />} />
-          <Tile label="Couples connectés" value={u.couples_connectes?.n} sub={`sur ${fmtInt(t.mariages)} mariages`} hint="Mariages dont un compte s'est connecté sur la période (Supabase Auth)" />
-          <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={prev("reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" chart={<DayBars title="Réponses RSVP par jour" series={sb?.series} keys={["reponses_rsvp"]} labels={["Réponses"]} days={jours} />} />
-          <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} chart={<DayBars title="Demandes de devis par jour" series={sb?.series} keys={["demandes"]} labels={["Demandes de devis"]} days={jours} />} />
+          <Tile label="Couples connectés" value={u.couples_connectes?.n} sub={`sur ${fmtInt(t.mariages)} mariages`} hint="Mariages dont un compte s'est connecté sur la période (Supabase Auth)" chart={<DayLine title="Couples connectés par jour" series={sb?.series} valeur="couples_connectes" label="Couples connectés" days={jours} />} />
+          <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={sumMesure(rsvpSplit.previous, "reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" chart={<DayLine title="Réponses RSVP par jour" series={rsvp} valeur="reponses_rsvp" label="Réponses" days={jours} />} />
+          <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} chart={<DayLine title="Demandes de devis par jour" series={sb?.series} valeur="demandes" label="Demandes de devis" days={jours} />} />
         </TileChart>
       </Section>
 

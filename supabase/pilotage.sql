@@ -93,6 +93,24 @@ begin
     select (sent_at at time zone 'Europe/Paris')::date as jour, count(*)::int as n
     from public.mail_sent where sent_at >= since group by 1
   ),
+  -- Couples qui ont ouvert Merry ce jour-là : une connexion, ou un rafraîchissement de session (toutes les heures
+  -- tant qu'un onglet reste ouvert). « Se déconnecter » efface les jetons de la session : un jour ancien peut manquer
+  -- un couple, jamais en compter un de trop.
+  comptes_couples as (
+    select user_id::text as uid, wedding_id from public.wedding_members where user_id is not null
+    union select created_by::text, id from public.weddings where created_by is not null
+  ),
+  presences as (
+    select user_id::text as uid, created_at as at from auth.refresh_tokens where created_at >= since
+    union all select user_id::text, created_at from auth.sessions where created_at >= since
+    -- refreshed_at est enregistré sans fuseau, en UTC
+    union all select user_id::text, refreshed_at at time zone 'UTC' from auth.sessions where refreshed_at at time zone 'UTC' >= since
+    union all select id::text, last_sign_in_at from auth.users where last_sign_in_at >= since
+  ),
+  couples_connectes as (
+    select (p.at at time zone 'Europe/Paris')::date as jour, count(distinct c.wedding_id)::int as n
+    from presences p join comptes_couples c on c.uid = p.uid group by 1
+  ),
   series as (
     select jsonb_agg(jsonb_build_object(
       'jour', j.jour,
@@ -105,7 +123,8 @@ begin
       'visites_sites', coalesce(v.n, 0),
       'vues_pro', coalesce(vp.n, 0),
       'appels_ia', coalesce(a.n, 0),
-      'mails_planifies', coalesce(ml.n, 0)
+      'mails_planifies', coalesce(ml.n, 0),
+      'couples_connectes', coalesce(cc.n, 0)
     ) order by j.jour) as rows
     from jours j
     left join inscriptions i on i.jour = j.jour
@@ -117,6 +136,7 @@ begin
     left join vues_pro vp on vp.jour = j.jour
     left join ia a on a.jour = j.jour
     left join mails ml on ml.jour = j.jour
+    left join couples_connectes cc on cc.jour = j.jour
   ),
   -- Les compteurs du catalogue viennent de catalog.pilotage_catalogue, précalculée (voir en haut du fichier).
   -- created_by_wedding reste lu en direct : il a son index.
