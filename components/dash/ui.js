@@ -272,7 +272,8 @@ export function Bar({ value, color = "#1c1c1a", track = "#e4e2dc", height = 6 })
   );
 }
 
-export function Modal({ title, icon, onClose, children, footer, wide }) {
+// action : un bouton de plus dans l'en-tête, à gauche de la croix (« Modifier » dans la fiche d'un poste)
+export function Modal({ title, icon, action, onClose, children, footer, wide }) {
   const ref = useRef(null);
   // Affichée à la racine du tableau de bord : ouverte depuis un en-tête de tableau, elle héritait sinon de ses majuscules et de son texte sans retour à la ligne
   const [host, setHost] = useState(null);
@@ -306,6 +307,7 @@ export function Modal({ title, icon, onClose, children, footer, wide }) {
             {icon}
             {title}
           </h2>
+          {action ? <span className="d-modal-action">{action}</span> : null}
           <button type="button" className="d-icon-btn" onClick={onClose} aria-label="Fermer">
             <Icon name="x" size={16} sw={2.2} />
           </button>
@@ -319,10 +321,10 @@ export function Modal({ title, icon, onClose, children, footer, wide }) {
 }
 
 // group : pour une rangée de boutons (pas un <label>, qui activerait le premier bouton au clic)
-export function Field({ label, children, hint, full, group }) {
+export function Field({ label, children, hint, full, group, className = "" }) {
   const Tag = group ? "div" : "label";
   return (
-    <Tag className={`d-field${full ? " is-full" : ""}`} {...(group ? { role: "group", "aria-label": label } : {})}>
+    <Tag className={`d-field${full ? " is-full" : ""}${className ? ` ${className}` : ""}`} {...(group ? { role: "group", "aria-label": label } : {})}>
       <span className="d-field-label">{label}</span>
       {children}
       {hint ? <span className="d-field-hint">{hint}</span> : null}

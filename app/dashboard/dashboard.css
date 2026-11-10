@@ -16255,6 +16255,46 @@ button.d-pay-total:hover {
   font-weight: 600;
 }
 
+/* Fiche d'un poste : « Modifier » à gauche de la croix */
+.d-modal-action {
+  flex: none;
+  display: inline-flex;
+  margin-left: auto;
+}
+
+/* Téléphone : le nom d'un poste ouvre sa fiche, comme son montant */
+.d-mrow-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  /* Modifier le poste, téléphone : Enregistrer, Annuler, puis « Supprimer le poste » en rouge, à part (artboard 4e2) */
+  .d-modal-foot:has(.d-poste-delete) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .d-modal-foot .d-poste-delete {
+    margin-top: 4px;
+    border: 0;
+    border-top: 1px solid var(--d-line);
+    border-radius: 0;
+    background: none;
+    color: var(--d-red-ink);
+  }
+}
+
 .d-pay-head {
   margin: 0;
   padding: 4px 10px;

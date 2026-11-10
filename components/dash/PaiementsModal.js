@@ -81,7 +81,7 @@ function PaymentForm({ payment, members, onCancel, onSave }) {
   );
 }
 
-export default function PaiementsModal({ item, onClose, onAdd }) {
+export default function PaiementsModal({ item, onClose, onAdd, onEdit }) {
   const dash = useDash();
   const { payments, members, meId, wedding } = dash.data;
   const [editing, setEditing] = useState(null); // id du paiement en cours de modification
@@ -90,6 +90,9 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
   const f = itemFinance(item, payments);
   const upcoming = f.upcoming;
   const done = [...f.paidList].sort((a, z) => String(z.paid_at).localeCompare(String(a.paid_at)));
+  // Sans montant fixé, le total prévu est celui de l'inscription (« 1 800 € prévus » dans la liste)
+  const plan = f.quote ?? f.budgeted;
+  const remaining = plan !== null ? Math.max(0, plan - f.paid) : null;
 
   // Le total prévu du poste, d'où se déduit le reste ; ce n'est pas un devis signé, le rétroplanning n'y touche pas
   async function saveTotal(e) {
@@ -97,7 +100,7 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
     if (total === null) return;
     setTotal(null);
     const value = parseAmount(total);
-    if (value === null || value < 0 || value === f.quote) return;
+    if (value === null || value < 0 || value === plan) return;
     await dash.update("budget_items", item.id, { quote_amount: value }, { quoteHook: false });
   }
 
@@ -163,6 +166,13 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
     <Modal
       title={posteName(item)}
       icon={<Tile name={item.icon || guessIcon(item.label)} size={32} />}
+      action={
+        onEdit ? (
+          <Btn kind="ghost" small icon="pencil" onClick={onEdit}>
+            Modifier
+          </Btn>
+        ) : null
+      }
       onClose={onClose}
       footer={
         <>
@@ -176,12 +186,12 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
       <div className="d-col" style={{ gap: 18 }}>
         <div className="d-pay-summary">
           {total === null ? (
-            <button type="button" className="d-pay-total" onClick={() => setTotal(f.quote !== null ? String(f.quote) : "")} aria-label="Modifier le total prévu">
+            <button type="button" className="d-pay-total" onClick={() => setTotal(plan !== null ? String(plan) : "")} aria-label="Modifier le total prévu">
               <small>
                 Total prévu
                 <Icon name="pencil" size={11} sw={2.2} />
               </small>
-              <strong>{f.quote !== null ? euros(f.quote) : "–"}</strong>
+              <strong>{plan !== null ? euros(plan) : "–"}</strong>
             </button>
           ) : (
             <form className="d-pay-total" onSubmit={saveTotal}>
@@ -209,7 +219,7 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
           </span>
           <span>
             <small>Reste</small>
-            <strong>{f.remaining !== null ? euros(f.remaining) : "–"}</strong>
+            <strong>{remaining !== null ? euros(remaining) : "–"}</strong>
           </span>
         </div>
 
