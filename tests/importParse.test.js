@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseText, rsvpFromCell, statusAttendance } from "@/lib/dash/importParse";
+import { parseText, rsvpFromCell, statusAttendance, unreadRows, unreadText, withUnreadRows } from "@/lib/dash/importParse";
 
 describe("import : cellules de présence", () => {
   it("lit les réponses et les invitations", () => {
@@ -41,5 +41,51 @@ describe("import : texte collé", () => {
   });
   it("ne renvoie rien pour du vide", () => {
     expect(parseText("  \n\n")).toEqual({ guests: [], extraColumns: [] });
+  });
+});
+
+describe("import : lignes du fichier sans invité", () => {
+  const rows = [
+    ["AMIS DE CÔME", "NB", "Statut"],
+    ["Prénom", "Nom", "Nb"],
+    ["Gab & Zazou", "de Miribel", "2"],
+    ["Pierre et Marie-Pia", "COMMU", "2"],
+    ["Jean", "Commu", "1"],
+    ["Tiph G", "", "1"],
+    ["Côté Astrid"],
+    ["Total", "", "42"],
+    ["", "", "12"],
+    ["Famille Leroy (4)"],
+  ];
+  const read = [
+    { first_name: "Jean", last_name: "Commu", group: "Amis de Côme" },
+    { first_name: "Tiph G", last_name: "", group: "Amis de Côme" },
+    { first_name: "", last_name: "", plus_one_of: "Jean Commu" },
+  ];
+
+  it("retrouve les lignes que la lecture a sautées, sans compter titres, en-têtes et totaux", () => {
+    const out = unreadRows(rows, read, ["Amis de Astrid"]);
+    expect(out.map((r) => r.cells[0])).toEqual(["Gab & Zazou", "Pierre et Marie-Pia", "Famille Leroy (4)"]);
+  });
+
+  it("une ligne lue sous un autre nom de famille reste à vérifier, pas un homonyme de prénom", () => {
+    const out = unreadRows([["Jean", "Martin"]], [{ first_name: "Jean", last_name: "Commu" }]);
+    expect(out).toHaveLength(1);
+  });
+
+  it("ajoute ces lignes à vérifier, avec le texte d'origine", () => {
+    const { guests, unread } = withUnreadRows(read, rows, ["Amis de Astrid"]);
+    expect(unread).toBe(3);
+    const [gab, pierre, leroy] = guests.slice(-3);
+    expect(gab).toMatchObject({ first_name: "Gab & Zazou de Miribel", last_name: "", uncertain: true, unread: true });
+    expect(pierre.first_name).toBe("Pierre et Marie-Pia Commu");
+    expect(pierre.note).toContain("COMMU");
+    expect(leroy).toMatchObject({ first_name: "Famille", last_name: "Leroy (4)" });
+    expect(unreadText(3)).toContain("3 lignes");
+  });
+
+  it("ne signale rien quand tout est lu", () => {
+    const all = [...read, { first_name: "Gab", last_name: "de Miribel" }, { first_name: "Pierre", last_name: "Commu" }, { first_name: "", last_name: "Leroy" }];
+    expect(withUnreadRows(all, rows, ["Amis de Astrid"]).unread).toBe(0);
   });
 });
