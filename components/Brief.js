@@ -663,7 +663,7 @@ export default function Brief() {
   const prepChips = prepTexts.slice(0, SPOTS.length).map((text, i) => ({ text, x: SPOTS[i][0] * k, y: SPOTS[i][1] * (k < 1 ? 0.85 : 1), r: SPOTS[i][2] }));
 
   return (
-    <div className="ob">
+    <div className="ob ob-couple">
       <header className="ob-header">
         <a className="ob-logo" href={SITE_URL} aria-label={s.logoAria}>Merry</a>
         <div className="ob-header-right">

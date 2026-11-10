@@ -260,7 +260,7 @@ export default function Connexion() {
   const isForm = !["checking", "signedin", "expired", "join", "badlink", "sent", "confirm"].includes(mode);
 
   return (
-    <div className="ob cx">
+    <div className="ob ob-couple cx">
       <div className="cx-glow" aria-hidden="true" />
       <header className="ob-header">
         <a className="ob-logo" href={SITE_URL} aria-label={s.logoAria}>
