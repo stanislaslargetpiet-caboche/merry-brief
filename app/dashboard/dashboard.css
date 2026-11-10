@@ -4922,6 +4922,28 @@ button.d-rsvp:hover {
   color: #4a4a45;
 }
 
+/* Mariage sans date : la place de la date dans l'aperçu ouvre « Modifier l'apparence » */
+.d-fpreview-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed rgba(28, 28, 26, 0.35);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4a4a45;
+  cursor: pointer;
+}
+
+.d-fpreview-date:hover {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(28, 28, 26, 0.6);
+  color: #1c1c1a;
+}
+
 .d-fpreview-body > p {
   margin: 0;
   max-width: 260px;

@@ -45,6 +45,9 @@ export default function FormulaireInvites() {
   const [uploading, setUploading] = useState(false);
   // Fenêtre ouverte : { kind: "edit", row, label, req, presence_mode, event_ids }, { kind: "add" } ou { kind: "look" }
   const [sheet, setSheet] = useState(null);
+  // Date du mariage (celle de tout le tableau de bord) : enregistrée en quittant la case, pas à chaque chiffre de l'année
+  const [weddingDate, setWeddingDate] = useState("");
+  const savedDate = useRef(data.wedding.wedding_date || "");
   // Glisser une question : { id, target: { before, after } | null }
   const [drag, setDrag] = useState(null);
   // false : la colonne question_order manque en base (formulaire.sql pas relancé) ; l'ordre reste sur cet appareil
@@ -232,6 +235,23 @@ export default function FormulaireInvites() {
 
   const suggestions = PRESET_FIELDS.filter((p) => modeOf(p.key) === "off");
 
+  // La date s'affiche sous les prénoms et sert au bouton « Ajouter à mon agenda » du mail de confirmation
+  const openLook = () => {
+    savedDate.current = data.wedding.wedding_date || "";
+    setWeddingDate(savedDate.current);
+    setSheet({ kind: "look" });
+  };
+  const saveDate = () => {
+    if (weddingDate === savedDate.current) return;
+    if (weddingDate && !/^(19|20)\d\d-\d\d-\d\d$/.test(weddingDate)) return;
+    savedDate.current = weddingDate;
+    dash.updateWedding({ wedding_date: weddingDate || null });
+  };
+  const closeLook = () => {
+    saveDate();
+    setSheet(null);
+  };
+
   const openEdit = (row) => setSheet({ kind: "edit", row, label: row.label, req: row.req, presence_mode: form.presence_mode, event_ids: form.event_ids });
   const saveSheet = () => {
     const label = sheet.label.trim().slice(0, 120) || sheet.row.label;
@@ -412,7 +432,7 @@ export default function FormulaireInvites() {
             </p>
           ) : null}
           <div className="d-mob-only">
-            <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={() => setSheet({ kind: "look" })}>
+            <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={openLook}>
               Modifier l'apparence
             </Btn>
           </div>
@@ -420,7 +440,7 @@ export default function FormulaireInvites() {
 
         <aside className="d-fm-side d-desk-only">
           <h2 className="d-fm-h">Ce que voient vos invités</h2>
-          <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={() => setSheet({ kind: "look" })}>
+          <Btn kind="lime" icon="pencil" className="d-btn-block d-fm-look" onClick={openLook}>
             Modifier l'apparence
           </Btn>
           <div className="d-fpreview" style={{ background: theme.bg }} aria-hidden="true">
@@ -428,7 +448,18 @@ export default function FormulaireInvites() {
             <div className="d-fpreview-body">
               <span style={{ color: theme.accent }}>Save the date</span>
               <strong>{pageTitle}</strong>
-              <em>{[data.wedding.wedding_date ? longDate(data.wedding.wedding_date) : null, data.wedding.venue].filter(Boolean).join(" · ")}</em>
+              {data.wedding.wedding_date ? (
+                <em>{[longDate(data.wedding.wedding_date), data.wedding.venue].filter(Boolean).join(" · ")}</em>
+              ) : (
+                // Raccourci à la souris ; au clavier, la date se règle par « Modifier l'apparence »
+                <>
+                  <button type="button" tabIndex={-1} className="d-fpreview-date" onClick={openLook}>
+                    <Icon name="plus" size={12} sw={2.4} />
+                    Date du mariage
+                  </button>
+                  {data.wedding.venue ? <em>{data.wedding.venue}</em> : null}
+                </>
+              )}
               {form.message ? <p>{form.message}</p> : null}
               {previewItems.map((f) => (
                 <div key={f.id} className="d-fpreview-line">
@@ -628,18 +659,24 @@ export default function FormulaireInvites() {
       {sheet?.kind === "look" ? (
         <Modal
           title="L'apparence du formulaire"
-          onClose={() => setSheet(null)}
+          onClose={closeLook}
           footer={
             <>
               <span className="d-spacer" />
-              <Btn onClick={() => setSheet(null)}>Terminé</Btn>
+              <Btn onClick={closeLook}>Terminé</Btn>
             </>
           }
         >
-          <label className="d-field">
-            <span className="d-field-label">Titre de la page</span>
-            <input className="d-input" value={form.title || ""} maxLength={TITLE_MAX} placeholder={coupleName} onChange={(e) => change({ title: e.target.value.slice(0, TITLE_MAX) })} />
-          </label>
+          <div className="d-fm-pair">
+            <label className="d-field">
+              <span className="d-field-label">Titre de la page</span>
+              <input className="d-input" value={form.title || ""} maxLength={TITLE_MAX} placeholder={coupleName} onChange={(e) => change({ title: e.target.value.slice(0, TITLE_MAX) })} />
+            </label>
+            <label className="d-field">
+              <span className="d-field-label">Date du mariage</span>
+              <input className="d-input" type="date" value={weddingDate} onChange={(e) => setWeddingDate(e.target.value)} onBlur={saveDate} />
+            </label>
+          </div>
           <div className="d-field">
             <span className="d-field-label">Photo d'en-tête</span>
             <div className="d-fm-photo">
