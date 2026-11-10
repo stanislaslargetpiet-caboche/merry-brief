@@ -37,7 +37,7 @@ export default function GuestFormPage() {
             </span>
           </div>
         ) : (
-          <p className="gf-state">Ce formulaire n'existe pas ou n'est plus ouvert. Vérifiez le lien reçu des mariés.</p>
+          <p className="gf-state">Ce formulaire n'existe pas ou n'est plus ouvert. Vérifie le lien reçu des mariés.</p>
         )}
       </main>
     );

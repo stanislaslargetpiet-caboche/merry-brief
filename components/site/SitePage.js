@@ -105,7 +105,7 @@ export default function WeddingSitePage({ slug: slugProp, initial = null }) {
       <main className="s-status">
         <div>
           {names ? <strong>{names}</strong> : null}
-          <p>{site?.closed ? "Ce site n’est pas encore ouvert. Revenez bientôt." : "Ce site de mariage n’existe pas, ou son adresse a changé. Vérifiez le lien reçu."}</p>
+          <p>{site?.closed ? "Ce site n’est pas encore ouvert. Reviens bientôt." : "Ce site de mariage n’existe pas, ou son adresse a changé. Vérifie le lien reçu."}</p>
         </div>
       </main>
     );
