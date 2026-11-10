@@ -44,6 +44,15 @@ describe("buildUtilisateurs", () => {
     expect(out.mariages.find((m) => m.id === "w2")).toMatchObject({ invites: 0, site: null });
     expect(out.totaux).toMatchObject({ comptes: 4, mariages: 2, avec_site: 1, avec_site_publie: 1, avec_invites: 1, avec_devis: 1 });
   });
+  it("compte les couleurs choisies et ceux qui n'ont rien choisi", () => {
+    const withColors = buildUtilisateurs(
+      { ...raw, users: raw.users.map((u, i) => ({ ...u, user_metadata: i === 0 ? { accent: "pistache" } : i === 1 ? { accent: "peche" } : {} })) },
+      60 * 60000,
+      NOW,
+    );
+    expect(withColors.couleurs.map((c) => [c.label, c.n])).toEqual([["Pas choisi", 2], ["Pistache", 1], ["Ancienne couleur", 1]]);
+    expect(withColors.utilisateurs[0].couleur).toBe("Pistache");
+  });
   it("rattache chaque utilisateur à son couple", () => {
     expect(out.utilisateurs[0]).toMatchObject({ couple: "Emma et Lucas", site: "publié", invites: 2 });
     expect(out.utilisateurs[3].couple).toBe(null);
