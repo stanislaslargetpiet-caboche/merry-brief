@@ -1,11 +1,12 @@
 "use client";
 
-// Section « Coûts » en tête du pilotage : dépenses du mois, cumul, par catégorie, par fournisseur,
-// et un petit formulaire pour saisir une dépense. Les données viennent de /api/interne/pilotage (clé `couts`).
+// Page « Coulisses › Coûts » du pilotage : trois chiffres (le mois, 30 jours, le cumul) ; le bouton « Ajouter une
+// dépense » ouvre la saisie et les dernières lignes, pour retirer une erreur. Les données viennent de
+// /api/interne/pilotage (clé `couts`).
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ColBars, Fold, Folds, Pill, Ranked, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { Card, ColBars, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { fmtDay, fmtEur } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
 
@@ -82,45 +83,42 @@ function Ajout({ onDone }) {
 }
 
 export default function Couts({ couts, demo, onChange }) {
+  const [saisie, setSaisie] = useState(false);
   const mois = today().slice(0, 7);
   const labelOf = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label]));
   const remove = async (id) => {
     await send("DELETE", `/api/interne/pilotage/couts?id=${id}`);
     await onChange();
   };
+  const bouton = couts?.disponible ? (
+    <button type="button" className="pl-btn" aria-expanded={saisie} onClick={() => setSaisie(!saisie)}>
+      {saisie ? "Fermer" : "Ajouter une dépense"}
+    </button>
+  ) : null;
 
   return (
-    <Section id="couts">
+    <Section id="couts" right={bouton}>
       {!couts?.disponible ? (
         <div className="pl-health-item">
           <Pill tone="neutral">Info</Pill>
           <div>
             <strong>Registre des coûts non lu</strong>
-            <span className="pl-muted">{couts?.raison || "la lecture a échoué : voir les erreurs en bas de page"}</span>
+            <span className="pl-muted">{couts?.raison || "la lecture a échoué"}</span>
           </div>
         </div>
       ) : (
         <>
-          <TileChart>
-            <Tile label={`Dépensé en ${MOIS(mois)}`} chart={<ColBars title="Dépenses par mois" rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" courant={MOIS(mois)} />} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour (${couts.jours_mois} jours écoulés) · ${eur(couts.mois_precedent)} le mois précédent`} />
-            <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
-            <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
-          </TileChart>
-          <Folds>
-            <Fold open title="Par catégorie" icon="filtrer" note="Cumul depuis la première dépense saisie">
-              <Ranked rows={couts.par_categorie.map((c) => ({ label: c.label, n: c.depense }))} format={eur} empty="Aucune dépense saisie" />
-            </Fold>
-            <Fold title="Par fournisseur" icon="lieu" note="Cumul depuis la première dépense saisie">
-              <Ranked rows={couts.par_fournisseur} format={eur} empty="Aucune dépense saisie" max={8} />
-            </Fold>
-            <Fold title="Dernières dépenses" icon="budget" value={`${couts.lignes} au total`}>
+          {saisie ? (
+            <Card note="En euros : convertis à la main une facture en dollars.">
+              {demo ? <div className="pl-empty">Indisponible dans le jeu d'exemple</div> : <Ajout onDone={onChange} />}
+              <div style={{ height: 16 }} />
               <Table
-                empty="Aucune dépense saisie : ajoute la première ci-dessous"
+                empty="Aucune dépense saisie"
                 rows={couts.recentes}
+                max={5}
                 cols={[
                   { key: "jour", label: "Jour", render: (r) => fmtDay(r.jour) },
                   { key: "fournisseur", label: "Fournisseur" },
-                  { key: "libelle", label: "Libellé", render: (r) => r.libelle || "–" },
                   { key: "categorie", label: "Catégorie", render: (r) => labelOf[r.categorie] || r.categorie },
                   { key: "montant_eur", label: "Montant", num: true, render: (r) => eur(r.montant_eur) },
                   ...(demo ? [] : [{ key: "x", label: "", render: (r) => (
@@ -130,11 +128,13 @@ export default function Couts({ couts, demo, onChange }) {
                   ) }]),
                 ]}
               />
-            </Fold>
-            <Fold title="Ajouter une dépense" icon="ajouter" note="En euros : convertis à la main une facture en dollars. Les coûts par appel de Google Places se lisent dans Google Cloud Console, Facturation > Rapports.">
-              {demo ? <div className="pl-empty">Indisponible dans le jeu d'exemple</div> : <Ajout onDone={onChange} />}
-            </Fold>
-          </Folds>
+            </Card>
+          ) : null}
+          <TileChart>
+            <Tile label={`Dépensé en ${MOIS(mois)}`} chart={<ColBars title="Dépenses par mois" rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" courant={MOIS(mois)} />} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour · ${eur(couts.mois_precedent)} le mois précédent`} />
+            <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
+            <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
+          </TileChart>
         </>
       )}
     </Section>

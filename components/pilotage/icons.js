@@ -35,6 +35,7 @@ const ICONS = {
   intro: `<circle cx="7" cy="12" r="3.5" fill="${CITRON}" stroke="${INK}" stroke-width="1.5"/><circle cx="17" cy="12" r="3.5" fill="${TINT}" stroke="${INK}" stroke-width="1.5"/><path d="M10.5 12h3" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`,
   demande: `<path d="M4 4h16v13H9.5L5 21v-4H4z" fill="${CITRON}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 8v4M12 14.2v.1" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`,
   priorite: `<path d="M6 21V4M6 5h11l-2.5 4 2.5 4H6" fill="${CITRON}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`,
+  boutique: `<path d="M5 9v11h14V9" fill="#ffffff" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 9h16l-1.5-5h-13z" fill="${CITRON}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 20v-5h4v5" fill="${CITRON}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`,
 };
 
 export function PilotIcon({ name, size = 20 }) {

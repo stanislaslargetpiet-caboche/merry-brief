@@ -6,7 +6,7 @@ import { longDate } from "@/lib/dash/format";
 import { formTheme, merryProof } from "@/lib/dash/form";
 import GuestForm, { useGuestForm } from "@/components/site/GuestForm";
 
-// Lien vers le site : la source fait compter ces visites et inscriptions à part dans le pilotage (Croissance › Site)
+// Lien vers le site : la source fait compter ces visites et inscriptions à part (compteur anonyme et briefs.source)
 const MERRY = "https://withmerry.com/?source=formulaire-invites";
 
 /*
