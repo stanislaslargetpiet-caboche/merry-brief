@@ -21,6 +21,9 @@ export const metadata = {
   twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
+// Barre du navigateur sur téléphone : pistache comme le reste du site (D-235), l'appli garde le citron
+export const viewport = { themeColor: "#bfe9a6" };
+
 // Données structurées : l'organisation (nom, logo, site) pour les moteurs de recherche
 const ORGANIZATION = {
   "@context": "https://schema.org",
