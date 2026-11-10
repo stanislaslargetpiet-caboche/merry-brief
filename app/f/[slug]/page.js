@@ -110,11 +110,12 @@ export default function GuestFormPage() {
             </a>
             <span className="gf-merry-free">Gratuit pour les mariés.</span>
           </section>
-        ) : (
-          <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
-            Créé avec <b>Merry</b>
-          </a>
-        )}
+        ) : null}
+
+        <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
+          <b>Merry</b>
+          <span>withmerry.com</span>
+        </a>
       </div>
     </main>
   );
