@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStats, allPages, cleanName } from "@/lib/seo/data";
+import { buildStats, allPages, cleanName, hasPage, isIndexable } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
 import { TRADES, tradeOf, tradeOfCategory } from "@/lib/seo/trades";
 import { FRANCE, regionZone, zoneOf } from "@/lib/seo/geo";
@@ -28,9 +28,29 @@ describe("métiers des pages SEO", () => {
     const hrefs = allPages(stats).map((p) => p.href);
     expect(hrefs).toContain("/mariage/wedding-planners");
     expect(hrefs).toContain("/mariage/wedding-planners/bretagne");
-    expect(hrefs).toContain("/mariage/wedding-planners/finistere");
-    expect(hrefs).toContain("/mariage/wedding-planners/ille-et-vilaine");
+    expect(hasPage(stats, tradeOf("wedding-planners"), zoneOf("finistere"))).toBe(true);
     expect(hrefs.some((h) => h.startsWith("/mariage/coiffure-maquillage"))).toBe(false);
+  });
+
+  it("un petit département reste ouvert mais hors sitemap et en noindex, la région et la France restent indexées", () => {
+    const wp = tradeOf("wedding-planners");
+    expect(isIndexable(stats, wp, zoneOf("finistere"))).toBe(false);
+    expect(allPages(stats).map((p) => p.href)).not.toContain("/mariage/wedding-planners/finistere");
+    expect(isIndexable(stats, wp, regionZone("Bretagne"))).toBe(true);
+    expect(isIndexable(stats, wp, FRANCE)).toBe(true);
+    // Les métiers plus anciens gardent leurs pages départementales dès huit fiches
+    expect(isIndexable(stats, tradeOf("lieux"), zoneOf("finistere"))).toBe(true);
+    const big = { at: stats.at, stats: buildStats([{ primary_category: "wedding_planner", department: "35", price_unit: null, n: 25, prices: [] }]) };
+    expect(isIndexable(big, wp, zoneOf("ille-et-vilaine"))).toBe(true);
+  });
+
+  it("chaque page a un paragraphe construit sur ses comptes, différent d'une zone à l'autre", () => {
+    const wp = tradeOf("wedding-planners");
+    expect(pageModel(wp, FRANCE, stats).intro).toBe("Merry référence 21 wedding planners en France. Les régions les mieux fournies : Bretagne (21).");
+    expect(pageModel(wp, regionZone("Bretagne"), stats).intro).toBe("21 wedding planners en Bretagne, soit 100 % des 21 de France, répartis dans 2 départements. Les plus fournis : Finistère (12), Ille-et-Vilaine (9).");
+    const dep = pageModel(wp, zoneOf("finistere"), stats).intro;
+    expect(dep).toBe("12 wedding planners dans le Finistère, soit 57 % des 21 de France. Dans la même région : Ille-et-Vilaine (9).");
+    expect(dep).not.toBe(pageModel(wp, zoneOf("ille-et-vilaine"), stats).intro);
   });
 
   it("un métier sans prix : le nombre de prestataires, pas de chiffre de prix ni de question sur le coût", () => {

@@ -168,6 +168,8 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
           ))}
         </section>
 
+        <p className="sm-intro">{model.intro}</p>
+
         {model.pills.length > 1 && (
           <ScrollNav aria-label={zone.kind === "france" ? "Régions" : "Départements"} className="sm-pills">
             {model.pills.map((p) => (
