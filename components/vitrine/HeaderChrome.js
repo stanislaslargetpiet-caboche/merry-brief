@@ -35,13 +35,26 @@ export default function HeaderChrome({ current }) {
   const { lang } = useLang();
   const t = FRAME_TEXT[lang];
   const links = LINKS;
-  // Les meta restent en français (serveur) : en anglais, on remplace le titre de l'onglet
+  // Les meta restent en français (serveur) : en anglais, on remplace le titre de l'onglet. En production, Next
+  // pose son <title> après l'hydratation : on le surveille pour réappliquer le titre anglais.
   const pathname = usePathname();
   const frTitle = useRef(null);
   useEffect(() => {
-    if (frTitle.current === null) frTitle.current = document.title;
     const key = (pathname || "").split("/").filter((p) => p && p !== "vitrine").pop() || "";
-    document.title = lang === "en" && EN_TITLES[key] ? EN_TITLES[key] : frTitle.current;
+    const en = lang === "en" ? EN_TITLES[key] : null;
+    if (!en) {
+      if (frTitle.current && Object.values(EN_TITLES).includes(document.title)) document.title = frTitle.current;
+      return undefined;
+    }
+    const apply = () => {
+      if (document.title === en) return;
+      frTitle.current = document.title;
+      document.title = en;
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+    return () => observer.disconnect();
   }, [lang, pathname]);
   const item = (key, href, label) => (
     <a href={href} className={current === key ? "on" : undefined} aria-current={current === key ? "page" : undefined}>
