@@ -6,6 +6,39 @@
 -- pilotage_stats(days) couvre une période de `days` jours et la période précédente de même longueur :
 -- les séries par jour s'étendent sur 2 × days jours, la page en déduit la période courante et la précédente.
 
+-- Compteurs du catalogue précalculés (catalog.pilotage_catalogue) : la page ne recompte plus les 157 000 fiches à chaque
+-- ouverture (5 à 6 s à froid pour 8 s accordées par l'API), elle lit une centaine de lignes. Les chiffres ont au plus
+-- 15 minutes de retard : pg_cron les rafraîchit toutes les 15 minutes (voir en bas du fichier), ou à la demande avec
+-- select public.pilotage_rafraichir_catalogue();
+-- La création remplit la vue une première fois (quelques secondes). Relancer le fichier ne la recrée pas.
+create materialized view if not exists catalog.pilotage_catalogue as
+  select coalesce(v.primary_category, '') as categorie, coalesce(v.status, '') as status,
+         count(*)::int as n,
+         count(*) filter (where coalesce(v.photos_count, 0) >= 3)::int as photos3,
+         count(*) filter (where coalesce(v.photos_count, 0) = 0)::int as sans_photo,
+         count(*) filter (where nullif(v.email, '') is not null)::int as email,
+         count(*) filter (where nullif(v.phone, '') is not null)::int as telephone,
+         now() as calcule
+  from catalog.vendors v
+  group by 1, 2;
+-- L'index unique permet de rafraîchir sans bloquer les lectures
+create unique index if not exists pilotage_catalogue_cle on catalog.pilotage_catalogue (categorie, status);
+revoke all on catalog.pilotage_catalogue from public, anon, authenticated;
+grant select on catalog.pilotage_catalogue to service_role;
+
+create or replace function public.pilotage_rafraichir_catalogue()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  refresh materialized view concurrently catalog.pilotage_catalogue;
+end;
+$$;
+revoke all on function public.pilotage_rafraichir_catalogue() from public, anon, authenticated;
+grant execute on function public.pilotage_rafraichir_catalogue() to service_role;
+
 create or replace function public.pilotage_stats(days integer default 7)
 returns jsonb
 language plpgsql
@@ -85,18 +118,10 @@ begin
     left join ia a on a.jour = j.jour
     left join mails ml on ml.jour = j.jour
   ),
-  -- Un seul parcours du catalogue (157 000 fiches) : tout ce qui en dépend se déduit de cette agrégation.
-  -- Neuf parcours séparés dépassaient les 8 s accordées à l'API. created_by_wedding reste à part : il a son index,
-  -- et le lire dans ce parcours le ralentit de plusieurs secondes.
-  cat as materialized (
-    select v.primary_category as categorie, v.status,
-           count(*)::int as n,
-           count(*) filter (where coalesce(v.photos_count, 0) >= 3)::int as photos3,
-           count(*) filter (where coalesce(v.photos_count, 0) = 0)::int as sans_photo,
-           count(*) filter (where nullif(v.email, '') is not null)::int as email,
-           count(*) filter (where nullif(v.phone, '') is not null)::int as telephone
-    from catalog.vendors v
-    group by v.primary_category, v.status
+  -- Les compteurs du catalogue viennent de catalog.pilotage_catalogue, précalculée (voir en haut du fichier).
+  -- created_by_wedding reste lu en direct : il a son index.
+  cat as (
+    select categorie, status, n, photos3, sans_photo, email, telephone from catalog.pilotage_catalogue
   ),
   rev as (
     select v.primary_category as categorie, count(*)::int as n
@@ -148,6 +173,7 @@ begin
   )
   select jsonb_build_object(
     'genere', now(),
+    'catalogue_calcule', (select max(calcule) from catalog.pilotage_catalogue),
     'jours', d,
     'depuis', since,
     'periode_courante', cur,
@@ -207,3 +233,15 @@ end;
 $$;
 revoke all on function public.pilotage_stats(integer) from public, anon, authenticated;
 grant execute on function public.pilotage_stats(integer) to service_role;
+
+-- Rafraîchissement toutes les 15 minutes, si l'extension pg_cron est disponible (Supabase > Database > Extensions > pg_cron).
+-- Sans elle, ce bloc ne fait rien : lancer alors select public.pilotage_rafraichir_catalogue(); à la main.
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'pilotage-catalogue';
+    perform cron.schedule('pilotage-catalogue', '*/15 * * * *', 'select public.pilotage_rafraichir_catalogue()');
+  else
+    raise notice 'pg_cron absente : active-la dans Database > Extensions puis relance ce fichier.';
+  end if;
+end $$;
