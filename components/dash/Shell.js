@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
-import { syncAccent, useAccent } from "@/lib/dash/accent";
+import { accentIntroDue, markAccentSeen, syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
 import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
@@ -97,10 +97,24 @@ function Frame({ children }) {
   const unread = useUnreadMessages();
   const [showOrganisers, setShowOrganisers] = useState(false);
   const accent = useAccent();
+  const [introClosed, setIntroClosed] = useState(false);
+  const live = dash.status === "ready" && dash.mode === "live";
+  const onSettings = pathname.startsWith("/dashboard/reglages");
+  const showIntro = live && !introClosed && !onSettings && accentIntroDue(dash.user);
 
   useEffect(() => {
-    if (dash.status === "ready" && dash.mode === "live") syncAccent(dash.user);
-  }, [dash.status, dash.mode, dash.user]);
+    if (live) syncAccent(dash.user);
+  }, [live, dash.user]);
+
+  // Quelqu'un qui ouvre Réglages de lui-même a vu le sélecteur : la carte n'a plus lieu d'être
+  useEffect(() => {
+    if (live && onSettings && accentIntroDue(dash.user)) markAccentSeen();
+  }, [live, onSettings, dash.user]);
+
+  function closeIntro() {
+    setIntroClosed(true);
+    markAccentSeen();
+  }
 
   useEffect(() => {
     if (dash.status === "signedout") router.replace(`/connexion?next=${encodeURIComponent(pathname + window.location.search)}`);
@@ -306,6 +320,17 @@ function Frame({ children }) {
       </main>
       {showOrganisers && data ? <Organisers onClose={() => setShowOrganisers(false)} /> : null}
       <ImportBadge />
+      {showIntro ? (
+        <div className="d-intro" role="status">
+          <span>Tu peux changer la couleur de Merry.</span>
+          <Link className="d-btn d-btn-primary d-btn-small" href="/dashboard/reglages" onClick={closeIntro}>
+            Choisir ma couleur
+          </Link>
+          <button type="button" className="d-intro-close" onClick={closeIntro} aria-label="Fermer">
+            <Icon name="x" size={14} sw={2.2} />
+          </button>
+        </div>
+      ) : null}
       {dash.toast ? (
         <div className={`d-toast is-${dash.toast.kind}`} role="status">
           {dash.toast.kind === "ok" ? (

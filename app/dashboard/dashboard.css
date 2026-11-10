@@ -17723,3 +17723,40 @@ button.d-gcard-status.is-open svg {
 .d-fiche-hint.is-top {
   padding: 12px 0 4px;
 }
+
+/* Carte de reconnexion : la couleur du tableau de bord se change dans Réglages */
+.d-intro {
+  position: fixed;
+  z-index: 55;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 12px 12px 18px;
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--d-ink);
+  font-size: 14px;
+  box-shadow: 0 12px 32px rgba(28, 28, 26, 0.14);
+}
+
+.d-intro-close {
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .d-intro {
+    left: 16px;
+    right: 16px;
+    bottom: 88px;
+    flex-wrap: wrap;
+  }
+}
