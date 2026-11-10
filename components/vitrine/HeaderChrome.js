@@ -4,9 +4,11 @@
 // pour pouvoir lire la langue (useLang) sans rendre tout Frame.js client (SeoLinks y reste un
 // composant serveur asynchrone).
 
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/lang";
 import { LINKS, LOGIN, PRO, SIGNUP } from "@/lib/vitrine/routes";
-import { FRAME_TEXT } from "@/lib/i18n/vitrine-frame";
+import { EN_TITLES, FRAME_TEXT } from "@/lib/i18n/vitrine-frame";
 import LangSwitch from "./LangSwitch";
 import Dropdown from "./Dropdown";
 
@@ -33,6 +35,14 @@ export default function HeaderChrome({ current }) {
   const { lang } = useLang();
   const t = FRAME_TEXT[lang];
   const links = LINKS;
+  // Les meta restent en français (serveur) : en anglais, on remplace le titre de l'onglet
+  const pathname = usePathname();
+  const frTitle = useRef(null);
+  useEffect(() => {
+    if (frTitle.current === null) frTitle.current = document.title;
+    const key = (pathname || "").split("/").filter((p) => p && p !== "vitrine").pop() || "";
+    document.title = lang === "en" && EN_TITLES[key] ? EN_TITLES[key] : frTitle.current;
+  }, [lang, pathname]);
   const item = (key, href, label) => (
     <a href={href} className={current === key ? "on" : undefined} aria-current={current === key ? "page" : undefined}>
       {label}
@@ -48,7 +58,7 @@ export default function HeaderChrome({ current }) {
       <a href={links.home} className="wv-logo" aria-label={t.logoAria}>
         Merry
       </a>
-      <nav className="wv-nav" aria-label="Navigation principale">
+      <nav className="wv-nav" aria-label={t.navAria}>
         {item("home", links.home, t.navHome)}
         {item("pro", links.pro, t.navPro)}
         <LoginMenu t={t} />

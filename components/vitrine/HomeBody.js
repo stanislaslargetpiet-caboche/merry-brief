@@ -19,7 +19,7 @@ export default function HomeBody({ links, proof: rawProof }) {
 
   return (
     <>
-      <section className="wv-hero" aria-label="Accueil">
+      <section className="wv-hero" aria-label={t.heroAria}>
         <div className="wv-hero-in">
           <p className="wv-eyebrow">{t.eyebrow}</p>
           <h1 className="wv-h1">{t.h1}</h1>
@@ -58,7 +58,7 @@ export default function HomeBody({ links, proof: rawProof }) {
         </a>
       </section>
 
-      <section className="wv-sec wv-split" aria-label="Modèle">
+      <section className="wv-sec wv-split" aria-label={t.model}>
         <Image src="/vitrine/gratuit.webp" alt="" className="wv-photo" width={1600} height={1061} sizes="(max-width: 760px) 100vw, 46vw" />
         <div className="wv-stack" style={{ gap: 24 }}>
           <h2 className="wv-h3">{t.freeTitle}</h2>
@@ -91,7 +91,7 @@ export default function HomeBody({ links, proof: rawProof }) {
         <Image src="/vitrine/faq.webp" alt="" className="wv-photo" style={{ minHeight: 640 }} width={1400} height={1953} sizes="(max-width: 760px) 0px, 34vw" />
       </section>
 
-      <section className="wv-guest" aria-label="Invités">
+      <section className="wv-guest" aria-label={t.guestsAria}>
         <div className="wv-marquee" aria-hidden="true">
           {Array.from({ length: 6 }, (_, idx) => (
             <span key={idx}>{t.guestLabel}</span>

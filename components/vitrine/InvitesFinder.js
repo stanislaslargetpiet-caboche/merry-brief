@@ -94,7 +94,7 @@ export default function InvitesFinder() {
     const names = [found.partner1, found.partner2].filter(Boolean).join(" & ");
     const place = [found.venue, found.region].filter(Boolean).join(", ");
     return (
-      <section className="wv-flow" aria-label="Invités">
+      <section className="wv-flow" aria-label={t.aria}>
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           {t.back}
         </button>
@@ -158,7 +158,7 @@ export default function InvitesFinder() {
 
   if (view === "non-trouve") {
     return (
-      <section className="wv-flow" aria-label="Invités">
+      <section className="wv-flow" aria-label={t.aria}>
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           {t.back}
         </button>
@@ -192,7 +192,7 @@ export default function InvitesFinder() {
 
   if (view === "code") {
     return (
-      <section className="wv-flow" aria-label="Invités">
+      <section className="wv-flow" aria-label={t.aria}>
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           {t.back}
         </button>
@@ -233,7 +233,7 @@ export default function InvitesFinder() {
 
   if (view === "nom") {
     return (
-      <section className="wv-flow" aria-label="Invités">
+      <section className="wv-flow" aria-label={t.aria}>
         <button type="button" className="wv-flow-back" onClick={() => setView("home")}>
           {t.back}
         </button>
@@ -274,7 +274,7 @@ export default function InvitesFinder() {
   }
 
   return (
-    <section className="wv-invites" aria-label="Invités">
+    <section className="wv-invites" aria-label={t.aria}>
       <img src="/vitrine/invites-1.webp" alt="" className="wv-ph wv-ph1" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-2.webp" alt="" className="wv-ph wv-ph2" width={1400} height={934} decoding="async" />
       <img src="/vitrine/invites-3.webp" alt="" className="wv-ph wv-ph3" width={1400} height={934} decoding="async" />

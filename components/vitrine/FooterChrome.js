@@ -15,7 +15,7 @@ export default function FooterChrome({ current }) {
   return (
     <>
       {current !== "pro" && (
-        <aside className="wv-sticky" aria-label="Commencer">
+        <aside className="wv-sticky" aria-label={t.startAria}>
           <span>
             <b>{t.stickyFree}</b>
             <br />

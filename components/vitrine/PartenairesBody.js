@@ -69,7 +69,7 @@ export default function PartenairesBody({ proof: rawProof }) {
         </div>
       </section>
 
-      <section className="wv-sec wv-lime wv-credits" aria-label="Les crédits">
+      <section className="wv-sec wv-lime wv-credits" aria-label={t.creditsAria}>
         <div className="wv-stack">
           <h2 className="wv-h3">{t.creditsTitle}</h2>
           <p className="wv-lead">{t.creditsLead1}</p>
@@ -100,7 +100,7 @@ export default function PartenairesBody({ proof: rawProof }) {
         </div>
       </section>
 
-      <section className="wv-sec wv-black wv-split wv-split-big" aria-label="Les demandes">
+      <section className="wv-sec wv-black wv-split wv-split-big" aria-label={t.reqAria}>
         <Block fr={criteres} en={criteresEn} className="wv-media" />
         <div className="wv-stack">
           <h2 className="wv-h3">{t.reqTitle}</h2>
@@ -115,13 +115,13 @@ export default function PartenairesBody({ proof: rawProof }) {
         </div>
       </section>
 
-      <section className="wv-sec wv-lime wv-guar" aria-label="Garantie Merry">
+      <section className="wv-sec wv-lime wv-guar" aria-label={t.guarKicker}>
         <p className="wv-guar-k">{t.guarKicker}</p>
         <h2 className="wv-h3">{t.guarTitle}</h2>
         <p className="wv-lead">{t.guarLead}</p>
       </section>
 
-      <section className="wv-sec wv-split wv-split-big" aria-label="Ta fiche">
+      <section className="wv-sec wv-split wv-split-big" aria-label={t.ficheAria}>
         <Block fr={fiche} en={ficheEn} className="wv-media" />
         <div className="wv-stack">
           <h2 className="wv-h3">{t.ficheTitle}</h2>
@@ -146,7 +146,7 @@ export default function PartenairesBody({ proof: rawProof }) {
         </div>
       </section>
 
-      <section className="wv-sec wv-black wv-end" aria-label="Commencer">
+      <section className="wv-sec wv-black wv-end" aria-label={t.startAria}>
         <ul>
           <li>{t.end1}</li>
           <li>{t.end2}</li>
