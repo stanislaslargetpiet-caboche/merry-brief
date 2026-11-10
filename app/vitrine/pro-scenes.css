@@ -1,0 +1,100 @@
+/* Blocs animés de la page Prestataires (components/vitrine/ProScenes.js) : pièces `cr-` du carrousel de l'accueil
+   (carrousel.css) et quelques pièces propres `pc-`. Planches Site-Pro-* du canvas, 10 nov. 2026 : scène large de
+   1 040 px en haut de la page, scènes d'une colonne (640 px au plus) dans les trois sections. */
+
+.pc.cr { width: 100%; }
+.pc-wide.cr { width: min(1040px, 100%); }
+.pc-half.cr { max-width: 640px; }
+.pc-wide .cr-stage { height: 560px; }
+.pc-half .cr-stage { height: 580px; }
+.pc-half .cr-scene { padding: 32px; }
+/* Section blanche : la scène est sur fond gris, les cartes restent blanches */
+.pc-grey .cr-stage { background: #f6f5f1; }
+.pc-grey .cr-pause { background: #f6f5f1; }
+
+/* Barre de segments sous la scène et pause */
+.pc-ctl { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.pc-dots { display: flex; flex: 1; max-width: 240px; gap: 6px; }
+.pc-dot { flex: 1; display: flex; align-items: center; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
+.pc-dot > span { display: block; width: 100%; height: 4px; border-radius: 999px; background: rgba(28, 28, 26, 0.16); overflow: hidden; }
+.pc-dot.is-done > span { background: #1c1c1a; }
+.pc-dot b { display: block; height: 100%; border-radius: 999px; background: #1c1c1a; transform-origin: left; transform: scaleX(0); animation: cr-prog 5s linear forwards; }
+.pc-dot:focus-visible { outline: 2px solid #1c1c1a; outline-offset: 2px; }
+.wv-black .pc-dot > span { background: rgba(255, 255, 255, 0.28); }
+.wv-black .pc-dot.is-done > span, .wv-black .pc-dot b { background: #bfe9a6; }
+.wv-black .pc-dot:focus-visible { outline-color: #bfe9a6; }
+.wv-black .cr-pause:focus-visible { outline-color: #bfe9a6; }
+.pc.is-paused .pc-dot b { animation-play-state: paused; }
+
+/* Pièces communes */
+.pc-two { flex: 1; min-height: 0; display: grid; gap: 20px; }
+.pc-avant { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+.pc-match { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pc-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.pc-foot { margin-top: auto; }
+.pc-grow { flex: 1; min-height: 0; }
+.pc-grow.cr-rows > .cr-row { flex: 1; padding-top: 0; padding-bottom: 0; }
+.pc-sub { margin-top: -8px; }
+.pc-who { display: flex; align-items: center; gap: 12px; }
+.pc-after .pc-who { padding-bottom: 14px; border-bottom: 1px solid #ecebe6; }
+.pc-vague { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: #f6f5f1; color: #6b6a63; font-size: 16px; }
+.pc-vague i { flex: none; width: 32px; height: 32px; border-radius: 999px; background: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; color: #9c9a90; }
+.pc-venue { display: flex; align-items: center; gap: 12px; }
+.pc-crit > .cr-row { padding: 10px 0; }
+.pc-chk { flex: none; width: 24px; height: 24px; border-radius: 999px; background: #d4f1e8; color: #0b6a4f; display: inline-flex; align-items: center; justify-content: center; }
+.pc-crit-t { font-size: 16px; }
+.pc-masked { display: flex; align-items: center; gap: 12px; }
+.pc-masked.cr-card { padding: 14px 20px; }
+.pc-match .pc-masked { padding: 10px 0; border-top: 1px solid #ecebe6; }
+.pc-mask { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.pc-mask b { display: block; height: 10px; border-radius: 999px; background: #d9d7cf; }
+.pc-actions { display: flex; gap: 10px; }
+.pc-actions .cr-btn-primary { flex: 1; }
+.pc-key { width: 88px; }
+.pc-message { font-size: 16px; line-height: 1.5; }
+.pc-file { align-self: flex-start; }
+
+/* Crédits */
+.cr-stats.pc-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; text-align: center; }
+.pc-big { font-size: 64px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.pc-wide-track { width: 100%; margin-top: 10px; background: #ffffff; }
+
+/* Fiche */
+.pc-search { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; border: 1.5px solid #1c1c1a; border-radius: 999px; background: #ffffff; font-size: 17px; font-weight: 600; }
+.pc-me { align-self: flex-start; }
+.pc-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pc-strip-ph { height: 84px; border-radius: 12px; }
+.pc-vc { display: flex; flex-direction: column; gap: 12px; padding: 10px; border-radius: 12px; background: #ffffff; }
+.pc-vc-photo { height: 190px; border-radius: 8px; }
+.pc-vc-body { display: flex; flex-direction: column; gap: 6px; padding: 0 6px 6px; }
+.pc-vc-price { padding-top: 10px; border-top: 1px solid #e4e2dc; font-size: 14px; color: #5f5e58; }
+.pc-vc-price b { font-size: 20px; font-weight: 600; color: #1c1c1a; }
+.pc-line { display: flex; align-items: center; gap: 12px; padding: 14px 20px; }
+
+/* La pause fige aussi la barre ; mouvement réduit : pas de progression */
+@media (prefers-reduced-motion: reduce) {
+  .pc-dot b { animation: none; transform: none; }
+}
+
+@media (max-width: 860px) {
+  .pc-wide .cr-stage, .pc-half .cr-stage { height: 580px; }
+  .pc-b-demande .cr-stage { height: 550px; }
+  .pc-b-fiche .cr-stage { height: 520px; }
+  .pc-half .cr-scene { padding: 22px 16px; }
+  .pc-big { font-size: 48px; }
+  /* Avant / Avec Merry : les deux cartes se remplacent dans la même case */
+  .pc-avant { grid-template-columns: minmax(0, 1fr); }
+  .pc-before, .pc-after { grid-area: 1 / 1; }
+  .pc-before { animation: cr-hide 0.3s 1.6s both; }
+  .pc-after { animation: cr-show 0.3s 1.6s both; }
+  .pc-match { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pc-match .pc-hide-sm, .pc-crit > .cr-row:nth-child(n + 4) { display: none; }
+  .pc-crit > .cr-row { padding: 6px 0; }
+  .pc-strip-ph { height: 64px; }
+  .pc-vc-photo { height: 150px; }
+  .pc-key { width: 72px; }
+  .cr-top-t { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 860px) {
+  .pc-before { display: none; }
+}

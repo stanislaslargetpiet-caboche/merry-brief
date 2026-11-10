@@ -1,23 +1,11 @@
 import { describe, expect, it } from "vitest";
 import proposition, { en as propositionEn } from "../lib/vitrine/blocks/proposition.js";
-import proAvantApres, { en as proAvantApresEn } from "../lib/vitrine/blocks/pro-avant-apres.js";
-import proCredits, { en as proCreditsEn } from "../lib/vitrine/blocks/pro-credits.js";
-import proCriteres, { en as proCriteresEn } from "../lib/vitrine/blocks/pro-criteres.js";
-import proFiche, { en as proFicheEn } from "../lib/vitrine/blocks/pro-fiche.js";
 import { CARROUSEL } from "../lib/i18n/vitrine-carrousel.js";
 
 // Garde-fous des blocs animés du site vitrine (audit du 10 nov. 2026).
 const BLOCKS = {
   proposition,
   propositionEn,
-  proAvantApres,
-  proAvantApresEn,
-  proCredits,
-  proCreditsEn,
-  proCriteres,
-  proCriteresEn,
-  proFiche,
-  proFicheEn,
 };
 
 describe("blocs animés du site vitrine", () => {

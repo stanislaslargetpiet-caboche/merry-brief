@@ -606,3 +606,6 @@ export default function Carrousel() {
     </div>
   );
 }
+
+// Pièces reprises par les blocs de la page Prestataires (components/vitrine/ProScenes.js)
+export { CHECK, Icon, Swap, Head, Pill, Photo, rise };

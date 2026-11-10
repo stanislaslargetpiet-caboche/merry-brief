@@ -58,7 +58,7 @@
 .wv-black { background: #000000; color: #bfe9a6; }
 .wv-center { display: flex; flex-direction: column; align-items: center; gap: 32px; text-align: center; }
 .wv-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; align-items: center; }
-.wv-split-big { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.wv-split-big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .wv-stack { display: flex; flex-direction: column; gap: 22px; }
 .wv-media { width: 100%; border-radius: 20px; overflow: hidden; }
 .wv-media-mid { width: min(760px, 100%); }
@@ -107,7 +107,7 @@
 .wv-steps { display: flex; flex-direction: column; gap: 10px; }
 .wv-steps p { margin: 0; font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
 .wv-steps p::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 8px; height: 8px; border-radius: 999px; background: #000; }
-.wv-credits { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 5vw; align-items: start; }
+.wv-credits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; align-items: start; }
 .wv-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5vw; }
 .wv-end { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); gap: 5vw; align-items: start; }
 .wv-end ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 16px; }
