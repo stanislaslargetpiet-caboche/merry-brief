@@ -33,6 +33,7 @@ describe("buildUtilisateurs", () => {
   });
   it("compte sur l'heure exacte, avec la période précédente de même longueur", () => {
     expect(out.fenetre.connectes).toEqual({ n: 2, prec: 0 });
+    expect(out.fenetre.couples_connectes).toEqual({ n: 2, prec: 0 });
     expect(out.fenetre.comptes_crees).toEqual({ n: 1, prec: 0 });
     expect(out.fenetre.invites_ajoutes).toEqual({ n: 1, prec: 0 });
     expect(out.fenetre.devis).toEqual({ n: 0, prec: 1 });

@@ -547,10 +547,10 @@ function BlocLecture({ titre, items, today, langue }) {
 
 // Chaque chiffre du bandeau mène à la page qui le détaille
 const TUILES_LIENS = {
-  Visiteurs: pilotagePath("croissance", "site"),
-  "Comptes créés": pilotagePath("utilisateurs", "comptes"),
-  "Mariages créés": pilotagePath("utilisateurs", "comptes"),
-  "Demandes de devis": pilotagePath("utilisateurs", "comptes"),
+  Visiteurs: pilotagePath("acquisition", "site"),
+  "Comptes créés": pilotagePath("acquisition", "site"),
+  "Mariages créés": pilotagePath("couples", "activite"),
+  "Demandes de devis": pilotagePath("couples", "activite"),
 };
 
 export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, langue = "fr", indicateurs = "lus" }) {
