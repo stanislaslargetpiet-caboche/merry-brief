@@ -85,10 +85,21 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
   const dash = useDash();
   const { payments, members, meId, wedding } = dash.data;
   const [editing, setEditing] = useState(null); // id du paiement en cours de modification
+  const [total, setTotal] = useState(null); // total prévu en cours de saisie, null sinon
   const memberById = new Map(members.map((m) => [m.id, m]));
   const f = itemFinance(item, payments);
   const upcoming = f.upcoming;
   const done = [...f.paidList].sort((a, z) => String(z.paid_at).localeCompare(String(a.paid_at)));
+
+  // Le total prévu du poste, d'où se déduit le reste ; ce n'est pas un devis signé, le rétroplanning n'y touche pas
+  async function saveTotal(e) {
+    e?.preventDefault();
+    if (total === null) return;
+    setTotal(null);
+    const value = parseAmount(total);
+    if (value === null || value < 0 || value === f.quote) return;
+    await dash.update("budget_items", item.id, { quote_amount: value }, { quoteHook: false });
+  }
 
   async function markPaid(p) {
     const payer = p.payer_id || meId || members[0]?.id || null;
@@ -164,6 +175,34 @@ export default function PaiementsModal({ item, onClose, onAdd }) {
     >
       <div className="d-col" style={{ gap: 18 }}>
         <div className="d-pay-summary">
+          {total === null ? (
+            <button type="button" className="d-pay-total" onClick={() => setTotal(f.quote !== null ? String(f.quote) : "")} aria-label="Modifier le total prévu">
+              <small>
+                Total prévu
+                <Icon name="pencil" size={11} sw={2.2} />
+              </small>
+              <strong>{f.quote !== null ? euros(f.quote) : "–"}</strong>
+            </button>
+          ) : (
+            <form className="d-pay-total" onSubmit={saveTotal}>
+              <small>Total prévu</small>
+              <input
+                className="d-inline-input d-pay-total-input"
+                inputMode="decimal"
+                value={total}
+                onChange={(e) => setTotal(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onBlur={saveTotal}
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  e.stopPropagation();
+                  setTotal(null);
+                }}
+                aria-label="Total prévu (€)"
+                autoFocus
+              />
+            </form>
+          )}
           <span>
             <small>Déjà payé</small>
             <strong>{euros(f.paid)}</strong>
