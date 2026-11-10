@@ -9,7 +9,8 @@ import GuestForm, { useGuestForm } from "@/components/site/GuestForm";
 /*
  * Page publique du formulaire invités : le lien que le couple partage sur
  * WhatsApp, Facebook ou par message. Aucune connexion : le formulaire est lu et
- * envoyé par deux fonctions Supabase (merry_form_public, merry_form_submit).
+ * envoyé par deux fonctions Supabase (merry_form_public, merry_form_submit) ; l'envoi passe par
+ * /api/formulaire/repondre, qui confirme la réponse à l'invité par mail.
  * En démo (tableau de bord ?demo=1 ou sans Supabase), on lit le formulaire du navigateur.
  * Le formulaire lui-même (questions, envoi) est dans components/site/GuestForm.js, partagé avec le site de mariage.
  */
