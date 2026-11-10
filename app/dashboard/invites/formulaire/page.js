@@ -196,9 +196,9 @@ export default function FormulaireInvites() {
   // Même ordre que la page invité
   const previewItems = rows.flatMap((r) => {
     if (r.key === "presence") {
-      return form.presence_mode === "global" ? [{ id: "presence", label: "Serez-vous des nôtres ?", req: r.req, pills: ["Oui", "Non"] }] : inForm.map((e) => ({ id: `ev-${e.id}`, label: e.name, req: r.req, pills: ["Oui", "Non"] }));
+      return form.presence_mode === "global" ? [{ id: "presence", label: "Seras-tu des nôtres ?", req: r.req, pills: ["Oui", "Non"] }] : inForm.map((e) => ({ id: `ev-${e.id}`, label: e.name, req: r.req, pills: ["Oui", "Non"] }));
     }
-    if (r.key === "plusun") return [{ ...r, label: "Venez-vous accompagné(e) ?" }];
+    if (r.key === "plusun") return [{ ...r, label: "Viens-tu accompagné(e) ?" }];
     if (r.customId) return [{ ...r, pills: r.pills ? r.pills.slice(0, 3) : null }];
     return [r];
   });
@@ -286,7 +286,7 @@ export default function FormulaireInvites() {
     await save(latest.current);
     if (!navigator.share) return copy();
     try {
-      await navigator.share({ title: pageTitle, text: "Dites-nous si vous serez des nôtres :", url: formUrl(latest.current.slug) });
+      await navigator.share({ title: pageTitle, text: "Dis-nous si tu seras des nôtres :", url: formUrl(latest.current.slug) });
     } catch {
       // Partage annulé
     }
@@ -537,7 +537,7 @@ export default function FormulaireInvites() {
             <div className="d-fm-guest" style={{ background: theme.bg }} aria-hidden="true">
               {(sheet.row.key === "presence"
                 ? sheet.presence_mode === "global"
-                  ? [{ id: "g", label: "Serez-vous des nôtres ?" }]
+                  ? [{ id: "g", label: "Seras-tu des nôtres ?" }]
                   : events.filter((e) => sheet.event_ids.includes(e.id)).map((e) => ({ id: e.id, label: e.name }))
                 : [{ id: "q", label: sheet.label.trim() || sheet.row.label }]
               ).map((q) => (
@@ -602,7 +602,7 @@ export default function FormulaireInvites() {
               {suggestions.length ? <div className="d-fm-or">ou votre question</div> : null}
               <label className="d-field">
                 <span className="d-field-label">La question posée</span>
-                <input className="d-input" value={newLabel} maxLength={120} placeholder="Ex. : Votre chanson pour la soirée" onChange={(e) => setNewLabel(e.target.value)} />
+                <input className="d-input" value={newLabel} maxLength={120} placeholder="Ex. : Ta chanson pour la soirée" onChange={(e) => setNewLabel(e.target.value)} />
               </label>
               <div className="d-field">
                 <span className="d-field-label">L'invité répond par</span>

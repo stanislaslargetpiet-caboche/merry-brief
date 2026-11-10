@@ -1,4 +1,4 @@
-// Réponse au formulaire invités (/f/[slug] et rubrique « Votre réponse » du site de mariage) : la route
+// Réponse au formulaire invités (/f/[slug] et rubrique « Ta réponse » du site de mariage) : la route
 // enregistre la réponse par merry_form_submit, comme le navigateur le faisait, puis envoie à l'invité un
 // mail de confirmation (lib/server/formConfirmationMail.js). Passer par le serveur garantit qu'aucun mail
 // ne part sans une vraie réponse enregistrée. Les erreurs de la base (« Liste complète », « Date limite

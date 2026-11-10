@@ -146,7 +146,7 @@ function Pratique({ ctx }) {
           </li>
         ))}
       </ul>
-      {c.contacts.length ? <p className="so-p is-small">{witnesses(c.contacts)}, sont là pour vos questions.</p> : null}
+      {c.contacts.length ? <p className="so-p is-small">{witnesses(c.contacts)}, sont là pour tes questions.</p> : null}
       {c.contacts.some(contactHref) ? (
         <div className="so-links">
           {c.contacts.map((x, i) =>
@@ -168,7 +168,7 @@ function Reponse({ ctx }) {
   const [reload, setReload] = useState(0);
   const res = useSavedResponse(v.formSlug, ctx.preview, reload);
   return (
-    <Block id="reponse" kicker={res ? "Merci, c’est noté" : "Votre réponse"} title={res ? (res.present === false ? "Vous nous manquerez" : "Vous serez des nôtres") : "Serez-vous des nôtres ?"}>
+    <Block id="reponse" kicker={res ? "Merci, c’est noté" : "Ta réponse"} title={res ? (res.present === false ? "Tu nous manqueras" : "Tu seras des nôtres") : "Seras-tu des nôtres ?"}>
       {res ? (
         <>
           <p className="so-p">

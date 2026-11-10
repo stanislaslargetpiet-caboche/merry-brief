@@ -1,6 +1,6 @@
 "use client";
 
-// Le formulaire invités, le même sur la page publique (/f/[slug]) et dans la rubrique « Votre réponse »
+// Le formulaire invités, le même sur la page publique (/f/[slug]) et dans la rubrique « Ta réponse »
 // du site de mariage (GuestFormInline). Les questions suivent l'ordre choisi par le couple
 // (lib/dash/form.js, formQuestions) ; la réponse part par /api/formulaire/repondre (merry_form_submit,
 // puis mail de confirmation à l'invité) et reste dans le navigateur (RESPONSE_KEY) pour que le site la
@@ -127,7 +127,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
     if (mode("tel") === "req") need("phone", me.phone.trim(), label("tel"));
     if (mode("adresse") === "req") need("address", me.address.trim(), label("adresse"));
     if (mode("presence") === "req") {
-      if (globalPresence) need("ev:all", answers.all, "Serez-vous des nôtres ?");
+      if (globalPresence) need("ev:all", answers.all, "Seras-tu des nôtres ?");
       else for (const e of events) need(`ev:${e.id}`, answers[e.id], e.name);
     }
     if (mode("plusun") === "req") need("plus", plus, label("plusun"));
@@ -189,7 +189,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
       mot: note,
       custom: Object.fromEntries(Object.entries(custom).map(([k, v]) => [k, v === "oui" ? "Oui" : v === "non" ? "Non" : v])),
     };
-    // Gardée sur ce navigateur : le site de mariage la rappelle à l'invité (« Vous serez des nôtres »)
+    // Gardée sur ce navigateur : le site de mariage la rappelle à l'invité (« Tu seras des nôtres »)
     const remember = () => {
       try {
         const names = [`${me.first_name} ${me.last_name}`.trim(), withPlus ? `${other.first_name} ${other.last_name}`.trim() : ""].filter(Boolean);
@@ -262,7 +262,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
   );
 
   const hint = (key) => {
-    const text = key === "adresse" ? "Pour vous envoyer le faire-part et des mots doux." : null;
+    const text = key === "adresse" ? "Pour t'envoyer le faire-part et des mots doux." : null;
     return text ? <span className="gf-hint">{text}</span> : null;
   };
 
@@ -290,15 +290,15 @@ export default function GuestForm({ form, slug, onAnswered }) {
         if (globalPresence) {
           return (
             <fieldset key={key} className="gf-set">
-              <legend>Serez-vous des nôtres ?{star("presence")}</legend>
-              <Pills options={YESNO} value={answers.all || null} label="Serez-vous des nôtres ?" missing={isMissing("ev:all")} onChange={(v) => setAnswers((a) => ({ ...a, all: v }))} />
+              <legend>Seras-tu des nôtres ?{star("presence")}</legend>
+              <Pills options={YESNO} value={answers.all || null} label="Seras-tu des nôtres ?" missing={isMissing("ev:all")} onChange={(v) => setAnswers((a) => ({ ...a, all: v }))} />
             </fieldset>
           );
         }
         if (!events.length) return null;
         return (
           <fieldset key={key} className="gf-set">
-            <legend>Serez-vous des nôtres ?{star("presence")}</legend>
+            <legend>Seras-tu des nôtres ?{star("presence")}</legend>
             {events.map((e) => (
               <div key={e.id} className={`gf-row${isMissing(`ev:${e.id}`) ? " is-missing" : ""}`}>
                 <span>{e.name}</span>
@@ -310,11 +310,11 @@ export default function GuestForm({ form, slug, onAnswered }) {
       case "plusun":
         return (
           <fieldset key={key} className="gf-set">
-            <legend>Venez-vous accompagné(e) ?{star("plusun")}</legend>
-            <Pills options={YESNO} value={plus} label="Venez-vous accompagné(e) ?" onChange={setPlus} missing={isMissing("plus")} />
+            <legend>Viens-tu accompagné(e) ?{star("plusun")}</legend>
+            <Pills options={YESNO} value={plus} label="Viens-tu accompagné(e) ?" onChange={setPlus} missing={isMissing("plus")} />
             {withPlus ? (
               <div className="gf-box">
-                <div className="gf-box-title">Votre accompagnant(e)</div>
+                <div className="gf-box-title">Ton accompagnant(e)</div>
                 {person(other, setOther, "p_")}
                 {mode("adresse") !== "off" ? (
                   <>
@@ -348,8 +348,8 @@ export default function GuestForm({ form, slug, onAnswered }) {
               {label("regime")}
               {star("regime")}
             </legend>
-            {diet(me, setMe, "", "Vous")}
-            {withPlus ? diet(other, setOther, "p_", "Votre accompagnant(e)") : null}
+            {diet(me, setMe, "", "Toi")}
+            {withPlus ? diet(other, setOther, "p_", "Ton accompagnant(e)") : null}
           </fieldset>
         );
       case "enfants":
@@ -361,7 +361,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
             </legend>
             <div className="gf-g2">
               <label className="gf-field">
-                Combien d'enfants viennent avec vous ?
+                Combien d'enfants viennent avec toi ?
                 <input className={`gf-input${isMissing("kids") ? " is-missing" : ""}`} type="number" min="0" max="12" inputMode="numeric" value={kids.count} onChange={(e) => setKids({ ...kids, count: e.target.value })} />
               </label>
               {Number(kids.count) > 0 ? (
@@ -414,14 +414,14 @@ export default function GuestForm({ form, slug, onAnswered }) {
     );
 
   const questions = formQuestions(form);
-  // Le titre « Vos informations » coiffe le bloc prénom, nom et mail ; s'il n'ouvre pas le formulaire, « Votre réponse » le fait
+  // Le titre « Tes informations » coiffe le bloc prénom, nom et mail ; s'il n'ouvre pas le formulaire, « Ta réponse » le fait
   const identFirst = questions[0]?.kind === "ident";
 
   const errorText = {
-    full: "La liste des mariés est complète : contactez-les directement.",
-    closed: "La date limite de réponse est passée : contactez directement les mariés.",
-    busy: "Beaucoup de réponses arrivent en ce moment : réessayez dans une heure.",
-    failed: "Votre réponse n'a pas pu être envoyée. Vérifiez votre connexion et réessayez.",
+    full: "La liste des mariés est complète : contacte-les directement.",
+    closed: "La date limite de réponse est passée : contacte directement les mariés.",
+    busy: "Beaucoup de réponses arrivent en ce moment : réessaie dans une heure.",
+    failed: "Ta réponse n'a pas pu être envoyée. Vérifie ta connexion et réessaie.",
   };
 
   return (
@@ -438,18 +438,18 @@ export default function GuestForm({ form, slug, onAnswered }) {
         <div className="gf-done gf-done-ok" role="status">
           <strong>Merci, c'est noté.</strong>
           <span>
-            Votre réponse est arrivée chez les mariés. Pour changer une réponse, renvoyez simplement le formulaire avec les mêmes prénom et nom.
+            Ta réponse est arrivée chez les mariés. Pour la changer, renvoie simplement le formulaire avec les mêmes prénom et nom.
           </span>
         </div>
       ) : closed ? (
         <div className="gf-done" role="status">
           <strong>Les réponses sont closes.</strong>
-          <span>La date limite était le {dayMonth(form.deadline)}. Pour répondre quand même, écrivez directement aux mariés.</span>
+          <span>La date limite était le {dayMonth(form.deadline)}. Pour répondre quand même, écris directement aux mariés.</span>
         </div>
       ) : (
         <>
           <div className="gf-head">
-            <h2>{identFirst ? "Vos informations" : "Votre réponse"}</h2>
+            <h2>{identFirst ? "Tes informations" : "Ta réponse"}</h2>
             <p>
               {form.deadline ? `Merci de répondre avant le ${dayMonth(form.deadline)}. ` : ""}Les champs marqués d'un astérisque sont obligatoires.
             </p>
@@ -459,7 +459,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
             if (q.kind === "ident") {
               return (
                 <div key={q.id} className="gf-set">
-                  {identFirst ? null : <div className="gf-legend">Vos informations</div>}
+                  {identFirst ? null : <div className="gf-legend">Tes informations</div>}
                   {person(me, setMe, "")}
                 </div>
               );

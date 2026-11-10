@@ -1,6 +1,6 @@
 "use client";
 
-// Formulaire RSVP intégré directement dans la rubrique « Votre réponse » du site de mariage,
+// Formulaire RSVP intégré directement dans la rubrique « Ta réponse » du site de mariage,
 // au lieu d'un lien vers /f/[slug] : l'invité répond sans quitter le site. Même composant que la
 // page publique (GuestForm) ; les couleurs sont celles du site (app/f/form.css, .gf-embed).
 
