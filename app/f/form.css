@@ -34,7 +34,9 @@
 }
 
 /* Formulaire intégré dans une rubrique du site de mariage (GuestFormInline), pas de pleine hauteur ni de couverture */
+/* Pleine largeur : le bloc du site centre son contenu, et pendant l'envoi animé la carte n'a plus que des pastilles en position absolue */
 .gf-embed {
+  width: 100%;
   color: #1c1c1a;
   font-family: "Alan Sans", Helvetica, Arial, sans-serif;
   font-weight: 500;
@@ -411,13 +413,248 @@ textarea.gf-input {
   color: #4a4a45;
 }
 
-/* Réponse bien arrivée, sur la page publique : le vert de confirmation, pas la couleur du couple */
-.gf .gf-done-ok {
+/*
+ * Envoi animé (planches 3e2 du canvas), durées accordées à GATHER_MS et MERCI_MS de GuestForm :
+ * 1. les réponses en pastilles entrent dans le cercle, à la couleur du thème du couple ;
+ * 2. la coche verte de confirmation et « Merci pour ta réponse » restent seules à l'écran ;
+ * 3. la carte reprend son fond et se resserre sur le merci, la carte Merry arrive dessous.
+ */
+.gf-card {
+  scroll-margin-top: 16px;
+  transition: background-color 0.5s ease, border-color 0.5s ease, padding 0.5s ease;
+}
+
+.gf-card.is-flying,
+.s-root .gf-embed .gf-card.is-flying {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+.gf-fly {
+  --kx: 1;
+  --ky: 1;
+  position: relative;
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: gf-fade 0.3s ease both;
+}
+
+.gf-fly.is-done {
+  min-height: 0;
+  animation: none;
+}
+
+/* Dans le site de mariage, la carte est plus étroite (560 px) : les pastilles se resserrent */
+.gf-embed .gf-fly {
+  --kx: 0.8;
+}
+
+.gf-fly-orbit {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 34px);
+  width: 0;
+  height: 0;
+}
+
+.gf-fly-core {
+  position: absolute;
+  left: -60px;
+  top: -60px;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: var(--gf-deep);
+  animation: gf-core-in 0.9s ease 1.6s both;
+}
+
+.gf-fly.is-wait .gf-fly-core {
+  animation: gf-core-wait 1.2s ease-in-out infinite;
+}
+
+.gf-fly.is-merci .gf-fly-core {
+  animation: gf-core-out 0.9s ease both;
+}
+
+.gf-fly-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gf-accent);
+  background: #ffffff;
+  color: #1c1c1a;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(28, 28, 26, 0.1);
+  animation: gf-pill 2.1s cubic-bezier(0.4, 0, 0.3, 1) calc(var(--i) * 70ms) both;
+}
+
+.gf-fly-line {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 6px;
+  height: 28px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.gf-fly-line span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.gf-fly-line span:first-child {
+  animation: gf-line-out 1.25s ease 0.15s both;
+}
+
+.gf-fly-line span:last-child {
+  animation: gf-fade 0.4s ease 1.35s both;
+}
+
+.gf-fly-ok {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  text-align: center;
+}
+
+.gf-fly-tick {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  border-radius: 999px;
   background: #dff3e1;
 }
 
-.gf .gf-done-ok strong {
-  color: #1f6b30;
+.gf-fly-tick path {
+  fill: none;
+  stroke: #1f6b30;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+}
+
+.gf-fly-ok strong {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.gf-fly-ok > span:last-child {
+  font-size: 16px;
+  line-height: 1.4;
+  color: #4a4a45;
+}
+
+.s-root .gf-embed .gf-fly-ok > span:last-child {
+  color: var(--s-soft);
+}
+
+.gf-fly.is-merci .gf-fly-tick {
+  animation: gf-pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) 0.3s both;
+}
+
+.gf-fly.is-merci .gf-fly-tick path {
+  animation: gf-draw 0.4s cubic-bezier(0.65, 0, 0.35, 1) 0.5s both;
+}
+
+.gf-fly.is-merci .gf-fly-ok strong {
+  animation: gf-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s both;
+}
+
+.gf-fly.is-merci .gf-fly-ok > span:last-child {
+  animation: gf-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
+}
+
+@keyframes gf-pill {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(calc(var(--x) * var(--kx) * 1.7), calc(var(--y) * var(--ky) * 1.7)) rotate(var(--r)) scale(0.6);
+  }
+  28%,
+  52% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(calc(var(--x) * var(--kx)), calc(var(--y) * var(--ky))) rotate(var(--r)) scale(1);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(calc(var(--y) * var(--ky) * -0.6), calc(var(--x) * var(--kx) * 0.25)) rotate(calc(var(--r) * -3)) scale(0.9);
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0px, 0px) rotate(0deg) scale(0.3);
+  }
+}
+
+@keyframes gf-core-in {
+  0% { opacity: 0; transform: scale(0.2); }
+  45% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes gf-core-wait {
+  0%, 100% { transform: scale(1.15); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes gf-core-out {
+  0% { opacity: 1; transform: scale(1.15); }
+  45% { opacity: 0.3; transform: scale(2.6); }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+
+@keyframes gf-line-out {
+  0% { opacity: 0; }
+  15%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes gf-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gf-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes gf-draw {
+  from { stroke-dashoffset: 40; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes gf-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gf-arrive {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Carte Merry après l'envoi (page publique seulement) : aux couleurs du formulaire, pas au citron de Merry */
@@ -430,6 +667,7 @@ textarea.gf-input {
   border-radius: 24px;
   background: var(--gf-deep);
   text-align: center;
+  animation: gf-arrive 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
 }
 
 .gf-merry-by {
@@ -592,7 +830,8 @@ textarea.gf-input {
 
 @media (prefers-reduced-motion: reduce) {
   .gf-loader-word,
-  .gf-loadbar > span {
+  .gf-loadbar > span,
+  .gf-merry {
     animation: none;
   }
 }
@@ -638,6 +877,30 @@ textarea.gf-input {
 
   .gf-merry-cta {
     align-self: stretch;
+  }
+
+  .gf-fly,
+  .gf-embed .gf-fly {
+    --kx: 0.42;
+    --ky: 0.8;
+    min-height: 400px;
+  }
+
+  .gf-fly-pill {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .gf-fly-line {
+    font-size: 16px;
+  }
+
+  .gf-fly-ok strong {
+    font-size: 22px;
+  }
+
+  .gf-fly-ok > span:last-child {
+    font-size: 15px;
   }
 }
 
