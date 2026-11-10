@@ -1,7 +1,8 @@
 "use client";
 
 // Liste des invités sur téléphone : une seule tâche par écran, répondre vite.
-// - une ligne de chiffres (lien vers les indicateurs), une recherche avec les filtres dedans ;
+// - les chiffres dans un panneau (lien vers les indicateurs), avec la barre des réponses reçues ;
+// - une recherche avec les filtres dedans ;
 // - des sections par groupe (ou par réponse), repliables, avec leur compte ;
 // - une ligne par invité : nom, pastille de réponse ; glisser à droite = vient, à gauche = ne vient pas ;
 // - la pastille ouvre une feuille en bas : la réponse pour chaque moment, et la fiche.
@@ -11,7 +12,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GUEST_STATUS_LABEL, guestLabel, guestStatus } from "@/lib/dash/model";
+import { GUEST_STATUS_LABEL, guestLabel, guestStats, guestStatus } from "@/lib/dash/model";
 import { fullName } from "@/lib/dash/format";
 import { RSVP, RSVP_ORDER, pastel } from "@/lib/dash/theme";
 import TeamChanges from "./TeamChanges";
@@ -86,25 +87,34 @@ export default function InvitesMobile({ data, shown, stats, events, groups, idx,
   };
 
   const current = sheet ? byId.get(sheet) : null;
+  // Sur téléphone, seul un pourcentage tient sous le chiffre ; « (dont 2 non invités) » reste sur ordinateur
+  const cells = (stats || []).map((it) => ({ ...it, sub: it.sub && it.sub.includes("%") ? it.sub : undefined }));
+  const answers = useMemo(() => guestStats(data), [data]);
 
   return (
     <div className="d-mlist">
-      <div className="d-mlist-summary">
-        {/* Les indicateurs choisis dans « Vos indicateurs » (filtrés comme la liste quand on filtre) */}
-        <Link href="/dashboard/indicateurs/invites" className="d-mlist-counts" title="Choisir les indicateurs">
-          {filtered ? (
-            <span>
-              <strong>{shown.length}</strong> sur {data.guests.length}
-            </span>
-          ) : null}
-          {(stats || []).map((it) => (
-            <span key={it.id} className={`is-${it.id}`}>
-              <strong>{it.value}</strong> {it.label.toLowerCase()}
-            </span>
-          ))}
-          <Icon name="chev" size={12} sw={2.4} />
-        </Link>
-      </div>
+      {/* Les indicateurs choisis dans « Vos indicateurs », puis la part d'invités qui ont répondu */}
+      <Link href="/dashboard/indicateurs/invites" className="d-mkpi" title="Choisir les indicateurs" style={{ "--cols": cells.length || 1 }}>
+        {cells.map((it) => (
+          <span key={it.id} className="d-mkpi-cell">
+            <strong>
+              {it.value}
+              {it.sub ? <i> {it.sub}</i> : null}
+            </strong>
+            <small>{it.label}</small>
+          </span>
+        ))}
+        {answers.invited ? (
+          <span className="d-mkpi-bar" role="img" aria-label={`${answers.answered} réponses sur ${answers.invited} invités`}>
+            <span style={{ width: `${Math.round((answers.answered / answers.invited) * 100)}%` }} />
+          </span>
+        ) : null}
+        {filtered ? (
+          <span className="d-mkpi-note">
+            {shown.length} affiché{shown.length > 1 ? "s" : ""} sur {data.guests.length}
+          </span>
+        ) : null}
+      </Link>
 
       <div className="d-mbar">
         <label className="d-msearch">
