@@ -9,7 +9,7 @@ import { columnValues } from "@/lib/dash/codes";
 import { RSVP, pastel } from "@/lib/dash/theme";
 import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
-import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, Modal, Popover, RsvpMenu, useIsPhone } from "@/components/dash/ui";
+import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, LongTextCell, Modal, Popover, RsvpMenu, useIsPhone } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
 import InvitesMobile from "@/components/dash/InvitesMobile";
 import MomentsModal from "@/components/dash/MomentsModal";
@@ -1034,7 +1034,7 @@ export default function Invites() {
         return f.kind === "choice" ? (
           <ChoiceCell value={(g.custom || {})[f.id]} options={f.options} label={f.name} onChange={saveCustom} />
         ) : (
-          <InlineEdit value={(g.custom || {})[f.id]} label={f.name} width={110} onSave={saveCustom} className="d-cell-clip" />
+          <LongTextCell value={(g.custom || {})[f.id]} label={f.name} onSave={saveCustom} />
         );
       },
     })),

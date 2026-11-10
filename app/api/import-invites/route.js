@@ -172,7 +172,9 @@ function buildContent(body) {
     });
   }
   if (s.kind === "text") {
-    content.push({ type: "text", text: `Fichier « ${name} »${where} :\n${String(s.content || "").slice(0, MAX_TEXT)}` });
+    // Suite d'un tableau découpé : la première ligne du passage est une personne, pas un en-tête
+    const middle = s.context ? " (suite du tableau : la première ligne de ce passage est un invité, pas un en-tête, sauf si elle répète l'en-tête ci-dessus)" : "";
+    content.push({ type: "text", text: `Fichier « ${name} »${where}${middle} :\n${String(s.content || "").slice(0, MAX_TEXT)}` });
   } else if (s.kind === "image" && /^image\/(png|jpeg|gif|webp)$/.test(s.mime)) {
     content.push({ type: "text", text: `Fichier « ${name} »${where} (photo) :` });
     content.push({ type: "image", source: { type: "base64", media_type: s.mime, data: String(s.content || "") } });

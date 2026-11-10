@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
 import { normalize, uid } from "@/lib/dash/format";
 import { columnProfiles, groupsToCreate, resolvePick } from "@/lib/dash/codes";
-import { guestKey, rsvpFromCell } from "@/lib/dash/importParse";
+import { guestKey, rsvpFromCell, unreadText, withUnreadRows } from "@/lib/dash/importParse";
 import { reasonText, useImports } from "@/lib/dash/imports";
 import { badgeOf, pastedEntry, readFile } from "@/lib/dash/importRead";
 import { ColumnsReview } from "@/components/dash/ColumnsReview";
@@ -222,9 +222,15 @@ export default function Importer() {
   }, [groups]);
 
   // Lecture locale (sans IA) : tableaux et texte ; les PDF et photos attendent l'IA
+  // Lignes du fichier qui n'ont donné personne : ajoutées « à vérifier », avec le texte d'origine
+  function checkRows(entry, guests, why) {
+    const res = withUnreadRows(guests, entry.rows, groups.map((g) => g.name));
+    return { guests: res.guests, why: [why, unreadText(res.unread)].filter(Boolean).join(" ") || null };
+  }
+
   function fallbackLocal(entry, why) {
     if (entry.local && entry.local.guests.length) {
-      patchFile(entry.id, { status: "lue", guests: entry.local.guests, extraColumns: entry.local.extraColumns || [], columns: entry.local.columns || [], byAi: false, why });
+      patchFile(entry.id, { status: "lue", ...checkRows(entry, entry.local.guests, why), extraColumns: entry.local.extraColumns || [], columns: entry.local.columns || [], byAi: false });
     } else if (entry.local) {
       patchFile(entry.id, { status: "erreur", why: "Aucun nom trouvé dans ce fichier." });
     } else {
@@ -322,10 +328,9 @@ export default function Importer() {
     patchFile(entry.id, {
       status: "lue",
       byAi: true,
-      guests: found,
+      ...checkRows(entry, found, ok.length < units.length ? `${ok.length} parties sur ${units.length} lues : retirez le fichier et réessayez pour le reste.` : null),
       extraColumns: [...new Set(ok.flatMap((r) => r.extraColumns || []))],
       columns: ok[0]?.columns || [],
-      why: ok.length < units.length ? `${ok.length} parties sur ${units.length} lues : retirez le fichier et réessayez pour le reste.` : null,
     });
   }
 
@@ -401,7 +406,7 @@ export default function Importer() {
   const rows = useMemo(() => {
     const existingByKey = new Map(guests.map((g) => [guestKey(g), g]));
     const existingByEmail = new Map(guests.filter((g) => g.email).map((g) => [normalize(g.email), g]));
-    const seen = new Set();
+    const seen = new Map(); // nom complet -> fichier où il a été lu
     const out = [];
     files.forEach((f) => {
       f.guests.forEach((g, i) => {
@@ -416,12 +421,16 @@ export default function Importer() {
             if (hit) row.group_id = hit.id || hit.vid;
           }
         }
-        const key = guestKey(row);
+        // Seul un nom complet désigne sûrement la même personne : « Leroy » sans prénom (famille de 4, Mme Dupont) peut revenir
         const named = row.first_name || row.last_name;
-        if (named && key && seen.has(key)) return; // même personne dans deux fichiers
-        if (named && key) seen.add(key);
-        const dup = (named && key && existingByKey.get(key)) || (row.email && existingByEmail.get(normalize(row.email)));
+        const key = row.first_name && row.last_name ? guestKey(row) : "";
+        const twin = key ? seen.get(key) : null;
+        if (twin && twin !== f.id) return; // même personne dans deux fichiers
+        if (key && !twin) seen.set(key, f.id);
+        const dup = (key && existingByKey.get(key)) || (row.email && existingByEmail.get(normalize(row.email)));
         row.dup = dup || null;
+        // Deux fois le même nom dans un fichier : on garde les deux lignes, à vérifier
+        if (twin && !dup && !row.uncertain && !(edits[id] && "uncertain" in edits[id])) Object.assign(row, { uncertain: true, note: row.note || "Même nom qu'une autre ligne du fichier : doublon ?" });
         row.presence = {};
         for (const [c, ev] of eventForColumn) {
           const v = rsvpFromCell((row.extra || {})[c]);
