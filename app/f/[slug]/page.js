@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { longDate } from "@/lib/dash/format";
-import { formTheme, merryProof } from "@/lib/dash/form";
+import { formTheme } from "@/lib/dash/form";
 import GuestForm, { useGuestForm } from "@/components/site/GuestForm";
 
 // Lien vers le site : la source fait compter ces visites et inscriptions à part (compteur anonyme et briefs.source)
@@ -47,7 +47,7 @@ export default function GuestFormPage() {
 
   return (
     <main className={`gf${answered ? " is-answered" : ""}`} style={style}>
-      {/* Après l'envoi, la photo et le titre ne reviennent pas : le merci puis la carte Merry, sur fond blanc */}
+      {/* Après l'envoi, la photo et le titre ne reviennent pas : le merci, puis seulement Merry, sur fond blanc */}
       {answered ? null : <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50}%` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />}
       <div className="gf-wrap">
         {answered ? null : <section className="gf-card gf-hero">
@@ -71,52 +71,47 @@ export default function GuestFormPage() {
 
         {answered ? (
           <section className="gf-merry" aria-label="Merry">
-            <span className="gf-merry-by">
-              Créé avec <b>Merry</b>
-            </span>
-            <div className="gf-merry-head">
-              <p>{merryProof(form)}</p>
-              <h2>Et toi, c'est pour quand&nbsp;?</h2>
-            </div>
+            <span className="gf-merry-logo">Merry</span>
             <ul className="gf-merry-tags">
               <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="9" cy="8" r="3.5" />
                   <path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5" />
                   <circle cx="17" cy="9" r="2.5" />
                   <path d="M16 14.6c2.6.2 4.6 2 5.3 5.4" />
                 </svg>
-                Liste d'invités
+                Invités
               </li>
               <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="3" y="6" width="18" height="13" rx="2" />
                   <path d="M3 10h18M16.5 14.5h1.5" />
                 </svg>
                 Budget
               </li>
               <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="10" cy="10" r="6" />
-                  <path d="M21 21l-4.3-4.3" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 9h16l-1.5-5h-13z" />
+                  <path d="M5 9v11h14V9M10 20v-5h4v5" />
                 </svg>
                 Prestataires
               </li>
             </ul>
             <a className="gf-merry-cta" href={MERRY} target="_blank" rel="noreferrer">
-              Organiser mon mariage
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              Découvrir Merry
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </a>
-            <span className="gf-merry-free">Gratuit pour les mariés.</span>
           </section>
         ) : null}
 
-        <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
-          <b>Merry</b>
-          <span>withmerry.com</span>
-        </a>
+        {answered ? null : (
+          <a className="gf-foot" href={MERRY} target="_blank" rel="noreferrer">
+            <b>Merry</b>
+            <span>withmerry.com</span>
+          </a>
+        )}
       </div>
     </main>
   );
