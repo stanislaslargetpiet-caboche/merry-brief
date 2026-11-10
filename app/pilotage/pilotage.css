@@ -517,7 +517,13 @@
 .pl-creneau h4 { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; font-size: 13px; font-weight: 700; color: var(--ink-muted); }
 .pl-canal { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--sunken); }
 .pl-ligne-reseau { min-height: 50px; }
+/* Mails automatiques : adresse et objet sur une ligne chacun, l'heure en pastille à droite, téléphone compris */
+.pl-ligne-mail { min-height: 50px; }
+.pl-ligne-mail .pl-ligne-t strong, .pl-ligne-mail .pl-ligne-t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 700px) {
   .pl-bug { flex-wrap: wrap; }
   .pl-bug .pl-ligne-a { margin-left: auto; }
+  .pl-ligne.pl-ligne-mail { flex-wrap: nowrap; }
+  .pl-ligne-mail .pl-ligne-t { flex-basis: auto; }
+  .pl-ligne-mail .pl-pill { margin-left: 0; }
 }

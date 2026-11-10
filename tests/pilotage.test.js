@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, replayUrl, splitSeries, sumBy, sumMesure, templatePath } from "@/lib/server/pilotage/shape";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, fmtHeure, replayUrl, splitSeries, sumBy, sumMesure, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
-import { envoisAuto, sendsByDay } from "@/lib/server/pilotage/resend";
+import { envoisAuto, readResend, sendsByDay } from "@/lib/server/pilotage/resend";
 import { SUBJECT } from "@/lib/server/nouveautesMail";
 
 describe("splitSeries", () => {
@@ -72,6 +72,14 @@ describe("mise en forme", () => {
     expect(fmtDuration(125)).toBe("2 min 05 s");
     expect(fmtDuration(180)).toBe("3 min");
     expect(fmtDuration(3900)).toBe("1 h 05");
+  });
+  it("heure d'un envoi, heure de Paris, avec le jour quand ce n'est pas aujourd'hui", () => {
+    const now = Date.parse("2026-11-10T15:00:00Z");
+    expect(fmtHeure("2026-11-10T13:32:00Z", now)).toBe("14 h 32");
+    expect(fmtHeure("2026-11-09T23:30:00Z", now)).toBe("0 h 30");
+    expect(fmtHeure("2026-11-09T17:05:00Z", now)).toBe("Hier à 18 h 05");
+    expect(fmtHeure("2026-11-08T08:10:00Z", now)).toBe("8 nov. à 9 h 10");
+    expect(fmtHeure(null, now)).toBe("–");
   });
   it("somme une clé en ignorant les valeurs absentes", () => {
     expect(sumBy([{ n: 2 }, { n: "3" }, {}], "n")).toBe(5);
@@ -236,6 +244,30 @@ describe("envoisAuto", () => {
     expect(r.depuis).toBe("2026-11-06");
     expect(r.par_jour).toEqual([["2026-11-07", 2]]);
     expect(envoisAuto([], null)).toBeNull();
+  });
+});
+
+describe("readResend", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+  it("garde les 15 derniers envois automatiques, du plus récent au plus ancien, sans les campagnes", async () => {
+    vi.stubEnv("RESEND_READ_API_KEY", "re_test");
+    const data = Array.from({ length: 40 }, (_, i) => ({
+      id: `m${i}`,
+      created_at: new Date(Date.parse("2026-11-10T15:00:00Z") - i * 60000).toISOString(),
+      to: [`invite${i}@exemple.fr`],
+      subject: i % 3 === 0 ? SUBJECT : "Ta réponse est bien arrivée",
+      last_event: "delivered",
+    }));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data }) })));
+    const r = await readResend(7);
+    const derniers = r.hors_campagnes.derniers;
+    expect(derniers).toHaveLength(15);
+    expect(derniers.some((m) => m.sujet === SUBJECT)).toBe(false);
+    expect(derniers[0]).toMatchObject({ a: "invite1@exemple.fr", sujet: "Ta réponse est bien arrivée", quand: data[1].created_at });
+    expect(derniers.map((m) => m.quand)).toEqual([...derniers.map((m) => m.quand)].sort().reverse());
   });
 });
 

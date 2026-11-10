@@ -15,8 +15,8 @@ import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
-import { alignSeries, dayList, fmtDateTime, fmtInt, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
-import { DayBars, DayLine, PageContext, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
+import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
+import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
@@ -374,11 +374,30 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
 
       <Section id="mails">
         {rs ? (
-          <TileChart>
-            <Tile label="Envoyés" value={envois ? sumBy(mailSplit.current, "envois") : mails.envoyes} prev={envois ? sumMesure(mailSplit.previous, "envois") : null} sub={!envois && rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayLine title="Envois par jour" series={mailSeries} valeur="envois" label="Envois" days={jours} />} />
-            <Tile label="Taux de délivrance" value={pctOf(mails.par_etat.delivered || 0, mails.envoyes)} format={pct} />
-            <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse />
-          </TileChart>
+          <>
+            <TileChart>
+              <Tile label="Envoyés" value={envois ? sumBy(mailSplit.current, "envois") : mails.envoyes} prev={envois ? sumMesure(mailSplit.previous, "envois") : null} sub={!envois && rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayLine title="Envois par jour" series={mailSeries} valeur="envois" label="Envois" days={jours} />} />
+              <Tile label="Taux de délivrance" value={pctOf(mails.par_etat.delivered || 0, mails.envoyes)} format={pct} />
+              <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse />
+            </TileChart>
+            <Card title="Derniers envois">
+              {mails.derniers?.length ? (
+                <ul className="pl-lignes">
+                  {mails.derniers.map((m, i) => (
+                    <li key={m.id || i} className="pl-ligne pl-ligne-mail">
+                      <span className="pl-ligne-t">
+                        <strong>{m.a || "–"}</strong>
+                        <small>{m.sujet || "Sans objet"}</small>
+                      </span>
+                      <Pill>{fmtHeure(m.quand)}</Pill>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="pl-empty">Aucun envoi</div>
+              )}
+            </Card>
+          </>
         ) : (
           nonLu("Resend", data.resend?.raison)
         )}
