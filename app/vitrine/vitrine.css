@@ -6,7 +6,7 @@
 .wv { min-height: 100dvh; background: #ffffff; color: #000000; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 500; -webkit-font-smoothing: antialiased; }
 .wv a { color: inherit; }
 .wv main:focus { outline: none; }
-.wv-skip { position: absolute; left: 16px; top: -100px; z-index: 30; padding: 12px 18px; border-radius: 999px; background: #000; color: #fff700; font-weight: 600; text-decoration: none; }
+.wv-skip { position: absolute; left: 16px; top: -100px; z-index: 30; padding: 12px 18px; border-radius: 999px; background: #000; color: #bfe9a6; font-weight: 600; text-decoration: none; }
 .wv-skip:focus { top: 16px; }
 .wv button { font: inherit; }
 
@@ -41,7 +41,7 @@
 
 .wv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 30px; border-radius: 300px; font-size: 16px; font-weight: 500; text-transform: uppercase; text-decoration: none; white-space: nowrap; box-sizing: border-box; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s; }
 .wv-btn:hover { transform: scale(0.97); }
-.wv .wv-btn-lime { background: #fff700; color: #000000; }
+.wv .wv-btn-lime { background: #bfe9a6; color: #000000; }
 .wv .wv-btn-dark { background: #000000; color: #ffffff; }
 .wv-btn-line { border-color: currentColor; background: transparent; }
 .wv-btn-small { min-height: 44px; padding: 0 24px; font-size: 14px; }
@@ -54,8 +54,8 @@
 .wv-p { margin: 0; font-size: 16px; line-height: 1.6; }
 
 .wv-sec { padding: 6vw 4vw; box-sizing: border-box; }
-.wv-lime { background: #fff700; }
-.wv-black { background: #000000; color: #fff700; }
+.wv-lime { background: #bfe9a6; }
+.wv-black { background: #000000; color: #bfe9a6; }
 .wv-center { display: flex; flex-direction: column; align-items: center; gap: 32px; text-align: center; }
 .wv-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; align-items: center; }
 .wv-split-big { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
@@ -69,11 +69,11 @@
 .wv-hero-in { display: flex; flex-direction: column; gap: 22px; max-width: 620px; }
 .wv-hero-media { width: 100%; }
 .wv-hero-media .mrb0-card { width: 100% !important; }
-.wv-eyebrow { display: inline-flex; align-self: flex-start; margin: 0; background: #fff700; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.wv-eyebrow { display: inline-flex; align-self: flex-start; margin: 0; background: #bfe9a6; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .wv-cta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 28px; }
 .wv-textlink { font-size: 16px; font-weight: 500; text-decoration: underline; text-underline-offset: 5px; }
 .wv-proof-line { margin: 0; font-size: 15px; line-height: 1.5; color: #3d3c38; }
-.wv-proof-hl { background: #fff700; padding: 0 4px; }
+.wv-proof-hl { background: #bfe9a6; padding: 0 4px; }
 
 /* Comment ça marche : trois étapes, un écran du tableau de bord chacune */
 
@@ -81,7 +81,7 @@
 .wv-sticky { display: none; }
 
 .wv-stats { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 14px 40px; }
-.wv-stat b { display: inline-block; font-size: clamp(17px, 2.04vw, 26px); font-weight: 500; background: #fff700; padding: 0 6px; }
+.wv-stat b { display: inline-block; font-size: clamp(17px, 2.04vw, 26px); font-weight: 500; background: #bfe9a6; padding: 0 6px; }
 .wv-stat span { display: block; margin-top: 8px; font-size: 16px; max-width: 200px; }
 
 .wv-faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 6vw; }
@@ -97,7 +97,7 @@
 .wv-acc-small summary { font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; }
 .wv-acc-small p { font-size: 16px; }
 
-.wv-guest { background: #000000; color: #fff700; padding: 4vw 0 6vw; overflow: hidden; text-align: center; }
+.wv-guest { background: #000000; color: #bfe9a6; padding: 4vw 0 6vw; overflow: hidden; text-align: center; }
 .wv-marquee { display: flex; width: max-content; animation: wv-marquee 18s linear infinite; }
 .wv-marquee span { font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(56px, 10vw, 150px); line-height: 1.1; padding-right: 0.4em; white-space: nowrap; }
 @keyframes wv-marquee { to { transform: translateX(-50%); } }
@@ -112,7 +112,7 @@
 .wv-end { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); gap: 5vw; align-items: start; }
 .wv-end ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 16px; }
 
-.wv-about { background: #fff700; padding: 6vw 4vw; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5vw; align-items: start; }
+.wv-about { background: #bfe9a6; padding: 6vw 4vw; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5vw; align-items: start; }
 .wv-legal { max-width: 820px; margin: 0 auto; padding: 6vw 16px 80px; }
 .wv-legal .wv-block { margin-top: 32px; }
 .wv-legal ul { padding-left: 22px; }
@@ -147,7 +147,7 @@
 .wv-flow-or button { background: none; border: 0; padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; color: inherit; }
 .wv-flow-match { display: flex; gap: 20px; align-items: center; padding: 16px; border: 1px solid #000; border-radius: 24px; background: #fff; text-align: left; }
 .wv-flow-match img, .wv-flow-match-ph { width: 132px; height: 132px; border-radius: 16px; object-fit: cover; flex: none; }
-.wv-flow-match-ph { display: flex; align-items: center; justify-content: center; background: #fff700; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 700; font-size: 32px; text-transform: uppercase; }
+.wv-flow-match-ph { display: flex; align-items: center; justify-content: center; background: #bfe9a6; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 700; font-size: 32px; text-transform: uppercase; }
 .wv-flow-match b { display: block; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 700; font-size: 26px; line-height: 1.15; }
 .wv-flow-match p { margin: 6px 0 0; font-size: 16px; line-height: 1.45; }
 .wv-flow-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: min(900px, 100%); }
@@ -176,17 +176,17 @@
 .wv-cmp-row { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 24px; padding: 18px 0; border-bottom: 1px solid rgba(0, 0, 0, .15); font-size: 17px; line-height: 1.45; }
 .wv-cmp-row > span:first-child { font-weight: 700; }
 .wv-cmp-row > span:nth-child(2) { color: #6b6a63; }
-.wv-cmp-row > span:nth-child(3) { font-weight: 600; background: linear-gradient(transparent 60%, #fff700 60%); justify-self: start; }
+.wv-cmp-row > span:nth-child(3) { font-weight: 600; background: linear-gradient(transparent 60%, #bfe9a6 60%); justify-self: start; }
 .wv-cmp-head { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; }
 .wv-cmp-head > span:nth-child(3) { background: none; }
 .wv-guar { display: flex; flex-direction: column; gap: 24px; }
 .wv-guar .wv-h3 { max-width: 1000px; }
 .wv-guar .wv-lead { max-width: 760px; }
-.wv-guar-k { display: inline-flex; align-self: flex-start; margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; background: #000000; color: #fff700; padding: 7px 16px; border-radius: 999px; }
-.wv-end .wv-btn-line { color: #fff700; border-color: #fff700; }
+.wv-guar-k { display: inline-flex; align-self: flex-start; margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; background: #000000; color: #bfe9a6; padding: 7px 16px; border-radius: 999px; }
+.wv-end .wv-btn-line { color: #bfe9a6; border-color: #bfe9a6; }
 .wv-black .wv-steps p { color: #ffffff; }
 .wv-black .wv-steps p::before { background: #ffffff; }
-.wv-black .wv-btn-dark { background: #fff700; color: #000000; }
+.wv-black .wv-btn-dark { background: #bfe9a6; color: #000000; }
 
 .wv-foot { background: #e1dfd9; padding: 4vw; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4vw; }
 .wv-quote { margin: 0; font-size: 14.4px; line-height: 1.6; }
