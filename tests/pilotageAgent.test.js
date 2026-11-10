@@ -21,6 +21,17 @@ describe("bugs du pilotage", () => {
     expect(reparer).toContain("Clic mort sur iPhone.");
     expect(() => briefAgent(bug, "fusionner")).toThrow();
   });
+  it("impose la même réponse en quatre rubriques, à faire avant le détail technique", () => {
+    for (const mode of ["audit", "reparer"]) {
+      for (const brief of [briefAgent(bug, mode), briefAgent({ titre: "20 clic(s) de rage" }, mode, true)]) {
+        const ordre = ["1. Verdict", "2. Effet", "3. À faire", "4. Détail technique"].map((r) => brief.indexOf(r));
+        expect(ordre.every((i) => i > -1)).toBe(true);
+        expect([...ordre].sort((a, b) => a - b)).toEqual(ordre);
+        expect(brief).toContain("en le tutoyant");
+        expect(brief).toContain("Je recommande A");
+      }
+    }
+  });
   it("le fil range les bugs, les tâches et le réseau dans leur groupe", () => {
     const fil = buildFil({ today: "2026-11-09", items: [bug, { ...bug, id: "b", projet: "", titre: "Appeler Astrid" }], reseau: { plan: { jour: "2026-11-09", creneaux: [{ id: "ecrire", label: "14 h 00 · Écrire", lignes: [{ id: "p", statut: "a_faire", nom: "X", canal: "linkedin" }] }] } } });
     expect(fil.map((l) => l.groupe).sort()).toEqual(["bugs", "reseau", "taches"]);
