@@ -5982,10 +5982,18 @@ button.d-group-none {
   background: var(--d-ink);
   color: #ffffff;
   font-size: 13.5px;
-  text-decoration: none;
   box-shadow: 0 12px 32px rgba(28, 28, 26, 0.2);
 }
-.d-import-badge span:nth-child(2) {
+.d-import-link {
+  display: inline-flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.d-import-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5993,6 +6001,21 @@ button.d-group-none {
 .d-import-badge strong {
   flex: none;
   color: var(--d-lime);
+}
+.d-import-close {
+  flex: none;
+  display: inline-flex;
+  margin: -6px -10px -6px -4px;
+  padding: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.d-import-close:hover,
+.d-import-close:focus-visible {
+  color: #ffffff;
 }
 .d-import-dot {
   flex: none;
