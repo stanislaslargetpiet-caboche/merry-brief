@@ -15,8 +15,8 @@
   --d-veil: #fffceb;
   --d-red-bg: #fde0de;
   --d-red-ink: #b42318;
-  --d-green-bg: #dff3e1;
-  --d-green-ink: #1f6b30;
+  --d-green-bg: #d4f1e8;
+  --d-green-ink: #0b6a4f;
   --d-orange-bg: #ffe6cc;
   --d-orange-ink: #8a4b0f;
   --d-info-bg: #ebe6fb;
@@ -3495,8 +3495,8 @@ button.d-rsvp:hover {
 }
 
 .d-gcard-status.is-oui {
-  background: #dff3e1;
-  color: #1f6b30;
+  background: #d4f1e8;
+  color: #0b6a4f;
 }
 
 .d-gcard-status.is-attente {
@@ -7035,8 +7035,8 @@ button.d-group-none {
   padding: 2px 10px;
   border: 0;
   border-radius: 999px;
-  background: #dff3e1;
-  color: #1f6b30;
+  background: #d4f1e8;
+  color: #0b6a4f;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -7044,8 +7044,8 @@ button.d-group-none {
 }
 
 .d-budget-poste-text button.d-line-tag {
-  background: #dff3e1;
-  color: #1f6b30;
+  background: #d4f1e8;
+  color: #0b6a4f;
   border-radius: 999px;
   font-size: 12.5px;
   padding: 2px 10px;
@@ -14989,8 +14989,8 @@ body.d-noscroll {
 }
 
 .d-org-status.is-on {
-  background: #dff3e1;
-  color: #1f6b30;
+  background: #d4f1e8;
+  color: #0b6a4f;
 }
 
 .d-org-mail {
@@ -17141,7 +17141,7 @@ a.d-tc-item:hover {
 }
 
 .d-seat-count.is-exact {
-  color: #1f6b30;
+  color: #0b6a4f;
 }
 
 .d-seat-count.is-over {
@@ -17520,7 +17520,7 @@ button.d-gcard-status.is-open svg {
 }
 
 .d-mcard-hints .is-oui {
-  color: #1f6b30;
+  color: #0b6a4f;
 }
 
 .d-mcard-hints .is-non {
@@ -17595,8 +17595,8 @@ button.d-gcard-status.is-open svg {
 }
 
 .d-mcard-status.is-oui {
-  background: #dff3e1;
-  color: #1f6b30;
+  background: #d4f1e8;
+  color: #0b6a4f;
 }
 
 .d-mcard-status.is-attente {
