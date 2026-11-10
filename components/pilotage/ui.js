@@ -4,7 +4,7 @@
 // dans les graphes, l'accent seulement pour aujourd'hui, toujours cerclé d'encre : seul sur blanc il ne se lit pas
 // (DESIGN.md). Une page tient en cinq chiffres au plus, un graphe, puis ses menus.
 
-import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef, useState } from "react";
+import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useState } from "react";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { barPath, courbePath, echelle, indicesAxe, pasAxe } from "@/lib/pilotage/graphes";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
@@ -75,17 +75,19 @@ const jourLong = (jour) => {
 };
 const largeurTexte = (texte) => String(texte).length * 6.4;
 
-// Largeur réelle du graphe : le dessin se fait en pixels, pour garder des textes de 11 px sur téléphone comme à l'écran
+// Largeur réelle du graphe : le dessin se fait en pixels, pour garder des textes de 11 px sur téléphone comme à l'écran.
+// Ref par fonction : un graphe d'abord vide (« Pas encore de données ») puis rempli par « Actualiser » ou un
+// changement de période n'a sa boîte qu'au second rendu, et doit la mesurer à ce moment-là.
 function useLargeur() {
-  const ref = useRef(null);
+  const [boite, setBoite] = useState(null);
   const [largeur, setLargeur] = useState(0);
   useEffect(() => {
-    if (!ref.current) return undefined;
+    if (!boite) return undefined;
     const observer = new ResizeObserver(([e]) => setLargeur(Math.round(e.contentRect.width)));
-    observer.observe(ref.current);
+    observer.observe(boite);
     return () => observer.disconnect();
-  }, []);
-  return [ref, largeur];
+  }, [boite]);
+  return [setBoite, largeur];
 }
 
 function ChartHead({ title, children }) {
