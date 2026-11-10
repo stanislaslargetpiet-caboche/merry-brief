@@ -3,15 +3,11 @@
 // Corps de la page Prestataires du site vitrine : extrait pour lire la langue (useLang), le
 // chargement des chiffres du catalogue (getProof) reste côté serveur dans app/vitrine/partenaires/page.js.
 
-import Block from "./Block";
 import { DEMO, PRO } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
 import { formatProof } from "@/lib/vitrine/proofFormat";
 import { PARTENAIRES_TEXT, PARTENAIRES_COMPARATIF, PARTENAIRES_FAQ } from "@/lib/i18n/vitrine-partenaires";
-import avantApres, { en as avantApresEn } from "@/lib/vitrine/blocks/pro-avant-apres";
-import criteres, { en as criteresEn } from "@/lib/vitrine/blocks/pro-criteres";
-import credits, { en as creditsEn } from "@/lib/vitrine/blocks/pro-credits";
-import fiche, { en as ficheEn } from "@/lib/vitrine/blocks/pro-fiche";
+import ProScenes from "./ProScenes";
 
 // Planche « Site-Prestataires » du canvas « 9 - Site vitrine » (30 oct. 2026)
 // Le nom tapé ici arrive dans la recherche de « Retrouvez votre établissement » (/pro?etablissement=…)
@@ -55,7 +51,7 @@ export default function PartenairesBody({ proof: rawProof }) {
             {t.alreadyIn}
           </a>
         </div>
-        <Block fr={avantApres} en={avantApresEn} className="wv-media wv-media-wide" />
+        <ProScenes block="avant" />
         <p className="wv-lead" style={{ maxWidth: 620 }}>
           {t.notYet}
         </p>
@@ -75,7 +71,7 @@ export default function PartenairesBody({ proof: rawProof }) {
           <p className="wv-lead">{t.creditsLead1}</p>
           <p className="wv-lead">{t.creditsLead2}</p>
         </div>
-        <Block fr={credits} en={creditsEn} className="wv-media" />
+        <ProScenes block="credits" />
       </section>
 
       <section className="wv-sec wv-cmp-sec" aria-labelledby="wv-cmp-t">
@@ -101,7 +97,7 @@ export default function PartenairesBody({ proof: rawProof }) {
       </section>
 
       <section className="wv-sec wv-black wv-split wv-split-big" aria-label={t.reqAria}>
-        <Block fr={criteres} en={criteresEn} className="wv-media" />
+        <ProScenes block="demande" />
         <div className="wv-stack">
           <h2 className="wv-h3">{t.reqTitle}</h2>
           <div className="wv-steps">
@@ -122,7 +118,7 @@ export default function PartenairesBody({ proof: rawProof }) {
       </section>
 
       <section className="wv-sec wv-split wv-split-big" aria-label={t.ficheAria}>
-        <Block fr={fiche} en={ficheEn} className="wv-media" />
+        <ProScenes block="fiche" />
         <div className="wv-stack">
           <h2 className="wv-h3">{t.ficheTitle}</h2>
           <p className="wv-lead">{t.ficheLead}</p>
