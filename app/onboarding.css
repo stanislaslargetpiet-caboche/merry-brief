@@ -587,6 +587,12 @@ h1.question {
   background: #ffffff;
 }
 
+/* Onboarding des couples et connexion en pistache (design system v3, D-241) ; l'écran de préparation
+   de l'espace prestataires (components/pro/Preparation.js) n'a pas cette classe et garde le citron. */
+.ob.ob-couple {
+  --lime: #bfe9a6;
+}
+
 .ob-header {
   position: relative;
   z-index: 2;
