@@ -378,7 +378,8 @@ export function Ranked({ rows, label = "label", value = "n", format = fmtInt, em
   );
 }
 
-export function Table({ cols, rows, empty = "Rien sur la période", max = 12 }) {
+// `rowClass(r)` : classe facultative de la ligne (Par couple : « is-test » pour les couples de test)
+export function Table({ cols, rows, empty = "Rien sur la période", max = 12, rowClass }) {
   const list = (rows || []).slice(0, max);
   if (!list.length) return <div className="pl-empty">{empty}</div>;
   // Colonnes voisines au même `group` : un intitulé commun au-dessus d'elles
@@ -413,7 +414,7 @@ export function Table({ cols, rows, empty = "Rien sur la période", max = 12 }) 
         </thead>
         <tbody>
           {list.map((r, i) => (
-            <tr key={r.id || i}>
+            <tr key={r.id || i} className={rowClass?.(r) || undefined}>
               {cols.map((c) => (
                 <td key={c.key} className={c.num ? "is-num" : ""}>
                   {c.render ? c.render(r) : r[c.key] ?? "–"}
