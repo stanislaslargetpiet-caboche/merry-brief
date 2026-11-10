@@ -21,6 +21,8 @@ import { ChoiceCell, ColumnModal, FieldHeader } from "@/components/dash/ColumnMo
 import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
 import TeamChanges from "@/components/dash/TeamChanges";
+import Doublons from "@/components/dash/Doublons";
+import { findDuplicates, mergePlan, pairKey } from "@/lib/dash/guestDuplicates";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -687,6 +689,58 @@ export default function Invites() {
   }
   applyRef.current = applyValues;
 
+  // Doublons possibles : les paires refusées sont gardées sur cet appareil
+  const rejectKey = `merry.invites.nonDoublons.${wedding.id}`;
+  const [rejected, setRejected] = useState([]);
+  useEffect(() => {
+    try {
+      setRejected(JSON.parse(localStorage.getItem(rejectKey) || "[]"));
+    } catch {}
+  }, [rejectKey]);
+  const duplicates = useMemo(() => findDuplicates(guests, data.responses, rejected), [guests, data.responses, rejected]);
+  function rejectDuplicate(s) {
+    const next = [...rejected, pairKey(s.keepId, s.dropId)];
+    setRejected(next);
+    try {
+      localStorage.setItem(rejectKey, JSON.stringify(next));
+    } catch {}
+  }
+  // Fusion : la ligne du couple reste (son nom, son groupe), l'invité y reporte réponses, coordonnées et
+  // place à table ; l'autre ligne part. « Annuler » remet les deux lignes comme avant.
+  async function mergeDuplicate(s) {
+    const keep = byId.get(s.keepId);
+    const drop = byId.get(s.dropId);
+    if (!keep || !drop) return;
+    const plan = mergePlan(keep, drop, { responses: data.responses, seating: data.seating || [] });
+    const dropAnswers = data.responses.filter((r) => r.guest_id === drop.id);
+    const dropSeats = (data.seating || []).filter((x) => x.guest_id === drop.id);
+    const keepWas = Object.fromEntries(Object.keys(plan.patch).map((k) => [k, keep[k] ?? null]));
+    const keepAnswers = new Map(data.responses.filter((r) => r.guest_id === keep.id).map((r) => [r.event_id, r.status]));
+    if (Object.keys(plan.patch).length) await dash.updateGuests([keep.id], plan.patch);
+    for (const r of plan.carried) await dash.setResponses([keep.id], r.event_id, r.status);
+    for (const x of plan.seats) await dash.seatGuests([keep.id], x.event_id, x.table_id);
+    // Les accompagnants de la ligne qui part passent à la ligne gardée plutôt que de disparaître
+    const followers = guests.filter((x) => x.plus_one_of === drop.id);
+    if (followers.length) await dash.updateGuests(followers.map((x) => x.id), { plus_one_of: keep.id });
+    if (!(await dash.removeGuests([drop.id]))) return;
+    const label = `${guestLabel(drop, byId)} fusionné avec ${guestLabel(keep, byId)}.`;
+    const step = pushStep({
+      n: 1,
+      undo: async () => {
+        await dash.restoreGuests([drop], dropAnswers);
+        if (followers.length) await dash.updateGuests(followers.map((x) => x.id), { plus_one_of: drop.id });
+        if (Object.keys(keepWas).length) await dash.updateGuests([keep.id], keepWas);
+        for (const r of plan.carried) await dash.setResponses([keep.id], r.event_id, keepAnswers.get(r.event_id) || "attente");
+        for (const x of plan.seats) await dash.seatGuests([keep.id], x.event_id, null);
+        for (const x of dropSeats) await dash.seatGuests([drop.id], x.event_id, x.table_id);
+      },
+      redo: () => mergeDuplicate(s),
+      undoText: `${guestLabel(drop, byId)} est de retour dans la liste.`,
+      redoText: label,
+    });
+    okUndo(label, step);
+  }
+
   // Retirer des invités (et leurs accompagnants, comme en base), avec « Annuler » : on garde de quoi
   // les remettre tels quels, réponses comprises
   async function removeWithUndo(ids) {
@@ -1162,6 +1216,10 @@ export default function Invites() {
 
       <div className="d-desk-only">
         <GuestsNote />
+      </div>
+
+      <div className="d-desk-only">
+        <Doublons suggestions={duplicates} byId={byId} onMerge={mergeDuplicate} onReject={rejectDuplicate} />
       </div>
 
       {freshGuests.length ? (

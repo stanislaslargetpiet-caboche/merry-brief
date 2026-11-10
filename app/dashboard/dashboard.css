@@ -17978,3 +17978,41 @@ button.d-gcard-status.is-open svg {
     flex-wrap: wrap;
   }
 }
+
+/* Doublons possibles dans la liste des invités */
+.d-dup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--d-border);
+  background: #ffffff;
+  font-size: 13.5px;
+}
+
+.d-dup-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-dup-head .d-pill {
+  margin-left: auto;
+}
+
+.d-dup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.d-dup-row > span {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.d-dup-why {
+  color: var(--d-muted);
+}
