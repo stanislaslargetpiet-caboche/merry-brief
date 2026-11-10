@@ -72,8 +72,9 @@ export default function Budget() {
   const sorted = ordered.filter(hasSpend);
   const planned = ordered.filter((g) => !hasSpend(g));
   const hasPayments = (it) => payments.some((p) => p.budget_item_id === it.id);
-  // Le montant ou le statut d'une ligne ouvre ses paiements ; sans paiement, on en ajoute un pour ce poste
-  const openPayments = (it) => (hasPayments(it) ? setPaysOf(it.id) : setAdding(it.id));
+  // Le montant ou le statut d'une ligne ouvre la fiche du poste, même sans paiement : on y ajoute
+  // le premier, on y change le total prévu, et sur téléphone on y modifie ou supprime le poste
+  const openPayments = (it) => setPaysOf(it.id);
   const isLate = (f) => Boolean(f.next?.due_date && f.next.due_date < todayIso());
 
   const b = budgetTotals(data);
@@ -256,18 +257,21 @@ export default function Budget() {
     );
   };
 
-  // Téléphone : ligne simple (icône, nom, prestataire | montant ou « Ajouter un devis »), comme la maquette
+  // Téléphone : ligne simple (icône, nom, prestataire | montant ou « Ajouter un paiement ») ;
+  // le nom comme le montant ouvrent la fiche du poste (artboards 4e et 4e3)
   const renderMobileRow = (it) => {
     const f = itemFinance(it, payments);
     const v = vendorById.get(it.vendor_id);
     const sub = v ? v.name : it.note || null;
     return (
       <div key={it.id} className="d-mrow">
-        <Tile name={it.icon || guessIcon(it.label)} />
-        <span className="d-mrow-text">
-          <strong>{posteName(it)}</strong>
-          {sub ? <small>{sub}</small> : null}
-        </span>
+        <button type="button" className="d-mrow-main" onClick={() => openPayments(it)}>
+          <Tile name={it.icon || guessIcon(it.label)} />
+          <span className="d-mrow-text">
+            <strong>{posteName(it)}</strong>
+            {sub ? <small>{sub}</small> : null}
+          </span>
+        </button>
         {f.paid > 0 || f.hasPlan || f.budgeted || hasPayments(it) ? (
           <button type="button" className="d-mrow-amount d-mrow-amount-btn" onClick={() => openPayments(it)} aria-label={`Paiements de ${posteName(it)}`}>
             {amountCell(f)}
@@ -612,6 +616,10 @@ export default function Budget() {
           onClose={() => setPaysOf(null)}
           onAdd={() => {
             setAdding(paysOf);
+            setPaysOf(null);
+          }}
+          onEdit={() => {
+            setEditing(items.find((i) => i.id === paysOf));
             setPaysOf(null);
           }}
         />

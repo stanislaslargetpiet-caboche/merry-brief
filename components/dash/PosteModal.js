@@ -105,7 +105,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
   return (
     <>
     <Modal
-      title={item ? posteName(item) : "Ajouter un poste"}
+      title={item ? "Modifier le poste" : "Ajouter un poste"}
       onClose={onClose}
       footer={
         <>
@@ -113,6 +113,7 @@ export default function PosteModal({ item, onClose, focusQuote }) {
             <Btn
               kind="ghost"
               icon="trash"
+              className="d-poste-delete"
               onClick={() => {
                 if (window.confirm(removePosteMessage(item, dash.data))) {
                   dash.remove("budget_items", item.id);
@@ -120,7 +121,8 @@ export default function PosteModal({ item, onClose, focusQuote }) {
                 }
               }}
             >
-              Supprimer
+              <span className="d-desk-only-inline">Supprimer</span>
+              <span className="d-mob-only-inline">Supprimer le poste</span>
             </Btn>
           ) : null}
           <span className="d-spacer" />
@@ -145,10 +147,11 @@ export default function PosteModal({ item, onClose, focusQuote }) {
             ))}
           </datalist>
         </Field>
-        <Field label="Devis signé (€)">
+        {/* Téléphone : le total se change dans la fiche du poste (« Total prévu »), pas ici (artboard 4e2) */}
+        <Field label="Devis signé (€)" className="d-desk-only">
           <input className="d-input" inputMode="decimal" value={form.quote} onChange={set("quote")} placeholder="Montant du devis" />
         </Field>
-        <Field label="Signé le">
+        <Field label="Signé le" className="d-desk-only">
           <input className="d-input" type="date" value={form.signed} onChange={set("signed")} />
         </Field>
         <Field label="Devis (facultatif)" full group>
