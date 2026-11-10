@@ -461,6 +461,78 @@ export function InlineEdit({ value, onSave, placeholder = "–", className = "",
   );
 }
 
+// Texte long dans un tableau (réponses au formulaire) : deux lignes dans la cellule, le texte entier
+// dans une fenêtre au clic. Entrée enregistre, Maj + Entrée va à la ligne, Échap annule.
+export function LongTextCell({ value, onSave, label, placeholder = "–" }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+  const cancelled = useRef(false);
+  const button = useRef(null);
+  const input = useRef(null);
+  useEffect(() => {
+    if (!open) setDraft(value || "");
+  }, [value, open]);
+  // La fenêtre reste invisible tant qu'elle n'est pas placée : le focus attend qu'elle le soit
+  useEffect(() => {
+    if (!open) return undefined;
+    const id = requestAnimationFrame(() => {
+      const el = input.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+  const close = useCallback(() => {
+    setOpen(false);
+    if (cancelled.current) {
+      cancelled.current = false;
+      return;
+    }
+    const next = draft.trim();
+    if (next !== (value || "").trim()) onSave(next || null);
+  }, [draft, value, onSave]);
+  const rows = Math.min(14, Math.max(3, draft.split("\n").reduce((a, l) => a + Math.max(1, Math.ceil(l.length / 44)), 0)));
+  return (
+    <span className="d-anchor d-cell-long-wrap">
+      <button
+        ref={button}
+        type="button"
+        className={`d-inline d-cell-long${value ? "" : " is-empty"}${String(value || "").length > 24 ? " is-long" : ""}`}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key.length !== 1 || e.key === " " || e.metaKey || e.ctrlKey || e.altKey) return;
+          e.preventDefault();
+          setDraft(e.key);
+          setOpen(true);
+        }}
+        title={value || (label ? `Modifier : ${label}` : "Modifier")}
+      >
+        {value || placeholder}
+      </button>
+      <Popover open={open} onClose={close} className="d-long-pop">
+        <textarea
+          ref={input}
+          className="d-inline-input d-long-input"
+          value={draft}
+          rows={rows}
+          aria-label={label}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              close();
+              button.current?.focus();
+            } else if (e.key === "Escape") {
+              cancelled.current = true;
+            }
+          }}
+        />
+      </Popover>
+    </span>
+  );
+}
+
 // Camembert en anneau
 export function Donut({ segments, size = 168, thickness = 26, center, sub }) {
   const total = segments.reduce((a, s) => a + Math.max(0, s.value), 0);

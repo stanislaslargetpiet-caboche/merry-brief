@@ -159,10 +159,12 @@ export function ColumnModal({ field, onClose }) {
 // En-tête d'une colonne ajoutée : menu modifier / supprimer, icône selon qui la remplit
 export function FieldHeader({ field, extra }) {
   const dash = useDash();
-  const { guests } = dash.data;
+  const { guests, form } = dash.data;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [grouping, setGrouping] = useState(false);
+  // Colonne remplie par le formulaire : question ajoutée, ou question de base reliée à la colonne (le petit mot, les enfants…)
+  const asked = field.source === "invites" || Boolean(form && [...(form.fields || []).filter((f) => f.mode !== "off").map((f) => f.field_id), ...(form.custom || []).map((c) => c.field_id || c.id)].includes(field.id));
   const canGroup = columnValues(guests, field.id).length > 0; // quelques valeurs distinctes : on peut en faire des groupes
   const firstOption = field.kind === "choice" ? (field.options || [])[0] : null;
   const filledCount = guests.filter((g) => (g.custom || {})[field.id]).length;
@@ -198,11 +200,11 @@ export function FieldHeader({ field, extra }) {
       <button
         type="button"
         className="d-link d-field-head"
-        title={field.source === "invites" ? "Question posée aux invités dans le formulaire" : "Colonne remplie par les organisateurs"}
+        title={asked ? `Question du formulaire : ${field.name}` : field.name}
         onClick={() => setOpen((o) => !o)}
       >
-        {field.source === "invites" ? <Icon name="link" size={12} sw={2.2} /> : null}
-        {field.name.toUpperCase()}
+        {asked ? <Icon name="link" size={12} sw={2.2} /> : null}
+        <span className="d-field-name">{field.name.toUpperCase()}</span>
         <Icon name="chevDown" size={11} sw={2.2} />
       </button>
       <Popover open={open} onClose={() => setOpen(false)} align="right">

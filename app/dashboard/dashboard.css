@@ -1781,6 +1781,45 @@ button.d-rsvp:hover {
   max-width: 118px;
 }
 
+/* Réponses longues (formulaire) : deux lignes dans la cellule, le texte entier au clic */
+.d-guests .d-cell-long-wrap {
+  display: flex;
+}
+
+.d-guests .d-cell-long {
+  display: -webkit-box;
+  flex: 1 1 auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 240px;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Le tableau se met à la largeur minimale de chaque colonne : une réponse longue réserve la place de deux vraies lignes */
+.d-guests .d-cell-long.is-long {
+  min-width: 220px;
+}
+
+.d-cols td[style] .d-cell-long {
+  min-width: 0;
+  max-width: none;
+}
+
+.d-long-pop {
+  width: min(400px, calc(100vw - 16px));
+  padding: 8px;
+}
+
+.d-long-input {
+  display: block;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 /* Colonnes déplaçables et redimensionnables */
 .d-cols th {
   position: relative;
@@ -5239,6 +5278,13 @@ button.d-rsvp:hover {
   letter-spacing: 0.04em;
   color: inherit;
   white-space: nowrap;
+}
+
+/* Question longue en en-tête : coupée, en entier au survol */
+.d-field-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .d-choicepill {

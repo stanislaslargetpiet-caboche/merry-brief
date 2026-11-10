@@ -111,7 +111,7 @@ export default function FicheInvite() {
       display: guest.age !== null && guest.age !== undefined && guest.age !== "" ? `${guest.age} ans` : undefined,
       onSave: (v) => dash.update("guests", guest.id, { age: parseAge(v) }),
     },
-    ...fields.map((f) => ({ key: `field:${f.id}`, label: f.name, value: (guest.custom || {})[f.id], field: f, form: formColumns.has(f.id) })),
+    ...fields.map((f) => ({ key: `field:${f.id}`, label: f.name, value: (guest.custom || {})[f.id], field: f, form: formColumns.has(f.id), multiline: f.kind !== "choice" })),
   ];
   const anyFromForm = info.some((x) => x.form);
   // Ce qui est renseigné d'abord, puis ce qui reste à remplir, discret
