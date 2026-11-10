@@ -127,6 +127,21 @@ describe("withSessions", () => {
   });
 });
 
+describe("couples de test", () => {
+  // w3, créé par un compte de test, est venu il y a 1 min : il passe quand même après les vrais couples
+  const avecTest = {
+    ...raw,
+    users: [...raw.users, { id: "u6", email: "largetstan@gmail.com", created_at: min(60), last_sign_in_at: min(1) }],
+    weddings: [...raw.weddings, { id: "w3", created_at: min(60), created_by: "u6", partner1: "bob", partner2: "cathy" }],
+  };
+  it("range les couples de test en bas, sans changer l'ordre des vrais", () => {
+    const out = buildUtilisateurs(avecTest, 60 * 60000, NOW);
+    expect(out.mariages.map((m) => [m.id, m.test])).toEqual([["w1", false], ["w2", false], ["w3", true]]);
+    const vus = withPostHog(withSessions(out, [{ user_id: "u6", dernier: min(0) }]), { u2: { dernier: min(2), sessions_7j: 1, replay: null } });
+    expect(vus.mariages.map((m) => m.id)).toEqual(["w2", "w1", "w3"]);
+  });
+});
+
 describe("readDernieresSessions", () => {
   const admin = (result) => ({ rpc: async (name) => (name === "pilotage_dernieres_sessions" ? result : { error: { message: "autre" } }) });
   it("lit une ligne par compte", async () => {

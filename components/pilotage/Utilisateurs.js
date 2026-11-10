@@ -1,6 +1,7 @@
 "use client";
 
-// Page « Couples › Par couple » du pilotage : un seul tableau, un mariage par ligne, le plus récemment venu d'abord.
+// Page « Couples › Par couple » du pilotage : un seul tableau, un mariage par ligne, le plus récemment venu d'abord,
+// les couples de test en bas, en gris.
 // Pour chaque couple : ses comptes, sa dernière visite et le replay PostHog de sa dernière session enregistrée, puis
 // ce qu'il a fait dans l'appli (site, invités, formulaire, tâches, budget, devis) et sa couleur. Les données viennent
 // de /api/interne/pilotage (clé `utilisateurs`), croisées avec PostHog par withPostHog.
@@ -106,6 +107,7 @@ function coupleCell(r) {
   return (
     <>
       <strong>{r.couple}</strong>
+      {r.test ? <span title="Compte de test : en bas de la liste, sans mail du samedi"> <Pill>test</Pill></span> : null}
       <span className="pl-cell-sub">{r.date ? `${fmtWedding(r.date)}${passe ? " · passé" : ""}` : "date à fixer"}</span>
     </>
   );
@@ -153,6 +155,7 @@ export default function Utilisateurs({ data }) {
             { key: "couleur", label: "Couleur", render: couleurCell },
           ]}
           rows={data.mariages}
+          rowClass={(r) => (r.test ? "is-test" : null)}
           max={300}
           empty="Aucun mariage"
         />
