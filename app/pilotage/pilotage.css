@@ -520,6 +520,7 @@
 .pl-ligne-reseau { min-height: 50px; }
 /* Mails automatiques : adresse et objet sur une ligne chacun, l'heure en pastille à droite, téléphone compris */
 .pl-ligne-mail { min-height: 50px; }
+.pl-ligne-pastilles { flex: none; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 .pl-ligne-mail .pl-ligne-t strong, .pl-ligne-mail .pl-ligne-t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 700px) {
   .pl-bug { flex-wrap: wrap; }

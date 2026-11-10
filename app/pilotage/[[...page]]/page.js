@@ -67,6 +67,18 @@ function useToken() {
   return state;
 }
 
+// Dernier événement Resend de chaque mail : « Cliqué » suppose « Ouvert », on n'affiche que le plus avancé
+const ETAT_MAIL = {
+  sent: ["Envoyé", "neutral"],
+  delivered: ["Délivré", "neutral"],
+  opened: ["Ouvert", "ok"],
+  clicked: ["Cliqué", "ok"],
+  delivery_delayed: ["Retardé", "warn"],
+  bounced: ["Rebond", "bad"],
+  complained: ["Plainte", "bad"],
+  failed: ["Échec", "bad"],
+};
+
 export default function PilotagePage() {
   const auth = useToken();
   const [periode, setPeriode] = useState("7j");
@@ -395,7 +407,10 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
                         <strong>{m.a || "–"}</strong>
                         <small>{m.sujet || "Sans objet"}</small>
                       </span>
-                      <Pill>{fmtHeure(m.quand)}</Pill>
+                      <span className="pl-ligne-pastilles">
+                        {ETAT_MAIL[m.etat] ? <Pill tone={ETAT_MAIL[m.etat][1]}>{ETAT_MAIL[m.etat][0]}</Pill> : null}
+                        <Pill>{fmtHeure(m.quand)}</Pill>
+                      </span>
                     </li>
                   ))}
                 </ul>
