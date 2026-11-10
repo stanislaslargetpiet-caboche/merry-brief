@@ -1,16 +1,18 @@
 "use client";
 
-// Carrousel de l'accueil (lot 2, storyboard validé par Stan le 10 nov. 2026, planches Site-Blocs-* du canvas) : quatre
-// onglets de trois scènes de 5 s. Chaque scène arrive complète et un seul détail s'y anime ; l'onglet actif porte la
-// progression et passe seul au suivant. Le rythme est tenu par l'animation CSS d'un minuteur invisible (sa fin = scène
-// suivante) : la pause fige donc d'un coup le minuteur, la progression et le détail animé. Textes :
-// lib/i18n/vitrine-carrousel.js ; styles : app/vitrine/carrousel.css.
+// Section « Comment ça marche » de l'accueil (D-228 : fusion des trois étapes et du carrousel du lot 2, storyboard
+// Site-Fusion-* validé par Stan le 10 nov. 2026). Trois onglets d'étape, chacun avec sa phrase et ses scènes de 5 s
+// (3, 3 puis 4). Chaque scène arrive complète et un seul détail s'y anime ; l'onglet actif porte la progression de
+// toute l'étape et passe seul au suivant. Sur téléphone, les onglets deviennent trois segments de progression. Le
+// rythme est tenu par l'animation CSS d'un minuteur invisible (sa fin = scène suivante) : la pause fige donc d'un coup
+// le minuteur, la progression et le détail animé. Textes : lib/i18n/vitrine-carrousel.js ; styles :
+// app/vitrine/carrousel.css.
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/lang";
 import { CARROUSEL, COUPLE_PHOTO } from "@/lib/i18n/vitrine-carrousel";
 
-const TRACK = ["prestataires", "budget", "invites", "retroplanning"];
+const TRACK = ["mariage", "prestataires", "reste"];
 
 const CHECK = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -20,7 +22,7 @@ const CHECK = (
 const HEART_PATH = "M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z";
 const STROKE = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
 
-// Icônes du système (pleines citron, trait encre) : lieu, date, invités, budget, document
+// Icônes du système (pleines citron, trait encre) : lieu, date, invités, budget
 const ICONS = {
   lieu: (
     <>
@@ -47,13 +49,6 @@ const ICONS = {
       <rect x="3" y="6" width="18" height="13" rx="2" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" />
       <path d="M3 10h18" stroke="#1c1c1a" strokeWidth="1.5" />
       <path d="M16.5 14.5h1.5" stroke="#1c1c1a" strokeWidth="1.8" strokeLinecap="round" />
-    </>
-  ),
-  document: (
-    <>
-      <path d="M6 3h8l5 5v13H6z" fill="#fff700" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M14 3v5h5" fill="#fffdb8" stroke="#1c1c1a" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M9 12h6M9 15h6" stroke="#1c1c1a" strokeWidth="1.2" strokeLinecap="round" />
     </>
   ),
 };
@@ -99,7 +94,70 @@ function Photo({ src, className = "" }) {
   return <span className={`cr-ph ${className}`} style={{ backgroundImage: `url(${src})` }} aria-hidden="true" />;
 }
 
-/* ---- 1 Prestataires ---- */
+/* ---- 1 Ton mariage ---- */
+
+function PlanCard({ title, cap, status, rows, more }) {
+  return (
+    <div className="cr-card cr-plan">
+      <span className="cr-plan-top">
+        <span className="cr-grow">
+          <span className="cr-name cr-plan-t">{title}</span>
+          <span className="cr-cap cr-plan-cap">{cap}</span>
+        </span>
+        <Pill kind="ok">{status}</Pill>
+      </span>
+      <div className="cr-rows cr-plan-rows">
+        {rows.map(([label, text, amount]) => (
+          <div key={label} className="cr-row">
+            <span className="cr-cap cr-plan-when">{label}</span>
+            <span className="cr-grow">{text}</span>
+            {amount && <b className="cr-amount">{amount}</b>}
+          </div>
+        ))}
+      </div>
+      {more && <span className="cr-cap cr-plan-more">{more}</span>}
+    </div>
+  );
+}
+
+function Wedding({ t }) {
+  const w = t.wedding;
+  return (
+    <>
+      <Head title={w.title} />
+      <div className="cr-wedding">
+        <div className="cr-card cr-answers">
+          <span className="cr-lab">{w.answers}</span>
+          <div className="cr-rows">
+            {w.rows.map(([question, answer], i) => (
+              <div key={question} className="cr-row">
+                <span className="cr-tile">
+                  <Icon name={BRIEF_ICONS[i]} />
+                </span>
+                <span className="cr-grow">
+                  <span className="cr-cap">{question}</span>
+                  <span className="cr-name">{answer}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="cr-plans cr-rise" style={{ "--d": "1.5s" }}>
+          <PlanCard title={w.timeline} cap={w.timelineCap} status={w.ready} rows={t.timeline.rows.slice(0, 3).map(([when, what]) => [when, what])} />
+          <PlanCard
+            title={w.budget}
+            cap={w.budgetCap}
+            status={w.split}
+            rows={t.budget.rows.slice(0, 3).map(([poste, , planned]) => [poste, "", planned])}
+            more={w.more}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ---- 2 Prestataires ---- */
 
 function Vendors({ t }) {
   const v = t.vendors;
@@ -243,7 +301,7 @@ function Quotes({ t }) {
   );
 }
 
-/* ---- 2 Budget ---- */
+/* ---- Budget, rétroplanning (étape 1) ---- */
 
 function Budget({ t }) {
   const b = t.budget;
@@ -271,39 +329,6 @@ function Budget({ t }) {
           </div>
         ))}
       </div>
-    </>
-  );
-}
-
-function Payers({ t }) {
-  const p = t.payers;
-  return (
-    <>
-      <Head title={p.title} />
-      <div className="cr-card cr-payers">
-        <div className="cr-payers-top">
-          <span className="cr-lab">{p.label}</span>
-          <Swap className="cr-big" from={p.total[0]} to={p.total[1]} />
-        </div>
-        <div className="cr-split" aria-hidden="true">
-          {p.rows.map((r, i) => (
-            <span key={r.ini} className={`cr-seg cr-seg-${i}`} style={{ "--w0": `${r.w[0]}%`, "--w1": `${r.w[1]}%`, "--d": "1.5s" }} />
-          ))}
-        </div>
-        <div className="cr-rows">
-          {p.rows.map((r, i) => (
-            <div key={r.ini} className={`cr-row${r.arrives ? " cr-rise" : ""}`} style={r.arrives ? { "--d": "1.5s" } : undefined}>
-              <span className={`cr-av cr-av${[4, 1, 3][i]}`}>{r.ini}</span>
-              <span className="cr-grow">
-                <span className="cr-name">{r.name}</span>
-              </span>
-              <Swap className="cr-cap cr-pct" from={r.pct[0]} to={r.pct[1]} />
-              <b className="cr-amount">{r.amount}</b>
-            </div>
-          ))}
-        </div>
-      </div>
-      <span className="cr-btn cr-btn-line cr-end">{p.add}</span>
     </>
   );
 }
@@ -348,7 +373,7 @@ function Payments({ t }) {
   );
 }
 
-/* ---- 3 Invités ---- */
+/* ---- 3 Tout le reste ---- */
 
 function Guests({ t }) {
   const g = t.guests;
@@ -377,51 +402,6 @@ function Guests({ t }) {
             {state === "flip" && <Swap from={<Pill kind="wait">{g.wait}</Pill>} to={<Pill kind="ok">{g.yes}</Pill>} />}
           </div>
         ))}
-      </div>
-    </>
-  );
-}
-
-function Form({ t }) {
-  const f = t.form;
-  return (
-    <>
-      <Head title={f.title} />
-      <div className="cr-form-wrap">
-        <div className="cr-couple cr-form">
-          <span className="cr-serif cr-form-names">{f.couple}</span>
-          <span className="cr-couple-cap">{f.when}</span>
-          <span className="cr-serif cr-form-q">{f.question}</span>
-          <span className="cr-opts">
-            <span className="cr-opt cr-pick" style={{ "--d": "0.8s" }}>
-              {CHECK}
-              {f.yes}
-            </span>
-            <span className="cr-opt">{f.no}</span>
-          </span>
-          <span className="cr-field">{f.diet}</span>
-          <span className="cr-field">{f.note}</span>
-          <Swap
-            className="cr-form-send"
-            delay={2}
-            from={<span className="cr-opt cr-opt-send">{f.send}</span>}
-            to={<Pill kind="ok">{f.thanks}</Pill>}
-          />
-        </div>
-        <div className="cr-form-side cr-rise" style={{ "--d": "2.4s" }}>
-          <span className="cr-lab">{f.side}</span>
-          <div className="cr-card cr-form-card">
-            <span className="cr-row-inline">
-              <span className="cr-av cr-av2">L</span>
-              <span className="cr-grow">
-                <span className="cr-name">{f.guest}</span>
-                <span className="cr-cap">{f.guestRole}</span>
-              </span>
-            </span>
-            <Pill kind="ok">{f.answer}</Pill>
-            <span>{f.diet}</span>
-          </div>
-        </div>
       </div>
     </>
   );
@@ -462,8 +442,6 @@ function Site({ t }) {
     </>
   );
 }
-
-/* ---- 4 Rétroplanning ---- */
 
 function Timeline({ t }) {
   const tl = t.timeline;
@@ -522,52 +500,12 @@ function Tasks({ t }) {
   );
 }
 
-function Docs({ t }) {
-  const d = t.docs;
-  return (
-    <>
-      <Head title={d.title} />
-      <div className="cr-docs">
-        <div className="cr-folders">
-          {d.folders.map(([name, before, after], i) => (
-            <div key={name} className={`cr-folder${i === 0 ? " is-on" : ""}`}>
-              <span className="cr-tile">
-                <Icon name="document" />
-              </span>
-              <span className="cr-grow">
-                <span className="cr-name">{name}</span>
-                {after ? <Swap className="cr-cap" delay={1.2} from={before} to={after} /> : <span className="cr-cap">{before}</span>}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="cr-card cr-files">
-          <div className="cr-rows">
-            {d.files.map(([name, by], i) => (
-              <div key={name} className={`cr-row${i === d.files.length - 1 ? " cr-rise" : ""}`} style={i === d.files.length - 1 ? { "--d": "1.2s" } : undefined}>
-                <span className="cr-tile cr-tile-muted">
-                  <Icon name="document" />
-                </span>
-                <span className="cr-grow">
-                  <span className="cr-name">{name}</span>
-                  <span className="cr-cap">{by}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-          <span className="cr-drop">{d.drop}</span>
-        </div>
-      </div>
-    </>
-  );
-}
-
 const SCENES = [
+  [Wedding, Timeline, Budget],
   [Vendors, Request, Quotes],
-  [Budget, Payers, Payments],
-  [Guests, Form, Site],
-  [Timeline, Tasks, Docs],
+  [Guests, Site, Payments, Tasks],
 ];
+const SCENE_SECONDS = 5;
 
 export default function Carrousel() {
   const { lang } = useLang();
@@ -600,34 +538,34 @@ export default function Carrousel() {
     setRound((r) => r + 1);
   };
   const next = () => {
-    if (scene < 2) setScene(scene + 1);
+    if (scene < SCENES[tab].length - 1) setScene(scene + 1);
     else pick((tab + 1) % SCENES.length);
   };
 
   const Scene = SCENES[tab][scene];
+  const step = t.steps[tab];
   return (
     <div ref={ref} className={`cr${paused || !visible ? " is-paused" : ""}`}>
       <div className="cr-bar">
         <div className="cr-tabs" role="tablist" aria-label={t.tabsLabel}>
-          {t.tabs.map((label, i) => (
+          {t.steps.map((st, i) => (
             <button
-              key={label}
+              key={st.tab}
               type="button"
               role="tab"
               id={`cr-tab-${i}`}
               aria-selected={i === tab}
               aria-controls="cr-panel"
-              className={`cr-tab${i === tab ? " is-on" : ""}`}
+              className={`cr-tab${i === tab ? " is-on" : ""}${i < tab ? " is-done" : ""}`}
               onClick={() => pick(i)}
               data-track={`carrousel_${TRACK[i]}`}
             >
               <i aria-hidden="true">{i + 1}</i>
-              {label}
-              {i === tab && (
-                <span className="cr-prog" aria-hidden="true">
-                  <b key={round} />
-                </span>
-              )}
+              <span className="cr-tab-l">{st.tab}</span>
+              {/* Progression de toute l'étape ; sur téléphone, chaque onglet est un segment (plein une fois passé) */}
+              <span className="cr-prog" aria-hidden="true">
+                {i === tab && <b key={round} style={{ animationDuration: `${SCENES[i].length * SCENE_SECONDS}s` }} />}
+              </span>
             </button>
           ))}
         </div>
@@ -644,11 +582,14 @@ export default function Carrousel() {
           )}
         </button>
       </div>
+      <p className="cr-lead">
+        <b>{step.title}</b> {step.text}
+      </p>
       <div className="cr-stage" id="cr-panel" role="tabpanel" aria-labelledby={`cr-tab-${tab}`}>
         <div key={`${round}-${scene}`} className="cr-scene">
           <Scene t={t} />
         </div>
-        <span key={`minuteur-${round}-${scene}`} className="cr-timer" aria-hidden="true" onAnimationEnd={next} />
+        <span key={`minuteur-${round}-${scene}`} className="cr-timer" style={{ animationDuration: `${SCENE_SECONDS}s` }} aria-hidden="true" onAnimationEnd={next} />
       </div>
     </div>
   );
