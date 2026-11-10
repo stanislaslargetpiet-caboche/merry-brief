@@ -30,7 +30,7 @@ const link = "https://app.withmerry.com/f/leo-et-lea-c5r9";
 describe("formConfirmationMail", () => {
   it("remercie l'invité et nomme le couple", () => {
     const mail = formConfirmationMail({ form, payload, link });
-    expect(mail.subject).toBe("Votre réponse est bien arrivée chez Léo et Léa");
+    expect(mail.subject).toBe("Ta réponse est bien arrivée chez Léo et Léa");
     expect(mail.html).toContain("Merci Philippe, c&#39;est noté.");
     expect(mail.text).toContain("Samedi 12 juin 2027 · Château de la Mothe");
     expect(mail.text).toContain(`Revoir le formulaire : ${link}`);
@@ -40,7 +40,7 @@ describe("formConfirmationMail", () => {
     const mail = formConfirmationMail({ form, payload, link });
     expect(mail.text).toContain("Mairie : Oui\nDîner : Non");
     expect(mail.text).not.toContain("Brunch");
-    expect(mail.text).toContain("Votre accompagnant : Jeanne Martel.");
+    expect(mail.text).toContain("Ton accompagnant : Jeanne Martel.");
   });
 
   it("ne recopie pas le mot laissé aux mariés", () => {
@@ -49,13 +49,16 @@ describe("formConfirmationMail", () => {
     expect(mail.html).not.toContain("exemple.com");
   });
 
-  it("vouvoie l'invité", () => {
-    expect(formConfirmationMail({ form, payload, link }).text).not.toMatch(/\b(tu|ton|ta|tes)\b/i);
+  it("tutoie l'invité et ne dit jamais vous", () => {
+    const mail = formConfirmationMail({ form, payload, link });
+    expect(mail.text).toContain("Pour changer ta réponse, renvoie simplement le formulaire");
+    expect(mail.text).not.toMatch(/\b(vous|votre|vos)\b/i);
+    expect(mail.html).not.toMatch(/\b(vous|votre|vos)\b/i);
   });
 
   it("une seule ligne quand la présence vaut pour tout le mariage", () => {
     const global = { ...form, presence_mode: "global" };
-    expect(answerRows(global, { answers: { e1: "oui", e2: "oui", e3: "oui" } })).toEqual([{ name: "Votre présence", status: "Oui", ok: true }]);
+    expect(answerRows(global, { answers: { e1: "oui", e2: "oui", e3: "oui" } })).toEqual([{ name: "Ta présence", status: "Oui", ok: true }]);
   });
 
   it("aucune ligne si la présence n'est pas demandée", () => {
@@ -71,8 +74,8 @@ describe("formConfirmationMail", () => {
   it("se passe des prénoms du couple", () => {
     expect(formCouple({ title: "Notre mariage" })).toBe("Notre mariage");
     const mail = formConfirmationMail({ form: { events: [] }, payload: { first_name: "" }, link });
-    expect(mail.subject).toBe("Votre réponse est bien arrivée");
-    expect(mail.text).toContain("Votre réponse est arrivée chez les mariés.");
+    expect(mail.subject).toBe("Ta réponse est bien arrivée");
+    expect(mail.text).toContain("Ta réponse est arrivée chez les mariés.");
   });
 });
 
