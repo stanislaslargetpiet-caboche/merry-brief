@@ -41,6 +41,8 @@ const nextConfig = {
   // PostHog passe par notre domaine (lib/analytics.js, api_host: "/ingest") plutôt que eu.i.posthog.com :
   // un bloqueur de pub qui cible le domaine PostHog par son nom ne voit plus la différence avec le reste du site.
   skipTrailingSlashRedirect: true,
+  // Les graisses d'Alan Sans lues par l'aperçu de lien du formulaire (lib/og/fonts.js) partent avec la fonction
+  outputFileTracingIncludes: { "/f/**": ["./lib/og/*.ttf"] },
   // Navigateurs et robots demandent /favicon.ico sans lire la page : on sert l'icône générée (app/icon.js)
   async rewrites() {
     return [
