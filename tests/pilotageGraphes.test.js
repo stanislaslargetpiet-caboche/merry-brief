@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barPath, courbePath, cumulSerie, echelle, indicesAxe, pasAxe } from "@/lib/pilotage/graphes";
+import { barPath, courbePath, cumulSerie, echelle, indicesAxe, mesureDepuis, pasAxe } from "@/lib/pilotage/graphes";
 
 describe("echelle", () => {
   it("donne trois graduations rondes au-dessus de la valeur", () => {
@@ -67,5 +67,19 @@ describe("cumulSerie", () => {
   it("ne descend jamais sous zéro", () => {
     expect(cumulSerie([{ n: 5 }], "n", 2)[0].cumul).toBe(2);
     expect(cumulSerie([{ n: 5 }, { n: 1 }], "n", 2)[0].cumul).toBe(1);
+  });
+});
+
+describe("mesureDepuis", () => {
+  const rows = [{ jour: "2026-11-02", n: 0 }, { jour: "2026-11-03", n: 112 }, { jour: "2026-11-04", n: 0 }];
+
+  it("efface les jours d'avant la mesure, garde les zéros d'après", () => {
+    expect(mesureDepuis(rows, "n", "2026-11-03").map((r) => r.n)).toEqual([null, 112, 0]);
+  });
+
+  it("ne touche pas les autres clés ni la série d'origine", () => {
+    const out = mesureDepuis([{ jour: "2026-11-01", n: 3, m: 2 }], "n", "2026-11-03");
+    expect(out[0]).toEqual({ jour: "2026-11-01", n: null, m: 2 });
+    expect(mesureDepuis(undefined, "n", "2026-11-03")).toEqual([]);
   });
 });
