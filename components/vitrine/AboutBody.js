@@ -10,7 +10,7 @@ export default function AboutBody() {
   const blocks = ABOUT_BLOCKS[lang];
 
   return (
-    <section className="wv-about" aria-label="À propos">
+    <section className="wv-about" aria-label={t.aria}>
       <img src="/vitrine/apropos.webp" alt="" className="wv-photo" width={1400} height={1944} decoding="async" />
       <div className="wv-text">
         <h1 className="wv-h1">{t.h1}</h1>
