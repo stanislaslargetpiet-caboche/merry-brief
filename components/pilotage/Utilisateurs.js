@@ -29,24 +29,22 @@ const PillLink = ({ tone, href, title, children }) => (
   </a>
 );
 
-// Pastel des personnes (lib/dash/theme.js), dans l'ordre des comptes : le premier est celui venu en dernier
-const PERSONNES = ["lavande", "peche", "bleu", "sauge", "rose"];
-const MAX_PERSONNES = 2;
+// La personne venue en dernier, en pastel (lib/dash/theme.js) ; les autres comptes au survol de « +N »
+const venu = (c) => `${c.email || "sans adresse"} · ${c.derniere_visite ? `venu ${fmtAgo(c.derniere_visite)}` : "jamais venu"}`;
 function comptesCell(r) {
   const comptes = r.comptes || r.emails.map((email) => ({ email }));
   if (!comptes.length) return muted("aucun");
-  const extra = comptes.slice(MAX_PERSONNES);
+  const [first, ...autres] = comptes;
   return (
     <span className="pl-people">
-      {comptes.slice(0, MAX_PERSONNES).map((c, i) => {
-        const p = PASTELS[PERSONNES[i % PERSONNES.length]];
-        return (
-          <span key={c.email || i} className="pl-person" style={{ background: p.bg, color: p.ink }} title={`${c.email || "sans adresse"}${c.derniere_visite ? ` · venu ${fmtAgo(c.derniere_visite)}` : " · jamais venu"}`}>
-            {handle(c.email)}
-          </span>
-        );
-      })}
-      {extra.length ? <Pill>{`+${extra.length}`}</Pill> : null}
+      <span className="pl-person" style={{ background: PASTELS.lavande.bg, color: PASTELS.lavande.ink }} title={venu(first)}>
+        {handle(first.email)}
+      </span>
+      {autres.length ? (
+        <span title={autres.map(venu).join("\n")}>
+          <Pill>{`+${autres.length}`}</Pill>
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -63,7 +61,6 @@ function visiteCell(r) {
   return (
     <span title={detail.filter(Boolean).join("\n")}>
       <Pill tone={recence(at)}>{fmtAgo(at)}</Pill>
-      {r.comptes?.length > 1 && r.visite_par ? <span className="pl-cell-sub">{handle(r.visite_par)}</span> : null}
     </span>
   );
 }
@@ -114,17 +111,16 @@ function coupleCell(r) {
   );
 }
 
-// Couleur de chaque compte (elle suit la personne, pas le couple)
+// Couleur de chaque compte (elle suit la personne, pas le couple), son nom au survol
 function couleurCell(r) {
   const choisies = (r.comptes || []).filter((c) => c.accent);
-  if (!choisies.length) return muted("pas choisi");
+  if (!choisies.length) return <span className="pl-muted" title="Pas choisi : citron par défaut">–</span>;
   const keys = [...new Set(choisies.map((c) => c.accent))];
   return (
     <span className="pl-swatches" title={choisies.map((c) => `${c.email} : ${ACCENTS.find((a) => a.key === c.accent)?.label || "ancienne couleur"}`).join("\n")}>
       {keys.map((k) => (
         <span key={k} className="pl-swatch" style={{ background: ACCENTS.find((a) => a.key === k)?.color || "var(--border-strong)" }} />
       ))}
-      {keys.length === 1 ? ACCENTS.find((a) => a.key === keys[0])?.label || "Ancienne" : null}
     </span>
   );
 }
