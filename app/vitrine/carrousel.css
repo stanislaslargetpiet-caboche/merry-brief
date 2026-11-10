@@ -8,17 +8,18 @@
 .cr *, .cr *::before, .cr *::after { box-sizing: border-box; }
 
 /* Onglets, progression, pause */
-.cr-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.cr-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-.cr-tab { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 20px 0 8px; border: 0; border-radius: 999px; background: #ffffff; color: #1c1c1a; font: inherit; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; cursor: pointer; }
+.cr-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+.cr-tabs { display: flex; flex-wrap: wrap; gap: 22px 8px; }
+.cr-tab { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 20px 0 8px; border: 0; border-radius: 999px; background: #ffffff; color: #1c1c1a; font: inherit; font-size: 16px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .cr-tab i { font-style: normal; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 999px; background: #f6f5f1; font-size: 14px; font-weight: 700; }
 .cr-tab:hover { background: #f6f5f1; }
 .cr-tab.is-on { background: #1c1c1a; color: #ffffff; }
 .cr-tab.is-on i { background: #fff700; color: #1c1c1a; }
 .cr-tab:focus-visible, .cr-pause:focus-visible { outline: 2px solid #1c1c1a; outline-offset: 3px; }
-.cr-prog { position: absolute; left: 18px; right: 18px; bottom: 5px; height: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.28); overflow: hidden; }
+/* Progression détachée sous l'onglet actif, en encre sur le fond citron */
+.cr-prog { position: absolute; left: 24px; right: 24px; bottom: -12px; height: 3px; border-radius: 999px; background: rgba(28, 28, 26, 0.16); overflow: hidden; }
 .cr-tab:not(.is-on) .cr-prog { display: none; }
-.cr-prog b { display: block; height: 100%; background: #fff700; border-radius: 999px; transform-origin: left; transform: scaleX(0); animation: cr-prog 15s linear forwards; }
+.cr-prog b { display: block; height: 100%; background: #1c1c1a; border-radius: 999px; transform-origin: left; transform: scaleX(0); animation: cr-prog 15s linear forwards; }
 .cr-lead { margin: 0 0 24px; font-size: 18px; line-height: 1.5; text-wrap: balance; }
 .cr-lead b { font-weight: 600; }
 .cr-pause { flex: none; width: 48px; height: 48px; border: 0; border-radius: 999px; background: #ffffff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
