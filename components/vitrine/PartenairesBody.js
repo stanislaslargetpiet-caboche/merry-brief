@@ -121,7 +121,7 @@ export default function PartenairesBody({ proof: rawProof }) {
         <p className="wv-lead">{t.guarLead}</p>
       </section>
 
-      <section className="wv-sec wv-split wv-split-big" aria-label="Votre fiche">
+      <section className="wv-sec wv-split wv-split-big" aria-label="Ta fiche">
         <Block fr={fiche} en={ficheEn} className="wv-media" />
         <div className="wv-stack">
           <h2 className="wv-h3">{t.ficheTitle}</h2>
