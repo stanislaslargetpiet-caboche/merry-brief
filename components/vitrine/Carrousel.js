@@ -1,16 +1,16 @@
 "use client";
 
-// Section « Comment ça marche » de l'accueil (D-228 : fusion des trois étapes et du carrousel du lot 2, storyboard
-// Site-Fusion-* validé par Stan le 10 nov. 2026). Trois onglets d'étape, chacun avec sa phrase et ses scènes de 5 s
-// (3, 3 puis 4). Chaque scène arrive complète et un seul détail s'y anime ; l'onglet actif porte la progression de
-// toute l'étape et passe seul au suivant. Sur téléphone, les onglets deviennent trois segments de progression. Le
+// Section « Comment ça marche » de l'accueil (D-228 : fusion des trois étapes et du carrousel ; scènes refaites le
+// 10 nov. 2026 d'après les planches Site-Brief-1 à 6 du canvas : brief, plan, matchs, devis, invités, à plusieurs).
+// Trois onglets d'étape, chacun avec sa phrase et deux scènes de 5 s. Chaque scène arrive par morceaux (délai --d) puis
+// reste en place ; l'onglet actif porte la progression de toute l'étape et passe seul au suivant. Sur téléphone, les onglets deviennent trois segments de progression. Le
 // rythme est tenu par l'animation CSS d'un minuteur invisible (sa fin = scène suivante) : la pause fige donc d'un coup
 // le minuteur, la progression et le détail animé. Textes : lib/i18n/vitrine-carrousel.js ; styles :
 // app/vitrine/carrousel.css.
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/lang";
-import { CARROUSEL, COUPLE_PHOTO } from "@/lib/i18n/vitrine-carrousel";
+import { CARROUSEL, COUPLE_PHOTO, FACES, MOODS, VENUE_COUNT } from "@/lib/i18n/vitrine-carrousel";
 
 const TRACK = ["mariage", "prestataires", "reste"];
 
@@ -22,7 +22,7 @@ const CHECK = (
 const HEART_PATH = "M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z";
 const STROKE = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
 
-// Icônes du système (pleines citron, trait encre) : lieu, date, invités, budget
+// Icônes du système (pleines pistache, trait encre) : lieu, date, invités, budget, ambiance
 const ICONS = {
   lieu: (
     <>
@@ -51,8 +51,9 @@ const ICONS = {
       <path d="M16.5 14.5h1.5" stroke="#1c1c1a" strokeWidth="1.8" strokeLinecap="round" />
     </>
   ),
+  ambiance: <path d="M12 3l2.2 5.6L20 9.5l-4.4 3.9 1.3 5.8L12 16.2l-4.9 3 1.3-5.8L4 9.5l5.8-.9z" fill="#bfe9a6" stroke="#1c1c1a" strokeWidth="1.5" strokeLinejoin="round" />,
 };
-const BRIEF_ICONS = ["lieu", "date", "invites", "budget"];
+const BRIEF_ICONS = ["lieu", "date", "invites", "budget", "ambiance"];
 
 function Icon({ name }) {
   return (
@@ -90,153 +91,180 @@ function Pill({ kind, children }) {
   );
 }
 
-function Photo({ src, className = "" }) {
-  return <span className={`cr-ph ${className}`} style={{ backgroundImage: `url(${src})` }} aria-hidden="true" />;
-}
-
-/* ---- 1 Ton mariage ---- */
-
-function PlanCard({ title, cap, status, rows, more }) {
+function Photo({ src, className = "", label, style }) {
   return (
-    <div className="cr-card cr-plan">
-      <span className="cr-plan-top">
-        <span className="cr-grow">
-          <span className="cr-name cr-plan-t">{title}</span>
-          <span className="cr-cap cr-plan-cap">{cap}</span>
-        </span>
-        <Pill kind="ok">{status}</Pill>
-      </span>
-      <div className="cr-rows cr-plan-rows">
-        {rows.map(([label, text, amount]) => (
-          <div key={label} className="cr-row">
-            <span className="cr-cap cr-plan-when">{label}</span>
-            <span className="cr-grow">{text}</span>
-            {amount && <b className="cr-amount">{amount}</b>}
-          </div>
-        ))}
-      </div>
-      {more && <span className="cr-cap cr-plan-more">{more}</span>}
-    </div>
+    <span
+      className={`cr-ph ${className}`}
+      style={{ backgroundImage: `url(${src})`, ...style }}
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+    />
   );
 }
 
-function Wedding({ t }) {
-  const w = t.wedding;
+// Une carte avec son titre et sa pastille de statut (scène « Ton plan »)
+function Top({ title, status }) {
+  return (
+    <span className="cr-top">
+      <span className="cr-name cr-top-t">{title}</span>
+      <Pill kind="ok">{status}</Pill>
+    </span>
+  );
+}
+
+const rise = (d) => ({ "--d": `${d}s` });
+
+/* ---- 1 Ton brief ---- */
+
+function Brief({ t }) {
+  const b = t.briefScene;
   return (
     <>
-      <Head title={w.title} />
-      <div className="cr-wedding">
-        <div className="cr-card cr-answers">
-          <span className="cr-lab">{w.answers}</span>
+      <Head title={b.title}>
+        <Swap className="cr-pill cr-off" from={b.before} to={b.after} delay={1.6} />
+      </Head>
+      <div className="cr-brief">
+        <div className="cr-card cr-brief-card">
+          <span className="cr-who-row">
+            <Photo src={COUPLE_PHOTO} className="cr-face cr-face-lg" />
+            <span className="cr-grow">
+              <span className="cr-name cr-top-t">{b.couple}</span>
+              <span className="cr-cap">{b.wedding}</span>
+            </span>
+          </span>
           <div className="cr-rows">
-            {w.rows.map(([question, answer], i) => (
-              <div key={question} className="cr-row">
+            {b.rows.map(([question, answer], i) => (
+              <div key={question} className={`cr-row cr-rise${i === 4 ? " cr-brief-now" : ""}`} style={rise(0.2 + i * 0.3)}>
                 <span className="cr-tile">
                   <Icon name={BRIEF_ICONS[i]} />
                 </span>
                 <span className="cr-grow">
                   <span className="cr-cap">{question}</span>
-                  <span className="cr-name">{answer}</span>
+                  <span className="cr-name">
+                    {answer}
+                    {i === 4 && <span className="cr-caret" aria-hidden="true" />}
+                  </span>
                 </span>
               </div>
             ))}
           </div>
         </div>
-        <div className="cr-plans cr-rise" style={{ "--d": "1.5s" }}>
-          <PlanCard title={w.timeline} cap={w.timelineCap} status={w.ready} rows={t.timeline.rows.slice(0, 3).map(([when, what]) => [when, what])} />
-          <PlanCard
-            title={w.budget}
-            cap={w.budgetCap}
-            status={w.split}
-            rows={t.budget.rows.slice(0, 3).map(([poste, , planned]) => [poste, "", planned])}
-            more={w.more}
-          />
+        <div className="cr-mood">
+          <span className="cr-mood-h">
+            <span className="cr-name cr-top-t">{b.mood}</span>
+            <span className="cr-cap">{b.moodCount}</span>
+          </span>
+          <div className="cr-mood-grid">
+            {b.moods.map((label, i) => (
+              <span key={label} className={`cr-mood-ph cr-ph${i < 3 ? " cr-ring" : ""}`} style={{ backgroundImage: `url(${MOODS[i]})`, "--d": `${2 + i * 0.5}s` }} role="img" aria-label={label}>
+                {i < 3 ? (
+                  <span className="cr-mood-ck cr-pop" style={rise(2 + i * 0.5)}>
+                    {CHECK}
+                  </span>
+                ) : (
+                  <span className="cr-mood-ck is-off" />
+                )}
+                <span className="cr-mood-lab">{label}</span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </>
   );
 }
 
-/* ---- 2 Prestataires ---- */
+// Anneau du budget : un arc par poste, dans les verts du système, le reste du budget en gris
+const RING = ["#1c1c1a", "#2f5a1a", "#5f9e3f", "#8fcc6c", "#bfe9a6", "#e6f7dc"];
+const R = 78;
+const C = 2 * Math.PI * R;
 
-function Vendors({ t }) {
-  const v = t.vendors;
+function Ring({ rows, total, label, cap }) {
+  let offset = 0;
+  return (
+    <span className="cr-ring-wrap">
+      <svg width="184" height="184" viewBox="0 0 184 184" aria-hidden="true">
+        <circle cx="92" cy="92" r={R} fill="none" stroke="#f6f5f1" strokeWidth="22" />
+        {rows.map(([poste, , amount], i) => {
+          const len = (amount / total) * C;
+          const arc = (
+            <circle
+              key={poste}
+              className="cr-arc"
+              cx="92"
+              cy="92"
+              r={R}
+              fill="none"
+              stroke={RING[i]}
+              strokeWidth="22"
+              strokeDasharray={`${len - 3} ${C - len + 3}`}
+              strokeDashoffset={-offset}
+              transform="rotate(-90 92 92)"
+              style={rise(0.9 + i * 0.15)}
+            />
+          );
+          offset += len;
+          return arc;
+        })}
+      </svg>
+      <span className="cr-ring-mid">
+        <b>{label}</b>
+        <span className="cr-cap">{cap}</span>
+      </span>
+    </span>
+  );
+}
+
+function Plan({ t }) {
+  const p = t.plan;
   return (
     <>
-      <Head title={v.title}>
+      <Head title={p.title}>
         <span className="cr-chips">
           {t.brief.map((b, i) => (
-            <span key={b} className="cr-chip">
+            <span key={b} className="cr-chip cr-chip-s">
               <Icon name={BRIEF_ICONS[i]} />
               {b}
             </span>
           ))}
         </span>
       </Head>
-      <div className="cr-venues">
-        {v.cards.map((c, i) => (
-          <article key={c.name} className="cr-vc">
-            <span className="cr-vc-photo" style={{ backgroundImage: `url(${c.img})` }}>
-              <span className="cr-vc-heart">
-                <Swap
-                  delay={0.5 + i * 0.4}
-                  from={<svg width="20" height="20" viewBox="0 0 24 24" {...STROKE} aria-hidden="true"><path d={HEART_PATH} /></svg>}
-                  to={<svg width="20" height="20" viewBox="0 0 24 24" {...STROKE} fill="#1c1c1a" aria-hidden="true"><path d={HEART_PATH} /></svg>}
-                />
-              </span>
-            </span>
-            <span className="cr-vc-body">
-              <span className="cr-grow">
-                <span className="cr-name">{c.name}</span>
-                <span className="cr-area">
-                  <span>{c.area}</span>
-                </span>
-              </span>
-              <span className="cr-specs">
-                <span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" {...STROKE} aria-hidden="true"><path d="M7 11V5.5A1.5 1.5 0 0 1 8.5 4h7A1.5 1.5 0 0 1 17 5.5V11M5 11h14v3H5zM7 14v6M17 14v6" /></svg>
-                  {c.seats}
-                </span>
-                <span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" {...STROKE} aria-hidden="true"><path d="M3 18V7M3 13h18v5M21 13v-2a3 3 0 0 0-3-3h-7v5" /><circle cx="7" cy="10.5" r="1.8" /></svg>
-                  {c.beds}
-                </span>
-              </span>
-              <span className="cr-vc-price">
-                {v.from} <b>{c.price}</b> {v.rent}
-              </span>
-            </span>
-          </article>
-        ))}
-      </div>
-      <div className="cr-selbar cr-rise" style={{ "--d": "1.8s" }}>
-        <span className="cr-stack">
-          {v.cards.map((c) => (
-            <Photo key={c.name} src={c.img} className="cr-thumb" />
-          ))}
-        </span>
-        <span className="cr-grow">
-          <span className="cr-name">{v.selCount}</span>
-          <span className="cr-cap">{v.selLabel}</span>
-        </span>
-        <span className="cr-btn cr-btn-primary">{v.selCta}</span>
-      </div>
-    </>
-  );
-}
-
-function Request({ t }) {
-  const r = t.request;
-  return (
-    <>
-      <Head title={r.title} />
-      <div className="cr-request">
-        <div className="cr-card cr-to-list">
-          <span className="cr-lab">{r.to}</span>
+      <div className="cr-plan3">
+        <div className="cr-card cr-col cr-rise" style={rise(0.2)}>
+          <Top title={p.timeline} status={p.ready} />
+          <div className="cr-steps">
+            {p.steps.map(([when, what], i) => (
+              <div key={when} className={`cr-step cr-rise${i === 4 ? " is-day" : ""}`} style={rise(0.5 + i * 0.25)}>
+                <span className={`cr-dot${i === 0 ? " is-now" : i === 4 ? " is-past" : ""}`} />
+                <span className="cr-step-when">{when}</span>
+                <span className="cr-step-what">{what}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="cr-card cr-col cr-rise" style={rise(0.6)}>
+          <Top title={p.budget} status={p.split} />
+          <Ring rows={p.rows} total={35000} label={p.total} cap={p.posts} />
+          <div className="cr-rows cr-legend">
+            {p.rows.slice(0, 3).map(([poste, amount], i) => (
+              <div key={poste} className="cr-row">
+                <span className="cr-sw" style={{ background: RING[i] }} />
+                <span className="cr-grow">{poste}</span>
+                <b className="cr-amount">{amount}</b>
+              </div>
+            ))}
+          </div>
+          <span className="cr-cap">{p.more}</span>
+        </div>
+        <div className="cr-card cr-col cr-rise" style={rise(1)}>
+          <Top title={p.venues} status={p.found} />
+          <span className="cr-count">
+            <b>{VENUE_COUNT}</b>
+            <span className="cr-cap">{p.count}</span>
+          </span>
           <div className="cr-rows">
-            {r.venues.map((v) => (
-              <div key={v.name} className="cr-row">
-                <Photo src={v.img} className="cr-thumb cr-thumb-lg" />
+            {p.list.map((v, i) => (
+              <div key={v.name} className="cr-row cr-rise" style={rise(1.8 + i * 0.3)}>
+                <Photo src={v.img} className="cr-vt" />
                 <span className="cr-grow">
                   <span className="cr-name">{v.name}</span>
                   <span className="cr-cap">{v.area}</span>
@@ -245,20 +273,73 @@ function Request({ t }) {
             ))}
           </div>
         </div>
-        <div className="cr-card cr-message">
-          <span className="cr-lab">{r.message}</span>
-          <div className="cr-letter">
-            {r.lines.map((l) => (
-              <p key={l}>{l}</p>
-            ))}
-          </div>
-          <Swap
-            className="cr-send"
-            delay={1.6}
-            from={<span className="cr-btn cr-btn-primary">{r.send}</span>}
-            to={<Pill kind="ok">{r.sent}</Pill>}
-          />
-        </div>
+      </div>
+    </>
+  );
+}
+
+/* ---- 2 Prestataires ---- */
+
+function Matches({ t }) {
+  const m = t.matches;
+  return (
+    <>
+      <Head title={m.title}>
+        <span className="cr-chips cr-cats">
+          {m.cats.map((c, i) => (
+            <span key={c} className={`cr-chip${i === 0 ? " is-on" : ""}`}>
+              {c}
+              {i === 0 && <b>{VENUE_COUNT}</b>}
+            </span>
+          ))}
+        </span>
+      </Head>
+      <div className="cr-venues">
+        {m.cards.map((c, i) => (
+          <article key={c.name} className="cr-match">
+            <span className="cr-match-photo" style={{ backgroundImage: `url(${c.img})` }}>
+              <span className="cr-vc-heart">
+                <Swap
+                  delay={2.6 + i * 0.2}
+                  from={<svg width="20" height="20" viewBox="0 0 24 24" {...STROKE} aria-hidden="true"><path d={HEART_PATH} /></svg>}
+                  to={<svg width="20" height="20" viewBox="0 0 24 24" {...STROKE} fill="#1c1c1a" aria-hidden="true"><path d={HEART_PATH} /></svg>}
+                />
+              </span>
+              <span className="cr-match-tags">
+                {[c.seats, m.budget, m.style].map((tag, j) => (
+                  <span key={tag} className="cr-match-tag cr-pop" style={rise(0.4 + i * 0.25 + j * 0.45)}>
+                    {CHECK}
+                    {tag}
+                  </span>
+                ))}
+              </span>
+            </span>
+            <span className="cr-match-body">
+              <span className="cr-grow">
+                <span className="cr-name">{c.name}</span>
+                <span className="cr-area">
+                  <span>{c.area}</span>
+                </span>
+              </span>
+              <span className="cr-match-price">
+                {m.from}
+                <b>{c.price}</b>
+              </span>
+            </span>
+          </article>
+        ))}
+      </div>
+      <div className="cr-selbar cr-rise" style={rise(3.4)}>
+        <span className="cr-stack">
+          {m.cards.map((c) => (
+            <Photo key={c.name} src={c.img} className="cr-thumb" />
+          ))}
+        </span>
+        <span className="cr-grow">
+          <span className="cr-name">{m.selCount}</span>
+          <span className="cr-cap">{m.selLabel}</span>
+        </span>
+        <span className="cr-btn cr-btn-primary">{m.selCta}</span>
       </div>
     </>
   );
@@ -269,105 +350,50 @@ function Quotes({ t }) {
   return (
     <>
       <Head title={q.title}>
-        <span className="cr-tag">{q.replies}</span>
+        <span className="cr-rise" style={rise(2)}>
+          <Pill kind="ok">{q.replies}</Pill>
+        </span>
       </Head>
-      <div className="cr-quotes">
-        {q.cards.map((c) => (
-          <article key={c.name} className={`cr-quote${c.best ? " is-best" : ""}`}>
-            <Photo src={c.img} className="cr-quote-photo" />
-            {c.best && (
-              <span className="cr-tag cr-tag-full cr-best cr-pop" style={{ "--d": "1s" }}>
-                {q.best}
-              </span>
-            )}
-            <span className="cr-grow">
-              <span className="cr-name">{c.name}</span>
-              <span className="cr-cap">{c.area}</span>
+      <div className="cr-devis">
+        <div className="cr-card cr-col cr-ask">
+          <span className="cr-top">
+            <span className="cr-name cr-top-t">{q.request}</span>
+            <span className="cr-stack">
+              {q.cards.map((c) => (
+                <Photo key={c.name} src={c.img} className="cr-thumb" />
+              ))}
             </span>
-            <b className="cr-quote-price">{c.price}</b>
-            {c.free ? (
-              <span className="cr-free">
-                {CHECK}
-                {q.free}
-              </span>
-            ) : (
-              <span className="cr-full">{q.full}</span>
-            )}
-            <span className={`cr-btn ${c.best ? "cr-btn-primary" : c.free ? "cr-btn-line" : "cr-btn-off"} cr-quote-cta`}>{c.best ? q.choose : q.see}</span>
-          </article>
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* ---- Budget, rétroplanning (étape 1) ---- */
-
-function Budget({ t }) {
-  const b = t.budget;
-  return (
-    <>
-      <Head title={b.title} />
-      <div className="cr-stats cr-stats-3">
-        {b.stats.map(([value, label]) => (
-          <span key={label} className="cr-stat">
-            <b>{value}</b>
-            <span>{label}</span>
           </span>
-        ))}
-      </div>
-      <div className="cr-card cr-rows">
-        {b.rows.map(([poste, value, planned, pct], i) => (
-          <div key={poste} className="cr-row cr-poste">
-            <span className="cr-name">{poste}</span>
-            <span className="cr-track">
-              <b className="cr-fill" style={{ width: `${pct}%`, "--d": `${0.3 + i * 0.15}s` }} />
-            </span>
-            <span className="cr-amount">
-              <b>{value}</b> <span className="cr-cap">{`${b.on} ${planned}`}</span>
-            </span>
+          <div className="cr-letter">
+            {q.lines.map((l) => (
+              <p key={l}>{l}</p>
+            ))}
           </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Payments({ t }) {
-  const p = t.payments;
-  return (
-    <>
-      <Head title={p.title} />
-      <div className="cr-card cr-rows">
-        {p.rows.map(([name, kind, amount, date], i) => (
-          <div key={`${name}-${kind}`} className="cr-row cr-payment">
-            <span className="cr-grow">
-              <span className="cr-name">{name}</span>
-              <span className="cr-cap">{kind}</span>
-            </span>
-            <b className="cr-amount">{amount}</b>
-            <span>
-              {i < 2 && <Pill kind="ok">{p.paid}</Pill>}
-              {i === 2 && <Swap from={<Pill kind="wait">{p.due}</Pill>} to={<Pill kind="ok">{p.paid}</Pill>} />}
-              {i === 3 && <Pill kind="wait">{p.due}</Pill>}
-            </span>
-            <span className="cr-cap cr-date">{date}</span>
-          </div>
-        ))}
-      </div>
-      <div className="cr-payfoot">
-        <div className="cr-stats cr-stats-inline">
-          {p.stats.map(([before, after, label]) => (
-            <span key={label} className="cr-stat">
-              <Swap from={<b>{before}</b>} to={<b>{after}</b>} />
-              <span>{label}</span>
-            </span>
+          <Pill kind="ok">{q.sent}</Pill>
+        </div>
+        <div className="cr-replies">
+          {q.cards.map((c, i) => (
+            <div key={c.name} className={`cr-reply cr-rise${c.best ? " is-best" : ""}${c.free ? "" : " is-full"}`} style={rise(0.4 + i * 0.5)}>
+              <Photo src={c.img} className="cr-reply-ph" />
+              <span className="cr-grow cr-reply-mid">
+                <span className="cr-name cr-top-t">{c.name}</span>
+                <span className="cr-cap">{c.area}</span>
+                <span className="cr-reply-tags">
+                  {c.free ? <Pill kind="ok">{q.free}</Pill> : <Pill kind="off">{q.full}</Pill>}
+                  {c.best && (
+                    <span className="cr-tag cr-tag-full cr-pop" style={rise(2.4)}>
+                      {q.best}
+                    </span>
+                  )}
+                </span>
+              </span>
+              <span className="cr-reply-side">
+                <b className="cr-reply-price">{c.price}</b>
+                {c.free && <span className={`cr-btn ${c.best ? "cr-btn-primary" : "cr-btn-line"}`}>{c.best ? q.choose : q.see}</span>}
+              </span>
+            </div>
           ))}
         </div>
-        <span className="cr-soon">
-          <span className="cr-btn cr-btn-off">{p.pay}</span>
-          <span className="cr-tag">{p.soon}</span>
-        </span>
       </div>
     </>
   );
@@ -379,131 +405,117 @@ function Guests({ t }) {
   const g = t.guests;
   return (
     <>
-      <Head title={g.title} />
-      <div className="cr-stats cr-stats-4">
-        {g.stats.map(([before, after, label]) => (
-          <span key={label} className="cr-stat">
-            {before === after ? <b>{after}</b> : <Swap from={<b>{before}</b>} to={<b>{after}</b>} />}
-            <span>{label}</span>
-          </span>
-        ))}
-      </div>
-      <div className="cr-card cr-rows cr-guests">
-        {g.rows.map(([ini, name, group, state], i) => (
-          <div key={name} className="cr-row">
-            <span className={`cr-av cr-av${(i % 4) + 1}`}>{ini}</span>
-            <span className="cr-grow">
-              <span className="cr-name">{name}</span>
-              <span className="cr-cap">{group}</span>
+      <Head title={g.title}>
+        <span className="cr-stack cr-faces">
+          {g.rows.map(([face, name]) => (
+            <Photo key={name} src={FACES[face]} className="cr-face" />
+          ))}
+        </span>
+      </Head>
+      <div className="cr-guests2">
+        <div className="cr-couple cr-form">
+          <Photo src={COUPLE_PHOTO} className="cr-form-cover" label={g.photo} />
+          <div className="cr-form-in">
+            <span className="cr-serif cr-form-names">{g.couple}</span>
+            <span className="cr-couple-cap">{g.when}</span>
+            <span className="cr-form-q">{g.question}</span>
+            <span className="cr-form-opts">
+              <Swap className="cr-copt-swap" delay={1.2} from={<span className="cr-copt">{g.yes}</span>} to={<span className="cr-copt is-on">{g.yes}</span>} />
+              <span className="cr-copt">{g.no}</span>
             </span>
-            {state === "yes" && <Pill kind="ok">{g.yes}</Pill>}
-            {state === "wait" && <Pill kind="wait">{g.wait}</Pill>}
-            {state === "no" && <Pill kind="off">{g.no}</Pill>}
-            {state === "flip" && <Swap from={<Pill kind="wait">{g.wait}</Pill>} to={<Pill kind="ok">{g.yes}</Pill>} />}
+            <span className="cr-cfield">{g.note}</span>
           </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Site({ t }) {
-  const s = t.site;
-  return (
-    <>
-      <Head title={s.title} />
-      <div className="cr-couple cr-site">
-        <div className="cr-site-text">
-          <span className="cr-site-nav">
-            {s.nav.map((n) => (
-              <span key={n}>{n}</span>
-            ))}
-          </span>
-          <span className="cr-serif cr-site-names">{s.couple}</span>
-          <span className="cr-couple-cap">{s.when}</span>
-          <div className="cr-fund">
-            <span className="cr-fund-top">
-              <span className="cr-name">{s.fund}</span>
-              <span>
-                <Swap from={<b>{s.before}</b>} to={<b>{s.after}</b>} /> <span className="cr-couple-cap">{s.of}</span>
+        </div>
+        <div className="cr-guests-right">
+          <span className="cr-gcount">
+            <Swap from={<b>{g.before}</b>} to={<b>{g.after}</b>} delay={2} />
+            <span className="cr-grow">
+              <span className="cr-name">{g.of}</span>
+              <span className="cr-track">
+                <b className="cr-fill" style={{ width: "72.5%", "--d": "2s" }} />
               </span>
             </span>
-            <span className="cr-fund-track">
-              <b className="cr-seg" style={{ "--w0": "67%", "--w1": "69%", "--d": "1.5s" }} />
-            </span>
-            <span className="cr-rise cr-fund-gift" style={{ "--d": "1.5s" }}>
-              {s.gift}
-            </span>
+          </span>
+          <div className="cr-card cr-feed">
+            <span className="cr-lab">{g.latest}</span>
+            <div className="cr-rows">
+              {g.rows.map(([face, name, answer, when], i) => (
+                <div key={name} className={`cr-row${i === 0 ? " cr-new cr-rise" : ""}`} style={i === 0 ? rise(2) : undefined}>
+                  <Photo src={FACES[face]} className="cr-face" />
+                  <span className="cr-grow">
+                    <span className="cr-name">{name}</span>
+                    <span className="cr-cap">{answer}</span>
+                  </span>
+                  <span className="cr-cap">{when}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <span className="cr-couple-cap">{s.madeWith}</span>
         </div>
-        <span className="cr-ph cr-site-photo" style={{ backgroundImage: `url(${COUPLE_PHOTO})` }} role="img" aria-label={s.photo} />
       </div>
     </>
   );
 }
 
-function Timeline({ t }) {
-  const tl = t.timeline;
-  return (
-    <>
-      <Head title={tl.title} />
-      <div className="cr-tl">
-        <span className="cr-tl-line" aria-hidden="true" />
-        {tl.rows.map(([when, what, state]) => (
-          <div key={when} className={`cr-tl-row${state === "now" ? " is-now" : ""}`}>
-            <span className="cr-tl-when">{when}</span>
-            <span className={`cr-dot${state ? ` is-${state}` : ""}${state === "now" ? " cr-pop" : ""}`} style={state === "now" ? { "--d": "1s" } : undefined} />
-            <span className="cr-name">{what}</span>
-            <span>
-              {state === "past" && <Pill kind="ok">{tl.done}</Pill>}
-              {state === "now" && (
-                <span className="cr-tag cr-tag-full cr-pop" style={{ "--d": "1s" }}>
-                  {tl.here}
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Tasks({ t }) {
-  const k = t.tasks;
+function Team({ t }) {
+  const k = t.team;
   return (
     <>
       <Head title={k.title}>
-        <Swap className="cr-tag" from={k.before} to={k.after} />
+        <span className="cr-team-head">
+          <span className="cr-stack cr-faces">
+            <Photo src={COUPLE_PHOTO} className="cr-face" />
+            {["parentsAlice", "parentsBen", "lea", "hugo"].map((f) => (
+              <Photo key={f} src={FACES[f]} className="cr-face" />
+            ))}
+          </span>
+          <span className="cr-btn cr-btn-line">{k.invite}</span>
+        </span>
       </Head>
-      <div className="cr-card cr-rows cr-tasks">
-        {k.rows.map(([what, by, ini, who, state]) => (
-          <div key={what} className="cr-row">
-            {state === "done" && <span className="cr-box is-on">{CHECK}</span>}
-            {state === "flip" && <Swap from={<span className="cr-box" />} to={<span className="cr-box is-on">{CHECK}</span>} />}
-            {!state && <span className="cr-box" />}
-            <span className="cr-grow">
-              <span className={`cr-name${state === "done" ? " is-done" : ""}${state === "flip" ? " cr-strike" : ""}`} style={state === "flip" ? { "--d": "1.5s" } : undefined}>
-                {what}
-              </span>
-              <span className="cr-cap">{by}</span>
-            </span>
-            <span className="cr-who">
-              <span className={`cr-av cr-av${{ A: 4, B: 3, S: 1 }[ini]}`}>{ini}</span>
-              <span className="cr-who-name">{who}</span>
-            </span>
+      <div className="cr-team">
+        <div className="cr-card cr-feed">
+          <span className="cr-lab">{k.week}</span>
+          <div className="cr-rows">
+            {k.rows.map(([face, who, what, when], i) => (
+              <div key={who + what} className="cr-row cr-rise" style={rise(0.4 + i * 0.6)}>
+                <Photo src={FACES[face]} className="cr-face" />
+                <span className="cr-grow">
+                  <span className="cr-name">{who}</span>
+                  <span className="cr-team-what">{what}</span>
+                </span>
+                <span className="cr-cap">{when}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+        <div className="cr-team-side">
+          <span className="cr-ph cr-team-site" style={{ backgroundImage: `url(${COUPLE_PHOTO})` }} role="img" aria-label={k.photo}>
+            <span className="cr-team-site-in">
+              <span className="cr-grow">
+                <span className="cr-name">{k.site}</span>
+                <span className="cr-cap">{k.siteCap}</span>
+              </span>
+              <Pill kind="ok">{k.online}</Pill>
+            </span>
+          </span>
+          <div className="cr-stats cr-stats-3 cr-team-stats">
+            {k.stats.map(([value, label]) => (
+              <span key={label} className="cr-stat">
+                <b>{value}</b>
+                <span>{label}</span>
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
 const SCENES = [
-  [Wedding, Timeline, Budget],
-  [Vendors, Request, Quotes],
-  [Guests, Site, Payments, Tasks],
+  [Brief, Plan],
+  [Matches, Quotes],
+  [Guests, Team],
 ];
 const SCENE_SECONDS = 5;
 
