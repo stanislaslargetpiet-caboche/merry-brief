@@ -32,9 +32,9 @@ describe("buildActivite", () => {
       firstName: "Camille",
       ...ctx,
     });
-    expect(mail.subject).toBe("Nouvelles activités sur votre mariage");
+    expect(mail.subject).toBe("Nouvelles activités sur le mariage");
     expect(mail.preheader).toBe("2 réponses d'invités, 6 invités ajoutés, 1 réponse de prestataire, 2 messages");
-    for (const s of ["Bonjour Camille,", "Invités", "Prestataires", "Messages", "VIENT", "NE VIENT PAS", "AJOUTÉ", "5 invités ajoutés aujourd&#39;hui par les organisateurs", "Studio Aube", "Domaine des Lilas", "Aller sur Merry"]) expect(mail.body).toContain(s);
+    for (const s of ["Bonjour Camille,", "Invités", "Prestataires", "Messages", "✓&nbsp;Vient", "Ne vient pas", "Ajouté", "5 invités ajoutés aujourd&#39;hui par les organisateurs", "Studio Aube", "Domaine des Lilas", "Aller sur Merry"]) expect(mail.body).toContain(s);
     expect(mail.text).toContain("5 invités ajoutés aujourd'hui par les organisateurs");
     expect(mail.body).not.toContain("Julien");
   });
@@ -60,10 +60,17 @@ describe("buildActivite", () => {
     });
     expect(mail.body).toContain("Cocktail : oui · Dîner : non");
     expect(mail.body.match(/Cocktail : /g)).toHaveLength(1);
-    expect(mail.body.match(/>VIENT</g)).toHaveLength(2);
+    expect(mail.body.match(/>✓&nbsp;Vient</g)).toHaveLength(2);
     expect(mail.text).toContain("- Léa Martin : vient (Cocktail : oui · Dîner : non)");
     expect(mail.text).toContain("- Paul Dupuis : vient\n");
     expect(mail.preheader).toBe("3 réponses d'invités");
+  });
+
+  it("nomme le couple dans l'objet, l'intro et les blocs", () => {
+    const mail = buildActivite({ activity: { reponses: [{ name: "Léa Martin", comes: true }], prestataires: [{ name: "Studio Aube" }] }, couple: "Margaux et Thomas", firstName: "Léa", ...ctx });
+    expect(mail.subject).toBe("Nouvelles activités sur le mariage de Margaux et Thomas");
+    for (const s of ["Aujourd'hui sur Merry", "sur le mariage de Margaux et Thomas depuis hier 20&nbsp;h", "à l'invitation de Margaux et Thomas", "à la demande de Margaux et Thomas"]) expect(mail.body).toContain(s);
+    expect(mail.body).not.toContain("ton mariage");
   });
 
   it("échappe les noms", () => {
@@ -175,10 +182,10 @@ describe("runActivite", () => {
     ]);
     expect(activity.get("w1").ajouts).toEqual([]);
     const mail = buildActivite({ activity: activity.get("w1"), ...ctx });
-    expect(mail.body).toContain("<b>2</b> nouvelles réponses à ton invitation");
-    expect(mail.body).toContain(">AJOUTÉ<");
-    expect(mail.body).toContain(">A RÉPONDU<");
-    expect(mail.body).not.toContain("VIENT");
+    expect(mail.body).toContain("<b>2</b> nouvelles réponses à l'invitation");
+    expect(mail.body).toContain(">Ajouté<");
+    expect(mail.body).toContain(">A répondu<");
+    expect(mail.body).not.toContain("Vient");
     expect(mail.text).toContain("- Hugo Roux : a répondu");
     expect(mail.preheader).toBe("2 réponses d'invités");
   });
