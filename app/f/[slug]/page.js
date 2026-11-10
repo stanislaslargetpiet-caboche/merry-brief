@@ -46,10 +46,11 @@ export default function GuestFormPage() {
   const couple = (form.title || "").trim() || [form.partner1, form.partner2].filter(Boolean).join(" & ");
 
   return (
-    <main className="gf" style={style}>
-      <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50}%` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />
+    <main className={`gf${answered ? " is-answered" : ""}`} style={style}>
+      {/* Après l'envoi, la photo et le titre ne reviennent pas : le merci puis la carte Merry, sur fond blanc */}
+      {answered ? null : <div className="gf-cover" style={form.cover_url ? { backgroundImage: `url("${form.cover_url}")`, backgroundPosition: `center ${Number.isFinite(Number(form.cover_position)) ? Number(form.cover_position) : 50}%` } : undefined} role={form.cover_url ? "img" : undefined} aria-label={form.cover_url ? `Photo de ${couple}` : undefined} />}
       <div className="gf-wrap">
-        <section className="gf-card gf-hero">
+        {answered ? null : <section className="gf-card gf-hero">
           <div className="gf-kicker">Save the date</div>
           <h1>{couple}</h1>
           {form.wedding_date ? <div className="gf-date">{longDate(form.wedding_date)}</div> : null}
@@ -64,9 +65,9 @@ export default function GuestFormPage() {
               Voir l'itinéraire
             </a>
           ) : null}
-        </section>
+        </section>}
 
-        <GuestForm form={form} slug={String(slug)} onAnswered={() => setAnswered(true)} />
+        <GuestForm form={form} slug={String(slug)} fullscreen onAnswered={() => setAnswered(true)} />
 
         {answered ? (
           <section className="gf-merry" aria-label="Merry">

@@ -450,6 +450,43 @@ textarea.gf-input {
   animation: none;
 }
 
+/* Page publique : l'envoi se joue par-dessus toute la page. Le blanc recouvre d'abord la photo, le titre et le
+   formulaire (--gf-lead, LEAD_MS de GuestForm), puis les pastilles entrent dans le cercle, puis le merci */
+.gf-screen {
+  --gf-lead: 0.45s;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  animation: gf-fade 0.45s ease both;
+}
+
+.gf-screen .gf-fly {
+  width: 100%;
+  animation: none;
+}
+
+/* Après l'envoi, la page reste blanche, sans photo ni titre : le merci en haut, puis la carte Merry */
+.gf.is-answered {
+  background: #ffffff;
+}
+
+.gf.is-answered .gf-wrap {
+  margin-top: 0;
+  padding-top: clamp(16px, 6vh, 56px);
+}
+
+.gf.is-answered .gf-merry {
+  animation-delay: 0.55s;
+}
+
+.gf.is-answered .gf-foot {
+  animation: gf-fade 0.4s ease 1s both;
+}
+
 /* Dans le site de mariage, la carte est plus étroite (560 px) : les pastilles se resserrent */
 .gf-embed .gf-fly {
   --kx: 0.8;
@@ -471,7 +508,7 @@ textarea.gf-input {
   height: 120px;
   border-radius: 999px;
   background: var(--gf-deep);
-  animation: gf-core-in 0.9s ease 1.6s both;
+  animation: gf-core-in 0.9s ease calc(var(--gf-lead, 0s) + 1.6s) both;
 }
 
 .gf-fly.is-wait .gf-fly-core {
@@ -498,7 +535,7 @@ textarea.gf-input {
   font-size: 15px;
   font-weight: 700;
   box-shadow: 0 6px 18px rgba(28, 28, 26, 0.1);
-  animation: gf-pill 2.1s cubic-bezier(0.4, 0, 0.3, 1) calc(var(--i) * 70ms) both;
+  animation: gf-pill 2.1s cubic-bezier(0.4, 0, 0.3, 1) calc(var(--gf-lead, 0s) + var(--i) * 70ms) both;
 }
 
 .gf-fly-line {
@@ -520,11 +557,11 @@ textarea.gf-input {
 }
 
 .gf-fly-line span:first-child {
-  animation: gf-line-out 1.25s ease 0.15s both;
+  animation: gf-line-out 1.25s ease calc(var(--gf-lead, 0s) + 0.15s) both;
 }
 
 .gf-fly-line span:last-child {
-  animation: gf-fade 0.4s ease 1.35s both;
+  animation: gf-fade 0.4s ease calc(var(--gf-lead, 0s) + 1.35s) both;
 }
 
 .gf-fly-ok {
@@ -831,7 +868,8 @@ textarea.gf-input {
 @media (prefers-reduced-motion: reduce) {
   .gf-loader-word,
   .gf-loadbar > span,
-  .gf-merry {
+  .gf-merry,
+  .gf.is-answered .gf-foot {
     animation: none;
   }
 }

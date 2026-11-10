@@ -6,7 +6,8 @@
 // puis mail de confirmation à l'invité) et reste dans le navigateur (RESPONSE_KEY) pour que le site la
 // rappelle à l'invité. Pendant l'envoi, les réponses en pastilles entrent dans le cercle (comme la
 // préparation de l'onboarding), puis « Merci pour ta réponse » s'affiche seul, puis la carte reprend sa
-// place (planches 3e2 du canvas) ; sans animation si l'invité les a réduites.
+// place (planches 3e2 du canvas) ; sans animation si l'invité les a réduites. Sur la page publique
+// (fullscreen), l'écran devient d'abord blanc : photo, titre et formulaire disparaissent avant les pastilles.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -77,6 +78,8 @@ async function sendAnswer(slug, payload) {
 // dans le cercle, puis le merci reste seul un moment avant que la carte reprenne sa place
 const GATHER_MS = 2500;
 const MERCI_MS = 1900;
+// En plein écran, le blanc recouvre d'abord la page (--gf-lead de form.css) : les pastilles partent après
+const LEAD_MS = 450;
 
 // Emplacements des pastilles autour du cercle : x, y (px sur ordinateur, resserrés sur téléphone par
 // form.css) et inclinaison ; le dernier, en haut au centre, reçoit le petit mot, plus long
@@ -115,7 +118,7 @@ const YESNO = [
 
 const EMPTY_PERSON = { first_name: "", last_name: "", email: "", phone: "", address: "", diet: null, allergies: "" };
 
-export default function GuestForm({ form, slug, onAnswered }) {
+export default function GuestForm({ form, slug, onAnswered, fullscreen = false }) {
   const [me, setMe] = useState(EMPTY_PERSON);
   const [plus, setPlus] = useState(null); // "oui" | "non" | null
   const [other, setOther] = useState({ ...EMPTY_PERSON, same_address: true });
@@ -132,6 +135,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
   const root = useRef(null);
   const fly = useRef(null);
   const flyHeight = useRef(0);
+  const okTop = useRef(null);
   const alive = useRef(true);
 
   useEffect(() => {
@@ -203,6 +207,19 @@ export default function GuestForm({ form, slug, onAnswered }) {
     const el = fly.current;
     if (!el) {
       flyHeight.current = 0;
+      okTop.current = null;
+      return;
+    }
+    if (fullscreen) {
+      // Le blanc s'efface sur la page sans photo ni titre (GuestFormPage) : le merci glisse du milieu de
+      // l'écran jusqu'en haut, à sa place dans la carte
+      const ok = el.querySelector(".gf-fly-ok");
+      if (sent?.step === "done") {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        const dy = ok && okTop.current != null ? okTop.current - ok.getBoundingClientRect().top : 0;
+        if (dy) ok.animate?.([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 600, easing: "cubic-bezier(0.65, 0, 0.35, 1)" });
+      }
+      okTop.current = sent?.step === "merci" && ok ? ok.getBoundingClientRect().top : null;
       return;
     }
     const h = el.getBoundingClientRect().height;
@@ -212,7 +229,7 @@ export default function GuestForm({ form, slug, onAnswered }) {
       if (!root.current?.closest(".gf-embed")) root.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     flyHeight.current = h;
-  }, [sent?.step]);
+  }, [sent?.step, fullscreen]);
 
   // Envoi refusé après l'animation : on ramène l'invité au message, à côté du bouton
   useEffect(() => {
@@ -238,6 +255,8 @@ export default function GuestForm({ form, slug, onAnswered }) {
   }
 
   async function submit() {
+    // En plein écran, le formulaire reste dessous pendant l'envoi : une touche Entrée ne le renvoie pas
+    if (sent) return;
     const miss = check();
     setMissing(miss.map((m) => m.key));
     if (miss.length) {
@@ -289,7 +308,8 @@ export default function GuestForm({ form, slug, onAnswered }) {
     if (animate) {
       // Les pastilles entrent dans le cercle pendant l'envoi ; si la base tarde, le cercle attend en respirant
       setSent({ step: "gather", pills: answerPills(payload), mailed: false });
-      await new Promise((r) => setTimeout(r, GATHER_MS));
+      if (fullscreen) document.activeElement?.blur?.();
+      await new Promise((r) => setTimeout(r, GATHER_MS + (fullscreen ? LEAD_MS : 0)));
       if (!alive.current) return;
       if (!arrived) setSent((s) => s && { ...s, step: "wait" });
     } else {
@@ -519,47 +539,55 @@ export default function GuestForm({ form, slug, onAnswered }) {
     failed: "Ta réponse n'a pas pu être envoyée. Vérifie ta connexion et réessaie.",
   };
 
+  // Scène de l'envoi : dans la carte (site de mariage, et merci final), ou par-dessus toute la page sur
+  // fond blanc tant que les pastilles et le merci jouent (page publique)
+  const onScreen = fullscreen && sent && sent.step !== "done";
+  const stage = sent ? (
+    <div ref={fly} className={`gf-fly is-${sent.step}`}>
+      {sent.step !== "done" ? (
+        <div className="gf-fly-orbit" aria-hidden="true">
+          <span className="gf-fly-core" />
+          {sent.step !== "merci"
+            ? sent.pills.map((p, i) => (
+                <span key={i} className="gf-fly-pill" style={{ "--i": i, "--x": `${p.slot[0]}px`, "--y": `${p.slot[1]}px`, "--r": `${p.slot[2]}deg` }}>
+                  {p.text}
+                </span>
+              ))
+            : null}
+        </div>
+      ) : null}
+      {sent.step === "gather" || sent.step === "wait" ? (
+        <p className="gf-fly-line" role="status">
+          <span>On rassemble tes réponses…</span>
+          <span>{couple ? `On les envoie à ${couple}…` : "On les envoie aux mariés…"}</span>
+        </p>
+      ) : (
+        <div className="gf-fly-ok" role="status">
+          <span className="gf-fly-tick" aria-hidden="true">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <path d="M20 33l8 8 16-18" />
+            </svg>
+          </span>
+          <strong>Merci pour ta réponse.</strong>
+          <span>{sent.mailed ? "On t'envoie la confirmation par mail." : "Ta réponse est bien arrivée chez les mariés."}</span>
+        </div>
+      )}
+    </div>
+  ) : null;
+
   return (
     <form
       ref={root}
-      className={`gf-card${sent && sent.step !== "done" ? " is-flying" : ""}`}
+      className={`gf-card${sent && sent.step !== "done" && !fullscreen ? " is-flying" : ""}`}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      {sent ? (
-        <div ref={fly} className={`gf-fly is-${sent.step}`}>
-          {sent.step !== "done" ? (
-            <div className="gf-fly-orbit" aria-hidden="true">
-              <span className="gf-fly-core" />
-              {sent.step !== "merci"
-                ? sent.pills.map((p, i) => (
-                    <span key={i} className="gf-fly-pill" style={{ "--i": i, "--x": `${p.slot[0]}px`, "--y": `${p.slot[1]}px`, "--r": `${p.slot[2]}deg` }}>
-                      {p.text}
-                    </span>
-                  ))
-                : null}
-            </div>
-          ) : null}
-          {sent.step === "gather" || sent.step === "wait" ? (
-            <p className="gf-fly-line" role="status">
-              <span>On rassemble tes réponses…</span>
-              <span>{couple ? `On les envoie à ${couple}…` : "On les envoie aux mariés…"}</span>
-            </p>
-          ) : (
-            <div className="gf-fly-ok" role="status">
-              <span className="gf-fly-tick" aria-hidden="true">
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <path d="M20 33l8 8 16-18" />
-                </svg>
-              </span>
-              <strong>Merci pour ta réponse.</strong>
-              <span>{sent.mailed ? "On t'envoie la confirmation par mail." : "Ta réponse est bien arrivée chez les mariés."}</span>
-            </div>
-          )}
-        </div>
+      {onScreen ? <div className="gf-screen">{stage}</div> : null}
+      {sent && !onScreen ? (
+        stage
       ) : closed ? (
         <div className="gf-done" role="status">
           <strong>Les réponses sont closes.</strong>
