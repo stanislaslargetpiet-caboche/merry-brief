@@ -3,6 +3,7 @@ import Track from "@/components/vitrine/Track";
 import { LangProvider } from "@/lib/lang";
 import "./vitrine.css";
 import "./blocks.css";
+import "./carrousel.css";
 
 const SITE = "https://www.withmerry.com";
 

@@ -5,12 +5,12 @@
 
 import Image from "next/image";
 import Block from "./Block";
+import Carrousel from "./Carrousel";
 import { SIGNUP } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
 import { formatProof } from "@/lib/vitrine/proofFormat";
 import { ACCUEIL_TEXT, ACCUEIL_STEPS, ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
 import proposition, { en as propositionEn } from "@/lib/vitrine/blocks/proposition";
-import carrousel, { en as carrouselEn } from "@/lib/vitrine/blocks/carrousel";
 
 export default function HomeBody({ links, proof: rawProof }) {
   const { lang } = useLang();
@@ -85,7 +85,7 @@ export default function HomeBody({ links, proof: rawProof }) {
         <h2 className="wv-h3" style={{ maxWidth: 900 }}>
           {t.featTitle}
         </h2>
-        <Block fr={carrousel} en={carrouselEn} className="wv-car" />
+        <Carrousel />
       </section>
 
       <section className="wv-sec wv-split" aria-label="Modèle">

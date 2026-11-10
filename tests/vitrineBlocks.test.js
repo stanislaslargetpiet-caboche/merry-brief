@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
-import carrousel, { en as carrouselEn } from "../lib/vitrine/blocks/carrousel.js";
 import proposition, { en as propositionEn } from "../lib/vitrine/blocks/proposition.js";
 import proAvantApres, { en as proAvantApresEn } from "../lib/vitrine/blocks/pro-avant-apres.js";
 import proCredits, { en as proCreditsEn } from "../lib/vitrine/blocks/pro-credits.js";
 import proCriteres, { en as proCriteresEn } from "../lib/vitrine/blocks/pro-criteres.js";
 import proFiche, { en as proFicheEn } from "../lib/vitrine/blocks/pro-fiche.js";
+import { CARROUSEL } from "../lib/i18n/vitrine-carrousel.js";
 
 // Garde-fous des blocs animés du site vitrine (audit du 10 nov. 2026).
 const BLOCKS = {
-  carrousel,
-  carrouselEn,
   proposition,
   propositionEn,
   proAvantApres,
@@ -31,13 +29,48 @@ describe("blocs animés du site vitrine", () => {
   it.each(Object.entries(BLOCKS))("%s : aucun conseiller (D-125)", (_, html) => {
     expect(html).not.toMatch(/conseill|advisor/i);
   });
+});
 
-  it.each([
-    ["français", carrousel, ["Brief.", "Lieux.", "Demande.", "Devis."]],
-    ["anglais", carrouselEn, ["Brief.", "Venues.", "Request.", "Quotes."]],
-  ])("onglet Prestataires en %s : la demande part avant les devis", (_, html, order) => {
-    const slide = html.slice(html.indexOf("mrcar-slide mrcar-s1"), html.indexOf("mrcar-slide mrcar-s2"));
-    const mobile = [...slide.matchAll(/class="mrcm-t">([^<]*)</g)].map((m) => m[1]);
-    expect(mobile).toEqual(order);
+// Toutes les chaînes d'un objet de textes, avec leur chemin (pour les messages d'échec)
+function strings(node, path = []) {
+  if (typeof node === "string") return [[path.join("."), node]];
+  if (Array.isArray(node)) return node.flatMap((v, i) => strings(v, [...path, i]));
+  if (node && typeof node === "object") return Object.entries(node).flatMap(([k, v]) => strings(v, [...path, k]));
+  return [];
+}
+// La forme des textes (clés et longueurs de listes), sans les valeurs
+function shape(node) {
+  if (Array.isArray(node)) return node.map(shape);
+  if (node && typeof node === "object") return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, shape(v)]));
+  return typeof node;
+}
+
+describe("textes du carrousel de l'accueil", () => {
+  it("l'anglais a exactement la même forme que le français", () => {
+    expect(shape(CARROUSEL.en)).toEqual(shape(CARROUSEL.fr));
+  });
+
+  it("tutoie partout (D-076), sauf dans les messages écrits par le couple et par l'invité", () => {
+    const own = strings(CARROUSEL.fr).filter(([path]) => !path.startsWith("request.lines") && path !== "form.note");
+    expect(own.filter(([, text]) => /\b(vous|votre|vos)\b/i.test(text))).toEqual([]);
+  });
+
+  it("ne parle d'aucun conseiller (D-125)", () => {
+    const all = [...strings(CARROUSEL.fr), ...strings(CARROUSEL.en)];
+    expect(all.filter(([, text]) => /conseill|advisor/i.test(text))).toEqual([]);
+  });
+
+  it("aucun montant ne se coupe en bout de ligne (espaces insécables)", () => {
+    const all = [...strings(CARROUSEL.fr), ...strings(CARROUSEL.en)];
+    expect(all.filter(([, text]) => /\d (\d{3}\b|[€%])/.test(text))).toEqual([]);
+  });
+
+  it("quatre onglets de trois scènes, chaque titre de scène finit par un point", () => {
+    for (const lang of ["fr", "en"]) {
+      const t = CARROUSEL[lang];
+      expect(t.tabs).toHaveLength(4);
+      const titles = ["vendors", "request", "quotes", "budget", "payers", "payments", "guests", "form", "site", "timeline", "tasks", "docs"].map((k) => t[k].title);
+      expect(titles.every((title) => title.endsWith("."))).toBe(true);
+    }
   });
 });
