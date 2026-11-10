@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
+import { trackEvent } from "@/lib/analytics";
 import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
@@ -29,6 +30,7 @@ export default function Reglages() {
 
   async function pick(key) {
     const ok = await saveAccent(key, live);
+    if (ok) trackEvent("accent_changed", { accent: key });
     if (!ok) dash.setToast({ kind: "error", text: "La couleur n'a pas pu être enregistrée sur ton compte." });
   }
 

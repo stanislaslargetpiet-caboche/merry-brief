@@ -148,6 +148,9 @@ export default function Utilisateurs({ data, series, jours }) {
         <Fold open title="Inscriptions par source" icon="lien" value={fmtInt((data.sources || []).reduce((acc, x) => acc + x.n, 0))} note="Lien d'arrivée enregistré avec le brief (?source=meta-a…). Les campagnes Meta se lisent ici, cookies acceptés ou non.">
           <Ranked rows={data.sources} empty="Aucune inscription sur la période" />
         </Fold>
+        <Fold title="Couleur du tableau de bord" icon="lien" value={fmtInt((data.couleurs || []).filter((x) => x.label !== "Pas choisi").reduce((acc, x) => acc + x.n, 0))} note="Couleur actuelle de chaque compte, pas l'historique. « Pas choisi » : le citron par défaut.">
+          <Ranked rows={data.couleurs} empty="Aucun compte" />
+        </Fold>
         <Fold title="Sites créés" icon="document" value={fmtInt(f.sites_crees?.n)}>
           <Facts
             rows={[
@@ -163,6 +166,7 @@ export default function Utilisateurs({ data, series, jours }) {
               { key: "email", label: "Adresse" },
               { key: "couple", label: "Couple", render: (r) => r.couple || <span className="pl-muted">sans mariage</span> },
               { key: "source", label: "Source", render: (r) => r.source || <span className="pl-muted">sans brief</span> },
+              { key: "couleur", label: "Couleur", render: (r) => r.couleur || <span className="pl-muted">pas choisi</span> },
               { key: "cree", label: "Créé", render: (r) => fmtDateTime(r.cree) },
               { key: "derniere_connexion", label: "Dernière connexion", render: (r) => fmtAgo(r.derniere_connexion) },
             ]}
