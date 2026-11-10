@@ -1,7 +1,7 @@
 /* Section « Comment ça marche » de l'accueil (components/vitrine/Carrousel.js) : lot 2 du 10 nov. 2026 (planches
    Site-Blocs-* du canvas) et fusion D-228 (planches Site-Fusion-*).
    Jetons du système de design v2 : encre #1c1c1a, gris #6b6a63, fonds #f6f5f1, bordures #ecebe6 / #d9d7cf, citron
-   #bfe9a6 / #e6f7dc / #2f5a1a, vert de confirmation #dff3e1 / #1f6b30, attente #ffe6cc / #8a4b0f. Pastel pour les
+   #bfe9a6 / #e6f7dc / #2f5a1a, vert de confirmation #d4f1e8 / #0b6a4f, attente #ffe6cc / #8a4b0f. Pastel pour les
    personnes seulement. Texte de 14 px minimum, 13 px pour les étiquettes en capitales. */
 
 .cr { width: min(1120px, 100%); text-align: left; color: #1c1c1a; font-family: "Alan Sans", Helvetica, Arial, sans-serif; }
@@ -48,7 +48,7 @@
 .cr-btn-line { background: #ffffff; border: 1.5px solid #1c1c1a; }
 .cr-btn-off { background: #ffffff; border: 1.5px solid #d9d7cf; color: #9c9a90; }
 .cr-pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 700; white-space: nowrap; }
-.cr-ok { background: #dff3e1; color: #1f6b30; }
+.cr-ok { background: #d4f1e8; color: #0b6a4f; }
 .cr-wait { background: #ffe6cc; color: #8a4b0f; }
 .cr-off { background: #f6f5f1; color: #6b6a63; }
 .cr-tag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; background: #e6f7dc; color: #2f5a1a; font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -115,7 +115,7 @@
 .cr-best { position: absolute; top: 14px; right: 14px; }
 .cr-quote-price { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
 .cr-free, .cr-full { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
-.cr-free { color: #1f6b30; }
+.cr-free { color: #0b6a4f; }
 .cr-full { color: #8a4b0f; }
 .cr-quote-cta { align-self: flex-start; }
 

@@ -46,7 +46,7 @@ const PATHS = {
 // ces tracés tels quels plutôt que redessiner — voir https://claude.ai/artifact/UgqTTob2YDYeQFtfFNhQ5n.
 const DS_PATHS = {
   messagerie: '<path d="M4 5h16v11H8.5L4 20z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
-  confirmer: '<circle cx="12" cy="12" r="9" fill="#dff3e1" stroke="#1f6b30" stroke-width="2"/><path d="M8 12l3 3 5-6" fill="none" stroke="#1f6b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  confirmer: '<circle cx="12" cy="12" r="9" fill="#d4f1e8" stroke="#0b6a4f" stroke-width="2"/><path d="M8 12l3 3 5-6" fill="none" stroke="#0b6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   // Hors bibliothèque (18 icônes, pas de concept « à traiter ») : même structure que Confirmer — cercle
   // + tracé encre — avec la couleur sémantique d'attente plutôt que l'accent, pour rester cohérent.
   a_traiter: '<circle cx="12" cy="12" r="9" fill="#ffe6cc" stroke="#8a4b0f" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="#8a4b0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',

@@ -90,8 +90,8 @@ export default function Desinscription() {
       {state.status === "ready" && state.out ? (
         <>
           <svg className="unsub-check" width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" fill="#dff3e1" stroke="#1f6b30" strokeWidth="2" />
-            <path d="M8 12l3 3 5-6" fill="none" stroke="#1f6b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="9" fill="#d4f1e8" stroke="#0b6a4f" strokeWidth="2" />
+            <path d="M8 12l3 3 5-6" fill="none" stroke="#0b6a4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h1 className="is-done">C’est noté.</h1>
           <p className="unsub-text">{state.email} {texts.done}</p>
