@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { longDate } from "@/lib/dash/format";
 import { formTheme } from "@/lib/dash/form";
@@ -18,6 +18,9 @@ const MERRY = "https://withmerry.com/?source=formulaire-invites";
  * Le formulaire lui-même (questions, envoi) est dans components/site/GuestForm.js, partagé avec le site de mariage.
  */
 
+// L'écran de chargement Merry reste au moins 3 secondes, même si le formulaire arrive plus vite
+const LOADER_MS = 3000;
+
 export default function GuestFormPage() {
   const { slug } = useParams();
   const state = useGuestForm(slug);
@@ -25,11 +28,16 @@ export default function GuestFormPage() {
   const theme = formTheme(form?.theme);
   const style = useMemo(() => ({ "--gf-bg": theme.bg, "--gf-deep": theme.deep, "--gf-accent": theme.accent }), [theme]);
   const [answered, setAnswered] = useState(false);
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), LOADER_MS);
+    return () => clearTimeout(t);
+  }, []);
 
-  if (state.status !== "ready") {
+  if (state.status !== "ready" || !waited) {
     return (
       <main className="gf" style={style}>
-        {state.status === "loading" ? (
+        {state.status === "loading" || !waited ? (
           <div className="gf-loader" role="status" aria-label="Chargement du formulaire">
             <span className="gf-loader-word">Merry</span>
             <span className="gf-loadbar">
