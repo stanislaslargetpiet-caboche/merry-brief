@@ -13,7 +13,6 @@ export { pageDescription, pageModel, pageTitle };
 // Les pages sont servies sur www.withmerry.com : l'inscription et l'espace pro restent sur l'appli
 const SIGNUP = "https://app.withmerry.com/?source=seo";
 const CLAIM = "https://app.withmerry.com/pro/fiche";
-const SITE = "https://www.withmerry.com";
 
 const ICONS = {
   seats: "M7 11V5.5A1.5 1.5 0 0 1 8.5 4h7A1.5 1.5 0 0 1 17 5.5V11M5 11h14v3H5zM7 14v6M17 14v6",
@@ -127,18 +126,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
     <div className="sm-root">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(trade, zone, model, vendors) }} />
 
-      <header className="sm-top">
-        <div className="sm-top-in">
-          <a href={SITE} className="sm-logo">
-            Merry
-          </a>
-          <a href={SIGNUP} className="sm-btn sm-btn-lime">
-            J'organise
-          </a>
-        </div>
-      </header>
-
-      <main className="sm-wrap">
+      <main id="contenu" tabIndex={-1} className="sm-wrap">
         <div className="sm-head">
           <h1 className="sm-title">{pageTitle(trade, zone)}.</h1>
           <p className="sm-intro">{model.intro}</p>
