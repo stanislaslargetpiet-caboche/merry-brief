@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 import { classifyAgent } from "@/lib/agentsIa";
-import { compter, isPageVisit, sourceOf } from "@/lib/compteur";
+import { compter, isPageRequest, isPageVisit, isRobot, sourceOf } from "@/lib/compteur";
+import { classifyRobot } from "@/lib/robots";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
 // (/mariage/*) ; l'appli reste sur app.withmerry.com. Les pages réservées à l'appli renvoient vers
@@ -51,7 +52,7 @@ function route(req) {
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
 
-function reportAgent(req, event, agent) {
+function reportAgent(req, event, agent, nom = "bot_hit") {
   if (!POSTHOG_KEY) return;
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   if (!host || host.includes("localhost")) return;
@@ -60,7 +61,7 @@ function reportAgent(req, event, agent) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       api_key: POSTHOG_KEY,
-      event: "bot_hit",
+      event: nom,
       distinct_id: `agent:${agent.famille}`,
       properties: { ...agent, site: host, chemin: req.nextUrl.pathname, agent_ua: (req.headers.get("user-agent") || "").slice(0, 300), $process_person_profile: false, $lib: "merry-middleware" },
     }),
@@ -85,6 +86,10 @@ export function middleware(req, event) {
   const agent = landed ? classifyAgent(req.headers.get("user-agent")) : null;
   if (agent && !req.nextUrl.pathname.startsWith("/api/interne/")) reportAgent(req, event, agent);
   const etape = landed && !agent ? etapeDe(req) : null;
+  // Robots ordinaires (moteurs, aperçus de lien, scripts) sur une page du site : relevés à part des visites humaines
+  if (etape === "site" && isPageRequest(req.headers, req.method) && isRobot(req.headers.get("user-agent"))) {
+    reportAgent(req, event, classifyRobot(req.headers.get("user-agent")), "robot_hit");
+  }
   if (etape && isPageVisit(req.headers, req.method)) {
     const send = compter({ etape, source: sourceOf(req.nextUrl.search), site: (req.headers.get("host") || "").split(":")[0].toLowerCase() });
     if (send) event?.waitUntil?.(send);
