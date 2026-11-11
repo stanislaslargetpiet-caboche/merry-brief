@@ -5,6 +5,8 @@ import { PUBLIC_URL, hrefOf, num } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
 import ScrollNav from "./ScrollNav";
 
+const ficheHref = (id) => `/mariage/prestataire/${id}`;
+
 // Gardés ici pour les appelants existants ; le calcul vit dans lib/seo/model.js
 export { pageDescription, pageModel, pageTitle };
 
@@ -19,7 +21,7 @@ const ICONS = {
   train: "M5.5 10.5h13M9 20l-1.5 1.5M15 20l1.5 1.5M9 13.5h.01M15 13.5h.01",
 };
 
-function SpecIcon({ name }) {
+export function SpecIcon({ name }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {name === "train" && <rect x="5.5" y="3.5" width="13" height="13" rx="3" />}
@@ -41,14 +43,20 @@ function VendorCard({ v, trade }) {
   return (
     <article className="sm-card">
       <div className="sm-photo">
-        {v.photo ? <img src={v.photo} alt={v.name} loading="lazy" decoding="async" width={640} height={420} /> : <span>{trade.key === "lieu" ? "Photo du lieu à venir" : "Photo à venir"}</span>}
+        <a href={ficheHref(v.id)} className="sm-photo-link" aria-label={`Voir la fiche de ${v.name}`}>
+          {v.photo ? <img src={v.photo} alt={v.name} loading="lazy" decoding="async" width={640} height={420} /> : <span>{trade.key === "lieu" ? "Photo du lieu à venir" : "Photo à venir"}</span>}
+        </a>
         <a href={SIGNUP} className="sm-heart" aria-label={`Ajouter ${v.name} à ma sélection`}>
           <Heart />
         </a>
       </div>
       <div className="sm-card-body">
         <div className="sm-card-name">
-          <h3>{v.name}</h3>
+          <h3>
+            <a href={ficheHref(v.id)} className="sm-name-link">
+              {v.name}
+            </a>
+          </h3>
           {v.area && (
             <div className="sm-area">
               <span>{v.area}</span>

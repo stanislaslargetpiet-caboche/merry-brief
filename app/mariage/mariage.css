@@ -117,3 +117,20 @@
   .sm-bar .sm-btn { width: 100%; }
 }
 .sm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Cartes cliquables et fiche prestataire */
+.sm-photo-link { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: inherit; text-decoration: none; }
+.sm-root .sm-name-link { text-decoration: none; }
+.sm-root .sm-name-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sm-heart { z-index: 1; }
+.sm-fiche { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.sm-fiche-photos { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sm-fiche-cover { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 20px; background: #f6fcf2; display: block; }
+.sm-photo-empty { display: flex; align-items: center; justify-content: center; font-size: 13px; color: #5f5e58; }
+.sm-fiche-more { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sm-fiche-more img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: #f6fcf2; }
+.sm-fiche-side { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 24px; }
+@media (max-width: 900px) {
+  .sm-fiche { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sm-fiche-side { position: static; }
+}
