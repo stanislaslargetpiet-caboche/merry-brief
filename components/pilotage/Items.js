@@ -424,7 +424,6 @@ function LigneAlerte({ l, demo, rapport, relire, ...gestes }) {
         <strong>{l.titre}</strong>
         {l.sous ? <small>{l.sous}</small> : null}
         <EtatAgent agent={agent} pret={pret} />
-        {pret && rapportOuvert ? <Rapport rapport={rapport} /> : null}
       </span>
       <Pill tone={l.tone}>{l.tag}</Pill>
       <span className="pl-ligne-a">
@@ -448,6 +447,7 @@ function LigneAlerte({ l, demo, rapport, relire, ...gestes }) {
           </button>
         ) : null}
       </span>
+      {pret && rapportOuvert ? <Rapport rapport={rapport} /> : null}
     </li>
   );
 }

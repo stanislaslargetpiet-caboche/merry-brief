@@ -388,7 +388,10 @@
 .pl-ligne-t strong { font-weight: 600; line-height: 1.35; }
 .pl-ligne-t small { font-size: 12px; font-weight: 500; color: var(--ink-muted); line-height: 1.4; }
 .pl-ligne-a { flex: none; display: flex; align-items: center; gap: 6px; }
-.pl-ligne-alerte .pl-ligne-a { flex-wrap: wrap; justify-content: flex-end; }
+.pl-ligne-alerte { flex-wrap: wrap; }
+.pl-ligne-alerte .pl-ligne-t { flex: 1 1 240px; }
+.pl-ligne-alerte .pl-ligne-a { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; }
+.pl-ligne-alerte > .pl-rapport { flex: 1 1 100%; max-width: none; }
 .pl-lectures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .pl-lecture { display: grid; gap: 4px; }
 .pl-lecture p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-muted); }
