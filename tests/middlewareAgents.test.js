@@ -41,6 +41,13 @@ describe("middleware : relevé des agents IA", () => {
     expect(body.properties).toMatchObject({ etape: "site", source: "meta-c", site: "www.withmerry.com", $process_person_profile: false, $ip: null });
     expect(body.distinct_id).toMatch(/^compteur:/);
   });
+  it("relève un robot ordinaire sur une page du site sous robot_hit, sans le compter comme visite", async () => {
+    await run("https://www.withmerry.com/", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.event).toBe("robot_hit");
+    expect(body.properties).toMatchObject({ famille: "Googlebot", categorie: "Moteur de recherche", site: "www.withmerry.com", chemin: "/", $process_person_profile: false });
+  });
   it("compte l'ouverture de l'onboarding, pas les autres pages de l'appli", async () => {
     await run("https://app.withmerry.com/?source=meta-c", CHROME);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).properties).toMatchObject({ etape: "appli", source: "meta-c" });
@@ -53,7 +60,7 @@ describe("middleware : relevé des agents IA", () => {
     expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).event)).toEqual(["bot_hit"]);
     fetchMock.mockClear();
     await run("https://www.withmerry.com/", "facebookexternalhit/1.1");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).event)).toEqual(["robot_hit"]);
   });
   it("ne compte pas une redirection (l'agent est compté là où il atterrit)", async () => {
     const res = await run("https://app.withmerry.com/mariage/lieux/yvelines", GPT);

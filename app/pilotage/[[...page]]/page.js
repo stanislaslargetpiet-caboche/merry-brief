@@ -11,6 +11,7 @@ import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
+import Robots from "@/components/pilotage/Robots";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
@@ -280,6 +281,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
     return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
   }, [joursList, ph, sb]);
   const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
+  const robots = useMemo(() => alignSeries(joursList, ph?.site?.robots, ["robots"]), [joursList, ph]);
+  const robotsSplit = useMemo(() => splitSeries(robots, jours), [robots, jours]);
   const rsvp = useMemo(() => mesureDepuis(sb?.series, "reponses_rsvp", DEBUT_JOURNAL_RSVP), [sb]);
   const rsvpSplit = useMemo(() => splitSeries(rsvp, jours), [rsvp, jours]);
   const bugs = useMemo(() => alignSeries(joursList, ph?.bugs?.series, ["exceptions", "rage", "morts"]), [joursList, ph]);
@@ -352,13 +355,15 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="site">
         {ph ? (
           <TileChart>
-            <Tile label="Visites" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes en arrivant, cookies acceptés ou non (compteur sans cookie)" chart={<DayLine title="Visites par jour" series={arrivees} valeur="visites" label="Visites" days={jours} />} />
+            <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots écartés)" chart={<DayLine title="Visites humaines par jour" series={arrivees} valeur="visites" label="Visites humaines" days={jours} />} />
             <Tile label="Comptes créés" value={cur("inscriptions")} prev={prev("inscriptions")} chart={<DayBars title="Comptes créés par jour" series={sb?.series} keys={["inscriptions"]} labels={["Comptes créés"]} days={jours} />} />
             <Tile label="Taux d'inscription" value={pctOf(cur("inscriptions"), sumBy(arriveesSplit.current, "visites"))} prev={pctOf(prev("inscriptions"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title="Taux d'inscription par jour" series={arrivees} valeur="taux" label="Taux d'inscription" days={jours} format={pct} />} />
+            <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={<DayBars title="Robots par jour" series={robots} keys={["robots"]} labels={["Robots"]} days={jours} />} />
           </TileChart>
         ) : (
           nonLu("PostHog", data.posthog?.raison)
         )}
+        {ph ? <Robots familles={ph.site?.robots_familles} /> : null}
       </Section>
 
       <Publicites entonnoir={ph?.site?.entonnoir} sources={data.utilisateurs?.sources} />
