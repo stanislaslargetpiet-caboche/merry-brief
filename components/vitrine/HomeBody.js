@@ -6,6 +6,7 @@
 import Image from "next/image";
 import Block from "./Block";
 import Carrousel from "./Carrousel";
+import HeroMobile from "./HeroMobile";
 import { SIGNUP } from "@/lib/vitrine/routes";
 import { useLang } from "@/lib/lang";
 import { formatProof } from "@/lib/vitrine/proofFormat";
@@ -44,6 +45,7 @@ export default function HomeBody({ links, proof: rawProof }) {
             ({proof.month}).
           </p>
         </div>
+        <HeroMobile />
         <Block fr={proposition} en={propositionEn} className="wv-hero-media" />
       </section>
 
