@@ -119,7 +119,7 @@ export default function FicheInvite() {
   const empty = info.filter((x) => !x.value);
 
   const row = (x) => (
-    <div key={x.key} className={`d-frow${x.value ? "" : " is-empty"}${x.form ? " is-form" : ""}`}>
+    <div key={x.key} className={`d-frow${x.value ? "" : " is-empty"}${x.form ? " is-form" : ""}${String(x.value || "").length > 20 || x.label.length > 24 ? " is-long" : ""}`}>
       <span className="d-frow-label">
         {x.label}
         {x.form ? <small>via le formulaire</small> : null}
