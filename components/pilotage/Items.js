@@ -249,27 +249,83 @@ function LigneTache({ l, ...gestes }) {
 
 const ETATS_AGENT = { audit: "Audit lancé", reparer: "Réparation lancée" };
 
+// Les comptes rendus des agents, par clé de ligne du fil. Relus toutes les 20 s tant qu'un agent travaille : le bouton Rapport
+// apparaît seul quand il a fini. En démonstration, il n'y en a pas.
+function useRapports(demo) {
+  const [rapports, setRapports] = useState({});
+  const lire = useCallback(async () => {
+    if (demo) return;
+    try {
+      const { rapports: liste = [] } = await call("GET", null, URL_AGENT);
+      setRapports(Object.fromEntries(liste.map((r) => [r.cle, r])));
+    } catch {}
+  }, [demo]);
+  useEffect(() => {
+    lire();
+  }, [lire]);
+  const attente = Object.values(rapports).some((r) => r.statut === "en_cours");
+  useEffect(() => {
+    if (!attente) return;
+    const t = setInterval(lire, 20000);
+    return () => clearInterval(t);
+  }, [attente, lire]);
+  return { rapports, relire: lire };
+}
+
 // Auditer et Réparer : lancent l'agent, ou copient la consigne quand aucun agent n'est branché
-function useAgent(l, demo) {
+function useAgent(l, demo, rapport, relire) {
   const [agent, setAgent] = useState(null);
   const alerte = l.source === "alerte";
   const lancer = async (mode) => {
     setAgent({ mode, etat: "envoi" });
     try {
-      const corps = alerte ? { alerte: { titre: l.titre, detail: l.sous }, mode } : { id: l.id, mode };
+      const corps = alerte ? { alerte: { titre: l.titre, detail: l.sous }, mode, cle: l.cle } : { id: l.id, mode, cle: l.cle };
       const r = demo ? { ok: true, lance: false, brief: briefAgent(alerte ? { titre: l.titre, detail: l.sous } : l.item, mode, alerte) } : await call("POST", corps, URL_AGENT);
-      if (r.lance) return setAgent({ mode, etat: "lance", session: r.session });
+      if (r.lance) {
+        setAgent({ mode, etat: "lance", session: r.session });
+        return relire?.();
+      }
       await navigator.clipboard?.writeText(r.brief).catch(() => {});
       setAgent({ mode, etat: "copie" });
     } catch (x) {
       setAgent({ mode, etat: "echec", message: x.message });
     }
   };
-  return { agent, lancer, envoi: agent?.etat === "envoi" };
+  // Un compte rendu relu en base prime sur l'état local : il survit au rechargement de la page
+  const vu = rapport && rapport.statut === "en_cours" && (!agent || agent.etat === "lance") ? { mode: rapport.mode, etat: "lance", session: rapport.session } : agent;
+  return { agent: vu, lancer, envoi: agent?.etat === "envoi", pret: rapport?.statut === "pret" };
 }
 
-function EtatAgent({ agent }) {
-  if (!agent) return null;
+// Le bouton Rapport et le compte rendu de l'agent, dans l'ordre de ses quatre rubriques
+function BoutonRapport({ ouvert, setOuvert }) {
+  return (
+    <button type="button" className="pl-btn is-agent" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
+      <PilotIcon name="audit" size={16} />
+      Rapport
+    </button>
+  );
+}
+
+function Rapport({ rapport }) {
+  return (
+    <div className="pl-rapport">
+      {rapport.texte
+        .split(/\n{2,}/)
+        .filter(Boolean)
+        .map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      {rapport.session ? (
+        <a href={rapport.session} target="_blank" rel="noreferrer">
+          Voir la session
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+function EtatAgent({ agent, pret }) {
+  if (!agent || pret) return null;
   return (
     <span className={`pl-agent-etat${agent.etat === "echec" ? " is-echec" : ""}`} role="status">
       {agent.etat === "envoi" ? "Envoi…" : null}
@@ -286,10 +342,11 @@ function EtatAgent({ agent }) {
 }
 
 // Un bug : le constat en deux lignes (lisible en entier), puis Auditer et Réparer lancent un agent
-function CarteBug({ l, demo, ...gestes }) {
+function CarteBug({ l, demo, rapport, relire, ...gestes }) {
   const g = useGestes(l, gestes);
   const [ouvert, setOuvert] = useState(false);
-  const { agent, lancer, envoi } = useAgent(l, demo);
+  const [rapportOuvert, setRapportOuvert] = useState(false);
+  const { agent, lancer, envoi, pret } = useAgent(l, demo, rapport, relire);
   return (
     <li className="pl-bug">
       <span className="pl-bug-ico">
@@ -315,12 +372,16 @@ function CarteBug({ l, demo, ...gestes }) {
             <PilotIcon name="agent" size={16} />
             Réparer
           </button>
-          <EtatAgent agent={agent} />
+          {pret ? <BoutonRapport ouvert={rapportOuvert} setOuvert={setRapportOuvert} /> : null}
+          <EtatAgent agent={agent} pret={pret} />
         </div>
+        {pret && rapportOuvert ? <Rapport rapport={rapport} /> : null}
       </div>
       <span className="pl-ligne-a">
         <PlusTard g={g} />
-        <button type="button" className="pl-tick" aria-label={`Fait : ${l.titre}`} onClick={g.fait} disabled={g.busy} />
+        <button type="button" className="pl-btn" onClick={g.fait} disabled={g.busy} title="Réglé ou plus d'actualité : la carte quitte l'écran">
+          Écarter
+        </button>
       </span>
     </li>
   );
@@ -352,16 +413,18 @@ function LigneReseau({ l, ...gestes }) {
 
 // Une alerte se traite ou s'écarte : Auditer et Réparer pour celles qui parlent de bugs, Écarter quand elle est déjà traitée
 // ou n'est plus d'actualité (elle revient si son texte change)
-function LigneAlerte({ l, demo, ...gestes }) {
+function LigneAlerte({ l, demo, rapport, relire, ...gestes }) {
   const g = useGestes(l, gestes);
-  const { agent, lancer, envoi } = useAgent(l, demo);
+  const [rapportOuvert, setRapportOuvert] = useState(false);
+  const { agent, lancer, envoi, pret } = useAgent(l, demo, rapport, relire);
   const bug = l.source === "alerte" && estAlerteBug(l.titre);
   return (
     <li className="pl-ligne pl-ligne-alerte">
       <span className="pl-ligne-t">
         <strong>{l.titre}</strong>
         {l.sous ? <small>{l.sous}</small> : null}
-        <EtatAgent agent={agent} />
+        <EtatAgent agent={agent} pret={pret} />
+        {pret && rapportOuvert ? <Rapport rapport={rapport} /> : null}
       </span>
       <Pill tone={l.tone}>{l.tag}</Pill>
       <span className="pl-ligne-a">
@@ -375,6 +438,7 @@ function LigneAlerte({ l, demo, ...gestes }) {
               <PilotIcon name="agent" size={16} />
               Réparer
             </button>
+            {pret ? <BoutonRapport ouvert={rapportOuvert} setOuvert={setRapportOuvert} /> : null}
           </>
         ) : null}
         <Ouvrir l={l} />
@@ -409,6 +473,7 @@ function Section({ icone, titre, n, className = "", plie = false, children }) {
 
 // Le fil du jour en quatre blocs : ce que Stan a ajouté, les bugs, le réseau, les alertes
 function FilGroupe({ fil, gestes, demo }) {
+  const { rapports, relire } = useRapports(demo);
   const du = (g) => fil.filter((l) => l.groupe === g);
   const taches = du("taches");
   const bugs = du("bugs");
@@ -430,7 +495,7 @@ function FilGroupe({ fil, gestes, demo }) {
         <Section icone="bug" titre="Bugs" n={bugs.length}>
           <ul className="pl-bugs">
             {bugs.map((l) => (
-              <CarteBug key={l.cle} l={l} demo={demo} {...gestes} />
+              <CarteBug key={l.cle} l={l} demo={demo} rapport={rapports[l.cle]} relire={relire} {...gestes} />
             ))}
           </ul>
         </Section>
@@ -456,7 +521,7 @@ function FilGroupe({ fil, gestes, demo }) {
         <Section icone="alerte" titre="Alertes" n={alertes.length}>
           <ul className="pl-lignes">
             {alertes.map((l) => (
-              <LigneAlerte key={l.cle} l={l} demo={demo} {...gestes} />
+              <LigneAlerte key={l.cle} l={l} demo={demo} rapport={rapports[l.cle]} relire={relire} {...gestes} />
             ))}
           </ul>
         </Section>

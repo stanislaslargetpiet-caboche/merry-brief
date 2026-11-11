@@ -32,6 +32,15 @@ describe("bugs du pilotage", () => {
       }
     }
   });
+  it("demande à l'agent de renvoyer son compte rendu au pilotage, avec un jeton à usage unique", () => {
+    const retour = { url: "https://app.example/api/interne/pilotage/agent/rapport", id: "11111111-1111-1111-1111-111111111111", jeton: "abc123" };
+    const brief = briefAgent(bug, "reparer", false, retour);
+    expect(brief).toContain(`Adresse : ${retour.url}`);
+    expect(brief).toContain(`id : ${retour.id}`);
+    expect(brief).toContain("jeton : abc123");
+    expect(brief.startsWith(briefAgent(bug, "reparer"))).toBe(true);
+    expect(briefAgent(bug, "reparer")).not.toContain("jeton :");
+  });
   it("le fil range les bugs, les tâches et le réseau dans leur groupe", () => {
     const fil = buildFil({ today: "2026-11-09", items: [bug, { ...bug, id: "b", projet: "", titre: "Appeler Astrid" }], reseau: { plan: { jour: "2026-11-09", creneaux: [{ id: "ecrire", label: "14 h 00 · Écrire", lignes: [{ id: "p", statut: "a_faire", nom: "X", canal: "linkedin" }] }] } } });
     expect(fil.map((l) => l.groupe).sort()).toEqual(["bugs", "reseau", "taches"]);
