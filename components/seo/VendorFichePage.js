@@ -6,7 +6,6 @@ import { SHARE_IMAGE } from "@/lib/site";
 import { SpecIcon } from "./TradeZonePage";
 
 const SIGNUP = "https://app.withmerry.com/?source=seo";
-const SITE = "https://www.withmerry.com";
 
 export const ficheHref = (id) => `/mariage/prestataire/${id}`;
 
@@ -32,18 +31,7 @@ export default function VendorFichePage({ vendor: v, stats }) {
   const [cover, ...rest] = v.photos;
   return (
     <div className="sm-root">
-      <header className="sm-top">
-        <div className="sm-top-in">
-          <a href={SITE} className="sm-logo">
-            Merry
-          </a>
-          <a href={SIGNUP} className="sm-btn sm-btn-lime">
-            J'organise
-          </a>
-        </div>
-      </header>
-
-      <main className="sm-wrap">
+      <main id="contenu" tabIndex={-1} className="sm-wrap">
         <div className="sm-head">
           <nav aria-label="Retour" className="sm-crumbs">
             <a href={back.href}>← {back.label}</a>
