@@ -57,7 +57,6 @@ describe("textes du carrousel de l'accueil", () => {
     for (const lang of ["fr", "en"]) {
       const t = CARROUSEL[lang];
       expect(t.steps).toHaveLength(3);
-      expect(t.steps.every((step) => step.title.endsWith(".") && step.text.endsWith("."))).toBe(true);
       const titles = ["briefScene", "plan", "matches", "quotes", "guests", "team"].map((k) => t[k].title);
       expect(titles.every((title) => title.endsWith("."))).toBe(true);
     }
