@@ -555,7 +555,6 @@ export default function Carrousel() {
   };
 
   const Scene = SCENES[tab][scene];
-  const step = t.steps[tab];
   return (
     <div ref={ref} className={`cr${paused || !visible ? " is-paused" : ""}`}>
       <div className="cr-bar">
@@ -594,9 +593,6 @@ export default function Carrousel() {
           )}
         </button>
       </div>
-      <p className="cr-lead">
-        <b>{step.title}</b> {step.text}
-      </p>
       <div className="cr-stage" id="cr-panel" role="tabpanel" aria-labelledby={`cr-tab-${tab}`}>
         <div key={`${round}-${scene}`} className="cr-scene">
           <Scene t={t} />
