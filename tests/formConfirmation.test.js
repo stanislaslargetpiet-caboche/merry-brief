@@ -37,10 +37,11 @@ describe("formConfirmationMail", () => {
     expect(mail.text).toContain(`Modifier ma réponse : ${link}`);
   });
 
-  it("prend les couleurs du formulaire du couple, plus le citron de Merry", () => {
+  it("garde les couleurs de la planche V49 (sauge), quel que soit le thème du couple", () => {
     const mail = formConfirmationMail({ form: { ...form, theme: "rose" }, payload, link });
-    expect(mail.html).toContain("background:#f8ece8");
-    expect(mail.html).toContain("background:#8a4a3a");
+    expect(mail.html).toContain("background:#eef1e8");
+    expect(mail.html).toContain("background:#4f6146");
+    expect(mail.html).not.toContain("#8a4a3a");
     expect(mail.html.toLowerCase()).not.toContain("#fff700");
     expect(mail.html).toContain('src="https://app.withmerry.com/mail/merry.png"');
     expect(mail.html).toContain("https://withmerry.com/?source=mail-invites");
