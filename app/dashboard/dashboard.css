@@ -17762,6 +17762,8 @@ button.d-gcard-status.is-open svg {
   gap: 18px;
   width: 100%;
   max-width: 640px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .d-fiche-head {
@@ -17803,6 +17805,9 @@ button.d-gcard-status.is-open svg {
   border-radius: 18px;
   background: #ffffff;
   padding: 2px 16px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .d-fiche-hint {
@@ -17828,13 +17833,15 @@ button.d-gcard-status.is-open svg {
 }
 
 .d-frow-label {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 92px;
+  max-width: 46%;
   font-size: 13.5px;
   color: var(--d-muted);
+  overflow-wrap: break-word;
 }
 
 .d-frow.is-moment .d-frow-label {
@@ -17864,7 +17871,29 @@ button.d-gcard-status.is-open svg {
 .d-frow-value .d-inline {
   max-width: 100%;
   white-space: normal;
+  overflow-wrap: break-word;
   text-align: right;
+}
+
+/* Réponse longue : sous son libellé, sur toute la largeur, plutôt que coincée en colonne étroite */
+.d-frow.is-long {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 10px 0 12px;
+}
+
+.d-frow.is-long .d-frow-label {
+  max-width: none;
+}
+
+.d-frow.is-long .d-frow-value {
+  justify-content: space-between;
+  text-align: left;
+}
+
+.d-frow.is-long .d-frow-value .d-inline {
+  text-align: left;
 }
 
 .d-frow.is-empty .d-frow-label {
