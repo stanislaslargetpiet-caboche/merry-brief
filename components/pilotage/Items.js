@@ -388,15 +388,21 @@ function LigneAlerte({ l, demo, ...gestes }) {
   );
 }
 
-function Section({ icone, titre, n, className = "", children }) {
+function Section({ icone, titre, n, className = "", plie = false, children }) {
+  const [ouvert, setOuvert] = useState(!plie);
   return (
     <section className={`pl-card pl-section ${className}`.trim()}>
       <h3>
-        <PilotIcon name={icone} size={24} />
-        {titre}
-        <span className="pl-section-n">{n}</span>
+        <button type="button" className="pl-section-toggle" aria-expanded={ouvert} onClick={() => setOuvert((o) => !o)}>
+          <PilotIcon name={icone} size={24} />
+          {titre}
+          <span className="pl-section-n">{n}</span>
+          <svg className="pl-section-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        </button>
       </h3>
-      {children}
+      {ouvert ? children : null}
     </section>
   );
 }
@@ -430,7 +436,7 @@ function FilGroupe({ fil, gestes, demo }) {
         </Section>
       ) : null}
       {reseau.length ? (
-        <Section icone="reseau" titre="Réseau" n={reseau.length}>
+        <Section icone="reseau" titre="Réseau" n={reseau.length} plie>
           {creneaux.map((c) => (
             <div key={c.id} className="pl-creneau">
               <h4>
