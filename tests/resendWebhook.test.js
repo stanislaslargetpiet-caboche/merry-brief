@@ -67,3 +67,16 @@ describe("pilotage : synthèse des événements", () => {
     expect(summarizeEvents([])).toMatchObject({ actif: false, envoyes: 0 });
   });
 });
+
+describe("webhook Resend : compte partagé avec d'autres projets", () => {
+  const ev = (from) => ({ type: "email.delivered", created_at: "2026-11-11T20:00:00Z", data: { email_id: "e9", to: ["x@example.com"], subject: "s", from } });
+  it("garde un mail expédié par Merry", () => {
+    expect(eventRow("m1", ev("Merry <bonjour@withmerry.com>"))).not.toBeNull();
+  });
+  it("ignore un mail d'un autre projet du même compte", () => {
+    expect(eventRow("m2", ev("Grapes <contact@exemple.app>"))).toBeNull();
+  });
+  it("garde un mail sans expéditeur connu", () => {
+    expect(eventRow("m3", ev(undefined))).not.toBeNull();
+  });
+});
