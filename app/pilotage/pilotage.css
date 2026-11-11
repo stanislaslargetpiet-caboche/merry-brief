@@ -492,6 +492,9 @@
 .pl-fil { display: grid; gap: 16px; min-width: 0; }
 .pl-section h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .pl-section h3 svg { flex: none; }
+.pl-section-toggle { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.pl-section-chevron { flex: none; color: var(--ink-muted); transition: transform 0.15s; }
+.pl-section-toggle[aria-expanded="false"] .pl-section-chevron { transform: rotate(-90deg); }
 .pl-section-n { margin-left: auto; min-width: 26px; padding: 1px 9px; border-radius: 999px; background: var(--sunken); color: var(--ink-muted); font-size: 12px; font-weight: 700; text-align: center; }
 .pl-section.is-miennes { background: var(--accent-veil); border-color: var(--accent); border-width: 2px; }
 .pl-section.is-miennes .pl-section-n { background: var(--accent); color: var(--ink); }
