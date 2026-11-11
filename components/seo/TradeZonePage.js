@@ -124,7 +124,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
           <a href={SITE} className="sm-logo">
             Merry
           </a>
-          <a href={SIGNUP} className="sm-btn sm-btn-primary">
+          <a href={SIGNUP} className="sm-btn sm-btn-lime">
             J'organise
           </a>
         </div>
@@ -132,43 +132,9 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
 
       <main className="sm-wrap">
         <div className="sm-head">
-          <nav aria-label="Fil d'Ariane" className="sm-crumbs">
-            {model.crumbs.map((c, i) =>
-              i < model.crumbs.length - 1 ? (
-                <span key={c.href} className="sm-crumb">
-                  <a href={c.href}>{c.label}</a>
-                  <span aria-hidden="true">›</span>
-                </span>
-              ) : (
-                <span key={c.href} aria-current="page">
-                  {c.label}
-                </span>
-              ),
-            )}
-          </nav>
           <h1 className="sm-title">{pageTitle(trade, zone)}.</h1>
+          <p className="sm-intro">{model.intro}</p>
         </div>
-
-        {model.tabs.length > 1 && (
-          <ScrollNav aria-label="Métiers" className="sm-tabs">
-            {model.tabs.map((t) => (
-              <a key={t.href} href={t.href} className={t.on ? "is-on" : undefined} aria-current={t.on ? "page" : undefined}>
-                {t.label}
-              </a>
-            ))}
-          </ScrollNav>
-        )}
-
-        <section aria-label="Chiffres clés" className="sm-figs">
-          {model.figures.map((f) => (
-            <div key={f.label} className="sm-fig">
-              <b>{f.value}</b>
-              <span>{f.label}</span>
-            </div>
-          ))}
-        </section>
-
-        <p className="sm-intro">{model.intro}</p>
 
         {model.pills.length > 1 && (
           <ScrollNav aria-label={zone.kind === "france" ? "Régions" : "Départements"} className="sm-pills">
@@ -182,7 +148,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
 
         {vendors.length > 0 && (
           <section aria-labelledby="sm-sel" className="sm-sel">
-            <h2 id="sm-sel" className="sm-h2">
+            <h2 id="sm-sel" className="sm-h2 sm-sr">
               {trade.tab}.
             </h2>
             <div className="sm-grid">
@@ -237,6 +203,23 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
           </section>
         )}
 
+        {model.tabs.length > 1 && (
+          <section aria-labelledby="sm-metiers" className="sm-block">
+            <h2 id="sm-metiers" className="sm-h2">
+              Autres métiers.
+            </h2>
+            <nav aria-label="Métiers" className="sm-pills sm-pills-wrap">
+              {model.tabs
+                .filter((t) => !t.on)
+                .map((t) => (
+                  <a key={t.href} href={t.href} className="sm-pill">
+                    {t.label}
+                  </a>
+                ))}
+            </nav>
+          </section>
+        )}
+
         <section aria-label="Pour les prestataires" className="sm-claim">
           <p>
             <b>{trade.claim}</b> Revendiquez votre fiche : 100 crédits offerts.
@@ -250,7 +233,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
       </main>
 
       <div className="sm-bar">
-        <a href={SIGNUP} className="sm-btn sm-btn-primary sm-btn-big">
+        <a href={SIGNUP} className="sm-btn sm-btn-lime sm-btn-big">
           Fais mon mariage sur Merry
         </a>
       </div>

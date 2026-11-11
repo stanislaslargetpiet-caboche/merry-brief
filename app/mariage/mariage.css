@@ -1,24 +1,26 @@
 /* Pages SEO métier × zone : canvas « 8 - SEO ». Préfixe sm- pour ne croiser aucune autre feuille.
-   Système de design v2 (30 oct. 2026) : Alan Sans partout, Climate Crisis pour le seul logo, accent citron. */
+   Système de design v3 (D-241) : Alan Sans partout, Climate Crisis pour le seul logo, pistache comme le site vitrine (D-235), fonds blancs et peu de filets. */
 @font-face { font-family: "Alan Sans"; src: url(/fonts/alan-sans.ttf) format("truetype"); font-weight: 300 900; font-display: swap; }
 
 .sm-root { min-height: 100dvh; background: #ffffff; color: #1c1c1a; font-family: "Alan Sans", Helvetica, Arial, sans-serif; font-weight: 500; -webkit-font-smoothing: antialiased; }
 .sm-root a { color: #1c1c1a; }
 
-.sm-top { background: #fff700; }
-.sm-top-in { max-width: 1252px; margin: 0 auto; padding: 0 56px; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-sizing: border-box; }
+.sm-top { background: #ffffff; }
+.sm-top-in { max-width: 1252px; margin: 0 auto; padding: 0 56px; min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-sizing: border-box; }
 .sm-logo { font-family: "Climate Crisis", "Arial Black", sans-serif; font-size: 26px; text-decoration: none; }
 
-.sm-wrap { max-width: 1252px; margin: 0 auto; padding: 36px 56px 72px; display: flex; flex-direction: column; gap: 32px; box-sizing: border-box; }
-.sm-head { display: flex; flex-direction: column; gap: 14px; }
+.sm-wrap { max-width: 1252px; margin: 0 auto; padding: 28px 56px 88px; display: flex; flex-direction: column; gap: 44px; box-sizing: border-box; }
+.sm-head { display: flex; flex-direction: column; gap: 16px; }
 .sm-crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
 .sm-crumb { display: inline-flex; gap: 8px; }
 .sm-root .sm-crumbs a { color: #5f5e58; }
-.sm-title { margin: 0; font: 600 44px/1.05 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.sm-title { margin: 0; font: 600 52px/1.06 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; overflow-wrap: anywhere; }
 
 .sm-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; box-sizing: border-box; border: 1px solid transparent; }
 .sm-root .sm-btn-primary { background: #1c1c1a; color: #ffffff; }
 .sm-root .sm-btn-primary:hover { background: #33332f; }
+.sm-root .sm-btn-lime { background: #bfe9a6; color: #000000; }
+.sm-root .sm-btn-lime:hover { background: #b2e096; }
 .sm-btn-line { border-color: #1c1c1a; background: transparent; }
 .sm-btn-big { min-height: 52px; padding: 0 28px; font-size: 16px; }
 
@@ -27,45 +29,46 @@
 .sm-root .sm-tabs a { color: #6b6a63; }
 .sm-root .sm-tabs a.is-on { border-bottom-color: #1c1c1a; color: #1c1c1a; font-weight: 600; }
 
-.sm-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; border-top: 1px solid #ecebe6; border-bottom: 1px solid #ecebe6; padding: 24px 0; }
-.sm-intro { margin: 18px 0 0; font-size: 15px; line-height: 1.55; color: #3d3d39; }
-.sm-fig { display: flex; flex-direction: column; gap: 6px; }
-.sm-fig b { font: 600 40px/1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; }
+.sm-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.sm-intro { margin: 0; max-width: 680px; font-size: 16px; line-height: 1.55; color: #5f5e58; }
+.sm-fig { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.sm-fig b { display: inline-block; background: #bfe9a6; padding: 2px 10px; border-radius: 6px; font: 600 40px/1.1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.015em; }
 .sm-fig span { font-size: 14px; font-weight: 500; }
 
 .sm-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.sm-pill { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 500; border: 1px solid #d9d7cf; background: #ffffff; text-decoration: none; }
-.sm-pill.is-on { background: #fffdb8; border-color: #fff700; font-weight: 600; }
+.sm-pill { display: inline-flex; align-items: center; min-height: 38px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid #e4e2dc; background: #ffffff; text-decoration: none; }
+.sm-pill:hover { background: #f6fcf2; border-color: #bfe9a6; }
+.sm-pill.is-on { background: #bfe9a6; border-color: #bfe9a6; font-weight: 600; }
 
 .sm-h2 { margin: 0; font: 600 28px/1.1 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.01em; }
 .sm-sel { display: flex; flex-direction: column; gap: 16px; }
 .sm-more { align-self: center; }
 
 .sm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.sm-card { background: #f5f4f0; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.sm-photo { position: relative; height: 260px; border-radius: 8px; overflow: hidden; background: #e9e7e0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5f5e58; }
+.sm-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sm-photo { position: relative; height: 260px; border-radius: 16px; overflow: hidden; background: #f6fcf2; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5f5e58; }
 .sm-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .sm-heart { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 999px; background: #ffffff; display: inline-flex; align-items: center; justify-content: center; box-shadow: rgba(28, 28, 26, 0.12) 0 1px 4px; }
-.sm-card-body { display: flex; flex-direction: column; gap: 12px; padding: 0 6px 8px; flex: 1; }
+.sm-card-body { display: flex; flex-direction: column; gap: 12px; padding: 0 2px; flex: 1; }
 .sm-card-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.sm-card-name h3 { margin: 0; font-size: 14px; font-weight: 500; }
+.sm-card-name h3 { margin: 0; font-size: 16px; font-weight: 600; }
 .sm-area { font-size: 12px; }
-.sm-area span { font-weight: 500; background: linear-gradient(transparent 55%, #fff700 55%); padding: 0 2px; }
+.sm-area span { font-weight: 500; background: linear-gradient(transparent 55%, #bfe9a6 55%); padding: 0 2px; }
 .sm-specs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; }
 .sm-specs li { display: flex; align-items: flex-start; gap: 8px; }
-.sm-specs svg { flex: none; margin-top: 1px; color: #574e00; }
-.sm-card-price { margin-top: auto; padding-top: 12px; border-top: 1px solid #e4e2dc; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.sm-specs svg { flex: none; margin-top: 1px; color: #2f5a1a; }
+.sm-card-price { margin-top: auto; padding-top: 12px; border-top: 1px solid #ecebe6; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
 .sm-price { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .sm-price-from { font-size: 12px; color: #5f5e58; }
 .sm-price-v { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .sm-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-.sm-cta { background: #fffdb8; border-radius: 20px; padding: 28px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+.sm-cta { background: #bfe9a6; border-radius: 24px; padding: 40px 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
 .sm-cta-text { display: flex; flex-direction: column; gap: 6px; }
-.sm-cta p { margin: 0; font: 600 28px/1.15 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.01em; }
+.sm-cta p { margin: 0; font: 600 32px/1.15 "Alan Sans", Helvetica, Arial, sans-serif; letter-spacing: -0.01em; }
 .sm-cta span { font-size: 15px; }
 
-.sm-block { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; padding-top: 32px; border-top: 1px solid #ecebe6; }
+.sm-block { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; padding-top: 44px; border-top: 1px solid #ecebe6; }
 .sm-faq { display: flex; flex-direction: column; }
 .sm-faq > div { padding: 18px 0; border-bottom: 1px solid #ecebe6; }
 .sm-faq > div:first-child { padding-top: 0; }
@@ -74,7 +77,7 @@
 .sm-faq p { margin: 0; font-size: 15px; line-height: 1.55; }
 .sm-pills-wrap { align-content: flex-start; }
 
-.sm-claim { border: 1px solid #ecebe6; border-radius: 20px; padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.sm-claim { background: #f6fcf2; border-radius: 20px; padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
 .sm-claim p { margin: 0; font-size: 15px; }
 .sm-src { margin: 0; font-size: 12px; color: #5f5e58; }
 
@@ -85,16 +88,16 @@
 }
 
 @media (max-width: 700px) {
-  .sm-top-in { min-height: 56px; padding: 0 12px 0 16px; }
+  .sm-top-in { min-height: 60px; padding: 0 12px 0 16px; }
   .sm-logo { font-size: 22px; }
-  .sm-wrap { padding: 22px 16px 28px; gap: 24px; }
+  .sm-wrap { padding: 20px 16px 28px; gap: 28px; }
   .sm-crumbs { font-size: 12.5px; gap: 6px; }
   .sm-crumb { gap: 6px; }
-  .sm-title { font-size: 30px; line-height: 1.08; }
+  .sm-title { font-size: 32px; line-height: 1.08; }
   .sm-tabs { gap: 22px; margin: 0 -16px; padding: 0 16px; }
   .sm-tabs a { font-size: 14px; }
-  .sm-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; border-top: 0; padding: 0 0 20px; }
-  .sm-fig b { font-size: 30px; }
+  .sm-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
+  .sm-fig b { font-size: 30px; padding: 2px 8px; }
   .sm-fig span { font-size: 13px; }
   .sm-pills { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
   .sm-pill { flex: none; padding: 0 13px; }
@@ -102,8 +105,8 @@
   .sm-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .sm-photo { height: 230px; }
   .sm-more { align-self: stretch; }
-  .sm-cta { flex-direction: column; align-items: stretch; padding: 20px; gap: 16px; }
-  .sm-cta p { font-size: 23px; }
+  .sm-cta { flex-direction: column; align-items: stretch; padding: 24px 20px; gap: 16px; }
+  .sm-cta p { font-size: 24px; }
   .sm-cta span { font-size: 14px; }
   .sm-block { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; }
   .sm-faq h3 { font-size: 15px; }
@@ -113,3 +116,4 @@
   .sm-bar { display: block; position: sticky; bottom: 0; background: #ffffff; border-top: 1px solid #ecebe6; padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); }
   .sm-bar .sm-btn { width: 100%; }
 }
+.sm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
