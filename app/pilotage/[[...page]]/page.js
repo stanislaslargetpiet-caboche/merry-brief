@@ -35,10 +35,11 @@ function readDemoFlag() {
   }
 }
 
+// « Mois en cours » : du 1er du mois (heure de Paris) à aujourd'hui, comparé au même nombre de jours juste avant
 const RANGES = [
   { id: "24h", jours: 1, label: "24 h" },
   { id: "7j", jours: 7, label: "7 jours" },
-  { id: "30j", jours: 30, label: "30 jours" },
+  { id: "mois", label: "Mois en cours" },
 ];
 
 // Le journal des réponses (guest_response_log) n'existe que depuis le 3 nov. 2026 au soir (premier relevé en base) :
@@ -82,8 +83,9 @@ export default function PilotagePage() {
   const auth = useToken();
   const [periode, setPeriode] = useState("7j");
   const [langue, setLangue] = useLangue();
+  const today = parisDay(Date.now());
   const range = RANGES.find((r) => r.id === periode) || RANGES[1];
-  const jours = range.jours;
+  const jours = range.jours || Number(today.slice(8, 10));
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -91,7 +93,6 @@ export default function PilotagePage() {
   const { group, page } = resolvePage(pathname);
   const [search, setSearch] = useState("");
   const liste = useItems(auth.status);
-  const today = parisDay(Date.now());
 
   // Les anciens liens (/pilotage#demandes) mènent à la sous-page ; ?demo=1 suit la navigation
   useEffect(() => {
