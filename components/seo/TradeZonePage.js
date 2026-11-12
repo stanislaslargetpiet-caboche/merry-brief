@@ -1,11 +1,10 @@
-// Page SEO métier × zone (canvas « 8 - SEO », artboards SEO-Metier-Zone et SEO-Metier-Zone-Tel).
+// Page SEO métier × zone (canvas « 8 - SEO », artboards SEO-Metier-Zone et SEO-Metier-Zone-Tel ; bloc « En chiffres »
+// et FAQ locale : SEO-Chiffres-Lieux, -Tel et SEO-Chiffres-Photographes, D-287).
 // Composant serveur : tout le texte est rendu dans le HTML, lisible par Google et par les moteurs IA.
 
-import { PUBLIC_URL, hrefOf, num } from "@/lib/seo/data";
+import { PUBLIC_URL, ficheHref, hrefOf, num } from "@/lib/seo/data";
 import { pageDescription, pageModel, pageTitle } from "@/lib/seo/model";
 import ScrollNav from "./ScrollNav";
-
-const ficheHref = (id) => `/mariage/prestataire/${id}`;
 
 // Gardés ici pour les appelants existants ; le calcul vit dans lib/seo/model.js
 export { pageDescription, pageModel, pageTitle };
@@ -119,8 +118,8 @@ function jsonLd(trade, zone, model, vendors) {
   return JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c");
 }
 
-export default function TradeZonePage({ trade, zone, stats, vendors }) {
-  const model = pageModel(trade, zone, stats);
+export default function TradeZonePage({ trade, zone, stats, vendors, examples }) {
+  const model = pageModel(trade, zone, stats, examples);
   const { stat } = model;
   return (
     <div className="sm-root">
@@ -160,6 +159,22 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
           </section>
         )}
 
+        {model.numbers.length > 0 && (
+          <section aria-labelledby="sm-chiffres" className="sm-block">
+            <h2 id="sm-chiffres" className="sm-h2">
+              En chiffres.
+            </h2>
+            <div className="sm-stats">
+              {model.numbers.map((f) => (
+                <div key={f.label} className="sm-stat">
+                  <b>{f.value}</b>
+                  <span>{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section aria-label="Commencer" className="sm-cta">
           <div className="sm-cta-text">
             <p>Fais ton mariage sur Merry.</p>
@@ -178,7 +193,19 @@ export default function TradeZonePage({ trade, zone, stats, vendors }) {
             {model.faq.map((f) => (
               <div key={f.q}>
                 <h3>{f.q}</h3>
-                <p>{f.a}</p>
+                <p>
+                  {f.parts
+                    ? f.parts.map((p, i) =>
+                        typeof p === "string" ? (
+                          p
+                        ) : (
+                          <a key={i} href={p.href}>
+                            {p.label}
+                          </a>
+                        ),
+                      )
+                    : f.a}
+                </p>
               </div>
             ))}
           </div>
