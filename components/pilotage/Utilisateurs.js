@@ -102,11 +102,13 @@ const statutCell = (statut, href, quoi) => {
   return href ? <PillLink tone={tone} href={href} title={`Ouvrir ${quoi}`}>{label}</PillLink> : <Pill tone={tone}>{label}</Pill>;
 };
 
-export function coupleCell(r) {
+// `apres` : posé juste après le nom (la flèche du Funnel)
+export function coupleCell(r, apres = null) {
   const passe = r.date && ts(`${r.date}T23:59:59Z`) < Date.now();
   return (
     <>
       <strong>{r.couple}</strong>
+      {apres}
       {r.test ? <span title="Compte de test : en bas de la liste, sans mail du samedi"> <Pill>test</Pill></span> : null}
       <span className="pl-cell-sub">{r.date ? `${fmtWedding(r.date)}${passe ? " · passé" : ""}` : "date à fixer"}</span>
     </>

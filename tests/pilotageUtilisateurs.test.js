@@ -54,6 +54,16 @@ describe("buildUtilisateurs", () => {
     expect(withColors.couleurs.map((c) => [c.label, c.n])).toEqual([["Pas choisi", 2], ["Pistache", 1], ["Ancienne couleur", 1]]);
     expect(withColors.utilisateurs[0].couleur).toBe("Pistache");
   });
+  it("distingue les inscrits du couple de l'équipe qui a un compte", () => {
+    const avecEquipe = buildUtilisateurs(
+      { ...raw, members: [...raw.members, { wedding_id: "w1", user_id: "u3", role: "couple" }, { wedding_id: "w1", user_id: "u4", role: "organisateur" }] },
+      60 * 60000,
+      NOW,
+    );
+    const emma = avecEquipe.mariages.find((m) => m.id === "w1");
+    expect(emma.comptes.filter((c) => c.couple).map((c) => c.email).sort()).toEqual(["emma@x.fr", "vieux@x.fr"]);
+    expect(emma.comptes.find((c) => c.email === "jamais@x.fr").couple).toBe(false);
+  });
   it("rattache chaque utilisateur à son couple", () => {
     expect(out.utilisateurs[0]).toMatchObject({ couple: "Emma et Lucas", site: "publié", invites: 2 });
     expect(out.utilisateurs[3].couple).toBe(null);

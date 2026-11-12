@@ -379,7 +379,8 @@ export function Ranked({ rows, label = "label", value = "n", format = fmtInt, em
 }
 
 // `rowClass(r)` : classe facultative de la ligne (Par couple : « is-test » pour les couples de test)
-export function Table({ cols, rows, empty = "Rien sur la période", max = 12, rowClass }) {
+// `detail(r)` : ce qui se déroule sous la ligne (rien quand il rend null), sur toute la largeur du tableau
+export function Table({ cols, rows, empty = "Rien sur la période", max = 12, rowClass, detail }) {
   const list = (rows || []).slice(0, max);
   if (!list.length) return <div className="pl-empty">{empty}</div>;
   // Colonnes voisines au même `group` : un intitulé commun au-dessus d'elles
@@ -413,15 +414,26 @@ export function Table({ cols, rows, empty = "Rien sur la période", max = 12, ro
           </tr>
         </thead>
         <tbody>
-          {list.map((r, i) => (
-            <tr key={r.id || i} className={rowClass?.(r) || undefined}>
-              {cols.map((c) => (
-                <td key={c.key} className={c.num ? "is-num" : ""}>
-                  {c.render ? c.render(r) : r[c.key] ?? "–"}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {list.map((r, i) => {
+            const sous = detail?.(r) ?? null;
+            const classe = [rowClass?.(r), sous === null ? null : "is-open"].filter(Boolean).join(" ") || undefined;
+            return (
+              <Fragment key={r.id || i}>
+                <tr className={classe}>
+                  {cols.map((c) => (
+                    <td key={c.key} className={c.num ? "is-num" : ""}>
+                      {c.render ? c.render(r) : r[c.key] ?? "–"}
+                    </td>
+                  ))}
+                </tr>
+                {sous === null ? null : (
+                  <tr className={["pl-table-detail", rowClass?.(r)].filter(Boolean).join(" ")}>
+                    <td colSpan={cols.length}>{sous}</td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
