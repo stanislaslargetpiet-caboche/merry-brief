@@ -22,6 +22,8 @@ function chainFor(table) {
     order: () => chain,
     limit: async () => ({ data: row || [] }),
     maybeSingle: async () => ({ data: row }),
+    // Awaité directement (sans .limit/.maybeSingle), comme wedding_members dans notifier-couple-demandes.
+    then: (resolve) => resolve({ data: row || [] }),
   };
   return chain;
 }
@@ -49,12 +51,24 @@ beforeEach(() => {
 const call = (path, body) => (mod) => mod.POST(new Request(`https://app.withmerry.com${path}`, { method: "POST", headers: { authorization: "Bearer t" }, body: JSON.stringify(body) }));
 
 describe("notifier-couple-demandes (V55)", () => {
-  it("confirme au compte qui vient d'envoyer, pour chaque prestataire", async () => {
+  it("confirme au compte qui vient d'envoyer quand le mariage n'est pas précisé", async () => {
     const mod = await import("../app/api/prestataires/notifier-couple-demandes/route.js");
     await call("/api/prestataires/notifier-couple-demandes", { names: ["Le Mas", "Les Oliviers"] })(mod);
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toEqual(["leo@gmail.com"]);
     expect(sent[0].subject).toBe("Tes 2 demandes sont parties");
+  });
+
+  it("confirme à tous les organisateurs ayant un compte sur le mariage (D-311)", async () => {
+    rowsByTable.wedding_members = [
+      { email: "leo@gmail.com", user_id: "u1" },
+      { email: "sam@gmail.com", user_id: "u2" },
+      { email: null, user_id: null },
+    ];
+    const mod = await import("../app/api/prestataires/notifier-couple-demandes/route.js");
+    await call("/api/prestataires/notifier-couple-demandes", { names: ["Le Mas"], weddingId: "w1" })(mod);
+    expect(sent).toHaveLength(2);
+    expect(sent.map((m) => m.to[0]).sort()).toEqual(["leo@gmail.com", "sam@gmail.com"]);
   });
 });
 
