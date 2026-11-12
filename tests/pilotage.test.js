@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { alignSeries, dayList, delta, exceptionTitle, fmtDuration, fmtHeure, replayUrl, splitSeries, sumBy, sumMesure, templatePath } from "@/lib/server/pilotage/shape";
+import { alignSeries, cleHeure, dayList, delta, exceptionTitle, fmtCle, fmtDuration, fmtHeure, heureList, replayUrl, splitSeries, sumBy, sumMesure, templatePath } from "@/lib/server/pilotage/shape";
 import { allowedEmails } from "@/lib/server/pilotage/acces";
 import { envoisAuto, readResend, sendsByDay } from "@/lib/server/pilotage/resend";
 import { SUBJECT } from "@/lib/server/nouveautesMail";
@@ -44,6 +44,31 @@ describe("alignSeries", () => {
   });
   it("supporte une source absente", () => {
     expect(alignSeries(["2026-11-01"], null, ["n"])).toEqual([{ jour: "2026-11-01", n: 0 }]);
+  });
+});
+
+describe("séries par heure (filtre 24 h)", () => {
+  it("donne l'heure de Paris d'un instant", () => {
+    expect(cleHeure(Date.parse("2026-11-12T13:10:00Z"))).toBe("2026-11-12T14");
+    expect(cleHeure(Date.parse("2026-11-12T23:30:00Z"))).toBe("2026-11-13T00");
+  });
+  it("liste les 48 dernières heures jusqu'à l'heure en cours", () => {
+    const h = heureList(Date.parse("2026-11-12T13:10:00Z"));
+    expect(h).toHaveLength(48);
+    expect(h[47]).toBe("2026-11-12T14");
+    expect(h[23]).toBe("2026-11-11T14");
+    expect(h[0]).toBe("2026-11-10T15");
+  });
+  it("cale des lignes par heure sans les ramener au jour", () => {
+    const out = alignSeries(["2026-11-12T13", "2026-11-12T14"], [["2026-11-12T14", 5]], ["visites"]);
+    expect(out).toEqual([
+      { jour: "2026-11-12T13", visites: 0 },
+      { jour: "2026-11-12T14", visites: 5 },
+    ]);
+  });
+  it("écrit une heure ou un jour sur l'axe", () => {
+    expect(fmtCle("2026-11-12T09")).toBe("9 h");
+    expect(fmtCle("2026-11-12")).toBe("12 nov.");
   });
 });
 
