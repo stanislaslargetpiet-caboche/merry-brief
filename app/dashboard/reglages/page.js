@@ -201,7 +201,6 @@ export default function Reglages() {
         rows={[
           { kind: "couple_reply", label: "Un prestataire m'a répondu" },
           { kind: "new_member", label: "Un organisateur a rejoint le mariage" },
-          { kind: "form_reply", label: "Un invité a répondu au formulaire" },
           { kind: "activite", label: "Le mail de 20 h sur l'activité de mon compte" },
           { kind: "nouveautes", label: "Les nouveautés de Merry" },
         ]}

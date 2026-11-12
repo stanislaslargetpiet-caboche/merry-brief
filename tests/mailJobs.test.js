@@ -82,14 +82,10 @@ describe("runMailJobs", () => {
     expect(sent[0].text).not.toContain("€");
   });
 
-  it("regroupe les réponses au formulaire par mariage", async () => {
-    await runMailJobs(fakeAdmin({ merry_job_formulaire: [
-      { wedding_id: "w1", first_name: "camille", last_name: "Martin", comes: true },
-      { wedding_id: "w1", first_name: "Paul", last_name: "Renard", comes: false },
-    ] }), "https://x.fr");
-    expect(sent).toHaveLength(1);
-    expect(sent[0].subject).toBe("2 nouvelles réponses à ton formulaire");
-    expect(sent[0].text).toContain("Camille Martin : Vient");
+  it("n'envoie plus les réponses au formulaire, le mail de 20 h les donne (D-295)", async () => {
+    const report = await runMailJobs(fakeAdmin({ merry_job_formulaire: [{ wedding_id: "w1", first_name: "Camille", last_name: "Martin", comes: true }] }), "https://x.fr");
+    expect(sent).toHaveLength(0);
+    expect(report).not.toHaveProperty("formulaire");
   });
 
   it("relance une invitation au nom du couple", async () => {
