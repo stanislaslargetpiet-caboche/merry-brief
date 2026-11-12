@@ -43,7 +43,7 @@ const RANGES = [
   { id: "30j", jours: 30, label: "30 jours" },
 ];
 
-// Le journal des réponses RSVP (guest_response_log) n'existe que depuis le 3 nov. 2026 au soir (premier relevé en base) :
+// Le journal des réponses (guest_response_log) n'existe que depuis le 3 nov. 2026 au soir (premier relevé en base) :
 // avant, un jour n'a pas de mesure
 const DEBUT_JOURNAL_RSVP = "2026-11-03";
 
@@ -283,8 +283,10 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
   const robots = useMemo(() => alignSeries(joursList, ph?.site?.robots, ["robots"]), [joursList, ph]);
   const robotsSplit = useMemo(() => splitSeries(robots, jours), [robots, jours]);
-  const rsvp = useMemo(() => mesureDepuis(sb?.series, "reponses_rsvp", DEBUT_JOURNAL_RSVP), [sb]);
-  const rsvpSplit = useMemo(() => splitSeries(rsvp, jours), [rsvp, jours]);
+  const reponsesForm = useMemo(() => mesureDepuis(sb?.series, "reponses_formulaire", DEBUT_JOURNAL_RSVP), [sb]);
+  const reponsesFormSplit = useMemo(() => splitSeries(reponsesForm, jours), [reponsesForm, jours]);
+  // Fonction SQL pas encore relancée : la clé manque, la tuile affiche « – » plutôt qu'un faux zéro
+  const formMesure = Boolean(sb?.series?.some((r) => r.reponses_formulaire != null));
   const bugs = useMemo(() => alignSeries(joursList, ph?.bugs?.series, ["exceptions", "rage", "morts"]), [joursList, ph]);
   const bugsSplit = useMemo(() => splitSeries(bugs, jours), [bugs, jours]);
 
@@ -332,7 +334,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         <TileChart>
           <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(cur("mariages"))} créé(s) sur la période`} chart={<DayLine cumul title="Mariages au total" series={cumulSerie(sb?.series, "mariages", t.mariages)} valeur="cumul" label="Mariages" days={jours} />} />
           <Tile label="Couples connectés" value={u.couples_connectes?.n} sub={`sur ${fmtInt(t.mariages)} mariages`} hint="Mariages dont un compte s'est connecté sur la période (Supabase Auth)" chart={<DayLine title="Couples connectés par jour" series={sb?.series} valeur="couples_connectes" label="Couples connectés" days={jours} />} />
-          <Tile label="Réponses RSVP" value={cur("reponses_rsvp")} prev={sumMesure(rsvpSplit.previous, "reponses_rsvp")} hint="Lignes du journal des réponses (formulaire et saisie)" chart={<DayLine title="Réponses RSVP par jour" series={rsvp} valeur="reponses_rsvp" label="Réponses" days={jours} />} />
+          <Tile label="Réponses au formulaire" value={formMesure ? sumMesure(reponsesFormSplit.current, "reponses_formulaire") : null} prev={formMesure ? sumMesure(reponsesFormSplit.previous, "reponses_formulaire") : undefined} hint="Invités qui ont répondu par le formulaire, une fois par jour chacun" chart={<DayLine title="Réponses au formulaire par jour" series={reponsesForm} valeur="reponses_formulaire" label="Réponses au formulaire" days={jours} />} />
+          <Tile label="Formulaires live" value={formMesure ? t.formulaires_publies : null} sub={formMesure ? `sur ${fmtInt(t.mariages)} mariages` : null} hint="Formulaires invités en ligne ; le passé compte les formulaires créés ce jour-là et encore publiés" chart={<DayBars title="Formulaires live par jour" series={sb?.series} keys={["formulaires_live"]} labels={["Formulaires live"]} days={jours} />} />
           <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} chart={<DayLine title="Demandes de devis par jour" series={sb?.series} valeur="demandes" label="Demandes de devis" days={jours} />} />
         </TileChart>
       </Section>
