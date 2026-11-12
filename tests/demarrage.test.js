@@ -19,6 +19,9 @@ describe("phrases", () => {
     expect(memberLabel(parentsLea, "Léa")).toEqual({ label: "tes parents", plural: true });
     expect(memberLabel(parentsLea, "Thomas")).toEqual({ label: "les parents de Léa", plural: true });
     expect(memberLabel({ display_name: "Parents d'Inès" }, "Léa").label).toBe("les parents d’Inès");
+    expect(memberLabel({ display_name: "Parents de Astrid" }, "Côme").label).toBe("les parents d’Astrid");
+    expect(memberLabel({ display_name: "Parents de Élodie" }, "Côme").label).toBe("les parents d’Élodie");
+    expect(memberLabel({ display_name: "Parents de Côme" }, "Côme").label).toBe("tes parents");
     expect(memberLabel(thomas, "Léa")).toEqual({ label: "Thomas", plural: false });
   });
 });
@@ -66,6 +69,12 @@ describe("demarrageMail", () => {
     expect(mail.text).toContain("tu as prévu un budget de 25 000 €. Il reste à indiquer la part de chacun, la vôtre, celle de tes parents et celle des parents de Thomas, puis à ajouter tes premières dépenses");
     expect(mail.text).toContain("Tu vois ensuite, pour chacun, ce qui a déjà été payé");
     expect(mail.html).toContain("25&nbsp;000&nbsp;€");
+  });
+
+  it("J+3 : élide devant une voyelle", () => {
+    const members = [{ id: "c1", role: "couple", display_name: "Côme" }, { id: "c2", role: "couple", display_name: "Astrid" }, { id: "c3", role: "parents", display_name: "Parents de Côme" }, { id: "c4", role: "parents", display_name: "Parents de Astrid" }];
+    const mail = demarrageMail("budget", { ...base, firstName: "Côme", partnerName: "Astrid", me: "c1", members, budgetTotal: 25000 });
+    expect(mail.text).toContain("la vôtre, celle de tes parents et celle des parents d’Astrid");
   });
 
   it("J+3 : sans montant prévu ni parents", () => {
