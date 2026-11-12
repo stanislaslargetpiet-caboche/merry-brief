@@ -81,14 +81,26 @@ describe("recapMail", () => {
     expect(recapMail({ ...base, semaine: { ...vide, ajouts: [{ author: "Thomas", count: 4, moi: false }] }, taches: [] }).subject).toBe("Ta semaine : 4 invités ajoutés");
     expect(mail.text).toContain("/dashboard/invites/importer?utm_source=mail");
   });
-  it("V65 bis : liste remplie, la prochaine tâche du rétroplanning", () => {
-    const mail = recapMail({ ...base, semaine: vide, weddingDate: null, taches: [{ title: "Choisir le lieu", due_date: "2026-11-01" }] });
+  it("V65 bis : liste remplie mais budget vide (ancien V62)", () => {
+    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { formulaire: true } });
+    expect(mail.variante).toBe("calme");
+    expect(mail.text).toContain("Compléter ton budget (10 minutes)");
+    expect(mail.text).toContain("Ouvrir mon budget");
+  });
+  it("V65 bis : budget fait mais formulaire jamais partagé (ancien V63)", () => {
+    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { budget: true } });
+    expect(mail.variante).toBe("calme");
+    expect(mail.text).toContain("Créer ton formulaire invités (10 minutes)");
+    expect(mail.text).toContain("Créer mon formulaire");
+  });
+  it("V65 bis : liste, budget et formulaire faits, la prochaine tâche du rétroplanning (ancien V58)", () => {
+    const mail = recapMail({ ...base, semaine: vide, weddingDate: null, taches: [{ title: "Choisir le lieu", due_date: "2026-11-01" }], usage: { budget: true, formulaire: true } });
     expect(mail.text).toContain("Choisir le lieu (en retard)");
     expect(mail.text).toContain("Ouvrir le rétroplanning");
     expect(mail.text).not.toContain("jours avant");
   });
-  it("rien à dire : semaine calme, liste remplie et plus rien à faire", () => {
-    expect(recapMail({ ...base, semaine: vide, taches: [] })).toBeNull();
+  it("rien à dire : semaine calme, tout fait et plus rien à faire", () => {
+    expect(recapMail({ ...base, semaine: vide, taches: [], usage: { budget: true, formulaire: true } })).toBeNull();
   });
 });
 
