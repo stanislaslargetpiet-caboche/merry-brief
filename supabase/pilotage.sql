@@ -78,10 +78,11 @@ begin
     select (created_at at time zone 'Europe/Paris')::date as jour, count(*)::int as n
     from public.guest_response_log where created_at >= since group by 1
   ),
-  -- Réponses au formulaire invités : une personne qui répond compte une fois par jour, quel que soit le nombre de moments
+  -- Réponses au formulaire invités : une personne qui répond compte une fois par jour, quel que soit le nombre
+  -- de moments ; guest_form_submissions (pas guest_response_log, muet quand le formulaire ne demande pas la présence)
   reponses_formulaire as (
     select (created_at at time zone 'Europe/Paris')::date as jour, count(distinct guest_id)::int as n
-    from public.guest_response_log where source = 'formulaire' and created_at >= since group by 1
+    from public.guest_form_submissions where created_at >= since group by 1
   ),
   visites_sites as (
     select (visited_at at time zone 'Europe/Paris')::date as jour, count(*)::int as n
