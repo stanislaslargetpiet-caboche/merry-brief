@@ -10,6 +10,7 @@ import { allowUser } from "@/lib/server/rate";
 import { esc, heroBlock, mailShell } from "@/lib/server/mailShell";
 import { sendMail } from "@/lib/server/sendMail";
 import { optedOut } from "@/lib/server/mailOptouts";
+import { quickReplyLink } from "@/lib/server/reponseRapide";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,7 @@ export async function POST(req) {
   const link = `${publicOrigin(req)}/dashboard/prestataires/messagerie`;
   const vendorName = recipients[0].vendor_name || "Un prestataire";
 
-  // Aperçu du message, catégorie et zone (planche V20). Sans la fonction SQL, la carte reste au nom seul.
+  // Aperçu du message, catégorie et zone. Sans la fonction SQL, la carte reste au nom seul.
   const { data: details } = await admin.rpc("pro_notify_couple_details", { client_id: clientId });
   const { last_message: lastMessage, category, area } = details?.[0] || {};
   const full = String(lastMessage || "").trim();
@@ -75,7 +76,7 @@ export async function POST(req) {
       .slice(0, 2)
       .toUpperCase() || "M";
 
-  // Reprend la planche V20 du canvas (page « 7 - mails ») : logo, titre, carte prestataire et aperçu,
+  // Reprend la planche V56 du canvas (page « 7 - mails », remplace V20) : logo, titre, carte prestataire et aperçu,
   // bouton, bandeau sécurité, pied de page.
 
   const titleBlock = `${esc(vendorName)} ${verb}.`;
@@ -98,6 +99,15 @@ ${excerptBox}
 <a href="${esc(link)}" style="display:inline-block;background:#1c1c1a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:700;font-size:15px">Répondre à ${esc(vendorName)}</a>
 </td></tr></table>`;
 
+  // Réponses en un clic (planche V56, leçon Mariages.net) : seulement pour une vraie réponse du
+  // prestataire, jamais pour une proposition où il écrit en premier sans qu'on lui ait rien demandé.
+  const quickPill = (choice, label) =>
+    `<td style="padding:0 4px"><a href="${esc(quickReplyLink(publicOrigin(req), clientId, choice))}" style="display:block;text-decoration:none;height:40px;line-height:40px;text-align:center;border:1.5px solid #1c1c1a;border-radius:999px;font-size:13px;font-weight:600;color:#1c1c1a;white-space:nowrap">${esc(label)}</a></td>`;
+  const quickRepliesBlock =
+    body.kind !== "proposition"
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px"><tr>${quickPill("interesse", "Ça m'intéresse")}${quickPill("reflechis", "Je réfléchis")}${quickPill("non-merci", "Non, merci")}</tr></table>`
+      : "";
+
   const securityBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;background:#f6f5f1;border-radius:12px;border-collapse:separate"><tr><td style="padding:14px 16px;font-size:13px;line-height:1.5;color:#6b6a63">Pour ta sécurité, échange avec tes prestataires et règle-les toujours depuis Merry. N'envoie jamais d'argent ou de coordonnées bancaires en dehors de la plateforme.</td></tr></table>`;
 
   const footerBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;background:#f6f5f1;border-top:1px solid #ecebe6"><tr><td style="padding:18px 4px">
@@ -112,6 +122,7 @@ ${excerptBox}
 ${heroBlock({ title: titleBlock })}
 ${messageBox}
 ${ctaBlock}
+${quickRepliesBlock}
 ${securityBlock}
 ${footerBlock}
 </div>`;

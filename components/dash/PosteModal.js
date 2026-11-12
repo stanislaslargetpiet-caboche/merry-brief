@@ -5,6 +5,8 @@ import { DOCUMENT_MAX_BYTES, useDash } from "@/lib/dash/store";
 import { normalize, parseAmount, todayIso, uid } from "@/lib/dash/format";
 import { guessCatalogCategory } from "@/lib/dash/catalog";
 import { fileSize } from "@/lib/dash/documents";
+import { signedVendorChoices, vendorChoicesOf } from "@/lib/dash/links";
+import { notifyLieuSigne } from "@/lib/dash/lieuMail";
 import { guessIcon, Icon } from "./icons";
 import { refineIcon } from "@/lib/dash/aiIcon";
 import { posteName, removePosteMessage } from "@/lib/dash/model";
@@ -68,6 +70,12 @@ export default function PosteModal({ item, onClose, focusQuote }) {
       itemId = uid();
       const siblingIcon = grouped ? items.find((i) => normalize(i.category || i.label) === normalize(patch.category))?.icon : null;
       await dash.insert("budget_items", { id: itemId, ...patch, icon: siblingIcon || guessIcon(grouped ? patch.category : form.label), position: items.length });
+    }
+    // Le lieu vient d'être signé, et le traiteur ne l'est pas encore : prochaine étape (planche V64)
+    const wasLieuSigned = Boolean(item?.quote_signed_at) && vendorChoicesOf(item, vendors).includes("lieu");
+    const nowLieuSigned = Boolean(patch.quote_signed_at) && vendorChoicesOf(patch, vendors).includes("lieu");
+    if (!wasLieuSigned && nowLieuSigned && dash.mode === "live" && !signedVendorChoices(dash.data).includes("traiteur")) {
+      notifyLieuSigne(dash.data.wedding.id, patch.label);
     }
     if (renamed && !grouped) refineIcon(dash, "budget_items", itemId, patch.label, guessIcon(patch.label));
     if (file) {
