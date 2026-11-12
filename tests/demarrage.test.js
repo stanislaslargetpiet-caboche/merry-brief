@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demarrageMail, joinFr, memberLabel, stanMail } from "../lib/server/demarrageMail.js";
-import { nextStep, runDemarrage, weddingState } from "../lib/server/demarrageJob.js";
+import { nextStep, planSteps, runDemarrage, soirsAVenir, weddingState } from "../lib/server/demarrageJob.js";
+import { apercuCouple, historique } from "../lib/server/pilotage/demarrage.js";
 
 const origin = "https://app.withmerry.com";
 const unsub = "https://app.withmerry.com/desinscription?e=x&t=y&k=demarrage";
@@ -339,5 +340,87 @@ describe("runDemarrage", () => {
     expect(report.etapes).toEqual({ invites: 1 });
     expect(mails).toHaveLength(0);
     expect(admin.mailSent).toHaveLength(0);
+  });
+
+  // Couples › Funnel du pilotage (D-289) : couple sorti, mail retiré, planning
+  it("n'écrit plus à un couple sorti des mails de démarrage", async () => {
+    const report = await runDemarrage(fakeAdmin({ ...tables, demarrage_retraits: [{ wedding_id: "w1", etape: "tout" }] }), origin, evening(13), { env });
+    expect(report.envoyes).toBe(0);
+    expect(mails).toHaveLength(0);
+  });
+
+  it("saute un mail retiré depuis le pilotage", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const admin = fakeAdmin({ ...tables, demarrage_retraits: [{ wedding_id: "w1", etape: "equipe" }] });
+    const run = (day) => {
+      vi.setSystemTime(evening(day));
+      return runDemarrage(admin, origin, evening(day), { env });
+    };
+    expect((await run(13)).etapes).toEqual({ invites: 1 });
+    expect((await run(14)).etapes).toEqual({ budget: 1 });
+    expect((await run(15)).envoyes).toBe(0);
+  });
+
+  it("donne au pilotage le planning d'un couple et ses mails déjà partis", async () => {
+    const sent = [
+      { key: "activite:2026-11-12:w1:lea.bernard@example.com", sent_at: "2026-11-12T19:01:00Z" },
+      { key: "nouveautes:1:lea.bernard@example.com", sent_at: "2026-11-07T07:00:00Z" },
+      { key: "formulaire:w2:2026-11-12:autre@example.com", sent_at: "2026-11-12T19:00:00Z" },
+    ];
+    const admin = fakeAdmin({ ...tables, demarrage_retraits: [{ wedding_id: "w1", etape: "equipe" }] }, { sent });
+    const a = await apercuCouple(admin, "w1", origin, new Date("2026-11-12T12:00:00Z"), env);
+    expect(a.couple).toBe("Léa et Thomas");
+    expect(a.a_venir.map((m) => [m.etape, m.soir, m.a])).toEqual([
+      ["invites", "2026-11-13T19:00:00.000Z", ["Léa"]],
+      ["budget", "2026-11-14T19:00:00.000Z", ["Léa"]],
+    ]);
+    expect(a.a_venir[0].objet).toBe("Fini les listes d’invités sur trois Excel différents");
+    expect(a.a_venir[0].html).toContain("Importe ta liste");
+    expect(a.retires).toEqual([{ etape: "equipe", titre: "Invite les autres organisateurs" }]);
+    expect(a.envoyes).toEqual([
+      { libelle: "Mail de 20 h", at: "2026-11-12T19:01:00Z", a: "Léa" },
+      { libelle: "Du nouveau sur Merry, n° 1", at: "2026-11-07T07:00:00Z", a: "Léa" },
+    ]);
+    const sorti = await apercuCouple(fakeAdmin({ ...tables, demarrage_retraits: [{ wedding_id: "w1", etape: "tout" }] }), "w1", origin, new Date("2026-11-12T12:00:00Z"), env);
+    expect(sorti.sorti).toBe(true);
+    expect(sorti.a_venir).toEqual([]);
+    expect(await apercuCouple(fakeAdmin(tables), "w9", origin, new Date(), env)).toBeNull();
+  });
+});
+
+describe("planning du pilotage", () => {
+  const all = { invites: true, equipe: true, budget: true };
+  it("saute les mails retirés ; le mail budget remplace le mot de Stan retiré", () => {
+    expect(nextStep([], all, true, ["invites"])).toBe("equipe");
+    expect(nextStep(["invites", "equipe"], all, true, ["stan"])).toBe("budget");
+    expect(nextStep(["invites"], all, true, ["equipe", "budget"])).toBeNull();
+  });
+  it("projette un mail par soir tant que rien ne bouge", () => {
+    const soirs = [13, 14, 15, 16].map((d) => new Date(`2026-11-${d}T19:00:00Z`));
+    expect(planSteps([], all, true, [], soirs).map((p) => p.etape)).toEqual(["invites", "equipe", "stan"]);
+    expect(planSteps(["invites"], all, false, ["equipe"], soirs)).toEqual([{ etape: "budget", soir: soirs[0] }]);
+    expect(planSteps([], all, true, [], soirs.slice(0, 1)).map((p) => p.etape)).toEqual(["invites"]);
+  });
+  it("commence le soir qui suit l'inscription et s'arrête après sept jours", () => {
+    const iso = (soirs) => soirs.map((d) => d.toISOString().slice(0, 16));
+    // Inscrit le 12 à 11 h : rien ce soir-là, puis chaque soir jusqu'au septième jour après l'inscription
+    const neuf = iso(soirsAVenir(new Date("2026-11-12T12:00:00Z"), "2026-11-12T10:00:00Z", null));
+    expect(neuf[0]).toBe("2026-11-13T19:00");
+    expect(neuf.at(-1)).toBe("2026-11-19T19:00");
+    expect(neuf).toHaveLength(7);
+    // Après 20 h, la tâche est passée : on part du lendemain
+    expect(iso(soirsAVenir(new Date("2026-11-13T19:30:00Z"), "2026-11-10T10:00:00Z", null))[0]).toBe("2026-11-14T19:00");
+    // Inscrit avant la séquence, sept jours après le premier envoi : plus rien
+    expect(soirsAVenir(new Date("2026-11-13T12:00:00Z"), "2026-10-22T10:00:00Z", "2026-11-05T19:05:00Z")).toEqual([]);
+  });
+  it("nomme les mails déjà partis", () => {
+    const rows = [
+      { key: "demarrage:stan:w1:a@example.com", sent_at: "2026-11-15T19:00:00Z" },
+      { key: "formulaire:w1:2026-11-14:a@example.com", sent_at: "2026-11-14T19:00:00Z" },
+    ];
+    expect(historique(rows, () => "Ana")).toEqual([
+      { libelle: "Le mot de Stan", at: "2026-11-15T19:00:00Z", a: "Ana" },
+      { libelle: "Réponses au formulaire", at: "2026-11-14T19:00:00Z", a: "Ana" },
+    ]);
   });
 });
