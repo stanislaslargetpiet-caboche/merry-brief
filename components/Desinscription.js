@@ -30,6 +30,10 @@ const TEXTS = {
     ask: "Tu ne recevras plus le mail de 20 h sur l’activité de ton compte. Tu retrouves tout sur Merry, et les autres mails continuent d’arriver.",
     done: "ne recevra plus le mail de 20 h sur l’activité de son compte. Les autres mails continuent d’arriver.",
   },
+  demarrage: {
+    ask: "Tu ne recevras plus les conseils pour bien démarrer sur Merry. Ton mariage reste sur Merry, et les mails qui le concernent continuent d’arriver.",
+    done: "ne recevra plus les conseils pour bien démarrer. Les mails qui concernent son mariage continuent d’arriver.",
+  },
   vendor: {
     ask: "Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.",
     done: "ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.",
