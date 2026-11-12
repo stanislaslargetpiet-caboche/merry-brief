@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { echeance, fonctionAEssayer, joursRestants, lignes, recapMail } from "../lib/server/recapMail.js";
-import { fenetre, isSaturday, semaineDe } from "../lib/server/recapJob.js";
+import { fenetre, isSunday, semaineDe } from "../lib/server/recapJob.js";
 
 const origin = "https://app.withmerry.com";
 const unsub = "https://app.withmerry.com/desinscription?e=x&t=y&k=nouveautes";
 const vide = { reponses: [], ajouts: [], prestataires: [], messages: [], signes: [], devis: 0, taches: 0 };
-const base = { origin, unsub, firstName: "Léa", weddingDate: "2027-09-12", today: "2026-11-14", budgetTotal: 25000, engage: 8400, enAttente: 33, oui: 7, guestCount: 42, usage: {} };
+const base = { origin, unsub, firstName: "Léa", weddingDate: "2027-09-12", today: "2026-11-15", budgetTotal: 25000, engage: 8400, enAttente: 33, oui: 7, guestCount: 42, usage: {} };
 
 describe("phrases du récap", () => {
   it("compte les jours de date à date", () => {
-    expect(joursRestants("2027-09-12", "2026-11-14")).toBe(302);
+    expect(joursRestants("2027-09-12", "2026-11-15")).toBe(301);
     expect(joursRestants("2026-11-14", "2026-11-14")).toBeNull();
     expect(joursRestants(null, "2026-11-14")).toBeNull();
   });
@@ -61,22 +61,22 @@ describe("recapMail", () => {
     });
     expect(mail.variante).toBe("semaine");
     expect(mail.subject).toBe("Ta semaine : 9 réponses d’invités et 2 devis");
-    expect(mail.text).toContain("Bonjour Léa, plus que 302 jours avant le 12 septembre 2027. Voici ce qui a avancé depuis samedi dernier, puis les trois choses à faire ensuite.");
+    expect(mail.text).toContain("Bonjour Léa, plus que 301 jours avant le 12 septembre 2027. Voici ce qui a avancé depuis dimanche dernier, puis les trois choses à faire ensuite.");
     expect(mail.text).toContain("Réponses : 9 (33 en attente)");
     expect(mail.text).toContain("Engagé : 8 400 € (sur 25 000 €)");
     expect(mail.text).toContain("- Choisir le traiteur (cette semaine)");
     expect(mail.text).not.toContain("En trop");
     expect(mail.text).toContain("Pas encore essayé : Le plan de table.");
-    expect(mail.html).toContain("utm_campaign=recap-samedi");
-    expect(mail.html).toContain("Ne plus recevoir le récap du samedi");
+    expect(mail.html).toContain("utm_campaign=recap-dimanche");
+    expect(mail.html).toContain("Ne plus recevoir le récap du dimanche");
     expect(mail.html).toContain("8&nbsp;400&nbsp;€");
   });
   it("V65 bis : rien n'a bougé, une liste presque vide passe en premier", () => {
     const mail = recapMail({ ...base, semaine: vide, guestCount: 0, taches: [{ title: "Choisir le lieu", due_date: null }] });
     expect(mail.variante).toBe("calme");
     expect(mail.subject).toBe("Une seule chose cette semaine");
-    expect(mail.text).toContain("Bonjour Léa, rien n’a bougé sur ton mariage depuis samedi dernier.");
-    expect(mail.text).toContain("Plus que 302 jours avant le 12 septembre 2027 : tu as le temps");
+    expect(mail.text).toContain("Bonjour Léa, rien n’a bougé sur ton mariage depuis dimanche dernier.");
+    expect(mail.text).toContain("Plus que 301 jours avant le 12 septembre 2027 : tu as le temps");
     expect(mail.text).toContain("Ajouter tes premiers invités (10 minutes)");
     expect(recapMail({ ...base, semaine: { ...vide, ajouts: [{ author: "Thomas", count: 4, moi: false }] }, taches: [] }).subject).toBe("Ta semaine : 4 invités ajoutés");
     expect(mail.text).toContain("/dashboard/invites/importer?utm_source=mail");
@@ -93,17 +93,17 @@ describe("recapMail", () => {
 });
 
 describe("semaine du récap", () => {
-  it("va du samedi précédent 8 h à ce samedi 8 h, heure de Paris", () => {
-    const w = fenetre(new Date("2026-11-14T07:05:00Z"));
-    expect(w.today).toBe("2026-11-14");
-    expect(w.end.toISOString()).toBe("2026-11-14T07:00:00.000Z");
-    expect(w.start.toISOString()).toBe("2026-11-07T07:00:00.000Z");
-    expect(w.startDate).toBe("2026-11-07");
-    expect(isSaturday(new Date("2026-11-14T07:05:00Z"))).toBe(true);
-    expect(isSaturday(new Date("2026-11-13T07:05:00Z"))).toBe(false);
+  it("va du dimanche précédent 20 h à ce dimanche 20 h, heure de Paris", () => {
+    const w = fenetre(new Date("2026-11-15T19:05:00Z"));
+    expect(w.today).toBe("2026-11-15");
+    expect(w.end.toISOString()).toBe("2026-11-15T19:00:00.000Z");
+    expect(w.start.toISOString()).toBe("2026-11-08T19:00:00.000Z");
+    expect(w.startDate).toBe("2026-11-08");
+    expect(isSunday(new Date("2026-11-15T19:05:00Z"))).toBe(true);
+    expect(isSunday(new Date("2026-11-14T19:05:00Z"))).toBe(false);
   });
   it("garde les devis signés dans la semaine et nomme ses propres ajouts", () => {
-    const w = fenetre(new Date("2026-11-14T07:05:00Z"));
+    const w = fenetre(new Date("2026-11-15T19:05:00Z"));
     const lot = { items: [{ label: "Lieu", quote_amount: 8400, quote_signed_at: "2026-11-10" }, { label: "Traiteur", quote_amount: 6000, quote_signed_at: "2026-10-01" }] };
     const activity = { reponses: [], ajoutsParEquipe: [{ memberId: "m1", author: "Léa", count: 3 }], prestataires: [], messages: [] };
     const s = semaineDe(activity, lot, { devis: 1, tachesFaites: 2 }, { id: "m1" }, w);

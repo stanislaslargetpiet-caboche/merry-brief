@@ -4,8 +4,6 @@
     { "path": "/api/interne/quotidien", "schedule": "0 6 * * *" },
     { "path": "/api/interne/quotidien", "schedule": "0 7 * * *" },
     { "path": "/api/interne/activite", "schedule": "0 18 * * *" },
-    { "path": "/api/interne/activite", "schedule": "0 19 * * *" },
-    { "path": "/api/interne/recap", "schedule": "0 6 * * 6" },
-    { "path": "/api/interne/recap", "schedule": "0 7 * * 6" }
+    { "path": "/api/interne/activite", "schedule": "0 19 * * *" }
   ]
 }
