@@ -9,8 +9,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const RANGES = new Set([1, 7, 30]);
-
 export async function GET(req) {
   const who = await requirePilot(req);
   if (who.refus) return who.refus;
@@ -18,7 +16,8 @@ export async function GET(req) {
 
   const params = new URL(req.url).searchParams;
   const asked = Number(params.get("jours") || 7);
-  const days = RANGES.has(asked) ? asked : 7;
+  // 1, 7, ou le nombre de jours du mois en cours (1 à 31)
+  const days = Number.isInteger(asked) && asked >= 1 && asked <= 31 ? asked : 7;
   // « Actualiser » demande une lecture neuve (?frais=1) ; sinon Supabase est lu par le cache de cinq minutes
   const data = await collectPilotage({ admin, days, fresh: params.get("frais") === "1" });
   return Response.json({ ok: true, jours: days, genere: new Date().toISOString(), ...data }, { headers: { "cache-control": "private, no-store" } });
