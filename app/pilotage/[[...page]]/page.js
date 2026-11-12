@@ -35,10 +35,7 @@ function readDemoFlag() {
   }
 }
 
-// 1 h : seuls les chiffres d'Aujourd'hui et les couples connectés se lisent à l'heure ; les sources par jour
-// (Supabase, PostHog, Resend…) restent sur 24 h
 const RANGES = [
-  { id: "1h", jours: 1, heure: true, label: "1 h" },
   { id: "24h", jours: 1, label: "24 h" },
   { id: "7j", jours: 7, label: "7 jours" },
   { id: "30j", jours: 30, label: "30 jours" },
@@ -85,9 +82,8 @@ export default function PilotagePage() {
   const auth = useToken();
   const [periode, setPeriode] = useState("7j");
   const [langue, setLangue] = useLangue();
-  const range = RANGES.find((r) => r.id === periode) || RANGES[2];
+  const range = RANGES.find((r) => r.id === periode) || RANGES[1];
   const jours = range.jours;
-  const heure = Boolean(range.heure);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -110,11 +106,11 @@ export default function PilotagePage() {
   // Le jeton est repris à chaque lecture : celui du chargement de la page expire au bout d'une heure, et
   // Supabase le renouvelle en arrière-plan. Sur un 401, un renouvellement forcé puis un seul nouvel essai.
   const load = useCallback(
-    async (j, frais = false, h = false) => {
+    async (j, frais = false) => {
       if (auth.status !== "ok") return;
       setBusy(true);
       setError(null);
-      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}${h ? "&periode=1h" : ""}${frais ? "&frais=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
+      const call = (token) => fetch(`/api/interne/pilotage?jours=${j}${frais ? "&frais=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" });
       try {
         const { data: sess } = await supabase.auth.getSession();
         let res = await call(sess?.session?.access_token || auth.token);
@@ -137,9 +133,9 @@ export default function PilotagePage() {
   );
 
   useEffect(() => {
-    if (auth.status === "ok") load(jours, false, heure);
+    if (auth.status === "ok") load(jours, false);
     if (auth.status === "demo") setData(demoData(jours));
-  }, [auth.status, jours, heure, load]);
+  }, [auth.status, jours, load]);
 
   const badges = { demandes: data?.demandes?.en_attente?.length || 0 };
   const quotidien = group.id === "aujourdhui";
@@ -168,7 +164,7 @@ export default function PilotagePage() {
           ranges={RANGES}
           value={periode}
           onChange={setPeriode}
-          onRefresh={() => load(jours, true, heure)}
+          onRefresh={() => load(jours, true)}
           busy={busy}
           canRefresh={auth.status !== "demo"}
           stamp={data ? (data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Lu le ${fmtDateTime(data.genere)}`) : null}
@@ -182,7 +178,6 @@ export default function PilotagePage() {
             <h1>{quotidien ? titreJour(today) : group.label}</h1>
           </header>
           <PilotSubnav group={group} page={page} search={search} badges={badges} />
-          {heure && data && page.periode !== false && !quotidien ? <p className="pl-note">Sur 1 h, ces chiffres restent sur 24 h{page.id === "activite" ? ", sauf les couples connectés" : ""}.</p> : null}
           {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
           {page.id === "liste" ? (
             <section className="pl-section">
@@ -197,7 +192,7 @@ export default function PilotagePage() {
           {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading"><PilotDots label="Lecture des indicateurs" /></div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
-              <Board data={data} jours={jours} reload={() => load(jours, true, heure)} liste={liste} today={today} search={search} langue={langue} />
+              <Board data={data} jours={jours} reload={() => load(jours, true)} liste={liste} today={today} search={search} langue={langue} />
             </PageContext.Provider>
           ) : null}
         </div>

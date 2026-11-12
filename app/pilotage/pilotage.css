@@ -70,7 +70,8 @@
 .pl-chip:disabled { opacity: 0.5; cursor: default; }
 /* Période et Actualiser : un bloc blanc en bas de la barre latérale, sur toutes les pages */
 .pl-period { margin-top: auto; display: grid; gap: 8px; padding: 12px; border-radius: 20px; background: var(--surface); }
-.pl-ranges { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.pl-ranges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.pl-langue { grid-template-columns: 1fr 1fr; }
 .pl-seg { appearance: none; min-height: 32px; padding: 0 6px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .pl-seg:hover { border-color: var(--ink); }
 .pl-seg.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
@@ -359,7 +360,7 @@
   .pl-nav-ic { display: none; }
   /* La période tient sur une ligne, Actualiser réduit à son icône */
   .pl-period { margin: 0 16px; padding: 0; grid-template-columns: minmax(0, 1fr) auto; background: none; }
-  .pl-ranges { grid-template-columns: repeat(4, 1fr); }
+  .pl-ranges { grid-template-columns: repeat(3, 1fr); }
   .pl-langue { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
   .pl-seg { min-height: 30px; padding: 0 2px; font-size: 12px; background: var(--surface); }
   .pl-refresh { width: 34px; min-height: 34px; padding: 0; }
