@@ -18,7 +18,7 @@ const posthogPersonUrl = (id) => `https://eu.posthog.com/project/321035/person/$
 const DAY = 86400000;
 const ts = (iso) => (iso ? Date.parse(iso) : 0);
 const handle = (email) => (email ? email.split("@")[0] : "sans adresse");
-const fmtDay = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
+export const fmtDay = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
 const fmtWedding = (date) => new Date(`${date}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
 const fmtActive = (s) => (s < 60 ? `${s} s` : `${Math.round(s / 60)} min`);
 const muted = (text) => <span className="pl-muted">{text}</span>;
@@ -55,7 +55,7 @@ const recence = (iso) => {
   const age = Date.now() - ts(iso);
   return age <= DAY ? "ok" : age <= 7 * DAY ? "lime" : age <= 30 * DAY ? "warn" : "bad";
 };
-function visiteCell(r) {
+export function visiteCell(r) {
   const at = r.derniere_visite === undefined ? r.derniere_connexion : r.derniere_visite;
   if (!at) return <Pill>jamais</Pill>;
   const detail = [`Dernière visite : ${fmtDateTime(at)}`, r.visite_par ? `par ${r.visite_par}` : null, r.derniere_connexion ? `Dernière connexion (mot de passe ou lien) : ${fmtDateTime(r.derniere_connexion)}` : null];
@@ -102,7 +102,7 @@ const statutCell = (statut, href, quoi) => {
   return href ? <PillLink tone={tone} href={href} title={`Ouvrir ${quoi}`}>{label}</PillLink> : <Pill tone={tone}>{label}</Pill>;
 };
 
-function coupleCell(r) {
+export function coupleCell(r) {
   const passe = r.date && ts(`${r.date}T23:59:59Z`) < Date.now();
   return (
     <>

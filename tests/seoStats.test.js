@@ -26,6 +26,21 @@ describe("buildStats", () => {
     expect(stats.photographes["d:34"]).toEqual({ n: 5, priced: 2, median: null });
     expect(Object.keys(stats).sort()).toEqual(["photographes", "traiteurs"]);
   });
+  it("additionne les comptes locaux du bloc « En chiffres » quand le résumé les fournit (D-287)", () => {
+    const local = (o) => ({ heberg: 0, cap150: 0, ceremonie: 0, gare30: 0, notes: 0, notes_somme: 0, avis: 0, tres_bien_notes: 0, avis100: 0, ...o });
+    const withLocal = buildStats([
+      { primary_category: "lieu", department: "29", price_unit: "location", n: 4, prices: [], ...local({ heberg: 2, cap150: 1, notes: 2, notes_somme: 9.4, avis: 300, avis100: 1 }) },
+      { primary_category: "lieu", department: "56", price_unit: null, n: 3, prices: [], ...local({ heberg: 1, gare30: 2, notes: 1, notes_somme: 4.2, avis: 50 }) },
+    ]);
+    expect(withLocal.lieux["d:29"].local).toEqual({ heberg: 2, cap150: 1, ceremonie: 0, gare30: 0, notes: 2, avis: 300, tres_bien_notes: 0, avis100: 1, note: 4.7 });
+    const region = withLocal.lieux["r:Bretagne"].local;
+    expect(region.heberg).toBe(3);
+    expect(region.avis).toBe(350);
+    expect(region.note).toBeCloseTo(13.6 / 3);
+    // Sans le SQL du 12 nov., pas de comptes locaux du tout
+    expect(stats.traiteurs["d:34"].local).toBeUndefined();
+  });
+
   it("supporte une liste vide", () => {
     expect(buildStats([])).toEqual({});
     expect(buildStats(null)).toEqual({});
