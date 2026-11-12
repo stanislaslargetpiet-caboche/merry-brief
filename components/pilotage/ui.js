@@ -7,6 +7,7 @@
 import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useState } from "react";
 import { PilotIcon } from "@/components/pilotage/icons";
 import { barPath, courbePath, echelle, indicesAxe, pasAxe } from "@/lib/pilotage/graphes";
+import { sensInitial, trier, triSuivant } from "@/lib/pilotage/tri";
 import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
 
 export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint, sansPct = false, selected, onSelect, href, onGo }) {
@@ -380,8 +381,12 @@ export function Ranked({ rows, label = "label", value = "n", format = fmtInt, em
 
 // `rowClass(r)` : classe facultative de la ligne (Par couple : « is-test » pour les couples de test)
 // `detail(r)` : ce qui se déroule sous la ligne (rien quand il rend null), sur toute la largeur du tableau
-export function Table({ cols, rows, empty = "Rien sur la période", max = 12, rowClass, detail }) {
-  const list = (rows || []).slice(0, max);
+// Colonne avec `sort(r)` : son intitulé classe le tableau au clic (lib/pilotage/tri.js), dans un sens, puis dans
+// l'autre, puis revient à l'ordre reçu. `pinLast(r)` : lignes gardées en bas quel que soit le tri.
+export function Table({ cols, rows, empty = "Rien sur la période", max = 12, rowClass, detail, pinLast }) {
+  const [tri, setTri] = useState(null);
+  const triee = tri && cols.find((c) => c.key === tri.key && c.sort);
+  const list = (triee ? trier(rows, triee.sort, tri.sens, pinLast) : rows || []).slice(0, max);
   if (!list.length) return <div className="pl-empty">{empty}</div>;
   // Colonnes voisines au même `group` : un intitulé commun au-dessus d'elles
   const groups = cols.some((c) => c.group)
@@ -406,11 +411,27 @@ export function Table({ cols, rows, empty = "Rien sur la période", max = 12, ro
             </tr>
           ) : null}
           <tr>
-            {cols.map((c) => (
-              <th key={c.key} className={c.num ? "is-num" : ""}>
-                {c.label}
-              </th>
-            ))}
+            {cols.map((c) => {
+              const sens = triee?.key === c.key ? tri.sens : 0;
+              const fleche = (
+                <svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 5.5l5 5 5-5" />
+                </svg>
+              );
+              return (
+                <th key={c.key} className={c.num ? "is-num" : ""} aria-sort={sens ? (sens > 0 ? "ascending" : "descending") : undefined}>
+                  {c.sort ? (
+                    <button type="button" className={`pl-sort${sens ? " is-on" : ""}${sens > 0 ? " is-asc" : ""}`} onClick={() => setTri(triSuivant(tri, c.key, sensInitial(rows, c.sort)))}>
+                      {c.num ? fleche : null}
+                      {c.label}
+                      {c.num ? null : fleche}
+                    </button>
+                  ) : (
+                    c.label
+                  )}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
