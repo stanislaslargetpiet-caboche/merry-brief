@@ -145,6 +145,16 @@ describe("weddingState", () => {
     expect(invited.nothingMoved).toBe(false);
     expect(moved({ guestCount: 12 }).pending.invites).toBe(false);
   });
+  it("ne relance pas l'équipe quand quelqu'un d'autre que le couple est déjà entré", () => {
+    // Les parents de Thomas sont venus sous leurs prénoms ; la ligne « Parents de Léa » de l'onboarding reste vide
+    const hubert = { id: "m5", role: "organisateur", user_id: "u5", display_name: "Hubert", invited_at: "2026-11-08T18:29:46Z" };
+    const s = weddingState({ wedding, me: "m1", members: [couple, thomas, parentsLea, hubert], guestCount: 0, items: [seeded], payments: [] });
+    expect(s.pending.equipe).toBe(false);
+    // Le partenaire qui a son compte ne suffit pas : les parents restent à inviter
+    const both = weddingState({ wedding, me: "m1", members: [couple, { ...thomas, user_id: "u2" }, parentsLea], guestCount: 0, items: [seeded], payments: [] });
+    expect(both.pending.equipe).toBe(true);
+    expect(both.team.map((m) => m.id)).toEqual(["m3"]);
+  });
 });
 
 // Client Supabase de test : filtres eq, in, gte, lt, like, order, limit et comptage seul, comme les vraies requêtes
