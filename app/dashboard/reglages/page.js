@@ -1,7 +1,8 @@
 "use client";
 
 // Réglages (section 6 du canvas) : la couleur du tableau de bord, propre à chaque organisateur,
-// ses informations (prénom, adresse mail, mot de passe) et la suppression de son compte.
+// ses informations (prénom, adresse mail, mot de passe), l'effacement des données du mariage (le compte reste) et
+// la suppression de son compte, qui emporte le mariage si personne d'autre n'y a de compte (D-130).
 
 import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
@@ -12,6 +13,16 @@ import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import MailPrefs from "@/components/MailPrefs";
 import PasswordFields from "@/components/PasswordFields";
+
+const WEDDING_KEY = "merry-wedding";
+
+// « Léa », « Léa et Paul », « Léa, Paul et Marc »
+const liste = (noms) => (noms.length < 2 ? noms.join("") : `${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}`);
+
+async function jeton() {
+  const { data: s } = await supabase.auth.getSession();
+  return s?.session?.access_token || "";
+}
 
 export default function Reglages() {
   const dash = useDash();
@@ -27,6 +38,12 @@ export default function Reglages() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [plan, setPlan] = useState(null);
+  const [effacer, setEffacer] = useState(false);
+  const [effacing, setEffacing] = useState(false);
+  // Les autres organisateurs qui ont un compte sur le mariage affiché : ils perdent aussi ce qu'efface « Effacer »
+  const autres = data.members.filter((m) => m.user_id && m.id !== data.meId).map((m) => m.display_name);
+  const couple = [data.wedding?.partner1, data.wedding?.partner2].filter(Boolean).join(" et ");
 
   async function pick(key) {
     const ok = await saveAccent(key, live);
@@ -76,6 +93,37 @@ export default function Reglages() {
     dash.setToast({ kind: notes.some((n) => /pas pu/.test(n)) ? "error" : "ok", text });
   }
 
+  // Ce que la suppression du compte emportera, relu en base : chaque mariage part, sauf si un autre organisateur y a un compte
+  async function openConfirm() {
+    setConfirm(true);
+    setPlan(live ? null : [{ couple, autres }]);
+    if (!live) return;
+    const res = await fetch("/api/compte", { headers: { authorization: `Bearer ${await jeton()}` } }).catch(() => null);
+    const body = res?.ok ? await res.json().catch(() => null) : null;
+    setPlan(body?.mariages || "inconnu");
+  }
+
+  async function eraseData() {
+    if (!live) {
+      setEffacer(false);
+      dash.setToast({ kind: "ok", text: "En démo, les données ne sont pas effacées." });
+      return;
+    }
+    setEffacing(true);
+    const res = await fetch("/api/compte/donnees", { method: "DELETE", headers: { authorization: `Bearer ${await jeton()}`, "content-type": "application/json" }, body: JSON.stringify({ mariage: data.wedding?.id }) }).catch(() => null);
+    if (!res?.ok) {
+      setEffacing(false);
+      dash.setToast({ kind: "error", text: "Les données n'ont pas pu être effacées. Écris-nous à bonjour@withmerry.com." });
+      return;
+    }
+    try {
+      window.localStorage.removeItem(WEDDING_KEY);
+    } catch {
+      /* ignore */
+    }
+    window.location.href = "/dashboard";
+  }
+
   async function removeAccount() {
     if (!live) {
       setConfirm(false);
@@ -83,8 +131,7 @@ export default function Reglages() {
       return;
     }
     setDeleting(true);
-    const { data: s } = await supabase.auth.getSession();
-    const res = await fetch("/api/compte", { method: "DELETE", headers: { authorization: `Bearer ${s?.session?.access_token || ""}` } }).catch(() => null);
+    const res = await fetch("/api/compte", { method: "DELETE", headers: { authorization: `Bearer ${await jeton()}` } }).catch(() => null);
     if (!res?.ok) {
       setDeleting(false);
       dash.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écris-nous à bonjour@withmerry.com." });
@@ -162,13 +209,44 @@ export default function Reglages() {
       />
 
       <Section title="Ton compte" />
-      <div className="d-card d-settings d-settings-danger">
-        <strong>Supprimer mon compte</strong>
-        <button type="button" className="d-btn d-btn-danger" onClick={() => setConfirm(true)}>
-          <Icon name="trash" size={16} sw={2} />
-          Supprimer
-        </button>
+      <div className="d-settings-pair">
+        <div className="d-card d-settings d-settings-danger">
+          <strong>Effacer mes données</strong>
+          <button type="button" className="d-btn d-btn-danger" onClick={() => setEffacer(true)}>
+            <Icon name="trash" size={16} sw={2} />
+            Effacer
+          </button>
+        </div>
+        <div className="d-card d-settings d-settings-danger">
+          <strong>Supprimer mon compte</strong>
+          <button type="button" className="d-btn d-btn-danger" onClick={openConfirm}>
+            <Icon name="trash" size={16} sw={2} />
+            Supprimer
+          </button>
+        </div>
       </div>
+
+      {effacer ? (
+        <Modal
+          title="Effacer les données du mariage ?"
+          onClose={() => setEffacer(false)}
+          footer={
+            <>
+              <Btn kind="ghost" onClick={() => setEffacer(false)}>
+                Annuler
+              </Btn>
+              <button type="button" className="d-btn d-btn-danger" onClick={eraseData} disabled={effacing}>
+                {effacing ? "Effacement…" : "Effacer définitivement"}
+              </button>
+            </>
+          }
+        >
+          <p className="d-settings-warn">
+            Invités, réponses, tâches, budget, devis, documents et site sont supprimés. Ton compte reste et tu repars d&apos;un mariage neuf.
+            {autres.length ? ` ${liste(autres)} ${autres.length > 1 ? "perdent" : "perd"} aussi ces données.` : ""}
+          </p>
+        </Modal>
+      ) : null}
 
       {confirm ? (
         <Modal
@@ -179,13 +257,23 @@ export default function Reglages() {
               <Btn kind="ghost" onClick={() => setConfirm(false)}>
                 Annuler
               </Btn>
-              <button type="button" className="d-btn d-btn-danger" onClick={removeAccount} disabled={deleting}>
+              <button type="button" className="d-btn d-btn-danger" onClick={removeAccount} disabled={deleting || !plan}>
                 {deleting ? "Suppression…" : "Supprimer définitivement"}
               </button>
             </>
           }
         >
-          <p className="d-settings-warn">Tu ne pourras plus te connecter à Merry. Le mariage et ses données restent accessibles aux autres organisateurs.</p>
+          <p className="d-settings-warn">
+            Tu ne pourras plus te connecter à Merry.
+            {Array.isArray(plan)
+              ? plan.map((m, i) => {
+                  const nom = plan.length > 1 ? `Le mariage ${m.couple}` : "Ton mariage";
+                  return <span key={i}> {m.autres.length ? `${nom} reste accessible à ${liste(m.autres)}.` : `${nom} et toutes ses données sont supprimés.`}</span>;
+                })
+              : plan
+                ? " Le mariage part avec lui, sauf si un autre organisateur y a un compte."
+                : null}
+          </p>
         </Modal>
       ) : null}
     </>

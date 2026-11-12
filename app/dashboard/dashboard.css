@@ -16035,6 +16035,18 @@ body.d-noscroll {
   gap: 14px;
 }
 
+/* Effacer mes données, puis Supprimer mon compte : deux lignes rapprochées sous le même titre */
+.d-settings-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.d-settings-pair .d-settings {
+  margin-bottom: 0;
+}
+
 .d-btn-danger {
   background: #ffffff;
   border: 1px solid var(--d-red-ink);
