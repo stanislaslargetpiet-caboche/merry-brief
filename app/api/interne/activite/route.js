@@ -2,7 +2,7 @@
 // bougé depuis la veille à 20 h (lib/server/activiteJob.js). Appelée deux fois par jour par Vercel (18 h et 19 h UTC,
 // vercel.json) : l'offre Hobby lance une tâche n'importe quand dans l'heure indiquée et ne connaît pas l'heure d'été,
 // donc la route ne travaille que si l'heure de Paris est 20 ou 21 ; une clé par mariage, adresse et jour dans
-// mail_sent empêche tout double envoi. Viennent ensuite les mails de démarrage des nouveaux couples
+// mail_sent empêche tout double envoi. Viennent ensuite les mails de démarrage des couples
 // (lib/server/demarrageJob.js) : passés après, ils voient qui a déjà reçu le mail de 20 h et le laissent seul ce jour-là.
 //  GET  Vercel, jeton CRON_SECRET. ?force=1 ignore la fenêtre horaire, jamais la clé du jour.
 //       ?dry=1 compte les mails sans en envoyer ni réserver de clé.

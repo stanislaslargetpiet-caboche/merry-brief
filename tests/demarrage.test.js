@@ -147,7 +147,7 @@ describe("weddingState", () => {
   });
 });
 
-// Client Supabase de test : filtres eq, in, gte, lt, like, limit et comptage seul, comme les vraies requêtes
+// Client Supabase de test : filtres eq, in, gte, lt, like, order, limit et comptage seul, comme les vraies requêtes
 function fakeAdmin(tables, { optouts = [], sent = [] } = {}) {
   const mailSent = [...sent];
   const from = (table) => {
@@ -168,6 +168,10 @@ function fakeAdmin(tables, { optouts = [], sent = [] } = {}) {
         },
         gte: (_c, v) => {
           rows = rows.filter((r) => r.sent_at >= v);
+          return chain;
+        },
+        order: () => {
+          rows = [...rows].sort((a, b) => (a.sent_at < b.sent_at ? -1 : 1));
           return chain;
         },
         limit: () => chain,
@@ -218,16 +222,11 @@ describe("runDemarrage", () => {
   });
 
   const tables = {
-    weddings: [
-      { id: "w1", created_at: "2026-11-12T10:00:00Z", created_by: "u1", brief_id: "b1", partner1: "Léa", partner2: "Thomas", wedding_date: "2027-09-12", budget_total: 25000 },
-      // Inscrit avant le départ de la séquence : rien
-      { id: "w0", created_at: "2026-11-10T10:00:00Z", created_by: "u9", brief_id: null, partner1: "Ana", partner2: "Bo", budget_total: null },
-    ],
+    weddings: [{ id: "w1", created_at: "2026-11-12T10:00:00Z", created_by: "u1", brief_id: "b1", partner1: "Léa", partner2: "Thomas", wedding_date: "2027-09-12", budget_total: 25000 }],
     wedding_members: [
       { ...couple, wedding_id: "w1", email: "" },
       { ...thomas, wedding_id: "w1", email: null },
       { ...parentsLea, wedding_id: "w1", email: null },
-      { id: "m9", wedding_id: "w0", role: "couple", user_id: "u9", display_name: "Ana", email: "ana@example.com" },
     ],
     briefs: [{ id: "b1", guests: "100-150", first_name: "léa" }],
     budget_items: [{ wedding_id: "w1", created_at: "2026-11-12T10:00:01Z", quote_amount: null }],
@@ -269,6 +268,38 @@ describe("runDemarrage", () => {
     expect(mails).toHaveLength(3);
   });
 
+  // Inscrit le 22 octobre, avant la séquence ; ses parents n'ont pas d'accès
+  const ancien = {
+    ...tables,
+    weddings: [...tables.weddings, { id: "w0", created_at: "2026-10-22T10:00:00Z", created_by: "u9", brief_id: null, partner1: "Ana", partner2: "Bo", wedding_date: null, budget_total: null }],
+    wedding_members: [
+      ...tables.wedding_members,
+      { id: "m9", wedding_id: "w0", role: "couple", user_id: "u9", display_name: "Ana", email: "ana@example.com" },
+      { id: "m8", wedding_id: "w0", role: "parents", user_id: null, display_name: "Parents d'Ana", email: null, position: 2 },
+    ],
+  };
+
+  it("écrit aussi aux couples inscrits avant la séquence", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const admin = fakeAdmin(ancien);
+    const run = (day) => {
+      vi.setSystemTime(evening(day));
+      return runDemarrage(admin, origin, evening(day), { env });
+    };
+    expect((await run(13)).etapes).toEqual({ invites: 2 });
+    expect(mails.map((m) => m.to[0]).sort()).toEqual(["ana@example.com", "lea.bernard@example.com"]);
+    expect((await run(14)).etapes).toEqual({ equipe: 2 });
+    expect((await run(15)).etapes).toEqual({ stan: 2 });
+    expect(mails.find((m) => m.to[0] === "ana@example.com" && m.subject === "Ton mariage sur Merry").text).toContain("Tu as créé ton espace Merry le 22 octobre");
+  });
+
+  it("ne reprend plus les anciens couples sept jours après le premier mail de démarrage", async () => {
+    const admin = fakeAdmin(ancien, { sent: [{ key: "demarrage:invites:w7:zoe@example.com", sent_at: "2026-11-05T19:05:00Z" }] });
+    const report = await runDemarrage(admin, origin, evening(13), { env });
+    expect(report.mariages).toBe(1);
+    expect(mails.map((m) => m.to[0])).toEqual(["lea.bernard@example.com"]);
+  });
+
   it("passe à l'étape suivante quand la liste d'invités est déjà là", async () => {
     const guests = Array.from({ length: 12 }, (_, i) => ({ id: `g${i}`, wedding_id: "w1" }));
     const report = await runDemarrage(fakeAdmin({ ...tables, guests }), origin, evening(13), { env });
@@ -286,6 +317,9 @@ describe("runDemarrage", () => {
     expect((await runDemarrage(fakeAdmin(tables, { optouts: ["lea.bernard@example.com"] }), origin, evening(13), { env })).envoyes).toBe(0);
     const test = { ...tables, wedding_members: tables.wedding_members.map((m) => (m.id === "m1" ? { ...m, email: "lea.test@example.com" } : m)) };
     expect((await runDemarrage(fakeAdmin(test), origin, evening(13), { env })).envoyes).toBe(0);
+    // Une démo créée par un compte de test, où un vrai compte a été invité : rien non plus
+    const demo = { ...test, wedding_members: test.wedding_members.map((m) => (m.id === "m2" ? { ...m, user_id: "u2", email: "thomas@example.com" } : m)) };
+    expect((await runDemarrage(fakeAdmin(demo), origin, evening(13), { env })).envoyes).toBe(0);
     expect(mails).toHaveLength(0);
   });
 
