@@ -1,4 +1,5 @@
 import "./pilotage.css";
+import NouvelleVersion from "@/components/NouvelleVersion";
 
 export const metadata = {
   title: "Merry · Pilotage",
@@ -7,5 +8,10 @@ export const metadata = {
 };
 
 export default function PilotageLayout({ children }) {
-  return children;
+  return (
+    <>
+      {children}
+      <NouvelleVersion />
+    </>
+  );
 }

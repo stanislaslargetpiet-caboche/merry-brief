@@ -37,6 +37,9 @@ const devPort = process.env.NODE_ENV !== "production" && process.env.PORT;
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Commit déployé, figé dans le code envoyé au navigateur : un onglet resté ouvert le compare à /api/version
+  // et se recharge s'il tourne encore avec un ancien code (components/NouvelleVersion.js)
+  env: { NEXT_PUBLIC_VERSION: process.env.VERCEL_GIT_COMMIT_SHA || "" },
   ...(devPort ? { distDir: `.next-dev-${devPort}` } : {}),
   // PostHog passe par notre domaine (lib/analytics.js, api_host: "/ingest") plutôt que eu.i.posthog.com :
   // un bloqueur de pub qui cible le domaine PostHog par son nom ne voit plus la différence avec le reste du site.

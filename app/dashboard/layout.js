@@ -1,5 +1,6 @@
 import "./dashboard.css";
 import Shell from "@/components/dash/Shell";
+import NouvelleVersion from "@/components/NouvelleVersion";
 
 export const metadata = {
   title: "Merry · Tableau de bord",
@@ -8,5 +9,10 @@ export const metadata = {
 };
 
 export default function DashboardLayout({ children }) {
-  return <Shell>{children}</Shell>;
+  return (
+    <>
+      <Shell>{children}</Shell>
+      <NouvelleVersion />
+    </>
+  );
 }
