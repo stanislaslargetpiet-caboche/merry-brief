@@ -17,9 +17,17 @@ const ICONS = {
   seats: "M7 11V5.5A1.5 1.5 0 0 1 8.5 4h7A1.5 1.5 0 0 1 17 5.5V11M5 11h14v3H5zM7 14v6M17 14v6",
   beds: "M3 18V7M3 13h18v5M21 13v-2a3 3 0 0 0-3-3h-7v5",
   train: "M5.5 10.5h13M9 20l-1.5 1.5M15 20l1.5 1.5M9 13.5h.01M15 13.5h.01",
+  plane: "M10.5 13.5 4 11l1.5-1.5 7 1L17 6a1.6 1.6 0 0 1 2.3 2.3L14.8 13l1 7-1.5 1.5-2.5-6.5L9 17.8V20l-1.2 1.2-1.6-3.4L3 16.2 4.2 15H6.4z",
 };
 
 export function SpecIcon({ name }) {
+  if (name === "plane") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d={ICONS.plane} />
+      </svg>
+    );
+  }
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {name === "train" && <rect x="5.5" y="3.5" width="13" height="13" rx="3" />}
