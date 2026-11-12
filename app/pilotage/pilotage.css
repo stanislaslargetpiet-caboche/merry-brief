@@ -20,6 +20,10 @@
   --warning-text: #8a4b0f;
   --error-bg: #fde0de;
   --error-text: #b42318;
+  --info-bg: #dce8fb;
+  --info-text: #1d4ed8;
+  --violet-bg: #e8e0fb;
+  --violet-text: #5b21b6;
 
   min-height: 100dvh;
   background: var(--surface);
@@ -255,6 +259,8 @@
 .pl-pill.is-ok { background: var(--success-bg); color: var(--success-text); }
 .pl-pill.is-warn { background: var(--warning-bg); color: var(--warning-text); }
 .pl-pill.is-bad { background: var(--error-bg); color: var(--error-text); }
+.pl-pill.is-info { background: var(--info-bg); color: var(--info-text); }
+.pl-pill.is-violet { background: var(--violet-bg); color: var(--violet-text); }
 .pl-pill.is-lime { background: var(--accent-tint); color: var(--accent-ink); }
 .pl-pill.is-link { text-decoration: none; cursor: pointer; }
 .pl-pill.is-link:hover { box-shadow: inset 0 0 0 1px currentColor; }
