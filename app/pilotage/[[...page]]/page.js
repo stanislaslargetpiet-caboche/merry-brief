@@ -276,11 +276,17 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   // n'existe que depuis le 7 nov. 2026 (D-187) : avant sa première visite, un jour n'a pas de mesure (null), pas zéro.
   const arrivees = useMemo(() => {
     const comptes = new Map((sb?.series || []).map((r) => [r.jour, Number(r.inscriptions) || 0]));
-    const visites = alignSeries(joursList, ph?.site?.visites, ["visites"]);
+    const visites = alignSeries(joursList, ph?.site?.visites, ["visites", "mesurees", "douteuses"]);
     const debut = visites.findIndex((r) => r.visites > 0);
     return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
   }, [joursList, ph, sb]);
   const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
+  // Allure des visites relevée depuis peu : seules les visites mesurées entrent dans ce pourcentage, toutes restent comptées
+  const mesurees = sumBy(arriveesSplit.current, "mesurees") || 0;
+  const douteuses = sumBy(arriveesSplit.current, "douteuses") || 0;
+  const noteAllure = mesurees
+    ? `Relevé récent : ${fmtInt(douteuses)} visites sur ${fmtInt(mesurees)} (${pctOf(douteuses, mesurees)} %) n'ont pas l'allure d'un navigateur ordinaire (script, ou navigateur très ancien). Elles restent comptées dans le total.`
+    : "Relevé de l'allure des visites (navigateur ordinaire ou script) : aucune visite mesurée sur la période pour l'instant.";
   const robots = useMemo(() => alignSeries(joursList, ph?.site?.robots, ["robots"]), [joursList, ph]);
   const robotsSplit = useMemo(() => splitSeries(robots, jours), [robots, jours]);
   const reponsesForm = useMemo(() => mesureDepuis(sb?.series, "reponses_formulaire", DEBUT_JOURNAL_RSVP), [sb]);
@@ -358,7 +364,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="site">
         {ph ? (
           <TileChart>
-            <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots écartés)" chart={<DayLine title="Visites humaines par jour" series={arrivees} valeur="visites" label="Visites humaines" days={jours} />} />
+            <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots et appareils de l'équipe écartés)" note={noteAllure} chart={<DayLine title="Visites humaines par jour" series={arrivees} valeur="visites" label="Visites humaines" days={jours} />} />
             <Tile label="Comptes créés" value={cur("inscriptions")} prev={prev("inscriptions")} chart={<DayLine title="Comptes créés par jour" series={sb?.series} valeur="inscriptions" label="Comptes créés" days={jours} />} />
             <Tile label="Taux d'inscription" value={pctOf(cur("inscriptions"), sumBy(arriveesSplit.current, "visites"))} prev={pctOf(prev("inscriptions"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title="Taux d'inscription par jour" series={arrivees} valeur="taux" label="Taux d'inscription" days={jours} format={pct} />} />
             <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={<DayBars title="Robots par jour" series={robots} keys={["robots"]} labels={["Robots"]} days={jours} />} />

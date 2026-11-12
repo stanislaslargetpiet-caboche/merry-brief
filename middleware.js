@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 import { classifyAgent } from "@/lib/agentsIa";
-import { compter, isPageRequest, isPageVisit, isRobot, sourceOf } from "@/lib/compteur";
+import { COOKIE_INTERNE, compter, interneDemande, isInterne, isPageRequest, isPageVisit, isRobot, qualiteEntetes, sourceOf } from "@/lib/compteur";
 import { classifyRobot } from "@/lib/robots";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
@@ -77,8 +77,20 @@ function etapeDe(req) {
   return null;
 }
 
+// Repère « appareil de l'équipe » (lib/compteur.js) : posé pour un an sur tout withmerry.com, site et appli ensemble
+function reperInterne(req, res, demande) {
+  const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
+  if (!host || host.includes("localhost")) return;
+  const domain = host === "withmerry.com" || host.endsWith(".withmerry.com") ? ".withmerry.com" : undefined;
+  res.cookies.set({ name: COOKIE_INTERNE, value: demande === "pose" ? "1" : "", path: "/", domain, maxAge: demande === "pose" ? 60 * 60 * 24 * 365 : 0, secure: true, sameSite: "lax", httpOnly: true });
+}
+
 export function middleware(req, event) {
   const res = route(req);
+  const demande = interneDemande(req.nextUrl.search);
+  if (demande) reperInterne(req, res, demande);
+  // La visite qui pose ou retire le repère n'est pas comptée non plus
+  const interne = Boolean(demande) || isInterne(req.headers);
   // L'appli (app.withmerry.com) n'a rien à faire dans Google : le site et les pages SEO vivent sur www
   if ((req.headers.get("host") || "").split(":")[0].toLowerCase() === "app.withmerry.com") res.headers.set("X-Robots-Tag", "noindex");
   const landed = res.status < 300 || res.status >= 400;
@@ -90,8 +102,8 @@ export function middleware(req, event) {
   if (etape === "site" && isPageRequest(req.headers, req.method) && isRobot(req.headers.get("user-agent"))) {
     reportAgent(req, event, classifyRobot(req.headers.get("user-agent")), "robot_hit");
   }
-  if (etape && isPageVisit(req.headers, req.method)) {
-    const send = compter({ etape, source: sourceOf(req.nextUrl.search), site: (req.headers.get("host") || "").split(":")[0].toLowerCase() });
+  if (etape && !interne && isPageVisit(req.headers, req.method)) {
+    const send = compter({ etape, source: sourceOf(req.nextUrl.search), site: (req.headers.get("host") || "").split(":")[0].toLowerCase(), entetes: qualiteEntetes(req.headers) });
     if (send) event?.waitUntil?.(send);
   }
   return res;
