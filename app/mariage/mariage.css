@@ -75,7 +75,14 @@
 .sm-faq > div:last-child { border-bottom: 0; padding-bottom: 0; }
 .sm-faq h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
 .sm-faq p { margin: 0; font-size: 15px; line-height: 1.55; }
+.sm-faq p a { text-decoration: underline; text-underline-offset: 3px; }
 .sm-pills-wrap { align-content: flex-start; }
+
+/* Bloc « En chiffres » (D-287) : le panneau gris de chiffres du système de design, une colonne par chiffre */
+.sm-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; background: #f6f5f1; border-radius: 20px; padding: 22px 18px; align-self: start; }
+.sm-stat { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+.sm-stat b { font-weight: 600; font-size: 28px; line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.sm-stat span { font-size: 13px; line-height: 1.35; color: #6b6a63; }
 
 .sm-claim { background: #f6fcf2; border-radius: 20px; padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
 .sm-claim p { margin: 0; font-size: 15px; }
@@ -109,6 +116,8 @@
   .sm-cta p { font-size: 24px; }
   .sm-cta span { font-size: 14px; }
   .sm-block { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; }
+  .sm-stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; padding: 18px 14px; }
+  .sm-stat b { font-size: 24px; }
   .sm-faq h3 { font-size: 15px; }
   .sm-faq p { font-size: 14px; }
   .sm-claim { flex-direction: column; align-items: flex-start; padding: 18px; gap: 12px; }
