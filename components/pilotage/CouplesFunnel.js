@@ -2,7 +2,8 @@
 
 // Page « Couples › Funnel » du pilotage : l'entonnoir des couples (lib/pilotage/funnel.js), puis un mariage par
 // ligne avec son étape et ce qui le rend peut-être hors sujet. Un clic sur une étape ne garde que les couples arrêtés
-// là. Mêmes données que Par couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
+// là, un clic sur un intitulé classe le tableau sur cette colonne (tests toujours en bas). Mêmes données que Par
+// couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
 // interrupteur sort le couple des mails de démarrage ou l'y remet, « Voir les mails » ouvre son planning (mails à
 // venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage. La flèche
 // après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe. La pastille « test » prend
@@ -11,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Funnel, Pill, PilotDots, Section, Table } from "@/components/pilotage/ui";
-import { dateCouple, fmtDay, visiteCell } from "@/components/pilotage/Utilisateurs";
+import { dateCouple, fmtDay, visiteCell, visiteTs } from "@/components/pilotage/Utilisateurs";
 import { ETAPES, buildFunnel } from "@/lib/pilotage/funnel";
 import { demoMails } from "@/lib/server/pilotage/demo";
 import { fmtInt } from "@/lib/server/pilotage/shape";
@@ -317,21 +318,22 @@ export default function CouplesFunnel({ data, demo = false }) {
         </div>
         <Table
           cols={[
-            { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />) },
-            { key: "stade", label: "Étape", render: stadeCell },
-            { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–") },
-            { key: "visite", label: "Dernière visite", render: visiteCell },
-            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites) },
-            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire) },
-            { key: "equipe", group: "Avancement", label: "Équipe", num: true, render: (r) => num(r.equipe) },
-            { key: "budget", group: "Avancement", label: "Budget", render: (r) => (r.budget_touche ? "commencé" : muted("–")) },
-            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => num(r.devis) },
-            { key: "signaux", label: "À regarder", render: signauxCell },
-            { key: "mails", label: "Mails", render: mailsCell },
+            { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />), sort: (r) => r.couple },
+            { key: "stade", label: "Étape", render: stadeCell, sort: (r) => r.stade },
+            { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–"), sort: (r) => (r.cree ? Date.parse(r.cree) : null) },
+            { key: "visite", label: "Dernière visite", render: visiteCell, sort: visiteTs },
+            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites), sort: (r) => r.invites },
+            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire), sort: (r) => r.reponses_formulaire },
+            { key: "equipe", group: "Avancement", label: "Équipe", num: true, render: (r) => num(r.equipe), sort: (r) => r.equipe },
+            { key: "budget", group: "Avancement", label: "Budget", render: (r) => (r.budget_touche ? "commencé" : muted("–")), sort: (r) => Boolean(r.budget_touche) },
+            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => num(r.devis), sort: (r) => r.devis },
+            { key: "signaux", label: "À regarder", render: signauxCell, sort: (r) => r.signaux.length },
+            { key: "mails", label: "Mails", render: mailsCell, sort: (r) => (r.test ? null : !retraitsDe(r.id).includes(TOUT)) },
           ]}
           rows={rows}
           rowClass={(r) => (r.test ? "is-test" : null)}
           detail={(r) => (deplies.has(r.id) ? inscrits(r) : null)}
+          pinLast={(r) => r.test}
           max={300}
           empty="Aucun couple à cette étape"
         />

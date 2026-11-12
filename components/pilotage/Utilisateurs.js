@@ -1,7 +1,7 @@
 "use client";
 
 // Page « Couples › Par couple » du pilotage : un seul tableau, un mariage par ligne, le plus récemment venu d'abord,
-// les couples de test en bas, en gris.
+// les couples de test en bas, en gris. Un clic sur un intitulé classe le tableau sur cette colonne (tests toujours en bas).
 // Pour chaque couple : ses comptes, sa dernière visite et le replay PostHog de sa dernière session enregistrée, puis
 // ce qu'il a fait dans l'appli (site, invités, formulaire, tâches, budget, devis) et sa couleur. Les données viennent
 // de /api/interne/pilotage (clé `utilisateurs`), croisées avec PostHog par withPostHog.
@@ -55,8 +55,11 @@ const recence = (iso) => {
   const age = Date.now() - ts(iso);
   return age <= DAY ? "ok" : age <= 7 * DAY ? "lime" : age <= 30 * DAY ? "warn" : "bad";
 };
+const derniereVisite = (r) => (r.derniere_visite === undefined ? r.derniere_connexion : r.derniere_visite);
+// Pour le tri : 0 quand le couple n'est jamais venu, donc avant les visites les plus anciennes
+export const visiteTs = (r) => ts(derniereVisite(r));
 export function visiteCell(r) {
-  const at = r.derniere_visite === undefined ? r.derniere_connexion : r.derniere_visite;
+  const at = derniereVisite(r);
   if (!at) return <Pill>jamais</Pill>;
   const detail = [`Dernière visite : ${fmtDateTime(at)}`, r.visite_par ? `par ${r.visite_par}` : null, r.derniere_connexion ? `Dernière connexion (mot de passe ou lien) : ${fmtDateTime(r.derniere_connexion)}` : null];
   return (
@@ -95,6 +98,7 @@ function replayCell(r) {
   );
 }
 
+const rangStatut = (statut) => (statut === "publié" ? 2 : statut ? 1 : 0);
 const statutCell = (statut, href, quoi) => {
   if (!statut) return muted("aucun");
   const label = statut === "publié" ? "Publié" : "Brouillon";
@@ -144,22 +148,23 @@ export default function Utilisateurs({ data }) {
       <Card>
         <Table
           cols={[
-            { key: "couple", label: "Couple", render: coupleCell },
-            { key: "comptes", label: "Comptes", render: comptesCell },
-            { key: "visite", group: "Dernière visite", label: "Quand", render: visiteCell },
-            { key: "replay", group: "Dernière visite", label: "PostHog", render: replayCell },
-            { key: "sessions", group: "Dernière visite", label: "Sessions 7 j", num: true, render: (r) => (r.sessions_7j === undefined ? "–" : num(r.sessions_7j)) },
-            { key: "site", group: "Avancement", label: "Site", render: (r) => statutCell(r.site, r.site_slug ? `/s/${r.site_slug}` : null, "le site") },
-            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites) },
-            { key: "formulaire", group: "Avancement", label: "Formulaire", render: (r) => statutCell(r.formulaire, r.formulaire_slug ? `/f/${r.formulaire_slug}` : null, "le formulaire") },
-            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire) },
-            { key: "taches", group: "Avancement", label: "Tâches faites", num: true, render: (r) => (r.taches ? `${fmtInt(r.taches_faites)} / ${fmtInt(r.taches)}` : muted("0")) },
-            { key: "budget", group: "Avancement", label: "Postes budget", num: true, render: (r) => num(r.budget) },
-            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => (r.devis ? <Pill tone="lime">{fmtInt(r.devis)}</Pill> : muted("0")) },
+            { key: "couple", label: "Couple", render: coupleCell, sort: (r) => r.couple },
+            { key: "comptes", label: "Comptes", render: comptesCell, sort: (r) => (r.comptes || r.emails).length },
+            { key: "visite", group: "Dernière visite", label: "Quand", render: visiteCell, sort: visiteTs },
+            { key: "replay", group: "Dernière visite", label: "PostHog", render: replayCell, sort: (r) => (r.replay ? ts(r.replay.debut) : null) },
+            { key: "sessions", group: "Dernière visite", label: "Sessions 7 j", num: true, render: (r) => (r.sessions_7j === undefined ? "–" : num(r.sessions_7j)), sort: (r) => r.sessions_7j },
+            { key: "site", group: "Avancement", label: "Site", render: (r) => statutCell(r.site, r.site_slug ? `/s/${r.site_slug}` : null, "le site"), sort: (r) => rangStatut(r.site) },
+            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites), sort: (r) => r.invites },
+            { key: "formulaire", group: "Avancement", label: "Formulaire", render: (r) => statutCell(r.formulaire, r.formulaire_slug ? `/f/${r.formulaire_slug}` : null, "le formulaire"), sort: (r) => rangStatut(r.formulaire) },
+            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire), sort: (r) => r.reponses_formulaire },
+            { key: "taches", group: "Avancement", label: "Tâches faites", num: true, render: (r) => (r.taches ? `${fmtInt(r.taches_faites)} / ${fmtInt(r.taches)}` : muted("0")), sort: (r) => r.taches_faites },
+            { key: "budget", group: "Avancement", label: "Postes budget", num: true, render: (r) => num(r.budget), sort: (r) => r.budget },
+            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => (r.devis ? <Pill tone="lime">{fmtInt(r.devis)}</Pill> : muted("0")), sort: (r) => r.devis },
             { key: "couleur", label: "Couleur", render: couleurCell },
           ]}
           rows={data.mariages}
           rowClass={(r) => (r.test ? "is-test" : null)}
+          pinLast={(r) => r.test}
           max={300}
           empty="Aucun mariage"
         />
