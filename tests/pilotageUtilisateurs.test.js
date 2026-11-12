@@ -39,6 +39,10 @@ describe("buildUtilisateurs", () => {
     expect(out.fenetre.devis).toEqual({ n: 0, prec: 1 });
     expect(out.fenetre.sites_crees.n).toBe(1);
   });
+  it("compte les comptes créés heure par heure sur 48 h, heure de Paris", () => {
+    // u2 créé à 11 h 30 UTC (12 h 30 à Paris) ; u4 il y a 48 h, hors fenêtre
+    expect(out.comptes_heures).toEqual([["2026-11-06T12", 1]]);
+  });
   it("dit qui a un site et des invités", () => {
     const emma = out.mariages.find((m) => m.id === "w1");
     expect(emma).toMatchObject({ couple: "Emma et Lucas", invites: 2, site: "publié", taches: 2, taches_faites: 1, devis: 1, emails: ["emma@x.fr"] });

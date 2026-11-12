@@ -17,7 +17,7 @@ import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase } from "@/lib/supabase";
-import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie, mesureDepuis } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
@@ -273,23 +273,31 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   const sbSplit = useMemo(() => splitSeries(sb?.series || [], jours), [sb, jours]);
   const site = useMemo(() => alignSeries(joursList, ph?.site?.series, ["visiteurs", "pages", "sessions"]), [joursList, ph]);
   const siteSplit = useMemo(() => splitSeries(site, jours), [site, jours]);
+  // Sur 24 h (et 1 h), le Site se lit heure par heure : les 24 dernières heures contre les 24 d'avant, chiffres des
+  // tuiles compris. Sans les séries par heure (démo, source en échec), il reste jour par jour.
+  const heures = useMemo(
+    () => (jours === 1 && ph?.site?.visites_heures && data.utilisateurs?.comptes_heures ? heureList(Date.parse(data.genere) || Date.now()) : null),
+    [jours, ph, data.utilisateurs, data.genere],
+  );
+  const pasSite = heures ? 24 : jours;
+  const parSite = heures ? "par heure" : "par jour";
   // Visites du compteur sans cookie et comptes créés, jour par jour : le taux saute les jours sans visite. Le compteur
   // n'existe que depuis le 7 nov. 2026 (D-187) : avant sa première visite, un jour n'a pas de mesure (null), pas zéro.
   const arrivees = useMemo(() => {
-    const comptes = new Map((sb?.series || []).map((r) => [r.jour, Number(r.inscriptions) || 0]));
-    const visites = alignSeries(joursList, ph?.site?.visites, ["visites", "mesurees", "douteuses"]);
-    const debut = visites.findIndex((r) => r.visites > 0);
+    const comptes = new Map(heures ? data.utilisateurs.comptes_heures : (sb?.series || []).map((r) => [r.jour, Number(r.inscriptions) || 0]));
+    const visites = alignSeries(heures || joursList, heures ? ph.site.visites_heures : ph?.site?.visites, ["visites", "mesurees", "douteuses"]);
+    const debut = heures ? 0 : visites.findIndex((r) => r.visites > 0);
     return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
-  }, [joursList, ph, sb]);
-  const arriveesSplit = useMemo(() => splitSeries(arrivees, jours), [arrivees, jours]);
+  }, [heures, joursList, ph, sb, data.utilisateurs]);
+  const arriveesSplit = useMemo(() => splitSeries(arrivees, pasSite), [arrivees, pasSite]);
   // Allure des visites relevée depuis peu : seules les visites mesurées entrent dans ce pourcentage, toutes restent comptées
   const mesurees = sumBy(arriveesSplit.current, "mesurees") || 0;
   const douteuses = sumBy(arriveesSplit.current, "douteuses") || 0;
   const noteAllure = mesurees
     ? `Relevé récent : ${fmtInt(douteuses)} visites sur ${fmtInt(mesurees)} (${pctOf(douteuses, mesurees)} %) n'ont pas l'allure d'un navigateur ordinaire (script, ou navigateur très ancien). Elles restent comptées dans le total.`
     : "Relevé de l'allure des visites (navigateur ordinaire ou script) : aucune visite mesurée sur la période pour l'instant.";
-  const robots = useMemo(() => alignSeries(joursList, ph?.site?.robots, ["robots"]), [joursList, ph]);
-  const robotsSplit = useMemo(() => splitSeries(robots, jours), [robots, jours]);
+  const robots = useMemo(() => alignSeries(heures || joursList, heures ? ph.site.robots_heures : ph?.site?.robots, ["robots"]), [heures, joursList, ph]);
+  const robotsSplit = useMemo(() => splitSeries(robots, pasSite), [robots, pasSite]);
   const reponsesForm = useMemo(() => mesureDepuis(sb?.series, "reponses_formulaire", DEBUT_JOURNAL_RSVP), [sb]);
   const reponsesFormSplit = useMemo(() => splitSeries(reponsesForm, jours), [reponsesForm, jours]);
   // Fonction SQL pas encore relancée : la clé manque, la tuile affiche « – » plutôt qu'un faux zéro
@@ -367,10 +375,10 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="site">
         {ph ? (
           <TileChart>
-            <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots et appareils de l'équipe écartés)" note={noteAllure} chart={<DayLine title="Visites humaines par jour" series={arrivees} valeur="visites" label="Visites humaines" days={jours} />} />
-            <Tile label="Comptes créés" value={cur("inscriptions")} prev={prev("inscriptions")} chart={<DayLine title="Comptes créés par jour" series={sb?.series} valeur="inscriptions" label="Comptes créés" days={jours} />} />
-            <Tile label="Taux d'inscription" value={pctOf(cur("inscriptions"), sumBy(arriveesSplit.current, "visites"))} prev={pctOf(prev("inscriptions"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title="Taux d'inscription par jour" series={arrivees} valeur="taux" label="Taux d'inscription" days={jours} format={pct} />} />
-            <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={<DayBars title="Robots par jour" series={robots} keys={["robots"]} labels={["Robots"]} days={jours} />} />
+            <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots et appareils de l'équipe écartés)" note={noteAllure} chart={<DayLine title={`Visites humaines ${parSite}`} series={arrivees} valeur="visites" label="Visites humaines" days={pasSite} />} />
+            <Tile label="Comptes créés" value={sumBy(arriveesSplit.current, "comptes")} prev={sumBy(arriveesSplit.previous, "comptes")} chart={<DayLine title={`Comptes créés ${parSite}`} series={arrivees} valeur="comptes" label="Comptes créés" days={pasSite} />} />
+            <Tile label="Taux d'inscription" value={pctOf(sumBy(arriveesSplit.current, "comptes"), sumBy(arriveesSplit.current, "visites"))} prev={pctOf(sumBy(arriveesSplit.previous, "comptes"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title={`Taux d'inscription ${parSite}`} series={arrivees} valeur="taux" label="Taux d'inscription" days={pasSite} format={pct} />} />
+            <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={<DayBars title={`Robots ${parSite}`} series={robots} keys={["robots"]} labels={["Robots"]} days={pasSite} />} />
           </TileChart>
         ) : (
           nonLu("PostHog", data.posthog?.raison)

@@ -8,7 +8,7 @@ import { Children, createContext, Fragment, isValidElement, useContext, useEffec
 import { PilotIcon } from "@/components/pilotage/icons";
 import { barPath, courbePath, echelle, indicesAxe, pasAxe } from "@/lib/pilotage/graphes";
 import { sensInitial, trier, triSuivant } from "@/lib/pilotage/tri";
-import { delta, fmtDay, fmtInt } from "@/lib/server/pilotage/shape";
+import { cleHeure, delta, fmtCle, fmtInt } from "@/lib/server/pilotage/shape";
 
 export function Tile({ label, value, prev, sub, format = fmtInt, inverse = false, hint, sansPct = false, selected, onSelect, href, onGo }) {
   const missing = value === null || value === undefined;
@@ -70,9 +70,12 @@ export function TileChart({ children }) {
 }
 
 const JOUR_PARIS = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+// Une série par heure a des clés AAAA-MM-JJTHH (heureList) : « maintenant » y est l'heure en cours
+const horaire = (rows) => String(rows?.[0]?.jour || "").length > 10;
+const MAINTENANT = (rows) => (horaire(rows) ? cleHeure(Date.now()) : JOUR_PARIS());
 const jourLong = (jour) => {
-  const texte = new Date(`${jour}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-  return texte.charAt(0).toUpperCase() + texte.slice(1);
+  const texte = new Date(`${jour.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+  return texte.charAt(0).toUpperCase() + texte.slice(1) + (jour.length > 10 ? `, ${fmtCle(jour)}` : "");
 };
 const largeurTexte = (texte) => String(texte).length * 6.4;
 
@@ -124,10 +127,14 @@ function Bulle({ x, W, jour, children }) {
   );
 }
 
-const periodes = (days) => (days === 1 ? ["Aujourd'hui", "La veille"] : [`${days} derniers jours`, `${days} jours d'avant`]);
+const periodes = (days, heures) =>
+  heures ? ["Dernières 24 h", "24 h d'avant"] : days === 1 ? ["Aujourd'hui", "La veille"] : [`${days} derniers jours`, `${days} jours d'avant`];
+const enCours = (heures) => (heures ? "Heure en cours" : "Aujourd'hui, en cours");
+const ilYA = (days, heures) => (heures ? "la veille à la même heure" : days === 1 ? "la veille" : `il y a ${days} jours`);
 
 // Barres par jour. `series` : [{ jour, ...valeurs }] couvrant 2 × `days` jours ; `keys` : une ou deux mesures, côte à
-// côte. Encre pour la période en cours, greige pour la précédente, accent pour aujourd'hui, qui n'est pas fini.
+// côte. Encre pour la période en cours, greige pour la précédente, accent pour aujourd'hui, qui n'est pas fini. Une
+// série par heure (clés AAAA-MM-JJTHH, days = 24) se dessine de même, l'heure en cours en accent.
 export function DayBars({ series, keys, labels, days, format = fmtInt, height = 240, title }) {
   const [ref, W] = useLargeur();
   const [hover, setHover] = useState(null);
@@ -148,7 +155,8 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
   const base = H - 22;
   const band = W ? (W - left) / rows.length : 0;
   const cut = rows.length - days;
-  const auj = JOUR_PARIS();
+  const heures = horaire(rows);
+  const auj = MAINTENANT(rows);
   const seul = keys.length === 1;
   const bw = Math.min(seul ? 24 : 14, (band * 0.62) / keys.length);
   const pic = Math.max(...rows.slice(cut).map((r) => num(r, keys[0])));
@@ -157,18 +165,18 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
   const hovered = hover !== null ? rows[hover] : null;
   const unite = (i) => (labels?.[i] || keys[i]).toLowerCase();
   const aAuj = rows.some((r) => r.jour === auj);
-  const [cettePeriode, avant] = periodes(days);
+  const [cettePeriode, avant] = periodes(days, heures);
   return (
     <div className="pl-chart">
       <ChartHead title={title}>
         <span><i style={{ background: "var(--ink)" }} />{seul ? cettePeriode : labels?.[0] || keys[0]}</span>
         {seul ? null : <span><i style={{ background: "var(--ink-muted)" }} />{labels?.[1] || keys[1]}</span>}
         {cut > 0 ? <span><i style={{ background: "var(--border-strong)" }} />{seul ? avant : "Période d'avant"}</span> : null}
-        {aAuj ? <span><i className="is-now" />Aujourd'hui, en cours</span> : null}
+        {aAuj ? <span><i className="is-now" />{enCours(heures)}</span> : null}
       </ChartHead>
       <div ref={ref} className="pl-plot-box" style={{ height: H }} onMouseLeave={() => setHover(null)}>
         {W ? (
-          <svg width={W} height={H} role="img" aria-label={`${title || labels?.[0] || keys[0]}, par jour`}>
+          <svg width={W} height={H} role="img" aria-label={`${title || labels?.[0] || keys[0]}, par ${heures ? "heure" : "jour"}`}>
             <Grille W={W} top={top} base={base} left={left} max={max} ticks={ticks} format={format} />
             {rows.map((r, i) => {
               const courant = i >= cut;
@@ -192,12 +200,13 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
                 </g>
               );
             })}
-            {indicesAxe(rows.length, band, cut).map((i) => {
-              const large = band >= 44;
-              const bord = !large && i === rows.length - 1 ? "end" : !large && i === 0 ? "start" : "middle";
-              const x = large ? left + (i + 0.5) * band : bord === "start" ? left : bord === "end" ? W : left + (i + 0.5) * band;
+            {(heures ? rows.flatMap((r, i) => (Number(r.jour.slice(11)) % (band >= 14 ? 3 : 6) ? [] : [i])) : indicesAxe(rows.length, band, cut)).map((i) => {
               const jour = rows[i].jour;
-              const texte = large && i > 0 && !jour.endsWith("-01") ? String(Number(jour.slice(8))) : fmtDay(jour);
+              const texte = heures ? fmtCle(jour) : band >= 44 && i > 0 && !jour.endsWith("-01") ? String(Number(jour.slice(8))) : fmtCle(jour);
+              // Une heure se centre sous sa barre, sauf au bord droit où elle se cale pour ne pas déborder
+              const large = band >= 44 || (heures && left + (i + 0.5) * band + largeurTexte(texte) / 2 <= W);
+              const bord = !large && i === rows.length - 1 ? "end" : !large && i === 0 ? "start" : heures && !large ? "end" : "middle";
+              const x = large ? left + (i + 0.5) * band : bord === "start" ? left : bord === "end" ? W : left + (i + 0.5) * band;
               return (
                 <text key={i} x={x} y={H - 5} textAnchor={bord} className={`pl-c-tick${jour === auj ? " is-now" : ""}`}>
                   {texte}
@@ -216,7 +225,7 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
                 {format(num(hovered, k))} {unite(j)}
               </strong>
             ))}
-            {seul && hover >= cut && rows[hover - days] ? <small>{format(num(rows[hover - days], keys[0]))} {days === 1 ? "la veille" : `il y a ${days} jours`}</small> : null}
+            {seul && hover >= cut && rows[hover - days] ? <small>{format(num(rows[hover - days], keys[0]))} {ilYA(days, heures)}</small> : null}
           </Bulle>
         ) : null}
       </div>
@@ -228,7 +237,7 @@ export function DayBars({ series, keys, labels, days, format = fmtInt, height = 
 // l'autre (visites, réponses). La période en cours en encre, la précédente en greige, jour pour jour, dès qu'elle a
 // deux jours mesurés. `valeur` : la clé ; un jour sans mesure vaut null et la courbe le saute. `cumul` : un niveau,
 // qui ne se dessine jamais en barres : sur 24 h, la veille et aujourd'hui sur une seule courbe. Une courbe seule a
-// son aire, deux courbes n'en ont pas.
+// son aire, deux courbes n'en ont pas. Une série par heure (days = 24) superpose les 24 dernières heures à celles d'avant.
 export function DayLine({ series, valeur, label, days, format = fmtInt, height = 240, title, cumul = false }) {
   const [ref, W] = useLargeur();
   const [hover, setHover] = useState(null);
@@ -249,7 +258,8 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
   }
   const H = W && W < 480 ? Math.min(height, 200) : height;
   const { max, ticks } = echelle(Math.max(...vus));
-  const auj = JOUR_PARIS();
+  const heures = horaire(rows);
+  const auj = MAINTENANT(rows);
   const dernier = courant[courant.length - 1];
   const finLue = [...courant].reverse().find((r) => lire(r) !== null);
   const left = Math.max(...ticks.map((t) => largeurTexte(format(t)))) + 10;
@@ -266,18 +276,18 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
   const fin = lignes[lignes.length - 1];
   const hovered = hover !== null ? courant[hover] : null;
   const pointHover = hover !== null ? lignes.find((p) => p.i === hover) : null;
-  const [cettePeriode, periodeAvant] = periodes(days);
+  const [cettePeriode, periodeAvant] = periodes(days, heures);
   const axe = pasAxe(courant.length, W - left - right);
   return (
     <div className="pl-chart">
       <ChartHead title={title}>
         {entier ? null : <span><i className="is-line" style={{ background: "var(--ink)" }} />{cettePeriode}</span>}
         {avant.length > 1 ? <span><i className="is-line" style={{ background: "var(--border-strong)" }} />{periodeAvant}</span> : null}
-        {dernier.jour === auj && lire(dernier) !== null ? <span><i className="is-now" />Aujourd'hui, en cours</span> : null}
+        {dernier.jour === auj && lire(dernier) !== null ? <span><i className="is-now" />{enCours(heures)}</span> : null}
       </ChartHead>
       <div ref={ref} className="pl-plot-box" style={{ height: H }} onMouseLeave={() => setHover(null)}>
         {W ? (
-          <svg width={W} height={H} role="img" aria-label={`${title || label}, par jour`}>
+          <svg width={W} height={H} role="img" aria-label={`${title || label}, par ${heures ? "heure" : "jour"}`}>
             <Grille W={W} top={top} base={base} left={left} right={W - right + 12} max={max} ticks={ticks} format={format} />
             {avant.length < 2 && lignes.length > 1 ? <path d={`${trace}V${base}H${lignes[0].x}Z`} className="pl-c-aire" /> : null}
             {avant.length > 1 ? <path d={courbePath(avant)} className="pl-c-ligne-prev" /> : null}
@@ -298,7 +308,7 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
             ) : null}
             {axe.map((i) => (
               <text key={i} x={X(i)} y={H - 5} textAnchor={i === 0 ? "start" : i === courant.length - 1 ? "end" : "middle"} className={`pl-c-tick${courant[i].jour === auj ? " is-now" : ""}`}>
-                {fmtDay(courant[i].jour)}
+                {fmtCle(courant[i].jour)}
               </text>
             ))}
             {courant.map((r, i) => (
@@ -309,7 +319,7 @@ export function DayLine({ series, valeur, label, days, format = fmtInt, height =
         {hovered ? (
           <Bulle x={X(hover)} W={W} jour={hovered.jour}>
             <strong>{lire(hovered) === null ? "Pas de mesure" : format(lire(hovered))}</strong>
-            {!entier && lire(passe[hover]) !== null && passe[hover] ? <small>{format(lire(passe[hover]))} il y a {days} jours</small> : null}
+            {!entier && lire(passe[hover]) !== null && passe[hover] ? <small>{format(lire(passe[hover]))} {ilYA(days, heures)}</small> : null}
           </Bulle>
         ) : null}
       </div>
