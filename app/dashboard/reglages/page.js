@@ -202,7 +202,7 @@ export default function Reglages() {
           { kind: "couple_reply", label: "Un prestataire m'a répondu" },
           { kind: "new_member", label: "Un organisateur a rejoint le mariage" },
           { kind: "activite", label: "Le mail de 20 h sur l'activité de mon compte" },
-          { kind: "nouveautes", label: "Les nouveautés de Merry" },
+          { kind: "nouveautes", label: "Le récap du samedi" },
         ]}
         onError={() => dash.setToast({ kind: "error", text: "Ce réglage n'a pas pu être enregistré." })}
       />

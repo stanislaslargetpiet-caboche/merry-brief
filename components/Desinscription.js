@@ -23,8 +23,8 @@ async function call(params, action) {
 
 const TEXTS = {
   nouveautes: {
-    ask: "Tu ne recevras plus les nouveautés de Merry. Ton mariage reste sur Merry, et les mails qui le concernent continuent d’arriver.",
-    done: "ne recevra plus les nouveautés de Merry. Les mails qui concernent ton mariage continuent d’arriver.",
+    ask: "Tu ne recevras plus le récap du samedi. Ton mariage reste sur Merry, et les autres mails qui le concernent continuent d’arriver.",
+    done: "ne recevra plus le récap du samedi. Les autres mails qui concernent son mariage continuent d’arriver.",
   },
   activite: {
     ask: "Tu ne recevras plus le mail de 20 h sur l’activité de ton compte. Tu retrouves tout sur Merry, et les autres mails continuent d’arriver.",
