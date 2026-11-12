@@ -347,7 +347,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         </TileChart>
       </Section>
 
-      <CouplesFunnel data={data.utilisateurs} />
+      <CouplesFunnel data={data.utilisateurs} demo={demo} />
 
       <Utilisateurs data={data.utilisateurs} />
 
