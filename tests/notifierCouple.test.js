@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readQuickReplyLink } from "../lib/server/reponseRapide.js";
 
 let details;
 let recipients;
@@ -55,5 +56,28 @@ describe("notifier-couple", () => {
     details = { data: null, error: { message: "absente" } };
     expect(await (await call()).json()).toEqual({ ok: true, sent: 1 });
     expect(sent[0].html).toContain("Le Mas t'a répondu.");
+  });
+
+  it("propose les trois réponses en un clic, signées pour ce client (V56)", async () => {
+    details = { data: [{ last_message: "Le 14 juin est libre" }] };
+    await call();
+    expect(sent[0].html).toContain("intéresse");
+    expect(sent[0].html).toContain("Je réfléchis");
+    expect(sent[0].html).toContain("Non, merci");
+    const [, qs] = /href="([^"]*reponse-rapide[^"]*)"/.exec(sent[0].html.replace(/&amp;/g, "&"));
+    const url = new URL(qs);
+    expect(readQuickReplyLink("c1", url.searchParams.get("r"), url.searchParams.get("t"))).toBeTruthy();
+  });
+
+  it("n'offre pas les réponses en un clic pour une proposition du prestataire", async () => {
+    details = { data: [{ last_message: "Nous avons une date libre pour vous" }] };
+    await POST(
+      new Request("https://app.withmerry.com/api/prestataires/notifier-couple", {
+        method: "POST",
+        headers: { authorization: "Bearer t" },
+        body: JSON.stringify({ clientId: "c1", kind: "proposition" }),
+      }),
+    );
+    expect(sent[0].html).not.toContain("intéresse");
   });
 });

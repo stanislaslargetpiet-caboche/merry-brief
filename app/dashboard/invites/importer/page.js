@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDash } from "@/lib/dash/store";
+import { notifyFormulaireApresImport } from "@/lib/dash/formulaireMail";
 import { normalize, uid } from "@/lib/dash/format";
 import { columnProfiles, groupsToCreate, resolvePick } from "@/lib/dash/codes";
 import { guestKey, rsvpFromCell, unreadText, withUnreadRows } from "@/lib/dash/importParse";
@@ -641,6 +642,8 @@ export default function Importer() {
     // Une seule passe (six requêtes à la fois) plutôt qu'une requête après l'autre par doublon
     if (patches.length) await dash.patchGuests(patches);
     dash.setToast({ kind: "ok", text: `${plural(created.length, "invité ajouté", "invités ajoutés")}${dups.length ? `, ${plural(dups.length, "fusionné", "fusionnés")}` : ""}.` });
+    // Après l'import, si le formulaire n'a jamais été partagé (planche V59)
+    if (created.length && dash.mode === "live") notifyFormulaireApresImport(dash.data.wedding.id, dups.length);
     imports.remove(files.filter((f) => f.job).map((f) => f.id));
     router.push("/dashboard/invites");
   }

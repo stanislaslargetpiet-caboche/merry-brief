@@ -95,6 +95,22 @@ describe("runMailJobs", () => {
     expect(sent[0].text).toContain("/connexion?invitation=t");
   });
 
+  it("relance le couple quand un prestataire a répondu sans suite (V57)", async () => {
+    const row = { wedding_id: "w1", vendor_id: "v1", vendor_name: "Le Mas de la Source", partner1: "Léa", partner2: "Thomas", emails: ["leo@gmail.com"] };
+    const admin = fakeAdmin({ merry_job_demandes_couple: [row] });
+    await runMailJobs(admin, "https://app.withmerry.com");
+    await runMailJobs(admin, "https://app.withmerry.com");
+    expect(sent).toHaveLength(1);
+    expect(sent[0].subject).toBe("Le Mas de la Source attend ta réponse");
+    expect(sent[0].to).toEqual(["leo@gmail.com"]);
+  });
+
+  it("n'écrit pas au couple désinscrit des réponses prestataires (V57)", async () => {
+    const row = { wedding_id: "w1", vendor_id: "v1", vendor_name: "Le Mas", emails: ["leo@gmail.com"] };
+    await runMailJobs(fakeAdmin({ merry_job_demandes_couple: [row] }, { optouts: ["leo@gmail.com"] }), "https://x.fr");
+    expect(sent).toEqual([]);
+  });
+
   it("continue quand un type de mail échoue", async () => {
     const report = await runMailJobs(fakeAdmin({ merry_job_demandes: new Error("absente"), merry_job_credits: [{ vendor_id: "v1", credits: 2, cost: 8, emails: ["a@b.fr"] }] }), "https://x.fr");
     expect(report.demandes).toBe("erreur");

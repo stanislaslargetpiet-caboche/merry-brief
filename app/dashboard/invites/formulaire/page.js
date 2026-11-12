@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
+import { notifyFormulairePartage } from "@/lib/dash/formulaireMail";
 import { longDate } from "@/lib/dash/format";
 import { CUSTOM_MAX, CUSTOM_TYPES, FORM_THEMES, IDENT, IDENT_LABEL, MESSAGE_MAX, TITLE_MAX, PRESET_FIELDS, defaultForm, formTheme, formUrl, makeSlug, moveQuestion, questionOrder, shrinkImage, withPresets } from "@/lib/dash/form";
 import { Icon } from "@/components/dash/icons";
@@ -288,9 +289,19 @@ export default function FormulaireInvites() {
     setSheet(null);
   }
 
+  // Première copie ou premier partage du lien (planche V60) : au-delà, le formulaire est déjà « en ligne »
+  async function markShared() {
+    if (latest.current.shared_at) return;
+    const next = { ...latest.current, shared_at: new Date().toISOString() };
+    latest.current = next;
+    setForm(next);
+    if (await save(next)) notifyFormulairePartage();
+  }
+
   async function copy() {
     clearTimeout(timer.current);
     await save(latest.current);
+    await markShared();
     try {
       await navigator.clipboard.writeText(formUrl(latest.current.slug));
       setCopied(true);
@@ -304,6 +315,7 @@ export default function FormulaireInvites() {
   async function share() {
     clearTimeout(timer.current);
     await save(latest.current);
+    await markShared();
     if (!navigator.share) return copy();
     try {
       await navigator.share({ title: pageTitle, text: "Dis-nous si tu seras des nôtres :", url: formUrl(latest.current.slug) });
