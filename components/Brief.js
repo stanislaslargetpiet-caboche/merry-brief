@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createAccountAndBrief } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { createAccountAndBrief, supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { useLang } from "@/lib/lang";
 import { BRIEF_TEXT, VIBE_UNSURE } from "@/lib/i18n/brief";
@@ -298,6 +299,7 @@ function Preparing({ s, chips, onDone }) {
 /* ------------------------------------------------------------------ */
 
 export default function Brief() {
+  const router = useRouter();
   const { lang } = useLang();
   const s = BRIEF_TEXT[lang];
   const yearOptions = useMemo(flexYearOptions, []);
@@ -310,6 +312,20 @@ export default function Brief() {
   const [errorMsg, setErrorMsg] = useState("");
   const [placesDown, setPlacesDown] = useState(false);
   const [preparing, setPreparing] = useState(false);
+
+  // Un couple déjà connecté qui rouvre Merry (app.withmerry.com/) doit atterrir sur ses invités,
+  // pas repartir dans l'onboarding : on vérifie la session avant d'afficher le parcours.
+  const [authChecked, setAuthChecked] = useState(false);
+  useEffect(() => {
+    if (!supabase) {
+      setAuthChecked(true);
+      return;
+    }
+    supabase.auth.getSession().then(({ data: s }) => {
+      if (s?.session) router.replace(DASHBOARD_URL);
+      else setAuthChecked(true);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Brouillon par navigateur : le couple qui ferme l'onglet ne repart pas de zéro.
   // Le mot de passe n'est jamais mis dans le brouillon.
@@ -634,6 +650,8 @@ export default function Brief() {
   }
 
   /* ------------------------------ rendu ------------------------------- */
+
+  if (!authChecked) return null;
 
   const isLast = step === TOTAL - 1;
   const names = [displayName(data.first_name.trim()), displayName(data.partner_first_name.trim())].filter(Boolean).join(lang === "fr" ? " et " : " and ");
