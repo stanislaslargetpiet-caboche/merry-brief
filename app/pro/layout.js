@@ -1,6 +1,7 @@
 import "../dashboard/dashboard.css";
 import "./pro.css";
 import ProShell from "@/components/pro/Shell";
+import NouvelleVersion from "@/components/NouvelleVersion";
 
 export const metadata = {
   title: "Merry · Espace prestataire",
@@ -9,5 +10,10 @@ export const metadata = {
 };
 
 export default function ProLayout({ children }) {
-  return <ProShell>{children}</ProShell>;
+  return (
+    <>
+      <ProShell>{children}</ProShell>
+      <NouvelleVersion />
+    </>
+  );
 }
