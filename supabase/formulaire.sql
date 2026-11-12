@@ -52,6 +52,29 @@ grant update (wedding_id, slug, published, title, presence_mode, cover_position,
   on public.guest_forms to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- guest_form_submissions : une ligne par réponse au formulaire, horodatée, que le formulaire demande
+-- la présence ou non. Le pilotage (supabase/pilotage.sql, pilotage-heures.sql) en tire « Réponses au
+-- formulaire » ; guest_response_log ne suffit pas seul, il ne reçoit rien quand la question « présence »
+-- est désactivée (formulaire du 12 novembre 2026, ajouté le 12 novembre 2026).
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.guest_form_submissions (
+  id         uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  guest_id   uuid not null,
+  created_at timestamptz not null default now(),
+  foreign key (wedding_id, guest_id) references public.guests (wedding_id, id) on delete cascade
+);
+create index if not exists guest_form_submissions_wedding_idx on public.guest_form_submissions (wedding_id, created_at);
+
+alter table public.guest_form_submissions enable row level security;
+drop policy if exists "organisateurs: lecture" on public.guest_form_submissions;
+create policy "organisateurs: lecture" on public.guest_form_submissions for select to authenticated
+  using (public.is_wedding_member(wedding_id));
+-- Personne n'écrit à la main : seule merry_form_submit (security definer) le remplit
+revoke insert, update, delete on public.guest_form_submissions from authenticated, anon;
+
+-- ---------------------------------------------------------------------------
 -- Photo d'en-tête : stockage public, chaque mariage écrit dans son dossier
 -- (« <wedding_id>/couverture-….jpg »)
 -- ---------------------------------------------------------------------------
@@ -484,6 +507,10 @@ begin
   end if;
 
   update public.guest_forms set submissions = submissions + 1 where wedding_id = w;
+  -- Une ligne par réponse, que le formulaire demande la présence ou non (sinon le pilotage n'en voit aucune
+  -- pour les formulaires sans moments, comme celui de Côme et Astrid) : guest_form_submissions, pas le journal
+  -- des présences (guest_response_log), qui ne bouge que si la question « présence » est activée.
+  insert into public.guest_form_submissions (wedding_id, guest_id) values (w, main_id);
   -- Pas d'indice sur la liste : la réponse ne dit pas si ce nom y figurait déjà
   return jsonb_build_object('ok', true);
 end;

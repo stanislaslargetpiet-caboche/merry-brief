@@ -27,10 +27,11 @@ begin
     select date_trunc('hour', created_at) as h, count(*)::int as n
     from public.quote_requests where created_at >= since group by 1
   ),
-  -- Réponses au formulaire invités : une personne qui répond compte une fois par heure, quel que soit le nombre de moments
+  -- Réponses au formulaire invités : une personne qui répond compte une fois par heure, quel que soit le nombre
+  -- de moments ; guest_form_submissions (pas guest_response_log, muet quand le formulaire ne demande pas la présence)
   reponses_formulaire as (
     select date_trunc('hour', created_at) as h, count(distinct guest_id)::int as n
-    from public.guest_response_log where source = 'formulaire' and created_at >= since group by 1
+    from public.guest_form_submissions where created_at >= since group by 1
   ),
   vues_pro as (
     select date_trunc('hour', viewed_at) as h, count(*)::int as n
