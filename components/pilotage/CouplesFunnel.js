@@ -4,7 +4,8 @@
 // ligne avec son étape et ce qui le rend peut-être hors sujet. Un clic sur une étape ne garde que les couples arrêtés
 // là. Mêmes données que Par couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
 // interrupteur sort le couple des mails de démarrage ou l'y remet, « Voir les mails » ouvre son planning (mails à
-// venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage.
+// venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage. La flèche
+// après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -52,6 +53,25 @@ function Interrupteur({ on, disabled, label, onChange }) {
     <button type="button" role="switch" aria-checked={on} aria-label={label} className={`pl-switch${on ? " is-on" : ""}`} disabled={disabled} onClick={() => onChange(!on)}>
       <span />
     </button>
+  );
+}
+
+function Fleche({ ouvert, couple, onClick }) {
+  return (
+    <button type="button" className="pl-fleche" aria-expanded={ouvert} aria-label={`Adresses de ${couple}`} onClick={onClick}>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 6l4 4 4-4" />
+      </svg>
+    </button>
+  );
+}
+
+function inscrits(r) {
+  const emails = (r.comptes || []).filter((c) => c.couple !== false && c.email).map((c) => c.email);
+  return (
+    <span className="pl-inscrits">
+      {emails.length ? emails.map((e) => <span key={e}>{e}</span>) : muted("Aucune adresse")}
+    </span>
   );
 }
 
@@ -193,6 +213,7 @@ export default function CouplesFunnel({ data, demo = false }) {
   const [mails, setMails] = useState(demo ? { disponible: true, retraits: {} } : null);
   const [ouvert, setOuvert] = useState(null);
   const [note, setNote] = useState(null);
+  const [deplies, setDeplies] = useState(() => new Set());
   const { etapes, lignes } = useMemo(() => buildFunnel(data?.mariages || []), [data]);
 
   useEffect(() => {
@@ -229,6 +250,12 @@ export default function CouplesFunnel({ data, demo = false }) {
     }
   };
   const fermer = useCallback(() => setOuvert(null), []);
+  const deplier = (id) =>
+    setDeplies((d) => {
+      const n = new Set(d);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
 
   if (!data) {
     return (
@@ -271,7 +298,7 @@ export default function CouplesFunnel({ data, demo = false }) {
         </div>
         <Table
           cols={[
-            { key: "couple", label: "Couple", render: coupleCell },
+            { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />) },
             { key: "stade", label: "Étape", render: stadeCell },
             { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–") },
             { key: "visite", label: "Dernière visite", render: visiteCell },
@@ -285,6 +312,7 @@ export default function CouplesFunnel({ data, demo = false }) {
           ]}
           rows={rows}
           rowClass={(r) => (r.test ? "is-test" : null)}
+          detail={(r) => (deplies.has(r.id) ? inscrits(r) : null)}
           max={300}
           empty="Aucun couple à cette étape"
         />
