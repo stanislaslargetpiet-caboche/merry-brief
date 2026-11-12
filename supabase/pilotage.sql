@@ -78,6 +78,11 @@ begin
     select (created_at at time zone 'Europe/Paris')::date as jour, count(*)::int as n
     from public.guest_response_log where created_at >= since group by 1
   ),
+  -- Réponses au formulaire invités : une personne qui répond compte une fois par jour, quel que soit le nombre de moments
+  reponses_formulaire as (
+    select (created_at at time zone 'Europe/Paris')::date as jour, count(distinct guest_id)::int as n
+    from public.guest_response_log where source = 'formulaire' and created_at >= since group by 1
+  ),
   visites_sites as (
     select (visited_at at time zone 'Europe/Paris')::date as jour, count(*)::int as n
     from public.site_visits where visited_at >= since group by 1
@@ -120,6 +125,9 @@ begin
       'messages_pro', coalesce(ms.pro, 0),
       'messages_couple', coalesce(ms.couple, 0),
       'reponses_rsvp', coalesce(r.n, 0),
+      'reponses_formulaire', coalesce(rf.n, 0),
+      -- Formulaires en ligne ce jour-là : publiés aujourd'hui et créés avant la fin du jour (un formulaire dépublié depuis n'est plus compté)
+      'formulaires_live', (select count(*)::int from public.guest_forms f where f.published and (f.created_at at time zone 'Europe/Paris')::date <= j.jour),
       'visites_sites', coalesce(v.n, 0),
       'vues_pro', coalesce(vp.n, 0),
       'appels_ia', coalesce(a.n, 0),
@@ -132,6 +140,7 @@ begin
     left join demandes q on q.jour = j.jour
     left join messages ms on ms.jour = j.jour
     left join reponses r on r.jour = j.jour
+    left join reponses_formulaire rf on rf.jour = j.jour
     left join visites_sites v on v.jour = j.jour
     left join vues_pro vp on vp.jour = j.jour
     left join ia a on a.jour = j.jour
