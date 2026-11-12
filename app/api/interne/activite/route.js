@@ -4,19 +4,22 @@
 // donc la route ne travaille que si l'heure de Paris est 20 ou 21 ; une clé par mariage, adresse et jour dans
 // mail_sent empêche tout double envoi. Viennent ensuite les mails de démarrage des couples
 // (lib/server/demarrageJob.js) : passés après, ils voient qui a déjà reçu le mail de 20 h et le laissent seul ce jour-là.
+// Le dimanche, le récap de la semaine (lib/server/recapJob.js, D-297) part avant tout le reste et remplace le mail de
+// 20 h pour ceux qui le reçoivent.
 //  GET  Vercel, jeton CRON_SECRET. ?force=1 ignore la fenêtre horaire, jamais la clé du jour.
-//       ?dry=1 compte les mails sans en envoyer ni réserver de clé.
+//       ?dry=1 compte les mails sans en envoyer ni réserver de clé. ?recap=1 lance le récap un autre jour que dimanche.
 
 import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { runActivite } from "@/lib/server/activiteJob";
 import { runDemarrage } from "@/lib/server/demarrageJob";
+import { isSunday, recapRecus, runRecap } from "@/lib/server/recapJob";
 import { SEND_HOURS } from "@/lib/server/activiteMail";
 import { parisParts } from "@/lib/server/pilotage/schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300; // le dimanche, le récap passe avant le mail de 20 h
 
 export async function GET(req) {
   const secret = process.env.CRON_SECRET;
@@ -32,9 +35,20 @@ export async function GET(req) {
   if (!dry && params.get("force") !== "1" && !SEND_HOURS.includes(hour)) return Response.json({ ok: true, passe: "hors fenêtre", heure_paris: hour });
 
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  let recap;
+  let sauf = new Set();
+  if (isSunday(now) || params.get("recap") === "1") {
+    try {
+      recap = await runRecap(admin, publicOrigin(), now, { dry });
+      sauf = dry ? recap.recus : await recapRecus(admin, now);
+    } catch (e) {
+      console.error("[merry] récap du dimanche", e?.message || e);
+      recap = { error: String(e?.message || e).slice(0, 200) };
+    }
+  }
   let activite;
   try {
-    activite = await runActivite(admin, publicOrigin(), now, { dry });
+    activite = await runActivite(admin, publicOrigin(), now, { dry, sauf });
   } catch (e) {
     console.error("[merry] activité quotidienne", e?.message || e);
     activite = { error: String(e?.message || e).slice(0, 200) };
@@ -48,5 +62,5 @@ export async function GET(req) {
     demarrage = { error: String(e?.message || e).slice(0, 200) };
   }
   const failed = activite.error && demarrage.error;
-  return Response.json({ heure_paris: hour, dry, ...activite, demarrage }, { status: failed ? 500 : 200 });
+  return Response.json({ heure_paris: hour, dry, ...activite, demarrage, ...(recap ? { recap } : {}) }, { status: failed ? 500 : 200 });
 }

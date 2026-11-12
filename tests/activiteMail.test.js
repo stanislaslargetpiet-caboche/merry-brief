@@ -202,6 +202,13 @@ describe("runActivite", () => {
     expect(report.ignores).toBe(1);
   });
 
+  it("laisse ceux qui ont reçu le récap du dimanche ce soir", async () => {
+    const report = await runActivite(fakeAdmin(tables), "https://app.withmerry.com", now, { sauf: new Set(["w1:camille@gmail.com"]) });
+    expect(report.envoyes).toBe(0);
+    expect(report.ignores).toBe(1);
+    expect(mails).toHaveLength(0);
+  });
+
   it("ne réserve rien et n'envoie rien en simulation", async () => {
     const admin = fakeAdmin(tables);
     const report = await runActivite(admin, "https://app.withmerry.com", now, { dry: true });
