@@ -5,12 +5,13 @@
 // là. Mêmes données que Par couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
 // interrupteur sort le couple des mails de démarrage ou l'y remet, « Voir les mails » ouvre son planning (mails à
 // venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage. La flèche
-// après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe.
+// après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe. La pastille « test » prend
+// la place de la date, sinon elle s'ajouterait à la flèche et le tableau dépasserait la carte.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Funnel, Pill, PilotDots, Section, Table } from "@/components/pilotage/ui";
-import { coupleCell, fmtDay, visiteCell } from "@/components/pilotage/Utilisateurs";
+import { dateCouple, fmtDay, visiteCell } from "@/components/pilotage/Utilisateurs";
 import { ETAPES, buildFunnel } from "@/lib/pilotage/funnel";
 import { demoMails } from "@/lib/server/pilotage/demo";
 import { fmtInt } from "@/lib/server/pilotage/shape";
@@ -63,6 +64,24 @@ function Fleche({ ouvert, couple, onClick }) {
         <path d="M4 6l4 4 4-4" />
       </svg>
     </button>
+  );
+}
+
+function coupleCell(r, fleche) {
+  return (
+    <>
+      <strong>{r.couple}</strong>
+      {fleche}
+      <span className="pl-cell-sub">
+        {r.test ? (
+          <span title="Compte de test : en bas de la liste, sans mails">
+            <Pill>test</Pill>
+          </span>
+        ) : (
+          dateCouple(r)
+        )}
+      </span>
+    </>
   );
 }
 
