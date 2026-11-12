@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
+import CouplesFunnel from "@/components/pilotage/CouplesFunnel";
 import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
@@ -345,6 +346,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
           <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} chart={<DayLine title="Demandes de devis par jour" series={sb?.series} valeur="demandes" label="Demandes de devis" days={jours} />} />
         </TileChart>
       </Section>
+
+      <CouplesFunnel data={data.utilisateurs} />
 
       <Utilisateurs data={data.utilisateurs} />
 

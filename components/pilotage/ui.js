@@ -428,18 +428,19 @@ export function Table({ cols, rows, empty = "Rien sur la période", max = 12, ro
   );
 }
 
-// Entonnoir : étapes en ordre, chaque barre relative à la première
-export function Funnel({ steps }) {
+// Entonnoir : étapes en ordre, chaque barre relative à la première. Avec `onSelect`, chaque étape devient un bouton
+// (Couples › Funnel : filtre le tableau) ; `selected` : l'index de l'étape choisie.
+export function Funnel({ steps, empty = "Aucun onboarding suivi sur la période (PostHog ne voit que les visiteurs qui acceptent les cookies)", selected = null, onSelect }) {
   const list = steps || [];
   const first = Math.max(1, Number(list[0]?.n) || 0);
-  if (!list.some((s) => s.n > 0)) return <div className="pl-empty">Aucun onboarding suivi sur la période (PostHog ne voit que les visiteurs qui acceptent les cookies)</div>;
+  if (!list.some((s) => s.n > 0)) return <div className="pl-empty">{empty}</div>;
   return (
-    <ol className="pl-funnel">
+    <ol className={onSelect ? "pl-funnel is-select" : "pl-funnel"}>
       {list.map((s, i) => {
         const prev = i > 0 ? Number(list[i - 1].n) || 0 : null;
         const lost = prev !== null && prev > 0 ? Math.round(((prev - s.n) / prev) * 100) : null;
-        return (
-          <li key={s.label}>
+        const row = (
+          <>
             <span className="pl-funnel-label">{s.label}</span>
             <span className="pl-funnel-bar">
               <span style={{ width: `${(s.n / first) * 100}%` }} />
@@ -448,6 +449,17 @@ export function Funnel({ steps }) {
               {fmtInt(s.n)}
               {lost !== null && lost > 0 ? <span className="pl-muted"> · −{lost} %</span> : null}
             </span>
+          </>
+        );
+        return (
+          <li key={s.label}>
+            {onSelect ? (
+              <button type="button" className={selected === i ? "pl-funnel-row is-on" : "pl-funnel-row"} aria-pressed={selected === i} title={s.detail} onClick={() => onSelect(i)}>
+                {row}
+              </button>
+            ) : (
+              row
+            )}
           </li>
         );
       })}
