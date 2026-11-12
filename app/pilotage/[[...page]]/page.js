@@ -67,11 +67,12 @@ function useToken() {
   return state;
 }
 
-// Dernier événement Resend de chaque mail : « Cliqué » suppose « Ouvert », on n'affiche que le plus avancé
+// Dernier événement Resend de chaque mail : « Cliqué » suppose « Ouvert », on n'affiche que le plus avancé.
+// Une teinte pastel par étape, du plus neutre (envoyé) au plus engagé (cliqué) ; les trois soucis restent en rouge.
 const ETAT_MAIL = {
   sent: ["Envoyé", "neutral"],
-  delivered: ["Délivré", "neutral"],
-  opened: ["Ouvert", "ok"],
+  delivered: ["Délivré", "info"],
+  opened: ["Ouvert", "violet"],
   clicked: ["Cliqué", "ok"],
   delivery_delayed: ["Retardé", "warn"],
   bounced: ["Rebond", "bad"],

@@ -53,8 +53,8 @@ describe("pathFromHash", () => {
 });
 
 describe("PILOTAGE_NAV", () => {
-  it("sept boutons, quatre sous-pages au plus, identifiants de page uniques", () => {
-    expect(PILOTAGE_NAV.map((g) => g.id)).toEqual(["aujourdhui", "taches", "reseau", "couples", "prestataires", "acquisition", "coulisses"]);
+  it("huit boutons, quatre sous-pages au plus, identifiants de page uniques", () => {
+    expect(PILOTAGE_NAV.map((g) => g.id)).toEqual(["aujourdhui", "taches", "reseau", "couples", "prestataires", "acquisition", "mails", "coulisses"]);
     for (const g of PILOTAGE_NAV) expect(g.pages.length).toBeLessThanOrEqual(4);
     const ids = PILOTAGE_NAV.flatMap((g) => g.pages.map((p) => p.id));
     expect(new Set(ids).size).toBe(ids.length);
