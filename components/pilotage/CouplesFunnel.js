@@ -5,7 +5,8 @@
 // là. Mêmes données que Par couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
 // interrupteur sort le couple des mails de démarrage ou l'y remet, « Voir les mails » ouvre son planning (mails à
 // venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage. La flèche
-// après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe.
+// après le nom déroule sous la ligne les adresses des inscrits du couple, sans l'équipe. La corbeille en bout de
+// ligne supprime le couple pour de bon, après un récapitulatif (/api/interne/pilotage/suppression).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -21,9 +22,9 @@ const TOUT = "tout";
 const muted = (text) => <span className="pl-muted">{text}</span>;
 const num = (n) => (n ? fmtInt(n) : muted("0"));
 
-async function call(query, init) {
+async function call(query, init, route = "demarrage") {
   const { data } = await supabase.auth.getSession();
-  const res = await fetch(`/api/interne/pilotage/demarrage${query}`, {
+  const res = await fetch(`/api/interne/pilotage/${route}${query}`, {
     ...init,
     headers: { authorization: `Bearer ${data?.session?.access_token || ""}`, "content-type": "application/json" },
   });
@@ -208,13 +209,130 @@ function MailsCouple({ row, demo, retires, onRetrait, onClose }) {
   );
 }
 
+const quantite = (n, un, plusieurs) => `${fmtInt(n)} ${n > 1 ? plusieurs : un}`;
+
+function Corbeille() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 6h11M8 6V4.5h4V6M6 6l.6 9.5h6.8L14 6" />
+    </svg>
+  );
+}
+
+// Récapitulatif avant la suppression définitive, relu en base à l'ouverture : données du mariage, comptes supprimés et
+// comptes gardés (autre mariage, espace prestataire, accès au pilotage)
+function SuppressionCouple({ row, demo, onFait, onClose }) {
+  const [plan, setPlan] = useState(demo ? { comptes: (row.emails || []).map((email) => ({ email, garde: null })), fichiers: 0 } : null);
+  const [erreur, setErreur] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (demo) return undefined;
+    let vivant = true;
+    const timer = setTimeout(async () => {
+      try {
+        const lu = await call(`?mariage=${row.id}`, { method: "GET" }, "suppression");
+        if (vivant) setPlan(lu);
+      } catch (e) {
+        if (vivant) setErreur(`Lecture impossible : ${e.message}`);
+      }
+    }, 0);
+    return () => {
+      vivant = false;
+      clearTimeout(timer);
+    };
+  }, [demo, row.id]);
+
+  useEffect(() => {
+    const echap = (e) => e.key === "Escape" && !busy && onClose();
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [busy, onClose]);
+
+  const supprimer = async () => {
+    setBusy(true);
+    setErreur(null);
+    try {
+      onFait(row, demo ? {} : await call("", { method: "DELETE", body: JSON.stringify({ mariage: row.id }) }, "suppression"));
+    } catch (e) {
+      setErreur(`Suppression interrompue : ${e.message}`);
+      setBusy(false);
+    }
+  };
+
+  const donnees = plan
+    ? [
+        [row.invites, "invité", "invités"],
+        [row.reponses_formulaire, "réponse", "réponses"],
+        [row.taches, "tâche", "tâches"],
+        [row.devis, "devis", "devis"],
+        [plan.fichiers, "fichier", "fichiers"],
+      ]
+        .filter(([n]) => n)
+        .map(([n, un, plusieurs]) => quantite(n, un, plusieurs))
+    : [];
+  const partants = plan?.comptes.filter((c) => !c.garde) || [];
+  const gardes = plan?.comptes.filter((c) => c.garde) || [];
+  return (
+    <div className="pl-tiroir-fond" onClick={(e) => e.target === e.currentTarget && !busy && onClose()}>
+      <aside className="pl-tiroir" role="dialog" aria-modal="true" aria-label={`Supprimer ${row.couple}`}>
+        <div className="pl-tiroir-tete">
+          <h3>Supprimer {row.couple}</h3>
+          <button type="button" className="pl-btn" onClick={onClose} disabled={busy}>
+            Fermer
+          </button>
+        </div>
+        {plan ? (
+          <>
+            <h4>Mariage</h4>
+            <div className="pl-empty">{donnees.length ? donnees.join(" · ") : "Aucune donnée saisie"}</div>
+            <h4>Comptes supprimés</h4>
+            {partants.length ? (
+              <ul className="pl-suppr-comptes">
+                {partants.map((c) => (
+                  <li key={c.email}>{c.email}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="pl-empty">Aucun</div>
+            )}
+            {gardes.length ? (
+              <>
+                <h4>Comptes gardés</h4>
+                <ul className="pl-suppr-comptes">
+                  {gardes.map((c) => (
+                    <li key={c.email}>
+                      {c.email} <Pill>{c.garde}</Pill>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <div className="pl-tiroir-pied">
+              <button type="button" className="pl-btn is-primary" onClick={supprimer} disabled={busy}>
+                {busy ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </>
+        ) : erreur ? null : (
+          <PilotDots />
+        )}
+        {erreur ? <div className="pl-empty">{erreur}</div> : null}
+      </aside>
+    </div>
+  );
+}
+
 export default function CouplesFunnel({ data, demo = false }) {
   const [choix, setChoix] = useState(null);
   const [mails, setMails] = useState(demo ? { disponible: true, retraits: {} } : null);
   const [ouvert, setOuvert] = useState(null);
   const [note, setNote] = useState(null);
   const [deplies, setDeplies] = useState(() => new Set());
-  const { etapes, lignes } = useMemo(() => buildFunnel(data?.mariages || []), [data]);
+  const [aSupprimer, setASupprimer] = useState(null);
+  const [annonce, setAnnonce] = useState(null);
+  const [supprimes, setSupprimes] = useState(AUCUN);
+  const { etapes, lignes } = useMemo(() => buildFunnel((data?.mariages || []).filter((m) => !supprimes.includes(m.id))), [data, supprimes]);
 
   useEffect(() => {
     if (demo) return undefined;
@@ -256,6 +374,12 @@ export default function CouplesFunnel({ data, demo = false }) {
       if (!n.delete(id)) n.add(id);
       return n;
     });
+  const fermerSuppression = useCallback(() => setASupprimer(null), []);
+  const supprime = (row) => {
+    setSupprimes((ids) => [...ids, row.id]);
+    setASupprimer(null);
+    setAnnonce(`${row.couple} supprimé`);
+  };
 
   if (!data) {
     return (
@@ -287,6 +411,7 @@ export default function CouplesFunnel({ data, demo = false }) {
         <div className="pl-funnel-head">
           <h3>{titre}</h3>
           <span className="pl-demande-actions">
+            {annonce ? <Pill tone="ok">{annonce}</Pill> : null}
             {note ? <Pill tone="warn">{note}</Pill> : null}
             {mails && !actif ? <Pill tone="warn">Mails de démarrage non lus</Pill> : null}
             {choix !== null ? (
@@ -296,28 +421,40 @@ export default function CouplesFunnel({ data, demo = false }) {
             ) : null}
           </span>
         </div>
-        <Table
-          cols={[
-            { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />) },
-            { key: "stade", label: "Étape", render: stadeCell },
-            { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–") },
-            { key: "visite", label: "Dernière visite", render: visiteCell },
-            { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites) },
-            { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire) },
-            { key: "equipe", group: "Avancement", label: "Équipe", num: true, render: (r) => num(r.equipe) },
-            { key: "budget", group: "Avancement", label: "Budget", render: (r) => (r.budget_touche ? "commencé" : muted("–")) },
-            { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => num(r.devis) },
-            { key: "signaux", label: "À regarder", render: signauxCell },
-            { key: "mails", label: "Mails", render: mailsCell },
-          ]}
-          rows={rows}
-          rowClass={(r) => (r.test ? "is-test" : null)}
-          detail={(r) => (deplies.has(r.id) ? inscrits(r) : null)}
-          max={300}
-          empty="Aucun couple à cette étape"
-        />
+        <div className="pl-funnel-table">
+          <Table
+            cols={[
+              { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />) },
+              { key: "stade", label: "Étape", render: stadeCell },
+              { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–") },
+              { key: "visite", label: "Dernière visite", render: visiteCell },
+              { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites) },
+              { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire) },
+              { key: "equipe", group: "Avancement", label: "Équipe", num: true, render: (r) => num(r.equipe) },
+              { key: "budget", group: "Avancement", label: "Budget", render: (r) => (r.budget_touche ? "commencé" : muted("–")) },
+              { key: "devis", group: "Avancement", label: "Devis", num: true, render: (r) => num(r.devis) },
+              { key: "signaux", label: "À regarder", render: signauxCell },
+              { key: "mails", label: "Mails", render: mailsCell },
+              {
+                key: "supprimer",
+                label: "",
+                render: (r) => (
+                  <button type="button" className="pl-icone" aria-label={`Supprimer ${r.couple}`} title="Supprimer" onClick={() => setASupprimer(r)}>
+                    <Corbeille />
+                  </button>
+                ),
+              },
+            ]}
+            rows={rows}
+            rowClass={(r) => (r.test ? "is-test" : null)}
+            detail={(r) => (deplies.has(r.id) ? inscrits(r) : null)}
+            max={300}
+            empty="Aucun couple à cette étape"
+          />
+        </div>
       </Card>
       {ouvert ? <MailsCouple row={ouvert} demo={demo} retires={retraitsDe(ouvert.id)} onRetrait={retrait} onClose={fermer} /> : null}
+      {aSupprimer ? <SuppressionCouple row={aSupprimer} demo={demo} onFait={supprime} onClose={fermerSuppression} /> : null}
     </Section>
   );
 }

@@ -569,6 +569,12 @@
 .pl-table tr.pl-table-detail td { max-width: none; padding: 0 10px 12px 0; white-space: normal; }
 .pl-inscrits { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 13px; }
 .pl-inscrits > span:not(.pl-muted) { user-select: all; }
+/* Douze colonnes dans 1 070 px : écarts un peu resserrés, corbeille collée à la colonne Mails, et le nom du couple
+   passe à la ligne plutôt que de pousser la corbeille hors de la carte */
+.pl-funnel-table .pl-table th, .pl-funnel-table .pl-table td { padding-right: 8px; }
+.pl-funnel-table .pl-table tr > :nth-last-child(-n + 2) { padding-right: 0; }
+.pl-funnel-table .pl-table td:first-child { white-space: normal; }
+.pl-funnel-table .pl-icone { width: 28px; height: 28px; margin-top: 3px; }
 .pl-switch {
   flex: none; position: relative; width: 52px; height: 32px; padding: 0; border: none; border-radius: 999px;
   background: var(--border-strong); cursor: pointer; transition: background 0.15s ease;
@@ -595,6 +601,9 @@
 .pl-mail-envoyes { list-style: none; margin: 0; padding: 0; }
 .pl-mail-envoyes li { display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .pl-mail-envoyes strong { font-weight: 600; }
+.pl-suppr-comptes { list-style: none; margin: 0; padding: 0; }
+.pl-suppr-comptes li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.pl-tiroir-pied { margin-top: 12px; }
 @media (max-width: 640px) {
   .pl-tiroir { padding: 16px; }
   .pl-mail-envoyes li { grid-template-columns: 1fr; gap: 0; }
