@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avecInscriptions, isPageVisit, isPub, isRobot, sourceOf } from "@/lib/compteur";
+import { avecInscriptions, interneDemande, isInterne, isPageVisit, isPub, isRobot, qualiteEntetes, sourceOf } from "@/lib/compteur";
 import { entonnoir } from "@/lib/server/pilotage/posthog";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS]";
@@ -43,5 +43,24 @@ describe("compteur anonyme", () => {
     expect(rows.find((r) => r.source === "meta-a").inscriptions).toBe(1);
     expect(rows.find((r) => r.source === "meta-b")).toMatchObject({ site: 0, inscriptions: 2 });
     expect(rows.some((r) => r.source === "seo")).toBe(false);
+  });
+  it("lit la demande ?interne=1 ou ?interne=0 et le repère déjà posé", () => {
+    expect(interneDemande("?interne=1")).toBe("pose");
+    expect(interneDemande("?source=meta-a&interne=0")).toBe("retire");
+    expect(interneDemande("?interne=oui")).toBe(null);
+    expect(interneDemande("")).toBe(null);
+    expect(isInterne(new Headers({ cookie: "a=b; merry_interne=1; c=d" }))).toBe(true);
+    expect(isInterne(new Headers({ cookie: "merry_interne=1" }))).toBe(true);
+    expect(isInterne(new Headers({ cookie: "merry_interne=0" }))).toBe(false);
+    expect(isInterne(new Headers({ cookie: "xmerry_interne=1" }))).toBe(false);
+    expect(isInterne(new Headers())).toBe(false);
+  });
+
+  it("relève si la requête a l'allure d'un navigateur qui ouvre une page", () => {
+    const navigateur = { "sec-fetch-dest": "document", "sec-fetch-mode": "navigate", "accept-language": "fr-FR,fr;q=0.9" };
+    expect(qualiteEntetes(new Headers(navigateur))).toBe("complet");
+    expect(qualiteEntetes(new Headers({ "user-agent": UA }))).toBe("sans_sec_fetch");
+    expect(qualiteEntetes(new Headers({ ...navigateur, "accept-language": "" }))).toBe("sans_langue");
+    expect(qualiteEntetes(new Headers({ ...navigateur, "sec-fetch-mode": "cors" }))).toBe("autre");
   });
 });
