@@ -13,6 +13,7 @@ import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
 import Robots from "@/components/pilotage/Robots";
+import Rage from "@/components/pilotage/Rage";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
@@ -438,6 +439,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         ) : (
           nonLu("PostHog", data.posthog?.raison)
         )}
+        {ph ? <Rage rage={ph.bugs?.rage} /> : null}
       </Section>
 
       <Section id="mails">
