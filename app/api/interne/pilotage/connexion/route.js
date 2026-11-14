@@ -1,9 +1,13 @@
 // Connexion au pilotage, étape 1 : envoyer le code. POST { email }. Une adresse sans compte en reçoit un (créé
-// confirmé, sans mail), pour que le mail parti soit toujours « Magic Link » avec {{ .Token }} : pour un compte
-// neuf, signInWithOtp enverrait « Confirm signup », qui n'a qu'un lien. Le code se vérifie dans le navigateur
-// (verifyOtp) ; avoir un compte n'ouvre rien, l'accès se décide dans Coulisses › Accès.
+// confirmé, sans mail). Le code vient de admin.generateLink (type "magiclink") : par conception, cette méthode
+// ne part jamais de mail toute seule (contrairement à signInWithOtp, qui passerait par le template « Magic
+// Link » de Supabase, collé à la main dans son dashboard) ; elle rend le code à 6 chiffres dans
+// `properties.email_otp`, qu'on envoie nous-mêmes par Resend (codeMail.js, même pistache que les autres mails
+// Merry). Le code se vérifie toujours dans le navigateur avec verifyOtp (type "email", inchangé) ; avoir un
+// compte n'ouvre rien, l'accès se décide dans Coulisses › Accès.
 
 import { createClient } from "@supabase/supabase-js";
+import { sendCodePilotage } from "@/lib/server/pilotage/codeMail";
 import { clientIp } from "@/lib/server/origin";
 import { allowKey } from "@/lib/server/rate";
 
@@ -15,9 +19,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anon || !service) return Response.json({ error: "indisponible" }, { status: 501, headers: NO_STORE });
+  if (!url || !service) return Response.json({ error: "indisponible" }, { status: 501, headers: NO_STORE });
   const body = await req.json().catch(() => null);
   const email = String(body?.email || "").trim().toLowerCase();
   if (!EMAIL_RE.test(email) || email.length > 160) return Response.json({ error: "invalide" }, { status: 400, headers: NO_STORE });
@@ -30,12 +33,15 @@ export async function POST(req) {
     console.error("[merry] connexion pilotage, compte", e0.message);
     return Response.json({ error: "envoi" }, { status: 502, headers: NO_STORE });
   }
-  const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-  if (error) {
-    const wait = /rate|seconds|too many/i.test(error.message);
-    if (!wait) console.error("[merry] connexion pilotage, code", error.message);
-    return Response.json({ error: wait ? "attente" : "envoi" }, { status: wait ? 429 : 502, headers: NO_STORE });
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  const token = data?.properties?.email_otp;
+  if (error || !token) {
+    console.error("[merry] connexion pilotage, code", error?.message || "pas de code rendu");
+    return Response.json({ error: "envoi" }, { status: 502, headers: NO_STORE });
+  }
+  if (!(await sendCodePilotage(email, token))) {
+    console.error("[merry] connexion pilotage, mail non parti");
+    return Response.json({ error: "envoi" }, { status: 502, headers: NO_STORE });
   }
   return Response.json({ ok: true }, { headers: NO_STORE });
 }
