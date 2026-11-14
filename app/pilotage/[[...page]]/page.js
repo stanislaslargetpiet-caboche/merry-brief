@@ -173,6 +173,7 @@ export default function PilotagePage() {
           busy={busy}
           canRefresh={auth.status !== "demo"}
           stamp={data ? (data.demo ? "Jeu d'exemple, pas de vraies mesures" : `Lu le ${fmtDateTime(data.genere)}`) : null}
+          onSignOut={auth.status === "ok" ? auth.signOut : null}
         >
           <PilotLangue value={langue} onChange={setLangue} />
         </PilotPeriod>

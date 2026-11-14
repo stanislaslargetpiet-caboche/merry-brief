@@ -103,6 +103,9 @@
 }
 
 .pl-generated { font-size: 12px; font-weight: 500; color: var(--ink-muted); text-align: center; }
+.pl-signout { appearance: none; border: 0; background: none; padding: 2px; font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-muted); text-align: center; text-decoration: underline; cursor: pointer; }
+.pl-signout:hover { color: var(--ink); }
+.pl-signout:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-tint), 0 0 0 1.5px var(--ink); border-radius: 6px; }
 
 /* ---- Sections --------------------------------------------------------------------------------------------- */
 .pl-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 20px 0 0; }
