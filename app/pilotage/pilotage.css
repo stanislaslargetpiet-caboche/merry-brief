@@ -283,9 +283,22 @@
 .pl-muted { color: var(--ink-muted); font-weight: 500; }
 .pl-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 
-.pl-gate { max-width: 440px; margin: 20vh auto 0; padding: 0 16px; text-align: center; }
+.pl-gate { max-width: 440px; margin: 0 auto; padding: 20vh 16px 0; text-align: center; }
 .pl-gate h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
 .pl-gate p { color: var(--ink-muted); margin: 0 0 16px; }
+.pl-gate-form { text-align: left; }
+.pl-gate-form p { margin: 0 0 4px; }
+.pl-form.pl-gate-form input { min-height: 44px; font-size: 16px; }
+.pl-form.pl-gate-form .pl-btn { justify-self: stretch; justify-content: center; min-height: 44px; }
+.pl-gate-liens { display: flex; gap: 16px; }
+.pl-gate-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+/* Coulisses › Accès : une adresse par ligne, ses boutons à droite */
+.pl-acces-liste { flex: 1; min-width: 0; }
+.pl-acces-ligne { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 8px 0; border-top: 1px solid var(--border); }
+.pl-acces-ligne:first-of-type { margin-top: 6px; }
+.pl-health-item .pl-acces-ligne strong { display: inline; word-break: break-all; }
+.pl-health-item .pl-acces-ligne span.pl-muted { display: inline; }
+.pl-acces-ligne .pl-demande-actions { margin-top: 0; }
 
 .pl-errors { margin-top: 32px; padding: 16px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 14px; }
 .pl-errors h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; }

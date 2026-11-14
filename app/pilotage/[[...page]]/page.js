@@ -6,6 +6,8 @@
 
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Acces from "@/components/pilotage/Acces";
+import Connexion from "@/components/pilotage/Connexion";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import CouplesFunnel from "@/components/pilotage/CouplesFunnel";
@@ -64,7 +66,13 @@ function useToken() {
       alive = false;
     };
   }, []);
-  return state;
+  // `nouvelle` : la session vient de l'écran de connexion du pilotage, une adresse sans accès y demande l'accès
+  const signIn = useCallback((s) => setState({ status: "ok", token: s.access_token, email: s.user?.email, nouvelle: true }), []);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setState({ status: "signedout", token: null, email: null });
+  }, []);
+  return { ...state, signIn, signOut };
 }
 
 // Dernier événement Resend de chaque mail : « Cliqué » suppose « Ouvert », on n'affiche que le plus avancé.
@@ -89,6 +97,7 @@ export default function PilotagePage() {
   const jours = range.jours || Number(today.slice(8, 10));
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [demande, setDemande] = useState(null);
   const [busy, setBusy] = useState(false);
   const pathname = usePathname();
   const { group, page } = resolvePage(pathname);
@@ -122,6 +131,7 @@ export default function PilotagePage() {
         }
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
+          setDemande(body.error === "interdit" ? body.demande || null : null);
           throw new Error(body.error === "interdit" ? "interdit" : body.error === "connexion" ? "connexion" : `erreur ${res.status}`);
         }
         setData(await res.json());
@@ -139,7 +149,7 @@ export default function PilotagePage() {
     if (auth.status === "demo") setData(demoData(jours));
   }, [auth.status, jours, load]);
 
-  const badges = { demandes: data?.demandes?.en_attente?.length || 0 };
+  const badges = { demandes: data?.demandes?.en_attente?.length || 0, acces: data?.acces?.en_attente?.length || 0 };
   const quotidien = group.id === "aujourdhui";
 
   if (auth.status === "loading")
@@ -148,15 +158,8 @@ export default function PilotagePage() {
         <PilotLoader />
       </div>
     );
-  if (auth.status === "signedout" || error === "connexion")
-    return (
-      <Gate title="Pilotage" text="Connectez-vous avec le compte Merry autorisé pour lire les indicateurs.">
-        <a className="pl-btn is-primary" href={`/connexion?next=${encodeURIComponent(pathname)}`}>
-          Me connecter
-        </a>
-      </Gate>
-    );
-  if (error === "interdit") return <Gate title="Réservé" text={`Le compte ${auth.email || ""} n'a pas accès au pilotage.`} />;
+  if (auth.status === "signedout" || error === "connexion") return <Connexion onSession={auth.signIn} />;
+  if (error === "interdit") return <Attente email={auth.email} demande={demande} nouvelle={auth.nouvelle} onDemande={setDemande} onSignOut={auth.signOut} />;
 
   return (
     <div className="pl-root pl-shell">
@@ -212,6 +215,56 @@ function Gate({ title, text, children }) {
         {children}
       </div>
     </div>
+  );
+}
+
+// Connecté sans accès : la demande part d'elle-même après l'écran de connexion du pilotage, sinon sur un clic
+// (un couple déjà connecté qui tombe sur /pilotage ne demande rien sans le vouloir)
+function Attente({ email, demande, nouvelle, onDemande, onSignOut }) {
+  const [etat, setEtat] = useState("idle"); // idle | busy | erreur
+  const demander = useCallback(async () => {
+    setEtat("busy");
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch("/api/interne/pilotage/acces", {
+        method: "POST",
+        headers: { authorization: `Bearer ${sess?.session?.access_token || ""}`, "content-type": "application/json" },
+        body: JSON.stringify({ action: "demander" }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error);
+      if (body.statut === "permanent" || body.statut === "approuve") return window.location.reload();
+      onDemande(body.statut);
+      setEtat("idle");
+    } catch {
+      setEtat("erreur");
+    }
+  }, [onDemande]);
+  useEffect(() => {
+    if (nouvelle && !demande) demander();
+  }, [nouvelle, demande, demander]);
+  const sortir = (
+    <button type="button" className="pl-btn" onClick={onSignOut}>
+      Changer de compte
+    </button>
+  );
+  if (demande === "en_attente")
+    return (
+      <Gate title="Demande envoyée" text={`Ton accès au pilotage attend l'accord de Stan. Tu recevras un mail à ${email || "ton adresse"} dès qu'il est ouvert.`}>
+        <span className="pl-gate-actions">{sortir}</span>
+      </Gate>
+    );
+  if (demande === "refuse") return <Gate title="Réservé" text={`Le compte ${email || ""} n'a pas accès au pilotage.`}><span className="pl-gate-actions">{sortir}</span></Gate>;
+  return (
+    <Gate title="Réservé" text={`Le compte ${email || ""} n'a pas encore accès au pilotage.`}>
+      <span className="pl-gate-actions">
+        <button type="button" className="pl-btn is-primary" onClick={demander} disabled={etat === "busy"}>
+          {etat === "busy" ? "Envoi…" : "Demander l'accès"}
+        </button>
+        {sortir}
+      </span>
+      {etat === "erreur" ? <p className="pl-form-err">La demande n'est pas partie. Réessaie.</p> : null}
+    </Gate>
   );
 }
 
@@ -475,6 +528,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       </Section>
 
       <Couts couts={data.couts} demo={demo} onChange={reload} />
+
+      <Acces acces={data.acces} demo={demo} onChange={reload} />
     </>
   );
 }

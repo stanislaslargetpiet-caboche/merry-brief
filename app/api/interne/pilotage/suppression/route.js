@@ -1,8 +1,8 @@
 // Couples › Funnel du pilotage : suppression définitive d'un couple (lib/server/pilotage/suppression.js). GET
 // ?mariage=… : ce qui partira (comptes supprimés ou gardés, nombre de fichiers) ; DELETE { mariage } : la suppression.
-// Même accès que le reste du pilotage (adresses de PILOTAGE_EMAILS), dont les comptes ne sont jamais supprimés.
+// Même accès que le reste du pilotage (PILOTAGE_EMAILS et adresses approuvées), dont les comptes ne sont jamais supprimés.
 
-import { allowedEmails } from "@/lib/server/pilotage/acces";
+import { pilotEmails } from "@/lib/server/pilotage/acces";
 import { requirePilot } from "@/lib/server/pilotage/auth";
 import { planSuppression, supprimerCouple } from "@/lib/server/pilotage/suppression";
 
@@ -18,7 +18,7 @@ export async function GET(req) {
   const id = new URL(req.url).searchParams.get("mariage");
   if (!UUID.test(String(id || ""))) return Response.json({ error: "invalide" }, { status: 400, headers: NO_STORE });
   try {
-    const plan = await planSuppression(who.admin, id, allowedEmails());
+    const plan = await planSuppression(who.admin, id, await pilotEmails(who.admin));
     if (!plan) return Response.json({ error: "introuvable" }, { status: 404, headers: NO_STORE });
     return Response.json({ couple: plan.couple, comptes: plan.comptes.map(({ email, garde }) => ({ email, garde })), fichiers: plan.fichiers.length }, { headers: NO_STORE });
   } catch (e) {
@@ -33,7 +33,7 @@ export async function DELETE(req) {
   const body = await req.json().catch(() => null);
   if (!UUID.test(String(body?.mariage || ""))) return Response.json({ error: "invalide" }, { status: 400, headers: NO_STORE });
   try {
-    const fait = await supprimerCouple(who.admin, body.mariage, allowedEmails());
+    const fait = await supprimerCouple(who.admin, body.mariage, await pilotEmails(who.admin));
     if (!fait) return Response.json({ error: "introuvable" }, { status: 404, headers: NO_STORE });
     console.info("[merry] suppression, pilotage", who.email, body.mariage, fait.comptes, "comptes", fait.fichiers, "fichiers");
     return Response.json(fait, { headers: NO_STORE });
