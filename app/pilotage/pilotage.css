@@ -10,10 +10,10 @@
   --sunken: #f6f5f1;
   --border: #ecebe6;
   --border-strong: #d9d7cf;
-  --accent: #fff700;
-  --accent-tint: #fffdb8;
-  --accent-veil: #fffceb;
-  --accent-ink: #574e00;
+  --accent: #bfe9a6;
+  --accent-tint: #e6f7dc;
+  --accent-veil: #f6fcf2;
+  --accent-ink: #2f5a1a;
   --success-bg: #d4f1e8;
   --success-text: #0b6a4f;
   --warning-bg: #ffe6cc;
@@ -74,9 +74,9 @@
 .pl-chip:disabled { opacity: 0.5; cursor: default; }
 /* Période et Actualiser : un bloc blanc en bas de la barre latérale, sur toutes les pages */
 .pl-period { margin-top: auto; display: grid; gap: 8px; padding: 12px; border-radius: 20px; background: var(--surface); }
-.pl-ranges { display: grid; grid-template-columns: auto auto 1fr; gap: 4px; }
+.pl-ranges { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 4px; }
 .pl-langue { grid-template-columns: 1fr 1fr; }
-.pl-seg { appearance: none; min-height: 32px; padding: 0 6px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.pl-seg { appearance: none; min-width: 0; min-height: 32px; padding: 0 4px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .pl-seg:hover { border-color: var(--ink); }
 .pl-seg.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .pl-seg:disabled { cursor: default; }
@@ -103,6 +103,9 @@
 }
 
 .pl-generated { font-size: 12px; font-weight: 500; color: var(--ink-muted); text-align: center; }
+.pl-signout { appearance: none; border: 0; background: none; padding: 2px; font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-muted); text-align: center; text-decoration: underline; cursor: pointer; }
+.pl-signout:hover { color: var(--ink); }
+.pl-signout:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-tint), 0 0 0 1.5px var(--ink); border-radius: 6px; }
 
 /* ---- Sections --------------------------------------------------------------------------------------------- */
 .pl-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 20px 0 0; }

@@ -54,7 +54,7 @@ export function PilotSide({ group, search, badges, children }) {
   );
 }
 
-export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefresh, stamp, children }) {
+export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefresh, stamp, onSignOut, children }) {
   return (
     <div className="pl-period">
       {children}
@@ -70,6 +70,11 @@ export function PilotPeriod({ ranges, value, onChange, onRefresh, busy, canRefre
         <span>Actualiser</span>
       </button>
       {stamp ? <span className="pl-generated">{stamp}</span> : null}
+      {onSignOut ? (
+        <button type="button" className="pl-signout" onClick={onSignOut}>
+          Déconnexion
+        </button>
+      ) : null}
     </div>
   );
 }

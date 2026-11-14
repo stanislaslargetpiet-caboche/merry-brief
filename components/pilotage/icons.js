@@ -1,8 +1,8 @@
-// Icônes du pilotage : le style « pleines citron » du design system (tokens.json, `icons`), trait encre et remplissage
-// citron sur la forme. Les quatre dernières ne sont pas encore dans la bibliothèque, dessinées dans le même style.
+// Icônes du pilotage : le style « pleines » du design system (tokens.json, `icons`), trait encre et remplissage
+// pistache sur la forme (D-317). Les quatre dernières ne sont pas encore dans la bibliothèque, dessinées dans le même style.
 
-const CITRON = "#fff700";
-const TINT = "#fffdb8";
+const CITRON = "#bfe9a6";
+const TINT = "#e6f7dc";
 const INK = "#1c1c1a";
 
 const ICONS = {
