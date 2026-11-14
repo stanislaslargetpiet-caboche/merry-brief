@@ -4,7 +4,16 @@ Les 3 mails que Supabase envoie lui-même (confirmation d'adresse, mot de passe
 oublié, code de connexion) ne passent pas par notre code — ils se configurent
 dans le dashboard Supabase, pas dans ce repo. Ces fichiers sont le HTML à
 coller là-bas, pour qu'ils reprennent le même format que les autres mails
-(planches V24/V25/V27 du canvas, page « 7 - mails »).
+(planches V24/V27/V36/V37 du canvas, page « 7 - mails »).
+
+Mis à jour le 14 nov. 2026 pour suivre le passage des mails au pistache
+(D-250) : logo en image (`https://app.withmerry.com/mail/merry.png`, le même
+que les mails Resend) dans une carte `#bfe9a6`, au lieu de la pastille jaune
+citron `#fff700`. Ce qui est collé aujourd'hui dans le dashboard Supabase est
+resté sur l'ancien format (pastille jaune, vouvoiement) — il faut recoller
+ces 5 fichiers pour que les mails reçus correspondent. `confirm-signup.html`
+n'a pas d'artboard dédié sur la page « 7 - mails » (pas de planche V
+associée) ; seul l'habillage a été repris, le texte n'a pas changé.
 
 ## Où coller
 
@@ -27,11 +36,11 @@ qu'il propose aussi par défaut.
 
 ## À vérifier après collage
 
-- **Durée du code** : le texte dit « Ce code n'est valable que quelques
-  minutes. » sans donner de chiffre, pour ne pas inventer une durée. La vraie
-  valeur se règle dans *Authentication → Settings → Email OTP Expiration* —
-  si tu veux l'afficher en toutes lettres dans le mail, remplace la phrase par
-  le nombre réel de minutes configuré là-bas.
+- **Durée du code** : le texte dit maintenant « Ce code expire dans 10
+  minutes. », pour reprendre le libellé de la planche V24 du canvas. Vérifie
+  que ça correspond à la vraie valeur réglée dans *Authentication → Settings
+  → Email OTP Expiration* ; sinon corrige le chiffre dans le fichier (et
+  recolle-le) plutôt que de changer le réglage Supabase sans y penser.
 - **Expéditeur** : ces mails partent par le SMTP que Supabase utilise
   aujourd'hui (son propre service, ou un SMTP personnalisé si un a déjà été
   branché dans *Authentication → Settings*), pas par Resend comme le reste
