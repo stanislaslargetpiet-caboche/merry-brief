@@ -263,7 +263,11 @@ function Frame({ children }) {
           const on = isOn(n, pathname);
           return (
             <Link key={n.href} href={n.href} className={`d-tab-item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>
-              {on ? <span className="d-tab-pill">{n.short}</span> : n.short}
+              <span className="d-tab-icon">
+                <Icon name={n.icon} size={22} sw={1.6} />
+                {n.badge && unread ? <span className="d-tab-badge">{unread}</span> : null}
+              </span>
+              {on ? <span className="d-tab-pill">{n.short}</span> : <span className="d-tab-label">{n.short}</span>}
             </Link>
           );
         })}
