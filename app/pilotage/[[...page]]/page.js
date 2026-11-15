@@ -15,6 +15,7 @@ import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
 import Robots from "@/components/pilotage/Robots";
+import Sources from "@/components/pilotage/Sources";
 import Rage from "@/components/pilotage/Rage";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
@@ -463,6 +464,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         ) : (
           nonLu("PostHog", data.posthog?.raison)
         )}
+        {ph ? <Sources sources={ph.site?.sources} /> : null}
         {ph ? <Robots familles={ph.site?.robots_familles} /> : null}
       </Section>
 
