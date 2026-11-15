@@ -3,6 +3,7 @@ import HomeBody from "@/components/vitrine/HomeBody";
 import { LINKS } from "@/lib/vitrine/routes";
 import { getProof } from "@/lib/vitrine/proof";
 import { ACCUEIL_FAQ } from "@/lib/i18n/vitrine-accueil";
+import { ACCUEIL_PRELOAD } from "@/lib/vitrine/preload";
 
 // Données structurées : la FAQ, telle qu'affichée, pour les moteurs de recherche (reste en
 // français : lié aux meta title/description qui restent en français, voir lib/i18n/vitrine-frame.js)
@@ -18,8 +19,10 @@ export default async function VitrineAccueil() {
   const proof = { count, at: at.toISOString() };
   return (
     <Frame current="home">
-      {/* Première image de la carte animée du haut : chargée dès l'entête plutôt qu'après le CSS */}
-      <link rel="preload" as="image" href="/vitrine/blocks/proposition-1.webp" />
+      {/* Première image de la carte animée du haut et portraits du carrousel : chargés dès l'entête (lib/vitrine/preload.js) */}
+      {ACCUEIL_PRELOAD.map((src) => (
+        <link key={src} rel="preload" as="image" href={src} />
+      ))}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }} />
       <HomeBody links={links} proof={proof} />
     </Frame>
