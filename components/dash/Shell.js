@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
 import { accentIntroDue, markAccentSeen, syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
-import { SITE_URL, WHATSAPP_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { Icon } from "./icons";
 import { Avatar, Popover, PageLoader } from "./ui";
@@ -310,10 +310,6 @@ function Frame({ children }) {
               <Icon name="bubble" size={16} sw={2} />
               <span>Aide</span>
             </button>
-            <a className="d-help-btn" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-              <Icon name="users" size={16} sw={2} />
-              <span>Premiers utilisateurs</span>
-            </a>
           </div>
           {data ? (
             <div className="d-team">
