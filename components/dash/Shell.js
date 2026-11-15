@@ -6,10 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
 import { accentIntroDue, markAccentSeen, syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
-import { CALENDLY_URL, SITE_URL, WHATSAPP_URL } from "@/lib/site";
+import { SITE_URL, WHATSAPP_URL } from "@/lib/site";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { Icon } from "./icons";
 import { Avatar, Popover, PageLoader } from "./ui";
+import AideModal from "./AideModal";
 import Organisers from "./Organisers";
 
 // Même ordre partout (barre latérale, onglets du téléphone) : Invités, Budget, Planning, Prestataires, Messagerie
@@ -137,6 +138,7 @@ function Frame({ children }) {
   const router = useRouter();
   const unread = useUnreadMessages();
   const [showOrganisers, setShowOrganisers] = useState(false);
+  const [showAide, setShowAide] = useState(false);
   const accent = useAccent();
   const [introClosed, setIntroClosed] = useState(false);
   const live = dash.status === "ready" && dash.mode === "live";
@@ -304,10 +306,10 @@ function Frame({ children }) {
               <Icon name="settings" size={16} sw={2} />
               <span>Réglages</span>
             </Link>
-            <a className="d-help-btn" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+            <button type="button" className="d-help-btn" style={{ border: "none", width: "100%", textAlign: "left", cursor: "pointer" }} onClick={() => setShowAide(true)}>
               <Icon name="bubble" size={16} sw={2} />
               <span>Aide</span>
-            </a>
+            </button>
             <a className="d-help-btn" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
               <Icon name="users" size={16} sw={2} />
               <span>Premiers utilisateurs</span>
@@ -364,6 +366,7 @@ function Frame({ children }) {
         </div>
       </main>
       {showOrganisers && data ? <Organisers onClose={() => setShowOrganisers(false)} /> : null}
+      {showAide && data ? <AideModal onClose={() => setShowAide(false)} /> : null}
       <ImportBadge />
       {showIntro ? (
         <div className="d-intro" role="status">
