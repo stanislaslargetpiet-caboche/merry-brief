@@ -5,7 +5,7 @@ import { fenetre, isSunday, semaineDe } from "../lib/server/recapJob.js";
 const origin = "https://app.withmerry.com";
 const unsub = "https://app.withmerry.com/desinscription?e=x&t=y&k=nouveautes";
 const vide = { reponses: [], ajouts: [], prestataires: [], messages: [], signes: [], devis: 0, taches: 0 };
-const base = { origin, unsub, firstName: "Léa", weddingDate: "2027-09-12", today: "2026-11-15", budgetTotal: 25000, engage: 8400, enAttente: 33, oui: 7, guestCount: 42, usage: {} };
+const base = { origin, unsub, firstName: "Léa", couple: "Léa et Thomas", soiCouple: true, weddingDate: "2027-09-12", today: "2026-11-15", budgetTotal: 25000, engage: 8400, enAttente: 33, oui: 7, guestCount: 42, usage: {} };
 
 describe("phrases du récap", () => {
   it("compte les jours de date à date", () => {
@@ -33,8 +33,8 @@ describe("phrases du récap", () => {
       ["3 invités ont répondu au formulaire", "2 viennent"],
       ["Thomas a ajouté 12 invités", ""],
       ["Tu as ajouté un invité", ""],
-      ["Maison Ravel a répondu à ta demande", ""],
-      ["Atelier Lumen t’a écrit", "2 messages"],
+      ["Maison Ravel a répondu à la demande", ""],
+      ["Atelier Lumen a écrit", "2 messages"],
       ["Lieu : devis signé", "8 400 €"],
     ]);
   });
@@ -60,8 +60,8 @@ describe("recapMail", () => {
       usage: { budget: true, invites: true, formulaire: true, site: true, documents: true, prestataires: true },
     });
     expect(mail.variante).toBe("semaine");
-    expect(mail.subject).toBe("Ta semaine : 9 réponses d’invités et 2 devis");
-    expect(mail.text).toContain("Bonjour Léa, plus que 301 jours avant le 12 septembre 2027. Voici ce qui a avancé depuis dimanche dernier, puis les trois choses à faire ensuite.");
+    expect(mail.subject).toBe("La semaine : 9 réponses d’invités et 2 devis");
+    expect(mail.text).toContain("Bonjour Léa, plus que 301 jours avant le 12 septembre 2027. Voici ce qui a avancé sur le mariage de Léa et Thomas depuis dimanche dernier, puis les trois choses à faire ensuite.");
     expect(mail.text).toContain("Réponses : 9 (33 en attente)");
     expect(mail.text).toContain("Engagé : 8 400 € (sur 25 000 €)");
     expect(mail.text).toContain("- Choisir le traiteur (cette semaine)");
@@ -78,7 +78,7 @@ describe("recapMail", () => {
     expect(mail.text).toContain("Bonjour Léa, rien n’a bougé sur ton mariage depuis dimanche dernier.");
     expect(mail.text).toContain("Plus que 301 jours avant le 12 septembre 2027 : tu as le temps");
     expect(mail.text).toContain("Ajouter tes premiers invités (10 minutes)");
-    expect(recapMail({ ...base, semaine: { ...vide, ajouts: [{ author: "Thomas", count: 4, moi: false }] }, taches: [] }).subject).toBe("Ta semaine : 4 invités ajoutés");
+    expect(recapMail({ ...base, semaine: { ...vide, ajouts: [{ author: "Thomas", count: 4, moi: false }] }, taches: [] }).subject).toBe("La semaine : 4 invités ajoutés");
     expect(mail.text).toContain("/dashboard/invites/importer?utm_source=mail");
   });
   it("V65 bis : liste remplie mais budget vide (ancien V62)", () => {
@@ -101,6 +101,19 @@ describe("recapMail", () => {
   });
   it("rien à dire : semaine calme, tout fait et plus rien à faire", () => {
     expect(recapMail({ ...base, semaine: vide, taches: [], usage: { budget: true, formulaire: true } })).toBeNull();
+  });
+  it("D-331 : un parent ou témoin reçoit un texte neutre, sans fonction à essayer, et rien une semaine calme", () => {
+    const mail = recapMail({
+      ...base,
+      firstName: "",
+      soiCouple: false,
+      semaine: { ...vide, reponses: [{ name: "A", comes: true }] },
+      usage: { budget: true, invites: true, formulaire: true, site: true, documents: true, prestataires: true },
+    });
+    expect(mail.text).toContain("ce qui a avancé sur le mariage de Léa et Thomas depuis dimanche dernier");
+    expect(mail.text).toContain("Ouvrir le mariage");
+    expect(mail.text).not.toContain("Pas encore essayé");
+    expect(recapMail({ ...base, soiCouple: false, semaine: vide, taches: [], usage: { budget: true, formulaire: true } })).toBeNull();
   });
 });
 
