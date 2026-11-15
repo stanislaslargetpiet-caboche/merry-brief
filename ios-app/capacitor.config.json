@@ -3,7 +3,7 @@
   "appName": "Merry",
   "webDir": "www",
   "server": {
-    "url": "https://app.withmerry.com/connexion",
+    "url": "https://app.withmerry.com/connexion?lang=fr",
     "iosScheme": "https",
     "allowNavigation": ["app.withmerry.com"]
   },
