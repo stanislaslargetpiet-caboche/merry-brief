@@ -14581,9 +14581,10 @@ body.d-noscroll {
     font-size: 11.5px;
   }
 
-  /* Reste visible au-dessus des onglets du bas */
+  /* Reste visible au-dessus du bloc "Partager" fixe (jusqu'à ~130px si le lien passe sur 2 lignes)
+     + la barre d'onglets (64px) + une marge de respiration */
   .d-fm {
-    padding-bottom: 120px;
+    padding-bottom: calc(220px + env(safe-area-inset-bottom));
   }
 
   /* L'aperçu reste sur ordinateur ; sur téléphone, « Voir comme un invité » et « Modifier l'apparence » */
