@@ -8,13 +8,13 @@
   },
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#FFF700"
+    "backgroundColor": "#BFE9A6"
   },
   "plugins": {
     "StatusBar": {
       "overlaysWebView": false,
       "style": "LIGHT",
-      "backgroundColor": "#FFF700"
+      "backgroundColor": "#BFE9A6"
     }
   }
 }
