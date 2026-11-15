@@ -1,0 +1,15 @@
+{
+  "name": "merry-couple-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Coquille native iOS de l'espace couple Merry (app.withmerry.com)",
+  "dependencies": {
+    "@capacitor/cli": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10",
+    "@capacitor/status-bar": "^7.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0"
+  }
+}

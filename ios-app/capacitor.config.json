@@ -1,0 +1,20 @@
+{
+  "appId": "com.withmerry.couple",
+  "appName": "Merry",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.withmerry.com/connexion",
+    "iosScheme": "https"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#FFF700"
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#FFF700"
+    }
+  }
+}
