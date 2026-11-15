@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 import { classifyAgent } from "@/lib/agentsIa";
-import { COOKIE_INTERNE, compter, interneDemande, isInterne, isPageRequest, isPageVisit, isRobot, qualiteEntetes, sourceOf } from "@/lib/compteur";
+import { COOKIE_INTERNE, compter, interneDemande, isInterne, isPageRequest, isPageVisit, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
 import { classifyRobot } from "@/lib/robots";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
@@ -103,7 +103,13 @@ export function middleware(req, event) {
     reportAgent(req, event, classifyRobot(req.headers.get("user-agent")), "robot_hit");
   }
   if (etape && !interne && isPageVisit(req.headers, req.method)) {
-    const send = compter({ etape, source: sourceOf(req.nextUrl.search), site: (req.headers.get("host") || "").split(":")[0].toLowerCase(), entetes: qualiteEntetes(req.headers) });
+    const send = compter({
+      etape,
+      source: sourceOf(req.nextUrl.search),
+      site: (req.headers.get("host") || "").split(":")[0].toLowerCase(),
+      entetes: qualiteEntetes(req.headers),
+      referant: etape === "site" ? referantOf(req.headers.get("referer")) : null,
+    });
     if (send) event?.waitUntil?.(send);
   }
   return res;

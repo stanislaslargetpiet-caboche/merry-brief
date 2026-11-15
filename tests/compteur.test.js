@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avecInscriptions, interneDemande, isInterne, isPageVisit, isPub, isRobot, qualiteEntetes, sourceOf } from "@/lib/compteur";
+import { avecInscriptions, interneDemande, isInterne, isPageVisit, isPub, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
 import { entonnoir, groupRage } from "@/lib/server/pilotage/posthog";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS]";
@@ -9,6 +9,14 @@ describe("compteur anonyme", () => {
     expect(sourceOf("?source=meta-c&fbclid=abc")).toBe("meta-c");
     expect(sourceOf("?fbclid=abc")).toBe(null);
     expect(sourceOf("?source=<script>")).toBe(null);
+  });
+
+  it("lit le domaine d'où vient la visite (en-tête Referer)", () => {
+    expect(referantOf("https://www.google.com/search?q=merry")).toBe("www.google.com");
+    expect(referantOf("https://www.withmerry.com/partenaires")).toBe("www.withmerry.com");
+    expect(referantOf(null)).toBe(null);
+    expect(referantOf("")).toBe(null);
+    expect(referantOf("pas-une-url")).toBe(null);
   });
 
   it("compte une page ouverte par un navigateur, pas un robot ni un préchargement", () => {
