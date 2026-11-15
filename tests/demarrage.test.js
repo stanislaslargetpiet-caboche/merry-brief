@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { demarrageMail, joinFr, memberLabel, stanMail } from "../lib/server/demarrageMail.js";
+import { demarrageMail, joinFr, memberLabel } from "../lib/server/demarrageMail.js";
 import { nextStep, planSteps, runDemarrage, soirsAVenir, weddingState } from "../lib/server/demarrageJob.js";
 import { apercuCouple, historique } from "../lib/server/pilotage/demarrage.js";
 
@@ -88,23 +88,6 @@ describe("demarrageMail", () => {
   });
 });
 
-describe("stanMail", () => {
-  const ctx = { ...base, createdAt: "2026-11-10T09:00:00Z", now: new Date("2026-11-13T19:05:00Z"), weddingDate: "2027-09-12" };
-  it("écrit comme un mail personnel, sans lien de rendez-vous par défaut", () => {
-    const mail = stanMail({ ...ctx, rdv: "" });
-    expect(mail.subject).toBe("Ton mariage sur Merry");
-    expect(mail.text).toContain("Tu as créé ton espace Merry mardi pour préparer ton mariage du 12 septembre 2027.");
-    expect(mail.text).toContain("Bonne soirée,\nStan\nFondateur de Merry");
-    expect(mail.text).not.toContain("quinze minutes");
-    expect(mail.html).not.toContain("<img");
-  });
-  it("propose l'appel quand le lien existe", () => {
-    const mail = stanMail({ ...ctx, rdv: "https://cal.example/stan" });
-    expect(mail.text).toContain("réserver un appel de quinze minutes : https://cal.example/stan");
-    expect(mail.html).toContain(">cal.example/stan</a>");
-  });
-});
-
 describe("nextStep", () => {
   const all = { invites: true, equipe: true, budget: true };
   it("suit l'ordre invités, équipe, budget", () => {
@@ -115,13 +98,13 @@ describe("nextStep", () => {
     expect(nextStep([], { invites: false, equipe: true, budget: true }, false)).toBe("equipe");
     expect(nextStep(["invites"], { invites: true, equipe: false, budget: true }, false)).toBe("budget");
   });
-  it("remplace le troisième mail par celui de Stan quand rien n'a bougé", () => {
-    expect(nextStep(["invites", "equipe"], all, true)).toBe("stan");
+  it("envoie toujours le budget en troisième mail, que rien n'ait bougé ou non", () => {
+    expect(nextStep(["invites", "equipe"], all, true)).toBe("budget");
     expect(nextStep(["invites", "equipe"], all, false)).toBe("budget");
   });
-  it("s'arrête après le budget, le mot de Stan, trois mails ou tout fait", () => {
+  it("s'arrête après le budget, trois mails ou tout fait", () => {
     expect(nextStep(["invites", "budget"], all, false)).toBeNull();
-    expect(nextStep(["invites", "equipe", "stan"], all, true)).toBeNull();
+    expect(nextStep(["invites", "equipe", "budget"], all, true)).toBeNull();
     expect(nextStep([], { invites: false, equipe: false, budget: false }, false)).toBeNull();
   });
 });
@@ -255,7 +238,7 @@ describe("runDemarrage", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it("envoie un mail par soir, puis le mot de Stan si rien n'a bougé", async () => {
+  it("envoie un mail par soir, invités puis équipe puis budget", async () => {
     // L'heure de l'envoi date la ligne de mail_sent, comme en base
     vi.useFakeTimers({ toFake: ["Date"] });
     const run = (day) => {
@@ -271,10 +254,8 @@ describe("runDemarrage", () => {
     expect((await run(13)).envoyes).toBe(0);
     expect((await run(14)).etapes).toEqual({ equipe: 1 });
     expect(mails[1].html).toContain("Thomas et tes parents");
-    expect((await run(15)).etapes).toEqual({ stan: 1 });
-    expect(mails[2].from).toBe('"Stan de Merry" <onboarding@resend.dev>');
-    expect(mails[2].reply_to).toBe("bonjour@withmerry.com");
-    expect(mails[2].text).toContain("Tu as créé ton espace Merry jeudi");
+    expect((await run(15)).etapes).toEqual({ budget: 1 });
+    expect(mails[2].subject).toBe("Fini le budget sur des bouts de papier");
     expect((await run(16)).envoyes).toBe(0);
     expect(mails).toHaveLength(3);
   });
@@ -300,8 +281,7 @@ describe("runDemarrage", () => {
     expect((await run(13)).etapes).toEqual({ invites: 2 });
     expect(mails.map((m) => m.to[0]).sort()).toEqual(["ana@example.com", "lea.bernard@example.com"]);
     expect((await run(14)).etapes).toEqual({ equipe: 2 });
-    expect((await run(15)).etapes).toEqual({ stan: 2 });
-    expect(mails.find((m) => m.to[0] === "ana@example.com" && m.subject === "Ton mariage sur Merry").text).toContain("Tu as créé ton espace Merry le 22 octobre");
+    expect((await run(15)).etapes).toEqual({ budget: 2 });
   });
 
   it("ne reprend plus les anciens couples sept jours après le premier mail de démarrage", async () => {
@@ -390,14 +370,13 @@ describe("runDemarrage", () => {
 
 describe("planning du pilotage", () => {
   const all = { invites: true, equipe: true, budget: true };
-  it("saute les mails retirés ; le mail budget remplace le mot de Stan retiré", () => {
+  it("saute les mails retirés", () => {
     expect(nextStep([], all, true, ["invites"])).toBe("equipe");
-    expect(nextStep(["invites", "equipe"], all, true, ["stan"])).toBe("budget");
     expect(nextStep(["invites"], all, true, ["equipe", "budget"])).toBeNull();
   });
   it("projette un mail par soir tant que rien ne bouge", () => {
     const soirs = [13, 14, 15, 16].map((d) => new Date(`2026-11-${d}T19:00:00Z`));
-    expect(planSteps([], all, true, [], soirs).map((p) => p.etape)).toEqual(["invites", "equipe", "stan"]);
+    expect(planSteps([], all, true, [], soirs).map((p) => p.etape)).toEqual(["invites", "equipe", "budget"]);
     expect(planSteps(["invites"], all, false, ["equipe"], soirs)).toEqual([{ etape: "budget", soir: soirs[0] }]);
     expect(planSteps([], all, true, [], soirs.slice(0, 1)).map((p) => p.etape)).toEqual(["invites"]);
   });
@@ -415,11 +394,11 @@ describe("planning du pilotage", () => {
   });
   it("nomme les mails déjà partis", () => {
     const rows = [
-      { key: "demarrage:stan:w1:a@example.com", sent_at: "2026-11-15T19:00:00Z" },
+      { key: "demarrage:budget:w1:a@example.com", sent_at: "2026-11-15T19:00:00Z" },
       { key: "formulaire:w1:2026-11-14:a@example.com", sent_at: "2026-11-14T19:00:00Z" },
     ];
     expect(historique(rows, () => "Ana")).toEqual([
-      { libelle: "Le mot de Stan", at: "2026-11-15T19:00:00Z", a: "Ana" },
+      { libelle: "Complète ton budget", at: "2026-11-15T19:00:00Z", a: "Ana" },
       { libelle: "Réponses au formulaire", at: "2026-11-14T19:00:00Z", a: "Ana" },
     ]);
   });
