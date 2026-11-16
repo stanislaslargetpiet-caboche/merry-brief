@@ -44,11 +44,13 @@ create policy "organisateurs: tout" on public.guest_forms for all to authenticat
   using (public.is_wedding_member(wedding_id))
   with check (public.is_wedding_member(wedding_id));
 
--- Le compteur de réponses ne s'écrit que par merry_form_submit.
+-- Le compteur de réponses ne s'écrit que par merry_form_submit. L'éditeur (lib/dash/store.js) renvoie la ligne
+-- entière : toute colonne qu'il lit doit figurer ici, sinon chaque enregistrement est refusé (42501). shared_at
+-- (supabase/mails-lecons.sql) manquait du 12 au 16 novembre 2026 ; tests/formulaireGrants.test.js veille.
 revoke insert, update on public.guest_forms from authenticated, anon;
-grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
+grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, shared_at, updated_at)
   on public.guest_forms to authenticated;
-grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
+grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, shared_at, updated_at)
   on public.guest_forms to authenticated;
 
 -- ---------------------------------------------------------------------------
