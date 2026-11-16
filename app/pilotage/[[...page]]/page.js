@@ -20,7 +20,7 @@ import Rage from "@/components/pilotage/Rage";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
-import { supabase } from "@/lib/supabase";
+import { supabase, signOutHere } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie, mesureDepuis } from "@/lib/pilotage/graphes";
@@ -71,7 +71,7 @@ function useToken() {
   // `nouvelle` : la session vient de l'écran de connexion du pilotage, une adresse sans accès y demande l'accès
   const signIn = useCallback((s) => setState({ status: "ok", token: s.access_token, email: s.user?.email, nouvelle: true }), []);
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await signOutHere();
     setState({ status: "signedout", token: null, email: null });
   }, []);
   return { ...state, signIn, signOut };
