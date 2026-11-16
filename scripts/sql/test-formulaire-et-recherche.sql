@@ -71,6 +71,14 @@ end $$;
 update public.guest_forms set rate_window_start = now() - interval '2 hours' where slug = 'alice-ben-form1';
 select (public.merry_form_submit('alice-ben-form1', '{"first_name":"Bot","last_name":"Two","answers":{}}')) ->> 'ok' as after_reset;
 select rate_window_count from public.guest_forms where slug = 'alice-ben-form1';
+\echo '--- form: an organiser (role authenticated) may write shared_at, like every column the editor sends back'
+-- Sans auth.uid() la règle RLS ne laisse passer aucune ligne (0 ligne modifiée), mais le droit de colonne est
+-- vérifié avant : sans « grant update (shared_at) » cet ordre échoue avec 42501 (bug du 12 au 16 novembre 2026).
+-- Supabase donne select à authenticated par défaut (default privileges) ; le shim ne le fait pas, d'où ce grant.
+grant select on public.guest_forms to authenticated;
+set local role authenticated;
+update public.guest_forms set shared_at = now(), updated_at = now() where slug = 'alice-ben-form1';
+reset role;
 \echo '--- seating has no id column (why the pager tie-break matters)'
 select count(*) filter (where column_name = 'id') as id_cols, count(*) filter (where column_name = 'guest_id') as guest_id_cols from information_schema.columns where table_name = 'seating';
 rollback;
