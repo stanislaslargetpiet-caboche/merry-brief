@@ -14,6 +14,7 @@ import CouplesFunnel from "@/components/pilotage/CouplesFunnel";
 import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
+import GoogleAds from "@/components/pilotage/GoogleAds";
 import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Rage from "@/components/pilotage/Rage";
@@ -482,6 +483,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         ) : (
           nonLu("Search Console", data.google?.raison)
         )}
+        {ph ? <GoogleAds entonnoir={ph.site?.entonnoir} sources={data.utilisateurs?.sources} /> : null}
       </Section>
 
       <Section id="sante" right={demo ? null : <SendBrief />}>

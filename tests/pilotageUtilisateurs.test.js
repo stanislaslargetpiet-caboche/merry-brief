@@ -181,6 +181,7 @@ describe("inscriptions par source", () => {
   it("lit la source du lien d'arrivée enregistré avec le brief", () => {
     expect(sourceLabel("?source=meta-a&lang=en")).toBe("meta-a");
     expect(sourceLabel("?lang=en")).toBe("Autre lien");
+    expect(sourceLabel("?gclid=Cj0KCQiA&lang=fr")).toBe("google-ads");
     expect(sourceLabel(null)).toBe("Sans source");
     const now = Date.parse("2026-11-07T12:00:00Z");
     const users = [{ id: "u1", email: "a@x.fr", created_at: "2026-11-07T10:00:00Z" }, { id: "u2", email: "b@x.fr", created_at: "2026-11-01T10:00:00Z" }, { id: "u3", email: "c@x.fr", created_at: "2026-11-07T11:00:00Z" }];
