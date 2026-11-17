@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { DashProvider, useDash } from "@/lib/dash/store";
 import { accentIntroDue, markAccentSeen, syncAccent, useAccent } from "@/lib/dash/accent";
 import { ImportsProvider, useImports } from "@/lib/dash/imports";
+import { isLive } from "@/lib/dash/session";
 import { SITE_URL } from "@/lib/site";
 import { isVendorThreadUnread } from "@/lib/dash/picks";
 import { Icon } from "./icons";
@@ -141,7 +142,7 @@ function Frame({ children }) {
   const [showAide, setShowAide] = useState(false);
   const accent = useAccent();
   const [introClosed, setIntroClosed] = useState(false);
-  const live = dash.status === "ready" && dash.mode === "live";
+  const live = isLive(dash);
   const onSettings = pathname.startsWith("/dashboard/reglages");
   const showIntro = live && !introClosed && !onSettings && accentIntroDue(dash.user);
 

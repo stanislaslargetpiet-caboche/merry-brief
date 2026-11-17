@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSante } from "@/lib/pilotage/sante";
+import { briefAgent } from "@/lib/pilotage/agent";
 import { buildBrief, costRows, morningAlerts, userRows, yesterdayRows } from "@/lib/server/pilotage/brief";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { briefKey, inBriefWindow, parisParts } from "@/lib/server/pilotage/schedule";
@@ -27,6 +28,23 @@ describe("santé partagée", () => {
     const sante = buildSante(data, 2);
     expect(sante.every((s) => s.tone === "ok")).toBe(true);
     expect(sante.find((s) => /JavaScript/.test(s.titre)).titre).toBe("Aucune erreur JavaScript sur 2 jours");
+  });
+  it("l'alerte des clics de rage nomme la page touchée, et l'agent bugs la reçoit dans sa consigne", () => {
+    // Lignes PostHog [jour, exceptions, clics de rage, clics morts] : la période lue est le dernier jour, la veille sert de comparaison
+    const series = [["2026-11-16", 0, 1, 0], ["2026-11-17", 0, 2, 0]];
+    const rage = [
+      { hote: "app.withmerry.com", chemin: "/dashboard/invites", n: 2, dernier: "2026-11-17T15:02:11.000000Z" },
+      { hote: "www.withmerry.com", chemin: "/", n: 1, dernier: "2026-11-16T08:30:00.000000Z" },
+    ];
+    const data = { supabase: { series: series.map(([jour]) => ({ jour })), totaux: {} }, posthog: { disponible: true, bugs: { series, rage } }, erreurs: [] };
+    const alerte = buildSante(data, 1).find((s) => /clic\(s\) de rage/.test(s.titre));
+    expect(alerte.titre).toBe("2 clic(s) de rage");
+    // Heure de Paris ; la virgule entre le jour et l'heure dépend de la version d'ICU de Node
+    expect(alerte.detail).toMatch(/^une personne a cliqué plusieurs fois au même endroit sans effet sur app\.withmerry\.com\/dashboard\/invites \(2 clics, dernier 17 nov\.,? 16:02\), puis www\.withmerry\.com\/ \(1 clic, dernier 16 nov\.,? 09:30\) : voir Coulisses › Santé$/);
+    expect(briefAgent({ titre: alerte.titre, detail: alerte.detail }, "reparer", true)).toContain("Détail : une personne a cliqué plusieurs fois au même endroit sans effet sur app.withmerry.com/dashboard/invites (2 clics");
+    // Sans la liste par page (ancienne lecture, ou requête en échec), le texte d'avant
+    const sans = buildSante({ ...data, posthog: { disponible: true, bugs: { series } } }, 1).find((s) => /clic\(s\) de rage/.test(s.titre));
+    expect(sans.detail).toBe("une personne a cliqué plusieurs fois au même endroit sans effet : la page est listée dans Coulisses › Santé");
   });
   it("une source en échec et un build en échec sont des alertes", () => {
     const data = { vercel: { disponible: true, erreurs: 1, erreurs_production: 1, derniere_production: null }, erreurs: [{ source: "supabase", message: "statement timeout" }] };

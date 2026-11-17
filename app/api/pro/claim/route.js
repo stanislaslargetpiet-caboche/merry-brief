@@ -30,6 +30,7 @@ import { sendVendorWelcome } from "@/lib/server/vendorWelcome";
 import { sendDemandeAlert } from "@/lib/server/demandeMail";
 import { sendDemandeRecue } from "@/lib/server/demandeVendorMails";
 import { cleanEmail, cleanPhone, validateDemande, validPhone, welcomeCredits } from "@/lib/server/proDemande";
+import { PHOTO_URL_SECONDS } from "@/lib/catalogPhotos";
 
 export const runtime = "nodejs";
 
@@ -194,7 +195,7 @@ export async function POST(req) {
     const { data, error } = await admin.rpc("pro_search", { q });
     if (error) return Response.json({ error: /PGRST202|Could not find/i.test(error.message) ? "setup" : "search_failed" }, { status: 500 });
     const paths = (data || []).map((r) => r.photo).filter(Boolean);
-    const { data: urls } = paths.length ? await admin.storage.from("catalog-photos").createSignedUrls(paths, 3600) : { data: [] };
+    const { data: urls } = paths.length ? await admin.storage.from("catalog-photos").createSignedUrls(paths, PHOTO_URL_SECONDS) : { data: [] };
     const byPath = new Map((urls || []).map((u) => [u.path, u.signedUrl]));
     return Response.json({ results: (data || []).map((r) => ({ ...r, photo: r.photo ? byPath.get(r.photo) || null : null })) });
   }
@@ -228,7 +229,7 @@ export async function POST(req) {
       admin.from("pro_vendors").select("vendor_id").eq("vendor_id", id).maybeSingle(),
     ]);
     const path = ph?.[0]?.storage_path || null;
-    const { data: signedUrl } = path ? await admin.storage.from("catalog-photos").createSignedUrl(path, 3600) : { data: null };
+    const { data: signedUrl } = path ? await admin.storage.from("catalog-photos").createSignedUrl(path, PHOTO_URL_SECONDS) : { data: null };
     return Response.json({
       result: {
         id: v.id,
