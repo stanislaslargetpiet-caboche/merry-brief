@@ -19,6 +19,9 @@ describe("bugs du pilotage", () => {
     expect(reparer).toContain("pull request");
     expect(reparer).toContain("Ne fusionne rien");
     expect(reparer).toContain("Clic mort sur iPhone.");
+    expect(reparer).toContain("sans demander l'avis de Stan");
+    expect(reparer).toContain("gh pr list --state open");
+    expect(reparer).not.toContain("arrête-toi");
     expect(() => briefAgent(bug, "fusionner")).toThrow();
   });
   it("impose la même réponse en quatre rubriques, à faire avant le détail technique", () => {
@@ -28,7 +31,8 @@ describe("bugs du pilotage", () => {
         expect(ordre.every((i) => i > -1)).toBe(true);
         expect([...ordre].sort((a, b) => a - b)).toEqual(ordre);
         expect(brief).toContain("en le tutoyant");
-        expect(brief).toContain("Je recommande A");
+        expect(brief).toContain("Ne pose aucune question à Stan");
+        expect(brief).not.toContain("Je recommande A");
       }
     }
   });
