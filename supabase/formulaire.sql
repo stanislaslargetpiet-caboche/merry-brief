@@ -37,6 +37,10 @@ alter table public.guest_forms add column if not exists question_order jsonb not
 alter table public.guest_forms add column if not exists rate_window_start timestamptz;
 alter table public.guest_forms add column if not exists rate_window_count integer not null default 0;
 
+-- Ajout du 12 novembre 2026 (supabase/mails-lecons.sql) : premier partage du lien par le couple. Redit ici pour que
+-- les droits ci-dessous passent aussi sur une base où mails-lecons.sql n'a pas encore été collé (CI comprise).
+alter table public.guest_forms add column if not exists shared_at timestamptz;
+
 alter table public.guest_forms enable row level security;
 
 drop policy if exists "organisateurs: tout" on public.guest_forms;
@@ -44,11 +48,13 @@ create policy "organisateurs: tout" on public.guest_forms for all to authenticat
   using (public.is_wedding_member(wedding_id))
   with check (public.is_wedding_member(wedding_id));
 
--- Le compteur de réponses ne s'écrit que par merry_form_submit.
+-- Le compteur de réponses ne s'écrit que par merry_form_submit. L'éditeur (lib/dash/store.js, saveOneRow) renvoie la ligne
+-- entière : toute colonne qu'il lit doit figurer dans les deux listes, sinon chaque enregistrement est refusé (42501,
+-- vu le 15 novembre 2026 avec shared_at). tests/formulaireGrants.test.js et scripts/sql/test-formulaire-et-recherche.sql veillent.
 revoke insert, update on public.guest_forms from authenticated, anon;
-grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
+grant insert (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, shared_at, updated_at)
   on public.guest_forms to authenticated;
-grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, updated_at)
+grant update (wedding_id, slug, published, title, presence_mode, cover_position, fields, custom, event_ids, message, theme, cover_url, deadline, question_order, shared_at, updated_at)
   on public.guest_forms to authenticated;
 
 -- ---------------------------------------------------------------------------

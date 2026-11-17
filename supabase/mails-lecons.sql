@@ -6,6 +6,10 @@
 -- `published` reste à true dès la création de la ligne (lib/dash/form.js) ; ça ne dit pas si le lien a
 -- déjà été envoyé à quelqu'un.
 alter table public.guest_forms add column if not exists shared_at timestamptz;
+-- Le couple l'écrit lui-même depuis l'éditeur, qui renvoie la ligne entière (lib/dash/store.js) : les droits de
+-- guest_forms sont donnés colonne par colonne (supabase/formulaire.sql) et sans celui-ci chaque enregistrement du
+-- formulaire était refusé (42501, du 12 au 15 novembre 2026 au moins).
+grant insert (shared_at), update (shared_at) on public.guest_forms to authenticated;
 
 -- V57 : le dernier message d'un fil (couple ↔ prestataire) vient du prestataire, reçu il y a 3 à 10
 -- jours, et le couple n'y a toujours pas répondu. Symétrique de merry_job_demandes (qui relance le
