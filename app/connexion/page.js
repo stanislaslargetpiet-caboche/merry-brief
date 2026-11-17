@@ -5,7 +5,7 @@ import { safeNext } from "@/lib/connexionNext";
 import "@/app/onboarding.css";
 
 import { useEffect, useState } from "react";
-import { supabase, sendPasswordChangedMail, sendWelcomeMail } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail, sendWelcomeMail, signOutHere } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/site";
 import { INVITE_KEY, RESET_KEY } from "@/lib/dash/store";
 import { useLang } from "@/lib/lang";
@@ -246,7 +246,7 @@ export default function Connexion() {
   };
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await signOutHere();
     try {
       window.localStorage.removeItem(RESET_KEY);
     } catch {

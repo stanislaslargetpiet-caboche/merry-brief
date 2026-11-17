@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { usePro } from "@/lib/pro/store";
-import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail, signOutHere } from "@/lib/supabase";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
@@ -110,7 +110,7 @@ export default function Compte() {
       pro.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écrivez-nous à bonjour@withmerry.com." });
       return;
     }
-    await supabase.auth.signOut();
+    await signOutHere();
     window.location.href = "/connexion";
   }
 

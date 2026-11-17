@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
 import { trackEvent } from "@/lib/analytics";
-import { supabase, sendPasswordChangedMail } from "@/lib/supabase";
+import { supabase, sendPasswordChangedMail, signOutHere } from "@/lib/supabase";
 import { Icon } from "@/components/dash/icons";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import MailPrefs from "@/components/MailPrefs";
@@ -137,7 +137,7 @@ export default function Reglages() {
       dash.setToast({ kind: "error", text: "Le compte n'a pas pu être supprimé. Écris-nous à bonjour@withmerry.com." });
       return;
     }
-    await supabase.auth.signOut();
+    await signOutHere();
     window.location.href = "/connexion";
   }
 
