@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avecInscriptions, interneDemande, isInterne, isPageVisit, isPub, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
+import { avecInscriptions, interneDemande, isGoogleAds, isInterne, isPageVisit, isPub, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
 import { entonnoir, groupRage } from "@/lib/server/pilotage/posthog";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS]";
@@ -9,6 +9,18 @@ describe("compteur anonyme", () => {
     expect(sourceOf("?source=meta-c&fbclid=abc")).toBe("meta-c");
     expect(sourceOf("?fbclid=abc")).toBe(null);
     expect(sourceOf("?source=<script>")).toBe(null);
+  });
+
+  it("range une annonce Google Ads (gclid posé par Google) sous google-ads", () => {
+    expect(sourceOf("?gclid=Cj0KCQiA")).toBe("google-ads");
+    expect(sourceOf("?gbraid=0AAAAA&utm_source=google")).toBe("google-ads");
+    expect(sourceOf("?wbraid=1BBBBB")).toBe("google-ads");
+    expect(sourceOf("?source=google-b&gclid=Cj0KCQiA")).toBe("google-b");
+    expect(sourceOf("?utm_source=google")).toBe(null);
+    expect(isGoogleAds("google-ads")).toBe(true);
+    expect(isGoogleAds("google-b")).toBe(true);
+    expect(isGoogleAds("meta-a")).toBe(false);
+    expect(isGoogleAds("google.com")).toBe(false);
   });
 
   it("lit le domaine d'où vient la visite (en-tête Referer)", () => {

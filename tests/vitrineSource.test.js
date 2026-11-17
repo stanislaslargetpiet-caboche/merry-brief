@@ -21,6 +21,11 @@ describe("withSource", () => {
     expect(withSource(SIGNUP, `?source=${"a".repeat(41)}`)).toBe(SIGNUP);
   });
 
+  it("garde une annonce Google Ads (gclid) comme source google-ads", () => {
+    expect(withSource(SIGNUP, "?gclid=Cj0KCQiA")).toBe(`${SIGNUP}?source=google-ads`);
+    expect(withSource(LOGIN, "?gclid=Cj0KCQiA")).toBe(LOGIN);
+  });
+
   it("ne change rien à un lien déjà complété", () => {
     expect(withSource(`${SIGNUP}?source=meta-a`, "?source=meta-a")).toBe(`${SIGNUP}?source=meta-a`);
   });
