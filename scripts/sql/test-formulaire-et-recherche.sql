@@ -73,4 +73,13 @@ select (public.merry_form_submit('alice-ben-form1', '{"first_name":"Bot","last_n
 select rate_window_count from public.guest_forms where slug = 'alice-ben-form1';
 \echo '--- seating has no id column (why the pager tie-break matters)'
 select count(*) filter (where column_name = 'id') as id_cols, count(*) filter (where column_name = 'guest_id') as guest_id_cols from information_schema.columns where table_name = 'seating';
+\echo '--- form: the editor writes back every column it reads (shared_at included), column grants must follow'
+do $$ declare col text; begin
+  for col in select column_name from information_schema.columns where table_schema = 'public' and table_name = 'guest_forms'
+             and column_name not in ('submissions', 'created_at', 'rate_window_start', 'rate_window_count') loop
+    if not has_column_privilege('authenticated', 'public.guest_forms', col, 'INSERT') or not has_column_privilege('authenticated', 'public.guest_forms', col, 'UPDATE') then
+      raise exception 'authenticated cannot write guest_forms.%: every form save would be refused (42501)', col;
+    end if;
+  end loop;
+end $$;
 rollback;
