@@ -1,6 +1,7 @@
 import { LangProvider } from "@/lib/lang";
 import HeaderChrome from "@/components/vitrine/HeaderChrome";
 import FooterChrome from "@/components/vitrine/FooterChrome";
+import GoogleTag from "@/components/vitrine/GoogleTag";
 import "../vitrine/vitrine.css";
 import "./mariage.css";
 
@@ -13,6 +14,7 @@ export default function MariageLayout({ children }) {
         {children}
         <FooterChrome />
       </div>
+      <GoogleTag />
     </LangProvider>
   );
 }

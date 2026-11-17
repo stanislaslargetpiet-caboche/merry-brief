@@ -1,5 +1,6 @@
 import { SHARE_IMAGE } from "@/lib/site";
 import Track from "@/components/vitrine/Track";
+import GoogleTag from "@/components/vitrine/GoogleTag";
 import { LangProvider } from "@/lib/lang";
 import "./vitrine.css";
 import "./blocks.css";
@@ -41,6 +42,7 @@ export default function VitrineLayout({ children }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION) }} />
       {children}
       <Track />
+      <GoogleTag />
     </LangProvider>
   );
 }
