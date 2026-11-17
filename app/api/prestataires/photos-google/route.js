@@ -8,6 +8,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { allowUser } from "@/lib/server/rate";
+import { PHOTO_URL_SECONDS } from "@/lib/catalogPhotos";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -21,7 +22,7 @@ function cleanKey(k) {
 
 async function signed(admin, paths) {
   if (!paths.length) return [];
-  const { data } = await admin.storage.from("catalog-photos").createSignedUrls(paths, 3600);
+  const { data } = await admin.storage.from("catalog-photos").createSignedUrls(paths, PHOTO_URL_SECONDS);
   const urlOf = new Map((data || []).map((x) => [x.path, x.signedUrl]));
   return paths.map((p) => urlOf.get(p)).filter(Boolean);
 }
