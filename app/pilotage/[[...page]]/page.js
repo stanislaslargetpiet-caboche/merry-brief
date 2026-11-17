@@ -17,6 +17,7 @@ import Publicites from "@/components/pilotage/Publicites";
 import GoogleAds from "@/components/pilotage/GoogleAds";
 import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
+import Erreurs from "@/components/pilotage/Erreurs";
 import Rage from "@/components/pilotage/Rage";
 import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
@@ -497,6 +498,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         ) : (
           nonLu("PostHog", data.posthog?.raison)
         )}
+        {ph ? <Erreurs exceptions={ph.bugs?.exceptions} /> : null}
         {ph ? <Rage rage={ph.bugs?.rage} /> : null}
       </Section>
 
