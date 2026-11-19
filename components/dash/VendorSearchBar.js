@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDash } from "@/lib/dash/store";
 import { supabase } from "@/lib/supabase";
-import { CATALOG_CATEGORIES, CATEGORIES, catOf, searchCatalogByName, searchGoogleVendor } from "@/lib/dash/catalog";
+import { CATALOG_CATEGORIES, CATEGORIES, catOf, SEARCH_MIN, searchCatalogByName, searchGoogleVendor } from "@/lib/dash/catalog";
 import { Icon } from "./icons";
 import { CloseBtn, DevisDialog, FichePanel, Layer, Thumb, usePicks } from "./Prestataires";
 import { SEARCH_SCENE_MS, SearchingScene, useCreateFiche } from "./CreateFiche";
@@ -34,7 +34,7 @@ export default function VendorSearchBar() {
   const [shown, setShown] = useState(null); // { v, notice } : fiche ouverte après l'ajout
   const [devis, setDevis] = useState(null);
   const text = q.trim();
-  const searched = text.length >= 2;
+  const searched = text.length >= SEARCH_MIN;
 
   useEffect(() => {
     function onDocClick(e) {
