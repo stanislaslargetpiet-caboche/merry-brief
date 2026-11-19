@@ -609,6 +609,9 @@
 .pl-funnel-table .pl-table tr > :nth-last-child(-n + 2) { padding-right: 0; }
 .pl-funnel-table .pl-table td:first-child { white-space: normal; }
 .pl-funnel-table .pl-icone { width: 24px; height: 24px; margin-top: 5px; }
+/* Prestataires › Funnel : pas de corbeille en bout de ligne, les crédits gardent leur marge avant « À regarder » */
+.pl-funnel-table.is-pros .pl-table tr > :nth-last-child(2) { padding-right: 16px; }
+.pl-funnel-table.is-pros .pl-table td:first-child { min-width: 170px; }
 .pl-switch {
   flex: none; position: relative; width: 52px; height: 32px; padding: 0; border: none; border-radius: 999px;
   background: var(--border-strong); cursor: pointer; transition: background 0.15s ease;

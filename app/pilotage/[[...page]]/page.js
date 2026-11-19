@@ -11,6 +11,7 @@ import Connexion from "@/components/pilotage/Connexion";
 import Couts from "@/components/pilotage/Couts";
 import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import CouplesFunnel from "@/components/pilotage/CouplesFunnel";
+import PrestatairesFunnel from "@/components/pilotage/PrestatairesFunnel";
 import Demandes from "@/components/pilotage/Demandes";
 import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
@@ -450,6 +451,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
           <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={pct} sub={`des ${fmtInt(t.catalogue_actifs)} fiches actives`} />
         </TileChart>
       </Section>
+
+      <PrestatairesFunnel data={data.utilisateurs} />
 
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
 
