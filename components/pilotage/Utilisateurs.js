@@ -70,7 +70,7 @@ export function visiteCell(r) {
 }
 
 // Dernière session enregistrée par PostHog, tous comptes du couple confondus (withPostHog)
-function replayCell(r) {
+export function replayCell(r) {
   const first = r.comptes?.[0];
   if (r.posthog === undefined) return first?.id ? <PillLink tone="neutral" href={posthogPersonUrl(first.id)} title="PostHog non lu : fiche de la personne">PostHog</PillLink> : "–";
   if (r.posthog === "jamais") return <span title="Aucun événement PostHog en 90 jours : cookies refusés ou jamais acceptés, ou PostHog bloqué par le navigateur."><Pill>sans cookies</Pill></span>;
