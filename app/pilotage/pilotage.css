@@ -336,17 +336,6 @@
 .pl-form-err { font-size: 13px; color: var(--error-text); }
 /* Demandes d'accès : les deux boutons sous la demande */
 .pl-demande-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
-.pl-reseau-liste { display: grid; gap: 8px; }
-.pl-reseau-creneau { display: grid; gap: 8px; }
-.pl-reseau-creneau + .pl-reseau-creneau { margin-top: 12px; }
-.pl-reseau-creneau h3 { margin: 4px 0 0; font-size: 15px; font-weight: 600; }
-.pl-reseau-ligne > div { flex: 1; min-width: 0; }
-.pl-reseau-recu { margin: 8px 0 0; padding: 8px 12px; border-left: 3px solid var(--border-strong); color: var(--ink-muted); font-size: 13px; white-space: pre-wrap; }
-.pl-reseau-message { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.45; color: var(--ink); border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); resize: vertical; }
-.pl-reseau-liens { display: flex; flex-wrap: wrap; gap: 12px; }
-.pl-reseau-liens a { color: inherit; }
-.pl-reseau-statut { font: inherit; font-size: 13px; color: var(--ink); min-height: 32px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); }
-.pl-reseau-ajout { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
 .pl-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--ink-muted); text-decoration: underline; cursor: pointer; }
 
 /* Utilisateurs : les noms derrière les chiffres */
@@ -539,7 +528,7 @@
   .pl-ligne-a { margin-left: auto; }
 }
 
-/* Aujourd'hui : le fil en blocs (mes tâches, bugs, réseau, alertes), une icône citron par bloc */
+/* Aujourd'hui : le fil en blocs (mes tâches, bugs, alertes), une icône citron par bloc */
 .pl-fil { display: grid; gap: 16px; min-width: 0; }
 .pl-section h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .pl-section h3 svg { flex: none; }
@@ -571,10 +560,6 @@
 .pl-rapport a { font-size: 12px; font-weight: 600; color: var(--ink-muted); text-decoration: underline; }
 .pl-agent-etat.is-echec { color: var(--error-text); }
 .pl-agent-etat a { color: inherit; text-decoration: underline; }
-.pl-creneau + .pl-creneau { margin-top: 12px; }
-.pl-creneau h4 { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; font-size: 13px; font-weight: 700; color: var(--ink-muted); }
-.pl-canal { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--sunken); }
-.pl-ligne-reseau { min-height: 50px; }
 /* Mails automatiques : adresse et objet sur une ligne chacun, l'heure en pastille à droite, téléphone compris */
 .pl-ligne-mail { min-height: 50px; }
 .pl-ligne-pastilles { flex: none; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
