@@ -4,7 +4,7 @@
 
 import { requirePilot } from "@/lib/server/pilotage/auth";
 import { randomBytes, randomUUID } from "node:crypto";
-import { briefAgent, estAlerteBug, estBug, MODES_AGENT } from "@/lib/pilotage/agent";
+import { briefAgent, estAlerteBug, estBug, MODES_AGENT, prDuRapport } from "@/lib/pilotage/agent";
 import { publicOrigin } from "@/lib/server/origin";
 
 export const runtime = "nodejs";
@@ -13,13 +13,34 @@ export const dynamic = "force-dynamic";
 const NO_STORE = { "cache-control": "private, no-store" };
 const validId = (id) => /^[0-9a-f-]{36}$/i.test(id);
 
-// Les rapports déjà rendus ou attendus : { cle, mode, statut, session, texte, maj_le } ; sans la table, une liste vide
+// État d'une PR du dépôt (public) : ouverte, fusionnee ou fermee ; null si GitHub ne répond pas. Gardé 5 minutes en cache.
+async function etatPr(numero) {
+  try {
+    const jeton = process.env.GITHUB_TOKEN;
+    const res = await fetch(`https://api.github.com/repos/stanislaslargetpiet-caboche/merry-brief/pulls/${numero}`, {
+      headers: { accept: "application/vnd.github+json", ...(jeton ? { authorization: `Bearer ${jeton}` } : {}) },
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const pr = await res.json();
+    return pr.merged_at ? "fusionnee" : pr.state === "closed" ? "fermee" : "ouverte";
+  } catch {
+    return null;
+  }
+}
+
+// Les rapports déjà rendus ou attendus : { cle, mode, statut, session, texte, maj_le, pr? } ; sans la table, une liste vide.
+// pr = { numero, etat } quand le compte rendu demande de fusionner une PR : la carte montre où elle en est.
 export async function GET(req) {
   const who = await requirePilot(req);
   if (who.refus) return who.refus;
   const { data, error } = await who.admin.from("pilotage_rapports").select("cle, mode, statut, session, texte, maj_le").order("maj_le", { ascending: false }).limit(100);
   if (error) return Response.json({ rapports: [] }, { headers: NO_STORE });
-  return Response.json({ rapports: data || [] }, { headers: NO_STORE });
+  const rapports = (data || []).map((r) => ({ ...r, pr: r.statut === "pret" ? prDuRapport(r.texte) : null }));
+  const numeros = [...new Set(rapports.map((r) => r.pr).filter(Boolean))].slice(0, 20);
+  const etats = Object.fromEntries(await Promise.all(numeros.map(async (n) => [n, await etatPr(n)])));
+  return Response.json({ rapports: rapports.map((r) => ({ ...r, pr: r.pr ? { numero: r.pr, etat: etats[r.pr] } : null })) }, { headers: NO_STORE });
 }
 
 export async function POST(req) {

@@ -10,7 +10,7 @@ import { useGo } from "@/components/pilotage/PilotNav";
 import { Card, Pill, PilotDots, Tile } from "@/components/pilotage/ui";
 import { buildFil, choisirLecture, etatFil, grilleMois, itemAction, libelleEcheance, lireEdition, moisDecale, parseCapture, rangerTaches, raccourcisDate, RECURRENCES } from "@/lib/pilotage/items";
 import { pilotagePath } from "@/lib/pilotage/nav";
-import { briefAgent, estAlerteBug } from "@/lib/pilotage/agent";
+import { briefAgent, estAlerteBug, statutBug } from "@/lib/pilotage/agent";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
 import { demoItems } from "@/lib/server/pilotage/demo";
@@ -245,12 +245,15 @@ function useRapports(demo) {
   useEffect(() => {
     lire();
   }, [lire]);
+  // Toutes les 20 s tant qu'un agent travaille, toutes les 5 min tant qu'une PR attend d'être fusionnée
   const attente = Object.values(rapports).some((r) => r.statut === "en_cours");
+  const aFusionner = Object.values(rapports).some((r) => r.pr?.etat === "ouverte");
+  const rythme = attente ? 20000 : aFusionner ? 300000 : 0;
   useEffect(() => {
-    if (!attente) return;
-    const t = setInterval(lire, 20000);
+    if (!rythme) return;
+    const t = setInterval(lire, rythme);
     return () => clearInterval(t);
-  }, [attente, lire]);
+  }, [rythme, lire]);
   return { rapports, relire: lire };
 }
 
@@ -277,6 +280,28 @@ function useAgent(l, demo, rapport, relire) {
   const vu = rapport && rapport.statut === "en_cours" && (!agent || agent.etat === "lance") ? { mode: rapport.mode, etat: "lance", session: rapport.session } : agent;
   return { agent: vu, lancer, envoi: agent?.etat === "envoi", pret: rapport?.statut === "pret" };
 }
+
+// Une PR fusionnée règle le bug : la carte s'écarte d'elle-même, comme sous le bouton Écarter
+function useRegle(rapport, g, demo) {
+  const parti = useRef(false);
+  const fusionnee = rapport?.statut === "pret" && rapport.pr?.etat === "fusionnee";
+  useEffect(() => {
+    if (!fusionnee || demo || parti.current) return;
+    parti.current = true;
+    g.fait();
+  }, [fusionnee, demo, g]);
+}
+
+const PastilleStatut = ({ statut }) =>
+  statut ? (
+    statut.lien ? (
+      <a href={statut.lien} target="_blank" rel="noreferrer" className="pl-statut-lien">
+        <Pill tone={statut.ton}>{statut.texte}</Pill>
+      </a>
+    ) : (
+      <Pill tone={statut.ton}>{statut.texte}</Pill>
+    )
+  ) : null;
 
 // Le bouton Rapport et le compte rendu de l'agent, dans l'ordre de ses quatre rubriques
 function BoutonRapport({ ouvert, setOuvert }) {
@@ -329,6 +354,8 @@ function CarteBug({ l, demo, rapport, relire, ...gestes }) {
   const [ouvert, setOuvert] = useState(false);
   const [rapportOuvert, setRapportOuvert] = useState(false);
   const { agent, lancer, envoi, pret } = useAgent(l, demo, rapport, relire);
+  useRegle(rapport, g, demo);
+  const statut = statutBug(rapport);
   return (
     <li className="pl-bug">
       <span className="pl-bug-ico">
@@ -337,7 +364,7 @@ function CarteBug({ l, demo, rapport, relire, ...gestes }) {
       <div className="pl-bug-corps">
         <div className="pl-bug-tete">
           <strong>{l.titre}</strong>
-          {l.retard ? <Pill tone="warn">En retard</Pill> : null}
+          {statut ? <PastilleStatut statut={statut} /> : l.retard ? <Pill tone="warn">En retard</Pill> : null}
         </div>
         {l.sous ? <p className={`pl-bug-texte${ouvert ? " is-ouvert" : ""}`}>{l.sous}</p> : null}
         {l.sous && l.sous.length > 160 ? (
@@ -377,12 +404,15 @@ function LigneAlerte({ l, demo, rapport, relire, ...gestes }) {
   const [rapportOuvert, setRapportOuvert] = useState(false);
   const { agent, lancer, envoi, pret } = useAgent(l, demo, rapport, relire);
   const bug = l.source === "alerte" && estAlerteBug(l.titre);
+  useRegle(rapport, g, demo);
+  const statut = pret ? statutBug(rapport) : null;
   return (
     <li className="pl-ligne pl-ligne-alerte">
       <span className="pl-ligne-t">
         <strong>{l.titre}</strong>
         {l.sous ? <small>{l.sous}</small> : null}
         <EtatAgent agent={agent} pret={pret} />
+        <PastilleStatut statut={statut} />
       </span>
       <Pill tone={l.tone}>{l.tag}</Pill>
       <span className="pl-ligne-a">
