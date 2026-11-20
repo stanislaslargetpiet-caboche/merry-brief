@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { visitesHumaines } from "@/lib/server/pilotage/shape";
 import { barPath, courbePath, cumulSerie, echelle, indicesAxe, mesureDepuis, pasAxe } from "@/lib/pilotage/graphes";
 
 describe("echelle", () => {
@@ -81,5 +82,18 @@ describe("mesureDepuis", () => {
     const out = mesureDepuis([{ jour: "2026-11-01", n: 3, m: 2 }], "n", "2026-11-03");
     expect(out[0]).toEqual({ jour: "2026-11-01", n: null, m: 2 });
     expect(mesureDepuis(undefined, "n", "2026-11-03")).toEqual([]);
+  });
+});
+
+describe("visitesHumaines (D-374)", () => {
+  it("retire les visites qui n'ont pas l'allure d'un navigateur", () => {
+    expect(visitesHumaines({ visites: 80, mesurees: 80, douteuses: 65 })).toBe(15);
+  });
+  it("laisse sans mesure un jour en partie non relevé", () => {
+    expect(visitesHumaines({ visites: 80, mesurees: 30, douteuses: 20 })).toBe(null);
+    expect(visitesHumaines({ visites: 80, mesurees: 0, douteuses: 0 })).toBe(null);
+  });
+  it("compte zéro un jour sans visite", () => {
+    expect(visitesHumaines({ visites: 0, mesurees: 0, douteuses: 0 })).toBe(0);
   });
 });

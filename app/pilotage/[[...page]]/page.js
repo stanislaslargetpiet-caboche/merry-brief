@@ -24,7 +24,7 @@ import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
-import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure } from "@/lib/server/pilotage/shape";
+import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure, visitesHumaines } from "@/lib/server/pilotage/shape";
 import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie, mesureDepuis } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
@@ -342,16 +342,21 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   const arrivees = useMemo(() => {
     const comptes = new Map(heures ? data.utilisateurs.comptes_heures : (sb?.series || []).map((r) => [r.jour, Number(r.inscriptions) || 0]));
     const visites = alignSeries(heures || joursList, heures ? ph.site.visites_heures : ph?.site?.visites, ["visites", "mesurees", "douteuses"]);
-    const debut = heures ? 0 : visites.findIndex((r) => r.visites > 0);
-    return visites.map((r, i) => ({ ...r, visites: i < debut ? null : r.visites, comptes: comptes.get(r.jour) || 0, taux: pctOf(comptes.get(r.jour) || 0, r.visites) }));
+    // Visites humaines : celles qui n'ont pas l'allure d'un navigateur ordinaire sont retirées (D-374, visitesHumaines)
+    // Avant le premier relevé, un jour sans visite n'est pas un zéro mais une absence de mesure
+    const debut = heures ? 0 : visites.findIndex((r) => r.mesurees > 0);
+    return visites.map((r, i) => {
+      const v = debut < 0 || i < debut ? null : visitesHumaines(r);
+      return { ...r, visites: v, comptes: comptes.get(r.jour) || 0, taux: v === null ? null : pctOf(comptes.get(r.jour) || 0, v) };
+    });
   }, [heures, joursList, ph, sb, data.utilisateurs]);
   const arriveesSplit = useMemo(() => splitSeries(arrivees, pasSite), [arrivees, pasSite]);
   // Allure des visites relevée depuis peu : seules les visites mesurées entrent dans ce pourcentage, toutes restent comptées
   const mesurees = sumBy(arriveesSplit.current, "mesurees") || 0;
   const douteuses = sumBy(arriveesSplit.current, "douteuses") || 0;
   const noteAllure = mesurees
-    ? `Relevé récent : ${fmtInt(douteuses)} visites sur ${fmtInt(mesurees)} (${pctOf(douteuses, mesurees)} %) n'ont pas l'allure d'un navigateur ordinaire (script, ou navigateur très ancien). Elles restent comptées dans le total.`
-    : "Relevé de l'allure des visites (navigateur ordinaire ou script) : aucune visite mesurée sur la période pour l'instant.";
+    ? `${fmtInt(douteuses)} passages sur ${fmtInt(mesurees)} (${pctOf(douteuses, mesurees)} %) n'avaient pas l'allure d'un navigateur ordinaire (script, ou navigateur très ancien) : ils ne sont pas comptés. Avant le 12 nov., pas de mesure.`
+    : "Visites humaines mesurées depuis le 12 nov. : aucune sur la période.";
   const robots = useMemo(() => alignSeries(heures || joursList, heures ? ph.site.robots_heures : ph?.site?.robots, ["robots"]), [heures, joursList, ph]);
   const robotsSplit = useMemo(() => splitSeries(robots, pasSite), [robots, pasSite]);
   const reponsesForm = useMemo(() => mesureDepuis(sb?.series, "reponses_formulaire", DEBUT_JOURNAL_RSVP), [sb]);
