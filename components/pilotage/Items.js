@@ -13,12 +13,11 @@ import { pilotagePath } from "@/lib/pilotage/nav";
 import { briefAgent, estAlerteBug } from "@/lib/pilotage/agent";
 import { fmtDay } from "@/lib/server/pilotage/shape";
 import { parisDay } from "@/lib/server/pilotage/reseau";
-import { demoAgenda, demoItems } from "@/lib/server/pilotage/demo";
+import { demoItems } from "@/lib/server/pilotage/demo";
 
 const URL_ITEMS = "/api/interne/pilotage/items";
 const URL_CONTACT = "/api/interne/pilotage/reseau";
 const URL_PLAN = "/api/interne/pilotage/reseau/plan";
-const URL_AGENDA = "/api/interne/pilotage/agenda";
 const URL_AGENT = "/api/interne/pilotage/agent";
 
 async function call(method, body, url = URL_ITEMS) {
@@ -82,23 +81,6 @@ export function useItems(status) {
   );
 
   return { ...state, status, err, agir };
-}
-
-// Lu à part des indicateurs, plus lents : les meetings s'affichent sans les attendre
-function useAgenda(status) {
-  const [agenda, setAgenda] = useState(null);
-  useEffect(() => {
-    if (status === "demo") return setAgenda(demoAgenda());
-    if (status !== "ok") return;
-    let vivant = true;
-    call("GET", null, URL_AGENDA)
-      .then((a) => vivant && setAgenda(a))
-      .catch(() => vivant && setAgenda({ disponible: false, raison: "Agenda non lu" }));
-    return () => {
-      vivant = false;
-    };
-  }, [status]);
-  return agenda;
 }
 
 // Ajouter, en bas de la barre latérale ; ⌘ K l'ouvre depuis n'importe quelle page
@@ -488,27 +470,6 @@ function FilGroupe({ fil, gestes, demo }) {
   );
 }
 
-function Meetings({ status }) {
-  const agenda = useAgenda(status);
-  const meetings = agenda?.meetings || [];
-  return (
-    <Card title={`Meetings avec l'extérieur${meetings.length ? ` · ${meetings.length}` : ""}`}>
-      {meetings.length ? (
-        <dl className="pl-facts">
-          {meetings.map((m) => (
-            <div key={m.id}>
-              <dt>{m.personnes}</dt>
-              <dd>{m.heure}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : (
-        <p className="pl-empty">{!agenda ? <PilotDots label="Lecture de l'agenda" /> : agenda.disponible ? "Aucun aujourd'hui" : agenda.raison}</p>
-      )}
-    </Card>
-  );
-}
-
 function Morceaux({ liste }) {
   return liste.map((m, i) =>
     m.lien ? (
@@ -616,7 +577,6 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, 
           </Card>
         )}
         <div className="pl-jour-side">
-          <Meetings status={liste.status} />
           <a className="pl-card pl-compteur" href={pageTaches} onClick={(e) => go(e, pageTaches)}>
             <span>{liste.charge ? nbTaches : "–"}</span>
             Tâches
