@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { briefAgent, estAlerteBug, estBug, titreBug } from "@/lib/pilotage/agent";
+import { briefAgent, estAlerteBug, estBug, prDuRapport, statutBug, titreBug } from "@/lib/pilotage/agent";
 import { buildFil } from "@/lib/pilotage/items";
 
 const bug = { id: "a", type: "tache", statut: "a_faire", priorite: 0, recurrence: "", detail: "Clic mort sur iPhone.", lien: "", echeance: "2026-11-09", cle: "", projet: "Bugs", titre: "Bug à arbitrer : inscription par invitation" };
@@ -58,5 +58,26 @@ describe("bugs du pilotage", () => {
     expect(brief).toContain("Alerte : 20 clic(s) de rage");
     expect(brief).toContain("Détail : au même endroit");
     expect(brief).not.toContain("ce bug");
+  });
+});
+
+describe("statut d'un bug après l'agent", () => {
+  const url = (n) => `https://github.com/stanislaslargetpiet-caboche/merry-brief/pull/${n}`;
+  const texte = `1. Verdict\nC'est corrigé.\n\n2. Effet\nGênant.\n\n3. À faire\nRelis et fusionne la PR ${url(469)}, puis colle le SQL.\n\n4. Détail technique\nRemplace la PR ${url(453)}.`;
+  it("lit la PR dans la rubrique À faire, pas celles citées dans le détail", () => {
+    expect(prDuRapport(texte)).toBe(469);
+    expect(prDuRapport(`Verdict\nCorrigé.\n\nÀ faire\nRelis et fusionne la PR : ${url(461)}\n\nDétail technique\nPR ${url(456)}`)).toBe(461);
+    expect(prDuRapport(`1. Verdict\nok\n\n3. À faire\nRien à faire.\n\n4. Détail technique\nVoir ${url(457)}`)).toBe(null);
+    expect(prDuRapport("")).toBe(null);
+  });
+  it("donne une pastille par étape, et Réparé une fois la PR fusionnée", () => {
+    expect(statutBug(null)).toBe(null);
+    expect(statutBug({ statut: "en_cours", mode: "reparer" }).texte).toBe("Réparation en cours");
+    expect(statutBug({ statut: "pret", mode: "reparer", texte, pr: { numero: 469, etat: "ouverte" } })).toEqual({ texte: "Réparé, PR 469 à fusionner", ton: "warn", lien: url(469) });
+    expect(statutBug({ statut: "pret", mode: "reparer", texte, pr: { numero: 469, etat: "fusionnee" } }).texte).toBe("Réparé");
+    expect(statutBug({ statut: "pret", mode: "reparer", texte, pr: { numero: 469, etat: "fermee" } }).ton).toBe("bad");
+    expect(statutBug({ statut: "pret", mode: "reparer", texte, pr: { numero: 469, etat: null } }).texte).toBe("Réparé, PR 469 à fusionner");
+    expect(statutBug({ statut: "pret", mode: "audit", texte: "1. Verdict\nRas.\n\n3. À faire\nRien à faire.\n\n4. Détail technique\n…", pr: null }).texte).toBe("Rien à faire");
+    expect(statutBug({ statut: "pret", mode: "audit", texte: "3. À faire\nClique Réparer.", pr: null }).texte).toBe("Audit rendu");
   });
 });

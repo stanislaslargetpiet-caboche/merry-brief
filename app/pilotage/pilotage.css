@@ -633,3 +633,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pl-switch, .pl-switch span { transition: none; }
 }
+.pl-statut-lien { text-decoration: none; display: inline-flex; }
+.pl-statut-lien:hover .pl-pill { text-decoration: underline; }
