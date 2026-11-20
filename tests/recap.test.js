@@ -81,26 +81,33 @@ describe("recapMail", () => {
     expect(recapMail({ ...base, semaine: { ...vide, ajouts: [{ author: "Thomas", count: 4, moi: false }] }, taches: [] }).subject).toBe("La semaine : 4 invités ajoutés");
     expect(mail.text).toContain("/dashboard/invites/importer?utm_source=mail");
   });
+  it("D-377 : liste remplie mais aucun prestataire, contacter un premier prestataire passe avant le budget", () => {
+    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: {} });
+    expect(mail.variante).toBe("calme");
+    expect(mail.text).toContain("Contacter un premier prestataire (5 minutes)");
+    expect(mail.text).toContain("Voir les prestataires");
+    expect(mail.text).toContain("/dashboard/prestataires?utm_source=mail");
+  });
   it("V65 bis : liste remplie mais budget vide (ancien V62)", () => {
-    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { formulaire: true } });
+    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { prestataires: true, formulaire: true } });
     expect(mail.variante).toBe("calme");
     expect(mail.text).toContain("Compléter ton budget (10 minutes)");
     expect(mail.text).toContain("Ouvrir mon budget");
   });
   it("V65 bis : budget fait mais formulaire jamais partagé (ancien V63)", () => {
-    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { budget: true } });
+    const mail = recapMail({ ...base, semaine: vide, taches: [], usage: { prestataires: true, budget: true } });
     expect(mail.variante).toBe("calme");
     expect(mail.text).toContain("Créer ton formulaire invités (10 minutes)");
     expect(mail.text).toContain("Créer mon formulaire");
   });
   it("V65 bis : liste, budget et formulaire faits, la prochaine tâche du rétroplanning (ancien V58)", () => {
-    const mail = recapMail({ ...base, semaine: vide, weddingDate: null, taches: [{ title: "Choisir le lieu", due_date: "2026-11-01" }], usage: { budget: true, formulaire: true } });
+    const mail = recapMail({ ...base, semaine: vide, weddingDate: null, taches: [{ title: "Choisir le lieu", due_date: "2026-11-01" }], usage: { prestataires: true, budget: true, formulaire: true } });
     expect(mail.text).toContain("Choisir le lieu (en retard)");
     expect(mail.text).toContain("Ouvrir le rétroplanning");
     expect(mail.text).not.toContain("jours avant");
   });
   it("rien à dire : semaine calme, tout fait et plus rien à faire", () => {
-    expect(recapMail({ ...base, semaine: vide, taches: [], usage: { budget: true, formulaire: true } })).toBeNull();
+    expect(recapMail({ ...base, semaine: vide, taches: [], usage: { prestataires: true, budget: true, formulaire: true } })).toBeNull();
   });
   it("D-331 : un parent ou témoin reçoit un texte neutre, sans fonction à essayer, et rien une semaine calme", () => {
     const mail = recapMail({
