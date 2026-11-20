@@ -65,11 +65,10 @@ describe("rangerTaches", () => {
 });
 
 describe("buildFil", () => {
-  it("réunit alerte, demande, réseau et tâche, dans cet ordre", () => {
+  it("réunit alerte, demande et tâche, dans cet ordre", () => {
     const fil = buildFil({
       today: LUNDI,
       items: [item({ titre: "Tâche", echeance: LUNDI }), item({ id: "b", titre: "Demain", echeance: "2026-11-10" })],
-      reseau: { plan: { jour: LUNDI, creneaux: [{ lignes: [{ id: "p", statut: "a_faire", nom: "Yseulys Costes", entreprise: "Numberly", titre: "", message: "x" }, { id: "q", statut: "fait", nom: "Vue" }] }] }, a_faire: [] },
       demandes: { disponible: true, en_attente: [{}] },
       sante: [
         { tone: "warn", titre: "20 clic(s) de rage", detail: "" },
@@ -77,16 +76,12 @@ describe("buildFil", () => {
         { tone: "ok", titre: "Aucune erreur", detail: "" },
       ],
     });
-    expect(fil.map((l) => l.titre)).toEqual(["Sitemap illisible", "1 demande(s) d'accès à une fiche", "Yseulys Costes", "Tâche", "20 clic(s) de rage"]);
-    expect(fil[2].sous).toBe("Numberly · message prêt");
+    expect(fil.map((l) => l.titre)).toEqual(["Sitemap illisible", "1 demande(s) d'accès à une fiche", "Tâche", "20 clic(s) de rage"]);
   });
   it("une alerte vue disparaît, et revient si son texte change", () => {
     const items = [item({ type: "alerte", statut: "fait", cle: "alerte:20 clic(s) de rage" })];
     expect(buildFil({ today: LUNDI, items, sante: [{ tone: "warn", titre: "20 clic(s) de rage" }] })).toEqual([]);
     expect(buildFil({ today: LUNDI, items, sante: [{ tone: "warn", titre: "21 clic(s) de rage" }] })).toHaveLength(1);
-  });
-  it("le plan d'un autre jour n'entre pas dans le fil", () => {
-    expect(buildFil({ today: LUNDI, reseau: { plan: { jour: "2026-11-10", creneaux: [{ lignes: [{ id: "p", statut: "a_faire", nom: "X" }] }] } } })).toEqual([]);
   });
 });
 
@@ -114,7 +109,7 @@ describe("etatFil", () => {
   });
 
   it("dit ce qui manque quand une lecture échoue", () => {
-    expect(etatFil({ charge: true, indicateurs: "erreur" })).toEqual({ complet: false, message: "Réseau, demandes et alertes non lus" });
+    expect(etatFil({ charge: true, indicateurs: "erreur" })).toEqual({ complet: false, message: "Demandes et alertes non lues" });
     expect(etatFil({ charge: false, err: "Liste non lue : erreur 502", indicateurs: "lecture" })).toEqual({ complet: false, message: "Liste non lue" });
   });
 });

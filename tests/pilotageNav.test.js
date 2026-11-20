@@ -39,8 +39,8 @@ describe("resolvePage", () => {
 });
 
 describe("pathFromHash", () => {
-  it("reprend les treize anciennes ancres", () => {
-    const anciens = ["sante", "utilisateurs", "demandes", "reseau", "nouveautes", "couts", "site", "referencement", "appli", "produit", "prestataires", "mails", "bugs"];
+  it("reprend les douze anciennes ancres", () => {
+    const anciens = ["sante", "utilisateurs", "demandes", "nouveautes", "couts", "site", "referencement", "appli", "produit", "prestataires", "mails", "bugs"];
     for (const id of anciens) expect(pathFromHash(`#${id}`)).toMatch(/^\/pilotage\/[a-z]+\/[a-z]+$/);
     expect(pathFromHash("#demandes")).toBe(pilotagePath("prestataires", "demandes"));
     expect(pathFromHash("#nouveautes")).toBe(pilotagePath("acquisition", "campagnes"));
@@ -53,8 +53,8 @@ describe("pathFromHash", () => {
 });
 
 describe("PILOTAGE_NAV", () => {
-  it("huit boutons, quatre sous-pages au plus, identifiants de page uniques", () => {
-    expect(PILOTAGE_NAV.map((g) => g.id)).toEqual(["aujourdhui", "taches", "reseau", "couples", "prestataires", "acquisition", "mails", "coulisses"]);
+  it("sept boutons, quatre sous-pages au plus, identifiants de page uniques", () => {
+    expect(PILOTAGE_NAV.map((g) => g.id)).toEqual(["aujourdhui", "taches", "couples", "prestataires", "acquisition", "mails", "coulisses"]);
     for (const g of PILOTAGE_NAV) expect(g.pages.length).toBeLessThanOrEqual(4);
     const ids = PILOTAGE_NAV.flatMap((g) => g.pages.map((p) => p.id));
     expect(new Set(ids).size).toBe(ids.length);

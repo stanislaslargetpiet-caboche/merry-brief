@@ -12,7 +12,7 @@ import { buildFil, choisirLecture, etatFil, grilleMois, itemAction, libelleEchea
 import { pilotagePath } from "@/lib/pilotage/nav";
 import { briefAgent, estAlerteBug } from "@/lib/pilotage/agent";
 import { fmtDay } from "@/lib/server/pilotage/shape";
-import { CRENEAUX, parisDay } from "@/lib/server/pilotage/reseau";
+import { parisDay } from "@/lib/server/pilotage/reseau";
 import { demoAgenda, demoItems } from "@/lib/server/pilotage/demo";
 
 const URL_ITEMS = "/api/interne/pilotage/items";
@@ -387,29 +387,6 @@ function CarteBug({ l, demo, rapport, relire, ...gestes }) {
   );
 }
 
-const ICONES_CANAL = { linkedin: "linkedin", mail: "email", appel: "telephone", intro: "intro" };
-
-function LigneReseau({ l, ...gestes }) {
-  const g = useGestes(l, gestes);
-  return (
-    <li className="pl-ligne pl-ligne-reseau">
-      <Tick l={l} g={g} />
-      <span className="pl-canal">
-        <PilotIcon name={ICONES_CANAL[l.canal] || "reseau"} size={22} />
-      </span>
-      <span className="pl-ligne-t">
-        <strong>{l.titre}</strong>
-        {l.sous ? <small>{l.sous}</small> : null}
-      </span>
-      {l.pret ? <Pill tone="lime">Message prêt</Pill> : null}
-      {l.retard ? <Pill tone="warn">En retard</Pill> : null}
-      <span className="pl-ligne-a">
-        <PlusTard g={g} />
-        <Ouvrir l={l} />
-      </span>
-    </li>
-  );
-}
 
 // Une alerte se traite ou s'écarte : Auditer et Réparer pour celles qui parlent de bugs, Écarter quand elle est déjà traitée
 // ou n'est plus d'actualité (elle revient si son texte change)
@@ -471,15 +448,13 @@ function Section({ icone, titre, n, className = "", plie = false, children }) {
   );
 }
 
-// Le fil du jour en quatre blocs : ce que Stan a ajouté, les bugs, le réseau, les alertes
+// Le fil du jour en trois blocs : ce que Stan a ajouté, les bugs, les alertes
 function FilGroupe({ fil, gestes, demo }) {
   const { rapports, relire } = useRapports(demo);
   const du = (g) => fil.filter((l) => l.groupe === g);
   const taches = du("taches");
   const bugs = du("bugs");
-  const reseau = du("reseau");
   const alertes = du("alertes");
-  const creneaux = [...new Set(reseau.map((l) => l.creneau))].map((id) => ({ id, label: id === "relance" ? "Relances du pipeline" : CRENEAUX_LABELS[id] || "Réseau", lignes: reseau.filter((l) => l.creneau === id) }));
   return (
     <div className="pl-fil">
       {taches.length ? (
@@ -500,23 +475,6 @@ function FilGroupe({ fil, gestes, demo }) {
           </ul>
         </Section>
       ) : null}
-      {reseau.length ? (
-        <Section icone="reseau" titre="Réseau" n={reseau.length} plie>
-          {creneaux.map((c) => (
-            <div key={c.id} className="pl-creneau">
-              <h4>
-                <PilotIcon name="horloge" size={16} />
-                {c.label}
-              </h4>
-              <ul className="pl-lignes">
-                {c.lignes.map((l) => (
-                  <LigneReseau key={l.cle} l={l} {...gestes} />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </Section>
-      ) : null}
       {alertes.length ? (
         <Section icone="alerte" titre="Alertes" n={alertes.length}>
           <ul className="pl-lignes">
@@ -529,8 +487,6 @@ function FilGroupe({ fil, gestes, demo }) {
     </div>
   );
 }
-
-const CRENEAUX_LABELS = Object.fromEntries(CRENEAUX.map((c) => [c.id, c.label]));
 
 function Meetings({ status }) {
   const agenda = useAgenda(status);
@@ -629,7 +585,7 @@ export function Aujourdhui({ liste, data, sante, today, tuiles, reload, search, 
   const pageTaches = `${pilotagePath("taches", "liste")}${search}`;
   const [retires, setRetires] = useState([]);
   const items = liste.items;
-  const fil = useMemo(() => buildFil({ items, reseau: data.reseau, demandes: data.demandes, sante, today }).filter((l) => !retires.includes(l.cle)), [items, data.reseau, data.demandes, sante, today, retires]);
+  const fil = useMemo(() => buildFil({ items, demandes: data.demandes, sante, today }).filter((l) => !retires.includes(l.cle)), [items, data.demandes, sante, today, retires]);
   const retirer = useCallback((cle) => setRetires((r) => [...r, cle]), []);
   const mot = items.filter((i) => i.type === "mot" && i.statut === "a_faire").sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))[0];
   const nbTaches = rangerTaches(items, today).reduce((n, g) => n + g.lignes.length, 0);

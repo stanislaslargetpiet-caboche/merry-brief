@@ -20,7 +20,6 @@ import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Erreurs from "@/components/pilotage/Erreurs";
 import Rage from "@/components/pilotage/Rage";
-import Reseau from "@/components/pilotage/Reseau";
 import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
@@ -460,8 +459,6 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <PrestatairesFunnel data={data.utilisateurs} />
 
       <Demandes demandes={data.demandes} demo={demo} onChange={reload} />
-
-      <Reseau reseau={data.reseau} demo={demo} onChange={reload} />
 
       <Section id="site">
         {ph ? (
