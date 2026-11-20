@@ -4,6 +4,7 @@
 // donc la route ne travaille que si l'heure de Paris est 20 ou 21 ; une clé par mariage, adresse et jour dans
 // mail_sent empêche tout double envoi. Viennent ensuite les mails de démarrage des couples
 // (lib/server/demarrageJob.js) : passés après, ils voient qui a déjà reçu le mail de 20 h et le laissent seul ce jour-là.
+// Puis ceux des prestataires (lib/server/demarrageProJob.js, D-378), sur la même règle d'un mail Merry par jour.
 // Le dimanche, le récap de la semaine (lib/server/recapJob.js, D-297) part avant tout le reste et remplace le mail de
 // 20 h pour ceux qui le reçoivent.
 //  GET  Vercel, jeton CRON_SECRET. ?force=1 ignore la fenêtre horaire, jamais la clé du jour.
@@ -13,6 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 import { publicOrigin } from "@/lib/server/origin";
 import { runActivite } from "@/lib/server/activiteJob";
 import { runDemarrage } from "@/lib/server/demarrageJob";
+import { runDemarragePro } from "@/lib/server/demarrageProJob";
 import { isSunday, recapRecus, runRecap } from "@/lib/server/recapJob";
 import { SEND_HOURS } from "@/lib/server/activiteMail";
 import { parisParts } from "@/lib/server/pilotage/schedule";
@@ -61,6 +63,13 @@ export async function GET(req) {
     console.error("[merry] mails de démarrage", e?.message || e);
     demarrage = { error: String(e?.message || e).slice(0, 200) };
   }
-  const failed = activite.error && demarrage.error;
-  return Response.json({ heure_paris: hour, dry, ...activite, demarrage, ...(recap ? { recap } : {}) }, { status: failed ? 500 : 200 });
+  let demarragePro;
+  try {
+    demarragePro = await runDemarragePro(admin, publicOrigin(), now, { dry });
+  } catch (e) {
+    console.error("[merry] mails de démarrage prestataires", e?.message || e);
+    demarragePro = { error: String(e?.message || e).slice(0, 200) };
+  }
+  const failed = activite.error && demarrage.error && demarragePro.error;
+  return Response.json({ heure_paris: hour, dry, ...activite, demarrage, demarrage_pro: demarragePro, ...(recap ? { recap } : {}) }, { status: failed ? 500 : 200 });
 }

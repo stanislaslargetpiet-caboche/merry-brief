@@ -34,6 +34,10 @@ const TEXTS = {
     ask: "Tu ne recevras plus les conseils pour bien démarrer sur Merry. Ton mariage reste sur Merry, et les mails qui le concernent continuent d’arriver.",
     done: "ne recevra plus les conseils pour bien démarrer. Les mails qui concernent son mariage continuent d’arriver.",
   },
+  demarrage_pro: {
+    ask: "Tu ne recevras plus les conseils pour bien démarrer sur Merry. Ta fiche et tes demandes restent dans ton espace prestataire, et les mails qui les concernent continuent d’arriver.",
+    done: "ne recevra plus les conseils pour bien démarrer. Les mails qui concernent sa fiche et ses demandes continuent d’arriver.",
+  },
   vendor: {
     ask: "Tu ne recevras plus de mail quand un couple t’écrit sur Merry. Ses messages resteront dans ton espace prestataire.",
     done: "ne recevra plus ces mails. Ses messages restent dans ton espace prestataire.",
