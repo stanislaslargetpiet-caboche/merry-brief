@@ -39,7 +39,7 @@ const STEPS = [
   CREDITS_ON
     ? { icon: "messagerie", title: "Vous utilisez des crédits pour y répondre.", text: "Les crédits servent seulement à activer l’entrée en relation, vous ne payez plus rien après." }
     : { icon: "messagerie", title: "Vous répondez gratuitement.", text: "Le contact du couple se débloque dès votre réponse." },
-  { icon: "avis", title: "Vous gérez la suite plus facilement.", text: "Envoi de devis, réception des paiements... tout se fait via Merry." },
+  { icon: "avis", title: "Vous gérez la suite plus facilement.", text: "Échanges, devis et suivi de vos clients : tout se fait via Merry." },
 ];
 
 // Un métier du catalogue = une ligne ; DJ et musiciens partagent le même tarif
