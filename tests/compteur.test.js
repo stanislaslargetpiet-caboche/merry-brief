@@ -43,15 +43,18 @@ describe("compteur anonyme", () => {
     expect(isRobot(UA)).toBe(false);
   });
 
-  it("regroupe les clics de rage par page gabarit, la plus touchée d'abord", () => {
+  it("regroupe les clics de rage par page gabarit, la plus touchée d'abord, avec l'élément le plus cliqué", () => {
+    // Lignes PostHog [hôte, chemin, élément cliqué, clics, dernier] ; l'élément manque sur les clics d'avant son relevé
     const rows = groupRage([
-      ["app.withmerry.com", "/dashboard/budget/prestataires/11111111-1111-1111-1111-111111111111", "2", "2026-11-10T08:00:00Z"],
-      ["app.withmerry.com", "/dashboard/budget/prestataires/22222222-2222-2222-2222-222222222222", "3", "2026-11-12T09:00:00Z"],
-      ["app.withmerry.com", "/dashboard/invites", "1", "2026-11-11T10:00:00Z"],
+      ["app.withmerry.com", "/dashboard/budget/prestataires/11111111-1111-1111-1111-111111111111", "button.bd-add", "2", "2026-11-10T08:00:00Z"],
+      ["app.withmerry.com", "/dashboard/budget/prestataires/22222222-2222-2222-2222-222222222222", "button.bd-add", "2", "2026-11-12T09:00:00Z"],
+      ["app.withmerry.com", "/dashboard/budget/prestataires/22222222-2222-2222-2222-222222222222", "span dans div.bd-row", "3", "2026-11-11T09:00:00Z"],
+      ["app.withmerry.com", "/dashboard/budget/prestataires/22222222-2222-2222-2222-222222222222", null, "1", "2026-11-01T09:00:00Z"],
+      ["app.withmerry.com", "/dashboard/invites", null, "1", "2026-11-11T10:00:00Z"],
     ]);
     expect(rows).toEqual([
-      { hote: "app.withmerry.com", chemin: "/dashboard/budget/prestataires/:id", n: 5, dernier: "2026-11-12T09:00:00Z" },
-      { hote: "app.withmerry.com", chemin: "/dashboard/invites", n: 1, dernier: "2026-11-11T10:00:00Z" },
+      { hote: "app.withmerry.com", chemin: "/dashboard/budget/prestataires/:id", n: 8, dernier: "2026-11-12T09:00:00Z", cible: "button.bd-add" },
+      { hote: "app.withmerry.com", chemin: "/dashboard/invites", n: 1, dernier: "2026-11-11T10:00:00Z", cible: null },
     ]);
   });
 

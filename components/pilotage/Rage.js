@@ -14,6 +14,7 @@ export default function Rage({ rage }) {
         cols={[
           { key: "chemin", label: "Page" },
           { key: "hote", label: "Site" },
+          { key: "cible", label: "Élément cliqué", render: (r) => r.cible || "non relevé" },
           { key: "n", label: "Clics", num: true },
           { key: "dernier", label: "Dernier clic", render: (r) => fmtDateTime(r.dernier) },
         ]}
