@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { visitesHumaines } from "@/lib/server/pilotage/shape";
-import { barPath, courbePath, cumulSerie, echelle, indicesAxe, mesureDepuis, pasAxe } from "@/lib/pilotage/graphes";
+import { courbePath, cumulSerie, echelle, mesureDepuis, moisSuivis, pasAxe } from "@/lib/pilotage/graphes";
 
 describe("echelle", () => {
   it("donne trois graduations rondes au-dessus de la valeur", () => {
@@ -12,16 +12,6 @@ describe("echelle", () => {
   it("garde un axe lisible quand il n'y a presque rien", () => {
     expect(echelle(0).ticks).toEqual([0, 1, 2]);
     expect(echelle(1).ticks).toEqual([0, 1, 2]);
-  });
-});
-
-describe("barPath", () => {
-  it("ne dessine rien sans hauteur", () => {
-    expect(barPath(0, 10, 20, 0, 10)).toBe("");
-  });
-
-  it("n'arrondit pas plus que la hauteur", () => {
-    expect(barPath(0, 9, 20, 1, 10)).toContain("Q0,9 1,9");
   });
 });
 
@@ -37,17 +27,6 @@ describe("courbePath", () => {
   it("tient avec un seul point ou aucun", () => {
     expect(courbePath([])).toBe("");
     expect(courbePath([{ x: 1, y: 2 }])).toBe("M1,2");
-  });
-});
-
-describe("indicesAxe", () => {
-  it("montre tous les jours quand ils ont la place", () => {
-    expect(indicesAxe(3, 60, 1)).toEqual([0, 1, 2]);
-  });
-
-  it("garde le début, la coupure et la fin sinon", () => {
-    expect(indicesAxe(14, 20, 7)).toEqual([0, 7, 13]);
-    expect(indicesAxe(14, 20, 0)).toEqual([0, 13]);
   });
 });
 
@@ -95,5 +74,31 @@ describe("visitesHumaines (D-374)", () => {
   });
   it("compte zéro un jour sans visite", () => {
     expect(visitesHumaines({ visites: 0, mesurees: 0, douteuses: 0 })).toBe(0);
+  });
+});
+
+describe("moisSuivis", () => {
+  it("comble les mois sans dépense jusqu'au mois en cours", () => {
+    const rows = moisSuivis([{ mois: "2026-09", n: 40 }, { mois: "2026-11", n: 12.5 }], "2026-12");
+    expect(rows).toEqual([
+      { jour: "2026-09", n: 40 },
+      { jour: "2026-10", n: 0 },
+      { jour: "2026-11", n: 12.5 },
+      { jour: "2026-12", n: 0 },
+    ]);
+  });
+
+  it("donne deux points à un seul mois saisi, et passe l'année", () => {
+    expect(moisSuivis([{ mois: "2027-01", n: 9 }], "2027-01")).toEqual([
+      { jour: "2026-12", n: 0 },
+      { jour: "2027-01", n: 9 },
+    ]);
+  });
+
+  it("s'arrête à douze mois et ne rend rien sans dépense", () => {
+    const rows = moisSuivis([{ mois: "2024-01", n: 1 }, { mois: "2026-11", n: 2 }], "2026-11");
+    expect(rows).toHaveLength(12);
+    expect(rows[0].jour).toBe("2025-12");
+    expect(moisSuivis([], "2026-11")).toEqual([]);
   });
 });

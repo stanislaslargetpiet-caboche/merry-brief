@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, DayBars, Pill, Section, Tile, TileChart } from "@/components/pilotage/ui";
+import { Card, DayLine, Pill, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { alignSeries } from "@/lib/server/pilotage/shape";
 
 async function call(init) {
@@ -30,7 +30,7 @@ function Chiffres({ data, visites, joursList, jours }) {
   const prev = data.precedente;
   return (
     <TileChart>
-      <Tile label="Envoyés" value={p.envoyes} prev={prev.envoyes} chart={<DayBars title="Envois par jour" series={alignSeries(joursList, data.par_jour, ["envois"])} keys={["envois"]} labels={["Envois"]} days={jours} />} />
+      <Tile label="Envoyés" value={p.envoyes} prev={prev.envoyes} chart={<DayLine title="Envois par jour" series={alignSeries(joursList, data.par_jour, ["envois"])} valeur="envois" label="Envois" days={jours} />} />
       <Tile label="Visites depuis le mail" value={sommeDe(visites, "periode")} prev={sommeDe(visites, "precedente")} hint="Sessions PostHog venues du mail, avec accord cookies" />
       <Tile label="Désinscrits" value={p.desinscrits} prev={prev.desinscrits} inverse />
     </TileChart>
