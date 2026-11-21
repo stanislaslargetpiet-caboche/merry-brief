@@ -20,6 +20,7 @@ import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Erreurs from "@/components/pilotage/Erreurs";
 import Rage from "@/components/pilotage/Rage";
+import Replays from "@/components/pilotage/Replays";
 import { Aujourdhui, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
@@ -499,6 +500,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         )}
         {ph ? <Erreurs exceptions={ph.bugs?.exceptions} /> : null}
         {ph ? <Rage rage={ph.bugs?.rage} /> : null}
+        {ph ? <Replays replays={ph.bugs?.replays} /> : null}
       </Section>
 
       <Section id="mails">
