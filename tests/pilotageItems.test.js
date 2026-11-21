@@ -65,7 +65,7 @@ describe("rangerTaches", () => {
 });
 
 describe("buildFil", () => {
-  it("réunit alerte, demande et tâche, dans cet ordre", () => {
+  it("réunit alerte et demande, dans cet ordre, sans les tâches", () => {
     const fil = buildFil({
       today: LUNDI,
       items: [item({ titre: "Tâche", echeance: LUNDI }), item({ id: "b", titre: "Demain", echeance: "2026-11-10" })],
@@ -76,7 +76,7 @@ describe("buildFil", () => {
         { tone: "ok", titre: "Aucune erreur", detail: "" },
       ],
     });
-    expect(fil.map((l) => l.titre)).toEqual(["Sitemap illisible", "1 demande(s) d'accès à une fiche", "Tâche", "20 clic(s) de rage"]);
+    expect(fil.map((l) => l.titre)).toEqual(["Sitemap illisible", "1 demande(s) d'accès à une fiche", "20 clic(s) de rage"]);
   });
   it("une alerte vue disparaît, et revient si son texte change", () => {
     const items = [item({ type: "alerte", statut: "fait", cle: "alerte:20 clic(s) de rage" })];

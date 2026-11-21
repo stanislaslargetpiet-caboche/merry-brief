@@ -20,7 +20,7 @@ import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Erreurs from "@/components/pilotage/Erreurs";
 import Rage from "@/components/pilotage/Rage";
-import { Aujourdhui, Capture, Taches, useItems } from "@/components/pilotage/Items";
+import { Aujourdhui, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure, visitesHumaines } from "@/lib/server/pilotage/shape";
@@ -168,7 +168,6 @@ export default function PilotagePage() {
   return (
     <div className="pl-root pl-shell">
       <PilotSide group={group} search={search} badges={badges}>
-        <Capture agir={liste.agir} disponible={liste.disponible} defaut={quotidien ? today : null} today={today} />
         <PilotPeriod
           ranges={RANGES}
           value={periode}
@@ -189,17 +188,12 @@ export default function PilotagePage() {
           </header>
           <PilotSubnav group={group} page={page} search={search} badges={badges} />
           {error ? <div className="pl-errors">Impossible de charger les indicateurs ({error}).</div> : null}
-          {page.id === "liste" ? (
-            <section className="pl-section">
-              <Taches liste={liste} today={today} />
-            </section>
-          ) : null}
           {!data && quotidien ? (
             <section className="pl-section">
               <Aujourdhui liste={liste} data={{}} sante={[]} today={today} tuiles={TUILES_JOUR.map((label) => ({ label }))} reload={() => {}} search={search} langue={langue} indicateurs={error ? "erreur" : "lecture"} />
             </section>
           ) : null}
-          {!data && !error && !quotidien && page.id !== "liste" ? <div className="pl-loading"><PilotDots label="Lecture des indicateurs" /></div> : null}
+          {!data && !error && !quotidien ? <div className="pl-loading"><PilotDots label="Lecture des indicateurs" /></div> : null}
           {data ? (
             <PageContext.Provider value={page.id}>
               <Board data={data} jours={jours} reload={() => load(jours, true)} liste={liste} today={today} search={search} langue={langue} />

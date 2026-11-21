@@ -45,9 +45,9 @@ describe("bugs du pilotage", () => {
     expect(brief.startsWith(briefAgent(bug, "reparer"))).toBe(true);
     expect(briefAgent(bug, "reparer")).not.toContain("jeton :");
   });
-  it("le fil range les bugs et les tâches dans leur groupe", () => {
+  it("le fil garde les bugs et laisse les tâches de côté", () => {
     const fil = buildFil({ today: "2026-11-09", items: [bug, { ...bug, id: "b", projet: "", titre: "Appeler Astrid" }] });
-    expect(fil.map((l) => l.groupe).sort()).toEqual(["bugs", "taches"]);
+    expect(fil.map((l) => l.groupe)).toEqual(["bugs"]);
   });
 
   it("envoie aussi à l'agent les alertes qui parlent de bugs", () => {
