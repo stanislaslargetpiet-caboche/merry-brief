@@ -715,7 +715,8 @@
   --p-line: #e4e2dc;
   /* Rendu hors de .d-root (écran de connexion/revendication) : ces variables n'existent pas encore */
   --d-ink: #1c1c1a;
-  --d-lime: #fff700;
+  --d-lime: #bfe9a6; /* pistache (design system v3, D-241), comme l’onboarding des couples */
+  --d-limetint: #e6f7dc;
   --d-panel: #f6f5f1;
   --d-border: #d9d7cf;
 }
@@ -798,8 +799,8 @@
   color: var(--p-muted);
 }
 
-/* Sur la carte (ordinateur, ou feuille mobile) : pastille citron comme sur le canvas, pas un simple
-   libellé gris — seul le bandeau jaune mobile (p-claim-band-title) garde le texte plat */
+/* Sur la carte (ordinateur, ou feuille mobile) : pastille pistache, pas un simple
+   libellé gris — seul le bandeau mobile (p-claim-band-title) garde le texte plat */
 .p-claim-card .p-claim-eyebrow {
   align-self: flex-start;
   display: inline-flex;
@@ -1171,7 +1172,7 @@
     min-height: 100dvh;
   }
   .p-claim-band {
-    background: #fff700;
+    background: var(--d-lime);
     padding: 16px 16px 20px;
     display: flex;
     flex-direction: column;
@@ -4244,7 +4245,7 @@ button.p-brand-vendor.is-menu svg {
   justify-content: center;
   /* Rendu hors de .d-root : ces variables n'existent pas encore */
   --d-ink: #1c1c1a;
-  --d-lime: #fff700;
+  --d-lime: #bfe9a6;
 }
 
 .p-welcome-blob {
