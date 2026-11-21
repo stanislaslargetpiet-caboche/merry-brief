@@ -4,7 +4,7 @@ import { getProof } from "@/lib/vitrine/proof";
 
 export const metadata = {
   title: "Prestataires",
-  description: "Reçois beaucoup plus de demandes de mariage qualifiées, sans abonnement ni commission : tu lis tout gratuitement et utilises des crédits seulement pour répondre. 100 crédits offerts.",
+  description: "Reçois beaucoup plus de demandes de mariage qualifiées, sans abonnement ni commission : tu lis et tu réponds gratuitement.",
   alternates: { canonical: "https://www.withmerry.com/partenaires" },
 };
 

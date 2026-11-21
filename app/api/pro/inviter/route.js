@@ -56,7 +56,7 @@ export async function POST(req) {
       .toUpperCase() || "M";
 
   const subject = `Rejoins ${vendorName} sur Merry`;
-  const text = `On t'invite à rejoindre l'équipe ${vendorName} sur Merry.\n\nTu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.\n\n${link}`;
+  const text = `On t'invite à rejoindre l'équipe ${vendorName} sur Merry.\n\nTu pourras consulter et répondre aux demandes, gérer la fiche et les disponibilités de ${vendorName}.\n\n${link}`;
 
   // Reprend à l'identique la planche V28 du canvas (page « 7 - mails ») : logo, titre, carte,
   // bouton, pied de page — sans le bloc vidéo du mock, en attendant l'export du GIF.
@@ -80,11 +80,11 @@ export async function POST(req) {
 </tr></table>
 </td></tr></table>`;
 
-  const preheader = `Tu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${vendorName}.`;
+  const preheader = `Tu pourras consulter et répondre aux demandes, gérer la fiche et les disponibilités de ${vendorName}.`;
   const bodyHtml = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1a;max-width:560px">
 ${heroBlock({ title: titleBlock })}
 ${memberCard}
-<p style="margin:20px 0 0;font-size:15px;line-height:1.6">Tu pourras consulter et répondre aux demandes, gérer la fiche, les disponibilités et les crédits de ${esc(vendorName)} sur Merry.</p>
+<p style="margin:20px 0 0;font-size:15px;line-height:1.6">Tu pourras consulter et répondre aux demandes, gérer la fiche et les disponibilités de ${esc(vendorName)} sur Merry.</p>
 ${ctaBlock}
 <p style="margin:20px 0 0;font-size:13px;color:#9c9a90">Ce lien d'invitation est personnel et à usage unique.</p>
 ${footerBlock}

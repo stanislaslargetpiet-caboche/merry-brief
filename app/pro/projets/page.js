@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
 import { Popover } from "@/components/dash/ui";
 import { toDate } from "@/lib/dash/format";
-import { budgetRange, dateLong } from "@/lib/pro/format";
+import { budgetRange, dateLong, CREDITS_ON } from "@/lib/pro/format";
 import { ProIcon, CreditsCoins } from "@/components/pro/icons";
 import { Sheet } from "@/components/pro/ui";
 import { CloseBtn } from "@/components/pro/FeatureDialog";
@@ -49,7 +49,7 @@ export default function Projets() {
   const pro = usePro();
   const router = useRouter();
   const d = pro.data;
-  const cost = d.offer?.unlock_cost;
+  const cost = CREDITS_ON ? d.offer?.unlock_cost : 0;
   const [f, setF] = useState({ season: "", size: "", budget: "", km: "" });
   const [unlocking, setUnlocking] = useState(null);
   const [writing, setWriting] = useState(null);
@@ -103,10 +103,12 @@ export default function Projets() {
                   <button type="button" className="p-btn p-btn-ghost" onClick={() => setUnlocking(p)}>
                     Débloquer ce projet
                   </button>
-                  <span className="p-cost">
-                    <CreditsCoins size={14} />
-                    {cost === null || cost === undefined ? "Crédits à définir" : `${cost} crédit${cost > 1 ? "s" : ""}`}
-                  </span>
+                  {CREDITS_ON ? (
+                    <span className="p-cost">
+                      <CreditsCoins size={14} />
+                      {cost === null || cost === undefined ? "Crédits à définir" : `${cost} crédit${cost > 1 ? "s" : ""}`}
+                    </span>
+                  ) : null}
                 </div>
               </li>
             ),
@@ -270,7 +272,7 @@ function Unlocked({ p, writing, onWrite, onCancel, onSent }) {
 
 function UnlockDialog({ p, onClose }) {
   const pro = usePro();
-  const cost = pro.data.offer?.unlock_cost;
+  const cost = CREDITS_ON ? pro.data.offer?.unlock_cost : 0;
   const balance = pro.data.pro?.credits ?? 0;
   const priced = cost !== null && cost !== undefined;
   const enough = priced && balance >= cost;
@@ -294,33 +296,37 @@ function UnlockDialog({ p, onClose }) {
         <span>Couple · {p.area || "Votre région"}</span>
         <span>{[when(p), g ? `${g} invités` : null, p.budgetLabel || budgetRange(p.budget)].filter(Boolean).join(" · ")}</span>
       </div>
-      <div className="p-unlock-rows">
-        <div>
-          <span>Solde actuel</span>
-          <span className="p-unlock-now">
-            <CreditsCoins size={16} />
-            {balance} crédit{balance > 1 ? "s" : ""}
-          </span>
-        </div>
-        <div>
-          <span className="p-ink">Solde après déblocage</span>
-          <span className="p-unlock-after">
-            {priced ? (
-              <>
-                <CreditsCoins size={18} />
-                {balance - cost} crédit{Math.abs(balance - cost) > 1 ? "s" : ""}
-              </>
-            ) : (
-              "À définir"
-            )}
-          </span>
-        </div>
-      </div>
-      {/* L'achat de crédits est désactivé pour l'instant (audit du 3 nov. 2026) : on écrit à Merry */}
-      {priced && !enough ? (
-        <p className="p-claim-help is-small">
-          Il vous manque {cost - balance} crédit{cost - balance > 1 ? "s" : ""}. <a href="mailto:bonjour@withmerry.com?subject=Crédits Merry">Écrivez-nous</a>
-        </p>
+      {CREDITS_ON ? (
+        <>
+          <div className="p-unlock-rows">
+            <div>
+              <span>Solde actuel</span>
+              <span className="p-unlock-now">
+                <CreditsCoins size={16} />
+                {balance} crédit{balance > 1 ? "s" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="p-ink">Solde après déblocage</span>
+              <span className="p-unlock-after">
+                {priced ? (
+                  <>
+                    <CreditsCoins size={18} />
+                    {balance - cost} crédit{Math.abs(balance - cost) > 1 ? "s" : ""}
+                  </>
+                ) : (
+                  "À définir"
+                )}
+              </span>
+            </div>
+          </div>
+          {/* L'achat de crédits est désactivé pour l'instant (audit du 3 nov. 2026) : on écrit à Merry */}
+          {priced && !enough ? (
+            <p className="p-claim-help is-small">
+              Il vous manque {cost - balance} crédit{cost - balance > 1 ? "s" : ""}. <a href="mailto:bonjour@withmerry.com?subject=Crédits Merry">Écrivez-nous</a>
+            </p>
+          ) : null}
+        </>
       ) : null}
       <div className="p-unlock-foot">
         <button type="button" className="p-day-cancel" onClick={onClose}>

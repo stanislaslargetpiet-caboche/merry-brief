@@ -954,7 +954,7 @@ export default function Claim() {
         steps={[
           { label: "Fiche retrouvée", detail: [picked.name, picked.category, picked.city].filter(Boolean).join(" · ") },
           found.length ? { label: "Informations publiques récupérées", detail: found.join(" · ") } : { label: "Fiche rattachée à votre compte", detail: picked.category || "" },
-          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "100 crédits offerts" },
+          { label: "Tableau de bord prêt", detail: firstLogin ? "Mot de passe enregistré" : "Demandes gratuites" },
         ]}
         lines={["On retrouve votre fiche…", "On récupère ses informations…", "On prépare votre tableau de bord…"]}
         onDone={finishPreparing}

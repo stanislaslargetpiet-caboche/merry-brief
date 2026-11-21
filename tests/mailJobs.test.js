@@ -105,11 +105,10 @@ describe("runMailJobs", () => {
     expect(sent[0].subject).toBe("Ton option du 14 juin expire demain");
   });
 
-  it("parle de crédits, y compris à zéro", async () => {
-    await runMailJobs(fakeAdmin({ merry_job_credits: [{ vendor_id: "v1", credits: 0, cost: 25, emails: ["a@b.fr"] }] }), "https://x.fr");
-    expect(sent[0].subject).toBe("Tu n'as plus de crédits");
-    expect(sent[0].text).toContain("25 crédits");
-    expect(sent[0].text).not.toContain("€");
+  it("n'envoie plus de mail « crédits faibles » tant que les crédits sont suspendus (D-382)", async () => {
+    const report = await runMailJobs(fakeAdmin({ merry_job_credits: [{ vendor_id: "v1", credits: 0, cost: 25, emails: ["a@b.fr"] }] }), "https://x.fr");
+    expect(sent).toHaveLength(0);
+    expect(report.credits).toBe(0);
   });
 
   it("n'envoie plus les réponses au formulaire, le mail de 20 h les donne (D-295)", async () => {
@@ -144,6 +143,6 @@ describe("runMailJobs", () => {
   it("continue quand un type de mail échoue", async () => {
     const report = await runMailJobs(fakeAdmin({ merry_job_options: new Error("absente"), merry_job_credits: [{ vendor_id: "v1", credits: 2, cost: 8, emails: ["a@b.fr"] }] }), "https://x.fr");
     expect(report.options).toBe("erreur");
-    expect(report.credits).toBe(1);
+    expect(report.credits).toBe(0);
   });
 });

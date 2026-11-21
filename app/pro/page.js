@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { dateShortYear, guestsText, isPastClient, budgetRange, completeness, PRO_SEEN_EVENT, replyCost, requestDay, since, unreadReplies, weddingWhen } from "@/lib/pro/format";
+import { dateShortYear, guestsText, isPastClient, budgetRange, completeness, PRO_SEEN_EVENT, CREDITS_ON, replyCost, requestDay, since, unreadReplies, weddingWhen } from "@/lib/pro/format";
 import { daysBetween, isoDate, today } from "@/lib/dash/format";
 import { CreditsCoins, ProIcon } from "@/components/pro/icons";
 import { Face } from "@/components/pro/ui";
@@ -47,7 +47,7 @@ function Waiting({ todo, clients, dates, cost }) {
           </div>
         </div>
         <Link href={ask(first)} className="p-btn p-btn-primary is-big">
-          Répondre · {cost} crédits
+          {cost ? `Répondre · ${cost} crédits` : "Répondre"}
         </Link>
       </div>
       {others.length ? (
@@ -118,7 +118,7 @@ export default function ProHome() {
   const fill = completeness(d);
   const credits = d.pro?.credits ?? 0;
   const cost = replyCost(d.vendor?.primary_category);
-  const replies = Math.floor(credits / cost);
+  const replies = cost ? Math.floor(credits / cost) : 0;
   const booked = (d.clients || []).filter((c) => c.stage === "reserve" && !isPastClient(c)).length;
   const answered = requests.length - todo.length;
 
@@ -152,18 +152,20 @@ export default function ProHome() {
           ) : null}
         </div>
         <div className="p-home-side">
-          <section aria-label="Crédits" className="p-card p-home-credits">
-            <span>
-              <b>
-                <CreditsCoins size={20} />
-                {credits}
-              </b>
-              <span className="p-who-meta">{replies ? `Soit ${replies} réponse${replies > 1 ? "s" : ""}` : "Moins d’une réponse"}</span>
-            </span>
-            <Link href="/pro/credits" className="p-link is-small">
-              Historique
-            </Link>
-          </section>
+          {CREDITS_ON ? (
+            <section aria-label="Crédits" className="p-card p-home-credits">
+              <span>
+                <b>
+                  <CreditsCoins size={20} />
+                  {credits}
+                </b>
+                <span className="p-who-meta">{replies ? `Soit ${replies} réponse${replies > 1 ? "s" : ""}` : "Moins d’une réponse"}</span>
+              </span>
+              <Link href="/pro/credits" className="p-link is-small">
+                Historique
+              </Link>
+            </section>
+          ) : null}
           <section aria-label="Ma fiche" className="p-card p-home-fiche">
             <h2 className="p-h2">Ma fiche.</h2>
             {fill.missing.length ? (
