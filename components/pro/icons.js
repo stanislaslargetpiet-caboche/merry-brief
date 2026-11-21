@@ -42,10 +42,10 @@ const PATHS = {
 };
 
 // Icônes du design system v2.2 (4 nov. 2026, Design System « Merry », tokens.json → icons) : remplissage
-// citron plein + trait encre, embarqués dans le tracé (pas de fill/stroke passés par ProIcon). Reprendre
+// couleur de l’espace en plein + trait encre, embarqués dans le tracé (pas de fill/stroke passés par ProIcon). Reprendre
 // ces tracés tels quels plutôt que redessiner — voir https://claude.ai/artifact/UgqTTob2YDYeQFtfFNhQ5n.
 const DS_PATHS = {
-  messagerie: '<path d="M4 5h16v11H8.5L4 20z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
+  messagerie: '<path d="M4 5h16v11H8.5L4 20z" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
   confirmer: '<circle cx="12" cy="12" r="9" fill="#d4f1e8" stroke="#0b6a4f" stroke-width="2"/><path d="M8 12l3 3 5-6" fill="none" stroke="#0b6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   // Hors bibliothèque (18 icônes, pas de concept « à traiter ») : même structure que Confirmer — cercle
   // + tracé encre — avec la couleur sémantique d'attente plutôt que l'accent, pour rester cohérent.
@@ -71,16 +71,16 @@ export function ProIcon({ name, size = 18, stroke = "#1c1c1a", sw = 1.8, fill = 
   );
 }
 
-// Deux pièces jaunes empilées : seul endroit de l'appli prestataire où l'accent citron se pose en aplat,
+// Deux pièces jaunes empilées : seul endroit de l'appli prestataire où la couleur de l'espace se pose en aplat,
 // pour incarner les crédits plutôt que l'illustrer avec un pictogramme générique à un seul trait.
 // Partagé partout où un montant de crédits s'affiche (solde, coût, historique).
 export function CreditsCoins({ size = 20, className, style }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true" className={className} style={style}>
-      <circle cx="10.5" cy="17.5" r="7.5" fill="#fffdb8" stroke="#574e00" strokeWidth="1.5" />
-      <circle cx="10.5" cy="17.5" r="4.6" fill="none" stroke="#574e00" strokeWidth="1" opacity="0.45" />
-      <circle cx="17.5" cy="10.5" r="7.5" fill="#fff700" stroke="#574e00" strokeWidth="1.5" />
-      <circle cx="17.5" cy="10.5" r="4.6" fill="none" stroke="#574e00" strokeWidth="1" opacity="0.45" />
+      <circle cx="10.5" cy="17.5" r="7.5" style={{ fill: "var(--d-limetint)", stroke: "var(--d-ok-ink)" }} strokeWidth="1.5" />
+      <circle cx="10.5" cy="17.5" r="4.6" fill="none" style={{ stroke: "var(--d-ok-ink)" }} strokeWidth="1" opacity="0.45" />
+      <circle cx="17.5" cy="10.5" r="7.5" style={{ fill: "var(--d-lime)", stroke: "var(--d-ok-ink)" }} strokeWidth="1.5" />
+      <circle cx="17.5" cy="10.5" r="4.6" fill="none" style={{ stroke: "var(--d-ok-ink)" }} strokeWidth="1" opacity="0.45" />
     </svg>
   );
 }
