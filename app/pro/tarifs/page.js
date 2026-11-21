@@ -72,7 +72,7 @@ export default function Tarifs() {
                       <ul className="p-checks">
                         {f.includes.map((t, i) => (
                           <li key={`${t}-${i}`}>
-                            <ProIcon name="check" size={15} sw={2.4} stroke="#574e00" style={{ flex: "none", marginTop: 2 }} />
+                            <ProIcon name="check" size={15} sw={2.4} stroke="var(--d-ok-ink)" style={{ flex: "none", marginTop: 2 }} />
                             <span>{t}</span>
                           </li>
                         ))}

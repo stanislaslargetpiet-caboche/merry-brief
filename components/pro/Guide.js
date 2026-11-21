@@ -12,20 +12,20 @@ import { CREDITS_ON, REPLY_COSTS } from "@/lib/pro/format";
 
 const KEY = "merry-pro-guide-masque";
 
-// Icônes pleines citron du design system (planche « Bibliothèque d'icônes »)
+// Icônes pleines à la couleur de l’espace (design system) (planche « Bibliothèque d'icônes »)
 const ICONS = {
   invites:
-    '<path d="M16 14.6c2.6.2 4.6 2 5.3 5.4H13c0-2.3.9-4.3 3-5.4z" fill="#fffdb8" stroke="#1c1c1a" stroke-width="1.3" stroke-linejoin="round"/><circle cx="17" cy="9" r="2.5" fill="#fffdb8" stroke="#1c1c1a" stroke-width="1.3"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="8" r="3.5" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5"/>',
+    '<path d="M16 14.6c2.6.2 4.6 2 5.3 5.4H13c0-2.3.9-4.3 3-5.4z" style="fill:var(--d-limetint)" stroke="#1c1c1a" stroke-width="1.3" stroke-linejoin="round"/><circle cx="17" cy="9" r="2.5" style="fill:var(--d-limetint)" stroke="#1c1c1a" stroke-width="1.3"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5z" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="8" r="3.5" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5"/>',
   filtrer:
-    '<path d="M4 5h16M7 12h10M10 19h4" stroke="#1c1c1a" stroke-width="2" stroke-linecap="round"/><circle cx="14" cy="5" r="2.1" fill="#fff700" stroke="#1c1c1a" stroke-width="1.3"/><circle cx="10" cy="12" r="2.1" fill="#fff700" stroke="#1c1c1a" stroke-width="1.3"/><circle cx="13" cy="19" r="2.1" fill="#fff700" stroke="#1c1c1a" stroke-width="1.3"/>',
-  rechercher: '<circle cx="10" cy="10" r="6" fill="#fff700" stroke="#1c1c1a" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="#1c1c1a" stroke-width="2.2" stroke-linecap="round"/>',
+    '<path d="M4 5h16M7 12h10M10 19h4" stroke="#1c1c1a" stroke-width="2" stroke-linecap="round"/><circle cx="14" cy="5" r="2.1" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.3"/><circle cx="10" cy="12" r="2.1" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.3"/><circle cx="13" cy="19" r="2.1" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.3"/>',
+  rechercher: '<circle cx="10" cy="10" r="6" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="#1c1c1a" stroke-width="2.2" stroke-linecap="round"/>',
   messagerie:
-    '<path d="M4 5h16v11H8.5L4 20z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
-  avis: '<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.3" stroke-linejoin="round"/>',
+    '<path d="M4 5h16v11H8.5L4 20z" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="12" cy="10.5" r="1" fill="#1c1c1a"/><circle cx="15.5" cy="10.5" r="1" fill="#1c1c1a"/>',
+  avis: '<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.3" stroke-linejoin="round"/>',
   securite:
-    '<path d="M12 3.5 5 6.5v5.2c0 4.6 3 8.3 7 9.3 4-1 7-4.7 7-9.3V6.5z" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.3 12.3 2 2 3.6-4" stroke="#1c1c1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    '<path d="M12 3.5 5 6.5v5.2c0 4.6 3 8.3 7 9.3 4-1 7-4.7 7-9.3V6.5z" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.3 12.3 2 2 3.6-4" stroke="#1c1c1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
   budget:
-    '<rect x="3" y="6" width="18" height="13" rx="2" fill="#fff700" stroke="#1c1c1a" stroke-width="1.5"/><path d="M3 10h18" stroke="#1c1c1a" stroke-width="1.5"/><path d="M16.5 14.5h1.5" stroke="#1c1c1a" stroke-width="1.8" stroke-linecap="round"/>',
+    '<rect x="3" y="6" width="18" height="13" rx="2" style="fill:var(--d-lime)" stroke="#1c1c1a" stroke-width="1.5"/><path d="M3 10h18" stroke="#1c1c1a" stroke-width="1.5"/><path d="M16.5 14.5h1.5" stroke="#1c1c1a" stroke-width="1.8" stroke-linecap="round"/>',
 };
 
 function Icon({ name }) {

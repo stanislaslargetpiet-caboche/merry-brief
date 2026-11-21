@@ -128,7 +128,7 @@ export default function Apercu({ onClose }) {
                       <ul>
                         {v.included.map((t) => (
                           <li key={t}>
-                            <Icon name="check" size={15} sw={2.4} stroke="#574e00" style={{ flex: "none", marginTop: 2 }} />
+                            <Icon name="check" size={15} sw={2.4} stroke="var(--d-ok-ink)" style={{ flex: "none", marginTop: 2 }} />
                             <span>{t}</span>
                           </li>
                         ))}
