@@ -42,6 +42,9 @@ describe("santé partagée", () => {
     // Heure de Paris ; la virgule entre le jour et l'heure dépend de la version d'ICU de Node
     expect(alerte.detail).toMatch(/^une personne a cliqué plusieurs fois au même endroit sans effet sur app\.withmerry\.com\/dashboard\/invites \(2 clics, dernier 17 nov\.,? 16:02\), puis www\.withmerry\.com\/ \(1 clic, dernier 16 nov\.,? 09:30\) : voir Coulisses › Santé$/);
     expect(briefAgent({ titre: alerte.titre, detail: alerte.detail }, "reparer", true)).toContain("Détail : une personne a cliqué plusieurs fois au même endroit sans effet sur app.withmerry.com/dashboard/invites (2 clics");
+    // L'élément cliqué, quand le clic le porte, est nommé avec la page : l'agent bugs sait quel bouton ouvrir
+    const cible = buildSante({ ...data, posthog: { disponible: true, bugs: { series, rage: [{ ...rage[0], cible: "button.gf-pill" }] } } }, 1).find((s) => /clic\(s\) de rage/.test(s.titre));
+    expect(cible.detail).toMatch(/sur app\.withmerry\.com\/dashboard\/invites \(2 clics, sur button\.gf-pill, dernier 17 nov\.,? 16:02\) : voir/);
     // Sans la liste par page (ancienne lecture, ou requête en échec), le texte d'avant
     const sans = buildSante({ ...data, posthog: { disponible: true, bugs: { series } } }, 1).find((s) => /clic\(s\) de rage/.test(s.titre));
     expect(sans.detail).toBe("une personne a cliqué plusieurs fois au même endroit sans effet : la page est listée dans Coulisses › Santé");
