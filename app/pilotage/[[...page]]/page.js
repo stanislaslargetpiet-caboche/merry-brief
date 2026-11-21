@@ -20,6 +20,7 @@ import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Erreurs from "@/components/pilotage/Erreurs";
 import Rage from "@/components/pilotage/Rage";
+import Replays from "@/components/pilotage/Replays";
 import { Aujourdhui, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
@@ -392,9 +393,15 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
   // 100 derniers envois de l'API, qui ne remontent souvent pas jusqu'à la période d'avant
   const envois = data.envois;
   const mailSeries = envois
-    ? alignSeries(joursList, envois.par_jour, ["envois"]).map((r) => (r.jour < envois.depuis ? { ...r, envois: null } : r))
+    ? alignSeries(joursList, envois.par_jour, ["envois", "delivres", "problemes"]).map((r) => (r.jour < envois.depuis ? { ...r, envois: null } : r))
     : alignSeries(joursList, mails?.par_jour, ["envois"]);
   const mailSplit = splitSeries(mailSeries, jours);
+  // Délivrance, rebonds et plaintes : même source et même période que « Envoyés » quand le suivi par webhook est lu.
+  // Sinon les 100 derniers envois de l'API, où un mail ouvert ou cliqué compte aussi comme délivré.
+  const etats = mails?.par_etat || {};
+  const mailDelivres = envois ? sumBy(mailSplit.current, "delivres") : (etats.delivered || 0) + (etats.opened || 0) + (etats.clicked || 0);
+  const mailEnvoyes = envois ? sumBy(mailSplit.current, "envois") : mails?.envoyes;
+  const mailProblemes = envois ? sumBy(mailSplit.current, "problemes") : (etats.bounced || 0) + (etats.complained || 0);
   const u = data.utilisateurs?.fenetre || {};
 
   const tuilesJour = [
@@ -499,15 +506,16 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         )}
         {ph ? <Erreurs exceptions={ph.bugs?.exceptions} /> : null}
         {ph ? <Rage rage={ph.bugs?.rage} /> : null}
+        {ph ? <Replays replays={ph.bugs?.replays} /> : null}
       </Section>
 
       <Section id="mails">
         {rs ? (
           <>
             <TileChart>
-              <Tile label="Envoyés" value={envois ? sumBy(mailSplit.current, "envois") : mails.envoyes} prev={envois ? sumMesure(mailSplit.previous, "envois") : null} sub={!envois && rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayLine title={`Envois ${parMail}`} series={seriesMail} valeur="envois" label="Envois" days={joursMail} />} />
-              <Tile label="Taux de délivrance" value={pctOf(mails.par_etat.delivered || 0, mails.envoyes)} format={pct} />
-              <Tile label="Rebonds et plaintes" value={(mails.par_etat.bounced || 0) + (mails.par_etat.complained || 0)} inverse />
+              <Tile label="Envoyés" value={mailEnvoyes} prev={envois ? sumMesure(mailSplit.previous, "envois") : null} sub={!envois && rs.tronque ? "limité aux 100 derniers envois" : null} chart={<DayLine title={`Envois ${parMail}`} series={seriesMail} valeur="envois" label="Envois" days={joursMail} />} />
+              <Tile label="Taux de délivrance" value={pctOf(mailDelivres, mailEnvoyes)} format={pct} />
+              <Tile label="Rebonds et plaintes" value={mailProblemes} inverse />
             </TileChart>
             <Card title="Derniers envois">
               {mails.derniers?.length ? (

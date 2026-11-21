@@ -267,8 +267,27 @@ describe("envoisAuto", () => {
     ];
     const r = envoisAuto(envois, "2026-11-06T13:00:00Z");
     expect(r.depuis).toBe("2026-11-06");
-    expect(r.par_jour).toEqual([["2026-11-07", 2]]);
+    expect(r.par_jour).toEqual([["2026-11-07", 2, 0, 0]]);
     expect(envoisAuto([], null)).toBeNull();
+  });
+
+  it("compte comme délivré un mail ouvert ou cliqué ensuite, et range rebonds et plaintes au jour de l'envoi", () => {
+    const envois = [
+      { email_id: "a", subject: "Bienvenue sur Merry", occurred_at: "2026-11-07T09:00:00Z" },
+      { email_id: "b", subject: "Nouvelle demande de devis", occurred_at: "2026-11-07T10:00:00Z" },
+      { email_id: "c", subject: "Nouvelle demande de devis", occurred_at: "2026-11-08T10:00:00Z" },
+      { email_id: "d", subject: SUBJECT, occurred_at: "2026-11-08T08:00:00Z" },
+    ];
+    const suites = [
+      { email_id: "a", type: "email.delivered" },
+      { email_id: "b", type: "email.delivered" },
+      { email_id: "c", type: "email.bounced" },
+      { email_id: "d", type: "email.delivered" },
+      { email_id: "inconnu", type: "email.delivered" },
+    ];
+    const r = envoisAuto(envois, "2026-11-06T13:00:00Z", suites);
+    expect(r.par_jour).toEqual([["2026-11-07", 2, 2, 0], ["2026-11-08", 1, 0, 1]]);
+    expect(alignSeries(["2026-11-07"], r.par_jour, ["envois", "delivres", "problemes"])).toEqual([{ jour: "2026-11-07", envois: 2, delivres: 2, problemes: 0 }]);
   });
 });
 
