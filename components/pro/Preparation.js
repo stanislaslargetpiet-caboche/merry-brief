@@ -37,7 +37,7 @@ export default function Preparation({ steps, lines, onDone }) {
   const chips = chipTexts.slice(0, SPOTS.length).map((text, i) => ({ text, x: SPOTS[i][0] * k, y: SPOTS[i][1] * (k < 1 ? 0.85 : 1), r: SPOTS[i][2] }));
 
   return (
-    <div className="ob">
+    <div className="ob ob-pro">
       <header className="ob-header">
         <span className="ob-logo">Merry</span>
       </header>
