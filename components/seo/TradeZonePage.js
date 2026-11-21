@@ -253,7 +253,7 @@ export default function TradeZonePage({ trade, zone, stats, vendors, examples })
 
         <section aria-label="Pour les prestataires" className="sm-claim">
           <p>
-            <b>{trade.claim}</b> Revendiquez votre fiche : 100 crédits offerts.
+            <b>{trade.claim}</b> Revendiquez votre fiche, c’est gratuit.
           </p>
           <a href={CLAIM} className="sm-btn sm-btn-line">
             Revendiquer ma fiche

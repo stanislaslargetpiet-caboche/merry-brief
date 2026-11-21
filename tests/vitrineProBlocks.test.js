@@ -51,8 +51,11 @@ describe("page Prestataires en français", () => {
     expect(AUTRES_VOIX_PAGE.filter((t) => !PAGE.includes(t))).toEqual([]);
   });
 
-  it("une réponse se paie en crédits, pas en euros", () => {
-    expect(PRO_SCENES.fr.reply).toMatch(/^Répondre · 25 crédits$/);
+  it("répondre est gratuit, sans crédits sur la page (D-382)", () => {
+    expect(PRO_SCENES.fr.reply).toBe("Répondre");
+    expect(PRO_SCENES.en.reply).toBe("Reply");
+    expect(PAGE.filter((t) => /crédit|garantie/i.test(t))).toEqual([]);
+    expect(PRO_SCENES.fr.free.rows.map(([, v]) => v.replace(/\s/g, " "))).toEqual(["Aucun", "0 %", "Gratuit", "Gratuit"]);
     expect(strings(PRO_SCENES.fr).filter(([, t]) => /crédit/i.test(t) && /€/.test(t))).toEqual([]);
     expect(strings(PRO_SCENES.en).filter(([, t]) => /credit/i.test(t) && /€/.test(t))).toEqual([]);
   });

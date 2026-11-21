@@ -10,6 +10,7 @@ import { useLang } from "@/lib/lang";
 import { CARROUSEL, COUPLE_PHOTO, FACES, VENUES } from "@/lib/i18n/vitrine-carrousel";
 import { PRO_SCENES } from "@/lib/i18n/vitrine-pro-scenes";
 import { Icon, Swap, Head, Pill, Photo, rise } from "./Carrousel";
+import { CREDITS_ON } from "@/lib/pro/format";
 
 const SCENE_SECONDS = 5;
 const OLIVIERS = VENUES.oliviers.img;
@@ -160,6 +161,28 @@ function Match({ t }) {
 
 /* ---- Bloc 2 : crédits ---- */
 
+// D-382 (21 nov. 2026) : tant que les crédits sont suspendus, le bloc tient en une scène (planche Site-Pro-2a)
+function Free({ t }) {
+  const o = t.free;
+  return (
+    <>
+      <Head title={o.title} />
+      <div className="cr-stats pc-hero cr-rise" style={rise(0.2)}>
+        <b className="pc-big">{o.big}</b>
+        <span className="cr-name">{o.of}</span>
+      </div>
+      <div className="cr-card cr-rows pc-grow">
+        {o.rows.map(([label, value], i) => (
+          <div key={label} className="cr-row cr-rise" style={rise(0.8 + i * 0.4)}>
+            <span className="cr-grow cr-name">{label}</span>
+            {i >= 2 ? <Pill kind="ok">{value}</Pill> : <span className="cr-pill cr-off">{value}</span>}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function Offered({ t }) {
   const o = t.offered;
   return (
@@ -300,6 +323,7 @@ function Answer({ t }) {
           <Pill kind="ok">{a.sent}</Pill>
         </span>
       </Head>
+      {CREDITS_ON ? (
       <div className="cr-stats cr-stats-3">
         {a.stats.map(([value, label], i) => (
           <span key={label} className="cr-stat cr-rise" style={rise(0.2 + i * 0.4)}>
@@ -308,6 +332,7 @@ function Answer({ t }) {
           </span>
         ))}
       </div>
+      ) : null}
       <div className="cr-card pc-col cr-rise" style={rise(1.4)}>
         <span className="cr-top">
           <span className="cr-cap">{a.to}</span>
@@ -445,7 +470,7 @@ function Live({ t }) {
 // kind : « wide » (haut de la page, 1 040 px) ou « half » (une colonne) ; bg : fond de la scène, « grey » sur une section blanche
 const BLOCKS = {
   avant: { scenes: [Avant, Match], kind: "wide", bg: "grey" },
-  credits: { scenes: [Offered, Trades, Guarantee], kind: "half", bg: "white" },
+  credits: { scenes: CREDITS_ON ? [Offered, Trades, Guarantee] : [Free], kind: "half", bg: "white" },
   demande: { scenes: [Inbox, Read, Answer], kind: "half", bg: "white" },
   fiche: { scenes: [Find, Complete, Live], kind: "half", bg: "grey" },
 };
@@ -483,14 +508,17 @@ export default function ProScenes({ block, className = "" }) {
   const next = () => pick((scene + 1) % scenes.length);
 
   const Scene = scenes[scene];
+  // Une seule scène : elle joue une fois et reste en place, sans minuteur ni contrôles
+  const single = scenes.length === 1;
   return (
     <div ref={ref} className={`cr pc pc-${kind} pc-${bg} pc-b-${block}${paused || !visible ? " is-paused" : ""} ${className}`}>
       <div className="cr-stage pc-stage" role="group" aria-label={t.scene(scene + 1)}>
         <div key={`${round}-${scene}`} className="cr-scene">
           <Scene t={t} />
         </div>
-        <span key={`minuteur-${round}-${scene}`} className="cr-timer" style={{ animationDuration: `${SCENE_SECONDS}s` }} aria-hidden="true" onAnimationEnd={next} />
+        {single ? null : <span key={`minuteur-${round}-${scene}`} className="cr-timer" style={{ animationDuration: `${SCENE_SECONDS}s` }} aria-hidden="true" onAnimationEnd={next} />}
       </div>
+      {single ? null : (
       <div className="pc-ctl">
         <div className="pc-dots">
           {scenes.map((_, i) => (
@@ -512,6 +540,7 @@ export default function ProScenes({ block, className = "" }) {
           )}
         </button>
       </div>
+      )}
     </div>
   );
 }

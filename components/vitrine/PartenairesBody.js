@@ -69,7 +69,6 @@ export default function PartenairesBody({ proof: rawProof }) {
         <div className="wv-stack">
           <h2 className="wv-h3">{t.creditsTitle}</h2>
           <p className="wv-lead">{t.creditsLead1}</p>
-          <p className="wv-lead">{t.creditsLead2}</p>
         </div>
         <ProScenes block="credits" />
       </section>
@@ -111,11 +110,6 @@ export default function PartenairesBody({ proof: rawProof }) {
         </div>
       </section>
 
-      <section className="wv-sec wv-lime wv-guar" aria-label={t.guarKicker}>
-        <p className="wv-guar-k">{t.guarKicker}</p>
-        <h2 className="wv-h3">{t.guarTitle}</h2>
-        <p className="wv-lead">{t.guarLead}</p>
-      </section>
 
       <section className="wv-sec wv-split wv-split-big" aria-label={t.ficheAria}>
         <ProScenes block="fiche" />

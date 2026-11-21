@@ -4,9 +4,12 @@
 // Modèle à crédits façon Bark (27 oct. 2026) : la première réponse à une demande débite le coût du métier
 // (pro_send en base, REPLY_COSTS à l'écran). L'achat de crédits est désactivé pour l'instant (décision de
 // Stan le 3 nov. 2026) : pas de packs ni de formulaire de paiement tant que le paiement n'est pas branché.
+// Depuis D-382 (21 nov. 2026), crédits suspendus : la page renvoie au tableau de bord tant que CREDITS_ON est faux.
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { usePro } from "@/lib/pro/store";
-import { creditsRoi } from "@/lib/pro/format";
+import { CREDITS_ON, creditsRoi } from "@/lib/pro/format";
 import { shortDate } from "@/lib/dash/format";
 import { CreditsCoins } from "@/components/pro/icons";
 
@@ -14,6 +17,14 @@ const count = (n) => `${n} crédit${n > 1 ? "s" : ""}`;
 const delta = (n) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
 
 export default function Credits() {
+  const router = useRouter();
+  useEffect(() => {
+    if (!CREDITS_ON) router.replace("/pro");
+  }, [router]);
+  return CREDITS_ON ? <CreditsPage /> : null;
+}
+
+function CreditsPage() {
   const pro = usePro();
   const d = pro.data;
   const roi = creditsRoi(d);

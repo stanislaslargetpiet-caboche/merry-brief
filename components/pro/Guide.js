@@ -1,13 +1,14 @@
 "use client";
 
 // Accueil du dashboard prestataire (maquette « V1 bis », canvas Merry · Carte brief, 6 nov. 2026) :
-// message de bienvenue, « Comment ça marche », coûts par métier, 100 crédits offerts et Garantie Merry.
+// message de bienvenue, « Comment ça marche » et « Combien ça coûte ? ». Depuis D-382 (21 nov. 2026), répondre
+// est gratuit : coûts par métier, 100 crédits offerts et Garantie Merry ne s'affichent que si CREDITS_ON.
 // « Masquer ce guide » se retient par fiche, dans ce navigateur.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePro } from "@/lib/pro/store";
-import { REPLY_COSTS } from "@/lib/pro/format";
+import { CREDITS_ON, REPLY_COSTS } from "@/lib/pro/format";
 
 const KEY = "merry-pro-guide-masque";
 
@@ -35,7 +36,9 @@ const STEPS = [
   { icon: "invites", title: "Les couples détaillent leur mariage.", text: "Date, lieu, nombre d’invités, budget, style : ils répondent à des questions précises." },
   { icon: "filtrer", title: "Merry vous envoie ceux qui vous correspondent.", text: "Les demandes arrivent dans votre messagerie, et par mail." },
   { icon: "rechercher", title: "Vous choisissez si vous y donnez suite.", text: "Voir une demande (date, lieu, invités, budget...) est gratuit. Seules les coordonnées du couple restent floutées." },
-  { icon: "messagerie", title: "Vous utilisez des crédits pour y répondre.", text: "Les crédits servent seulement à activer l’entrée en relation, vous ne payez plus rien après." },
+  CREDITS_ON
+    ? { icon: "messagerie", title: "Vous utilisez des crédits pour y répondre.", text: "Les crédits servent seulement à activer l’entrée en relation, vous ne payez plus rien après." }
+    : { icon: "messagerie", title: "Vous répondez gratuitement.", text: "Le contact du couple se débloque dès votre réponse." },
   { icon: "avis", title: "Vous gérez la suite plus facilement.", text: "Envoi de devis, réception des paiements... tout se fait via Merry." },
 ];
 
@@ -46,6 +49,14 @@ const COSTS = [
   { label: "Photographe", keys: ["photographe", "videaste"], cost: REPLY_COSTS.photographe },
   { label: "DJ et animation", keys: ["dj", "musiciens"], cost: REPLY_COSTS.dj },
   { label: "Fleuriste", keys: ["fleuriste"], cost: REPLY_COSTS.fleuriste },
+];
+
+// D-382 : ce que le prestataire paie tant que les crédits sont suspendus
+const FREE = [
+  ["Recevoir les demandes", "Gratuit"],
+  ["Répondre aux demandes", "Gratuit"],
+  ["Abonnement", "Aucun"],
+  ["Commission", "0 %"],
 ];
 
 export default function Guide() {
@@ -112,49 +123,73 @@ export default function Guide() {
         </ol>
       </section>
 
+      {CREDITS_ON ? (
       <div className="p-guide-cost">
-        <section className="p-guide-card" aria-label="Combien ça coûte">
-          <div className="p-guide-cost-head">
-            <span className="p-guide-ico">
-              <Icon name="budget" />
-            </span>
-            <div>
-              <h2 className="p-h2">Combien ça coûte ?</h2>
-              <p>Vous ne dépensez des crédits que pour répondre à une demande qui vous intéresse.</p>
+          <section className="p-guide-card" aria-label="Combien ça coûte">
+            <div className="p-guide-cost-head">
+              <span className="p-guide-ico">
+                <Icon name="budget" />
+              </span>
+              <div>
+                <h2 className="p-h2">Combien ça coûte ?</h2>
+                <p>Vous ne dépensez des crédits que pour répondre à une demande qui vous intéresse.</p>
+              </div>
             </div>
-          </div>
-          <ul className="p-guide-rows">
-            {COSTS.map((c) => {
-              const on = c.keys.includes(mine);
-              return (
-                <li key={c.label} className={on ? "is-mine" : ""}>
-                  <span>
-                    {c.label}
-                    {on ? <em>Votre métier</em> : null}
-                  </span>
-                  <b>{c.cost} crédits</b>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <div className="p-guide-offer">
-          <section className="p-guide-gift" aria-label="Crédits offerts">
-            <span className="p-guide-n">À l’inscription</span>
-            <b>100 crédits</b>
-            <span className="p-guide-gift-sub">offerts pour démarrer</span>
-            <p>Utilisez-les pour répondre à vos premières demandes.</p>
+            <ul className="p-guide-rows">
+              {COSTS.map((c) => {
+                const on = c.keys.includes(mine);
+                return (
+                  <li key={c.label} className={on ? "is-mine" : ""}>
+                    <span>
+                      {c.label}
+                      {on ? <em>Votre métier</em> : null}
+                    </span>
+                    <b>{c.cost} crédits</b>
+                  </li>
+                );
+              })}
+            </ul>
           </section>
-          <section className="p-guide-warranty" aria-label="Garantie Merry">
-            <span className="p-guide-ico">
-              <Icon name="securite" />
-            </span>
-            <h2 className="p-h2">La Garantie Merry</h2>
-            <p>Si vos 100 crédits offerts ne vous apportent aucune réservation, Merry vous les rend.</p>
+  
+          <div className="p-guide-offer">
+            <section className="p-guide-gift" aria-label="Crédits offerts">
+              <span className="p-guide-n">À l’inscription</span>
+              <b>100 crédits</b>
+              <span className="p-guide-gift-sub">offerts pour démarrer</span>
+              <p>Utilisez-les pour répondre à vos premières demandes.</p>
+            </section>
+            <section className="p-guide-warranty" aria-label="Garantie Merry">
+              <span className="p-guide-ico">
+                <Icon name="securite" />
+              </span>
+              <h2 className="p-h2">La Garantie Merry</h2>
+              <p>Si vos 100 crédits offerts ne vous apportent aucune réservation, Merry vous les rend.</p>
+            </section>
+          </div>
+        </div>
+      ) : (
+        <div className="p-guide-cost is-free">
+          <section className="p-guide-card" aria-label="Combien ça coûte">
+            <div className="p-guide-cost-head">
+              <span className="p-guide-ico">
+                <Icon name="budget" />
+              </span>
+              <div>
+                <h2 className="p-h2">Combien ça coûte ?</h2>
+                <p>Rien. Recevoir et répondre aux demandes est gratuit.</p>
+              </div>
+            </div>
+            <ul className="p-guide-rows">
+              {FREE.map(([label, value]) => (
+                <li key={label}>
+                  <span>{label}</span>
+                  <b>{value}</b>
+                </li>
+              ))}
+            </ul>
           </section>
         </div>
-      </div>
+      )}
     </>
   );
 }

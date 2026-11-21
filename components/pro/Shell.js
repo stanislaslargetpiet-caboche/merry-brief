@@ -10,7 +10,7 @@ import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
 import { syncAccent, useAccent } from "@/lib/dash/accent";
-import { countUnreadRequests, PRO_SEEN_EVENT, unreadReplies } from "@/lib/pro/format";
+import { countUnreadRequests, PRO_SEEN_EVENT, unreadReplies, CREDITS_ON } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
 import Claim from "./Claim";
@@ -132,10 +132,12 @@ function Frame({ children }) {
           <span className="p-brand-sub">Espace prestataire</span>
         </Link>
         <span className="p-top-right">
-          <Link href="/pro/credits" className="p-credits-pill is-small">
-            <CreditsCoins size={16} />
-            {credits} crédit{credits > 1 ? "s" : ""}
-          </Link>
+          {CREDITS_ON ? (
+            <Link href="/pro/credits" className="p-credits-pill is-small">
+              <CreditsCoins size={16} />
+              {credits} crédit{credits > 1 ? "s" : ""}
+            </Link>
+          ) : null}
           <span className="d-anchor">
             <button type="button" className="d-topbar-menu" onClick={() => setMenu((o) => !o)} aria-label="Menu" aria-expanded={menu}>
               <Icon name="dots" size={18} sw={2.2} />
@@ -187,10 +189,12 @@ function Frame({ children }) {
           })}
         </div>
         <div className="p-nav-bottom">
-          <Link href="/pro/credits" className="p-credits-pill">
-            <CreditsCoins size={16} />
-            {credits} crédit{credits > 1 ? "s" : ""}
-          </Link>
+          {CREDITS_ON ? (
+            <Link href="/pro/credits" className="p-credits-pill">
+              <CreditsCoins size={16} />
+              {credits} crédit{credits > 1 ? "s" : ""}
+            </Link>
+          ) : null}
           <div className="d-help">
             <Link className={`d-help-btn${pathname.startsWith("/pro/compte") ? " is-on" : ""}`} href="/pro/compte">
               <Icon name="settings" size={16} sw={2} />

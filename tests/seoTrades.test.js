@@ -61,7 +61,7 @@ describe("métiers des pages SEO", () => {
     expect(model.figures[0]).toEqual({ value: "21", label: "wedding planners" });
     expect(model.figures.some((f) => /prix|€/.test(`${f.value} ${f.label}`))).toBe(false);
     expect(model.faq.some((f) => /Combien coûte/.test(f.q))).toBe(false);
-    expect(model.faq.at(-1).a).toContain("Les wedding planners paient en crédits");
+    expect(model.faq.at(-1).a).toBe("Oui. 100 % gratuit pour toi (pas 99 %).");
     expect(model.source).toBe("Source : catalogue Merry, novembre 2026");
     expect(pageDescription(trade, zone, model.stat)).toBe("21 wedding planners en Bretagne. Compare-les et demande tes devis sur Merry, gratuitement.");
     // Les onglets proposent les autres métiers présents dans la zone
