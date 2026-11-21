@@ -76,3 +76,25 @@ describe("middleware : appareils de l'équipe et allure des visites", () => {
     expect(res.headers.get("set-cookie")).toBeNull();
   });
 });
+
+describe("middleware : arrivée par une annonce Google sur une page SEO (D-381)", () => {
+  let fetchMock;
+  beforeEach(() => {
+    fetchMock = vi.fn(() => Promise.resolve({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("compte la page d'arrivée avec gclid comme une visite google-ads, pas la suite de la navigation", async () => {
+    await run("https://www.withmerry.com/mariage/lieux?gclid=EAIaIQ", NAVIGATEUR);
+    const [visite] = evenements(fetchMock).filter((e) => e.event === "compteur");
+    expect(visite.properties).toMatchObject({ etape: "site", source: "google-ads" });
+    fetchMock.mockClear();
+    await run("https://www.withmerry.com/mariage/lieux/rhone?source=google-ads", NAVIGATEUR);
+    await run("https://www.withmerry.com/mariage/lieux", NAVIGATEUR);
+    expect(evenements(fetchMock).filter((e) => e.event === "compteur")).toHaveLength(0);
+  });
+});

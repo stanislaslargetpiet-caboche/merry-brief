@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { VITRINE_HOSTS, VITRINE_PAGES } from "@/lib/vitrine/routes";
 import { classifyAgent } from "@/lib/agentsIa";
-import { COOKIE_INTERNE, compter, interneDemande, isInterne, isPageRequest, isPageVisit, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
+import { COOKIE_INTERNE, compter, interneDemande, isInterne, isPageRequest, isClicGoogleAds, isPageVisit, isRobot, qualiteEntetes, referantOf, sourceOf } from "@/lib/compteur";
 import { classifyRobot } from "@/lib/robots";
 
 // withmerry.com et www servent le site vitrine (pages /vitrine/* de cette appli) et les pages SEO
@@ -73,6 +73,9 @@ function reportAgent(req, event, agent, nom = "bot_hit") {
 function etapeDe(req) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   if (VITRINE_HOSTS.includes(host) && VITRINE_PAGES[req.nextUrl.pathname]) return "site";
+  // Les annonces Google atterrissent sur les pages SEO (/mariage/…) : l'arrivée par un clic d'annonce y compte comme une
+  // visite du site, pas la suite de la navigation sur ces pages (D-381)
+  if (VITRINE_HOSTS.includes(host) && req.nextUrl.pathname.startsWith("/mariage") && isClicGoogleAds(req.nextUrl.search)) return "site";
   if (host === "app.withmerry.com" && req.nextUrl.pathname === "/") return "appli";
   return null;
 }
