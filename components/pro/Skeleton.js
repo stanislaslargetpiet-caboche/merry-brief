@@ -6,7 +6,7 @@
 // pas encore là, elles restent de petites barres grises ; rien n'est actif ni cliquable.
 
 import { Icon } from "@/components/dash/icons";
-import { useAccent } from "@/lib/dash/accent";
+import { useAccent, PRO_DEFAULT } from "@/lib/dash/accent";
 import { ProIcon } from "./icons";
 
 const Bar = ({ w, h = 12, r = 999 }) => <span className="p-sk" style={{ width: w, height: h, borderRadius: r }} />;
@@ -15,7 +15,7 @@ const Card = ({ children }) => <div className="p-sk-card">{children}</div>;
 
 // nav : les entrées de PRO_NAV (Shell.js), passées en propriété pour ne pas importer Shell ici
 export default function ProSkeleton({ nav }) {
-  const accent = useAccent();
+  const accent = useAccent(PRO_DEFAULT);
   return (
     <div className="d-root p-root" data-accent={accent}>
       <header className="p-top" aria-hidden="true">

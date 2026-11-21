@@ -2463,7 +2463,7 @@ select.p-input {
 
 .p-legend-box.is-option {
   background: var(--d-limetint);
-  border-color: #fffdb8;
+  border-color: var(--d-limetint);
 }
 
 .p-legend-box.is-reserve {
@@ -2549,7 +2549,7 @@ select.p-input {
 .p-cal-day.is-option {
   background: var(--d-limetint);
   color: var(--d-ok-ink);
-  border-color: #fffdb8;
+  border-color: var(--d-limetint);
 }
 
 .p-cal-day.is-reserve {
@@ -2834,7 +2834,7 @@ select.p-input {
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    background: #ebe300;
+    background: color-mix(in srgb, var(--d-lime) 88%, #1c1c1a); /* point plus soutenu que la couleur de l’espace */
   }
   .p-cal-dot.is-reserve {
     background: var(--d-ink);
@@ -2852,7 +2852,7 @@ select.p-input {
     border: 1.5px solid #9d978a;
   }
   .p-legend.is-dots .p-legend-box.is-option {
-    background: #ebe300;
+    background: color-mix(in srgb, var(--d-lime) 88%, #1c1c1a); /* point plus soutenu que la couleur de l’espace */
     border: none;
   }
   .p-legend.is-dots .p-legend-box.is-reserve {
@@ -4086,7 +4086,7 @@ button.p-dem-item {
 }
 
 .p-stat.is-amber {
-  color: #574e00;
+  color: var(--d-ok-ink);
 }
 
 @media (max-width: 700px) {
@@ -5026,7 +5026,7 @@ button.p-brand-vendor.is-menu svg {
   padding: 0 9px;
   border-radius: 999px;
   background: #ffffff;
-  color: #574e00;
+  color: var(--d-ok-ink);
   font-size: 11.5px;
   font-weight: 700;
   white-space: nowrap;

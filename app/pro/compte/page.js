@@ -9,14 +9,14 @@ import { usePro } from "@/lib/pro/store";
 import { supabase, sendPasswordChangedMail, signOutHere } from "@/lib/supabase";
 import { Btn, Field, Modal, Section } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
-import { ACCENTS, saveAccent, useAccent } from "@/lib/dash/accent";
+import { ACCENTS, saveAccent, useAccent, PRO_DEFAULT } from "@/lib/dash/accent";
 import Collaborators from "@/components/pro/Collaborators";
 import MailPrefs from "@/components/MailPrefs";
 
 export default function Compte() {
   const pro = usePro();
   const live = pro.mode === "live";
-  const accent = useAccent();
+  const accent = useAccent(PRO_DEFAULT);
 
   async function pick(key) {
     const ok = await saveAccent(key, live);

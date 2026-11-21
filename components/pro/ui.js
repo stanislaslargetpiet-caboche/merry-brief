@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { coupleInitials, faceColor } from "@/lib/pro/format";
 import { trapTab } from "@/components/dash/ui";
+import { useAccent, PRO_DEFAULT } from "@/lib/dash/accent";
 
 // Sous-onglets d'une section groupée de la barre latérale (Mon profil, Messagerie) : évite
 // d'empiler trop d'entrées dans la barre, comme sur les maquettes « Mon profil » et « Messagerie »
@@ -30,6 +31,7 @@ export function ProSubnav({ items, label }) {
 
 export function Sheet({ labelledBy, onClose, children, className = "", wide = false }) {
   const box = useRef(null);
+  const accent = useAccent(PRO_DEFAULT); // la fenêtre est rendue hors de .p-root : elle reprend la couleur de l’espace
   // onClose est le plus souvent une fonction fléchée recréée à chaque rendu : lue par une référence, sinon
   // chaque changement d'état relançait l'effet (écouteurs réinstallés, focus renvoyé au premier bouton)
   const closeRef = useRef(onClose);
@@ -52,7 +54,7 @@ export function Sheet({ labelledBy, onClose, children, className = "", wide = fa
   }, []);
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="d-root p-layer">
+    <div className="d-root p-layer" data-accent={accent}>
       <div className="p-scrim" aria-hidden="true" onClick={onClose} />
       <div ref={box} role="dialog" aria-modal="true" aria-labelledby={labelledBy} className={`p-sheet${wide ? " is-wide" : ""} ${className}`}>
         <span className="p-sheet-grip" aria-hidden="true" />

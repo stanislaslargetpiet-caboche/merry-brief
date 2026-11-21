@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { ProProvider, usePro } from "@/lib/pro/store";
 import { Popover } from "@/components/dash/ui";
 import { Icon } from "@/components/dash/icons";
-import { syncAccent, useAccent } from "@/lib/dash/accent";
+import { syncAccent, useAccent, PRO_DEFAULT } from "@/lib/dash/accent";
 import { countUnreadRequests, PRO_SEEN_EVENT, unreadReplies, CREDITS_ON } from "@/lib/pro/format";
 import { CALENDLY_URL, SITE_URL } from "@/lib/site";
 import { ProIcon, CreditsCoins } from "./icons";
@@ -80,7 +80,7 @@ function Gate({ children }) {
 
 function Trouble({ kind, error, reload }) {
   return (
-    <div className="d-root p-root p-bare">
+    <div className="d-root p-root p-bare" data-accent={PRO_DEFAULT}>
       <div className="d-card d-error-card p-trouble">
         <h1 className="d-title">Un instant.</h1>
         {kind === "setup" ? (
@@ -109,7 +109,7 @@ function Frame({ children }) {
   const [help, setHelp] = useState(false);
   const credits = pro.data.pro?.credits ?? 0;
   const here = PRO_NAV.find((n) => ((n.exact ? pathname === n.href : n.match.some((m) => pathname === m || pathname.startsWith(m + "/")))))?.label || "Dashboard";
-  const accent = useAccent();
+  const accent = useAccent(PRO_DEFAULT);
   const unread = useUnreadRequests();
 
   useEffect(() => {
