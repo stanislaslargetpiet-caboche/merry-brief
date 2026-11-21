@@ -6,9 +6,10 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, ColBars, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { Card, DayLine, Pill, Section, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { fmtDay, fmtEur } from "@/lib/server/pilotage/shape";
 import { CATEGORIES } from "@/lib/server/pilotage/couts";
+import { moisSuivis } from "@/lib/pilotage/graphes";
 
 const eur = fmtEur;
 const MOIS = (m) => (m ? new Date(`${m}-15T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "Europe/Paris" }) : "");
@@ -131,7 +132,7 @@ export default function Couts({ couts, demo, onChange }) {
             </Card>
           ) : null}
           <TileChart>
-            <Tile label={`Dépensé en ${MOIS(mois)}`} chart={<ColBars title="Dépenses par mois" rows={couts.par_mois.slice(-12).map((m) => ({ label: MOIS(m.mois), n: m.n }))} format={eur} empty="Aucune dépense saisie" courant={MOIS(mois)} />} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour · ${eur(couts.mois_precedent)} le mois précédent`} />
+            <Tile label={`Dépensé en ${MOIS(mois)}`} chart={<DayLine title="Dépenses par mois" series={moisSuivis(couts.par_mois, mois)} valeur="n" label="Dépenses" days={12} format={eur} />} value={couts.mois} format={eur} sub={`${eur(couts.mois_par_jour)} par jour · ${eur(couts.mois_precedent)} le mois précédent`} />
             <Tile label="30 derniers jours" value={couts.trente_jours} format={eur} sub={`${eur(couts.trente_par_jour)} par jour`} />
             <Tile label="Cumul enregistré" value={couts.total} format={eur} sub={`${couts.lignes} dépense(s) saisie(s)`} />
           </TileChart>

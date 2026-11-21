@@ -3,7 +3,7 @@
 // Bloc « Google Ads » de la page Acquisition › Référencement (D-364, D-381) : ce que coûte la campagne et ce qu'elle
 // amène, par jour, par campagne, par mot-clé et par recherche tapée. Calculs dans lib/pilotage/googleAds.js ; dépense
 // et clics envoyés chaque heure par le script du compte Google Ads (scripts/google-ads/merry-depense.js).
-import { DayBars, Fold, Folds, Table, Tile, TileChart } from "@/components/pilotage/ui";
+import { DayLine, Fold, Folds, Table, Tile, TileChart } from "@/components/pilotage/ui";
 import { chiffresGoogleAds, resumeGoogleAds } from "@/lib/pilotage/googleAds";
 import { fmtAgo, fmtEur, fmtInt } from "@/lib/server/pilotage/shape";
 
@@ -32,9 +32,9 @@ export default function GoogleAds({ ads, entonnoir, sources, utilisateurs, jours
     <>
       <h3 className="pl-bloc-titre">Google Ads</h3>
       <TileChart>
-        <Tile label="Dépense" value={c.cout} prev={p.cout} format={fmtEur} inverse hint="Coût des clics, lu dans Google Ads" chart={<DayBars title="Dépense par jour" series={series} keys={["cout"]} labels={["Dépense"]} days={jours} format={fmtEur} />} />
-        <Tile label="Clics" value={c.clics} prev={p.clics} hint={`${fmtInt(c.impressions)} affichages de l'annonce ; ${fmtInt(c.visites)} arrivées comptées sur le site`} chart={<DayBars title="Clics par jour" series={series} keys={["clics"]} labels={["Clics"]} days={jours} />} />
-        <Tile label="Inscriptions" value={c.inscriptions} prev={p.inscriptions} hint={`Comptes créés après un clic d'annonce, dont ${fmtInt(c.actifs)} ont envoyé une demande à un prestataire`} chart={<DayBars title="Inscriptions par jour" series={series} keys={["inscriptions"]} labels={["Inscriptions"]} days={jours} />} />
+        <Tile label="Dépense" value={c.cout} prev={p.cout} format={fmtEur} inverse hint="Coût des clics, lu dans Google Ads" chart={<DayLine title="Dépense par jour" series={series} valeur="cout" label="Dépense" days={jours} format={fmtEur} />} />
+        <Tile label="Clics" value={c.clics} prev={p.clics} hint={`${fmtInt(c.impressions)} affichages de l'annonce ; ${fmtInt(c.visites)} arrivées comptées sur le site`} chart={<DayLine title="Clics par jour" series={series} valeur="clics" label="Clics" days={jours} />} />
+        <Tile label="Inscriptions" value={c.inscriptions} prev={p.inscriptions} hint={`Comptes créés après un clic d'annonce, dont ${fmtInt(c.actifs)} ont envoyé une demande à un prestataire`} chart={<DayLine title="Inscriptions par jour" series={series} valeur="inscriptions" label="Inscriptions" days={jours} />} />
         <Tile label="Coût par inscription" value={c.cout_inscription} prev={p.cout_inscription} format={fmtEur} inverse hint={`Dépense sur inscriptions ; ${eur(c.cout_actif)} par couple qui a envoyé une demande`} />
       </TileChart>
       <Folds>

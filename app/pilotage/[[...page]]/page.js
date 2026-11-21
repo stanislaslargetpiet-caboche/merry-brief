@@ -24,7 +24,7 @@ import { Aujourdhui, useItems } from "@/components/pilotage/Items";
 import { PilotLangue, PilotPeriod, PilotSide, PilotSubnav, useLangue } from "@/components/pilotage/PilotNav";
 import { supabase, signOutHere } from "@/lib/supabase";
 import { alignSeries, dayList, fmtDateTime, fmtHeure, fmtInt, heureList, pctOf, splitSeries, sumBy, sumMesure, visitesHumaines } from "@/lib/server/pilotage/shape";
-import { Card, DayBars, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
+import { Card, DayLine, PageContext, Pill, PilotDots, PilotLoader, Section, Tile, TileChart } from "@/components/pilotage/ui";
 import { cumulSerie, mesureDepuis } from "@/lib/pilotage/graphes";
 import { demoData } from "@/lib/server/pilotage/demo";
 import { buildSante } from "@/lib/pilotage/sante";
@@ -429,10 +429,10 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
 
       <Section id="activite">
         <TileChart>
-          <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(cur("mariages"))} créé(s) sur la période`} chart={<DayLine cumul title="Mariages au total" series={cumulSerie(seriesActivite, "mariages", t.mariages)} valeur="cumul" label="Mariages" days={joursActivite} />} />
+          <Tile label="Mariages" value={t.mariages} sub={`${fmtInt(cur("mariages"))} créé(s) sur la période`} chart={<DayLine title="Mariages au total" series={cumulSerie(seriesActivite, "mariages", t.mariages)} valeur="cumul" label="Mariages" days={joursActivite} />} />
           <Tile label="Couples connectés" value={u.couples_connectes?.n} sub={`sur ${fmtInt(t.mariages)} mariages`} hint="Mariages dont un compte s'est connecté sur la période (Supabase Auth)" chart={<DayLine title={`Couples connectés ${parActivite}`} series={seriesActivite} valeur="couples_connectes" label="Couples connectés" days={joursActivite} />} />
           <Tile label="Réponses au formulaire" value={formMesure ? sumMesure(reponsesFormSplit.current, "reponses_formulaire") : null} prev={formMesure ? sumMesure(reponsesFormSplit.previous, "reponses_formulaire") : undefined} hint="Invités qui ont répondu par le formulaire, une fois par jour chacun" chart={<DayLine title={`Réponses au formulaire ${parActivite}`} series={activiteHeures || reponsesForm} valeur="reponses_formulaire" label="Réponses au formulaire" days={joursActivite} />} />
-          <Tile label="Formulaires live" value={formMesure ? t.formulaires_publies : null} sub={formMesure ? `sur ${fmtInt(t.mariages)} mariages` : null} hint="Formulaires invités en ligne ; le passé compte les formulaires créés ce jour-là et encore publiés" chart={activiteHeures ? <DayLine title={`Formulaires live ${parActivite}`} series={seriesActivite} valeur="formulaires_live" label="Formulaires live" days={joursActivite} /> : <DayBars title="Formulaires live par jour" series={sb?.series} keys={["formulaires_live"]} labels={["Formulaires live"]} days={jours} />} />
+          <Tile label="Formulaires live" value={formMesure ? t.formulaires_publies : null} sub={formMesure ? `sur ${fmtInt(t.mariages)} mariages` : null} hint="Formulaires invités en ligne ; le passé compte les formulaires créés ce jour-là et encore publiés" chart={<DayLine title={`Formulaires live ${parActivite}`} series={seriesActivite} valeur="formulaires_live" label="Formulaires live" days={joursActivite} />} />
           <Tile label="Demandes de devis" value={cur("demandes")} prev={prev("demandes")} chart={<DayLine title={`Demandes de devis ${parActivite}`} series={seriesActivite} valeur="demandes" label="Demandes de devis" days={joursActivite} />} />
         </TileChart>
       </Section>
@@ -444,7 +444,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="catalogue">
         <TileChart>
           <Tile label="Fiches revendiquées" value={t.fiches_revendiquees} sub={t.fiches_revendiquees_periode != null ? `${fmtInt(t.fiches_revendiquees_periode)} sur la période` : null} />
-          <Tile label="Vues de fiches" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" chart={activiteHeures ? <DayLine title={`Vues de fiches ${parActivite}`} series={seriesActivite} valeur="vues_pro" label="Vues de fiches" days={joursActivite} /> : <DayBars title="Vues de fiches par jour" series={sb?.series} keys={["vues_pro"]} labels={["Vues de fiches"]} days={jours} />} />
+          <Tile label="Vues de fiches" value={cur("vues_pro")} prev={prev("vues_pro")} hint="Fiches revendiquées ouvertes par des couples" chart={<DayLine title={`Vues de fiches ${parActivite}`} series={seriesActivite} valeur="vues_pro" label="Vues de fiches" days={joursActivite} />} />
           <Tile label="Crédits dépensés" value={t.credits_depenses_periode} sub={t.credits_depenses != null ? `${fmtInt(t.credits_depenses)} au total` : null} hint="Réponses payées en crédits sur la période" />
           <Tile label="Avec 3 photos ou plus" value={pctOf(t.catalogue_photos3, t.catalogue_actifs)} format={pct} sub={`des ${fmtInt(t.catalogue_actifs)} fiches actives`} />
         </TileChart>
@@ -460,7 +460,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
             <Tile label="Visites humaines" value={sumBy(arriveesSplit.current, "visites")} prev={sumMesure(arriveesSplit.previous, "visites")} hint="Pages du site ouvertes par une personne, cookies acceptés ou non (compteur sans cookie, robots et appareils de l'équipe écartés)" note={noteAllure} chart={<DayLine title={`Visites humaines ${parSite}`} series={arrivees} valeur="visites" label="Visites humaines" days={pasSite} />} />
             <Tile label="Comptes créés" value={sumBy(arriveesSplit.current, "comptes")} prev={sumBy(arriveesSplit.previous, "comptes")} chart={<DayLine title={`Comptes créés ${parSite}`} series={arrivees} valeur="comptes" label="Comptes créés" days={pasSite} />} />
             <Tile label="Taux d'inscription" value={pctOf(sumBy(arriveesSplit.current, "comptes"), sumBy(arriveesSplit.current, "visites"))} prev={sumMesure(arriveesSplit.previous, "visites") === null ? null : pctOf(sumBy(arriveesSplit.previous, "comptes"), sumBy(arriveesSplit.previous, "visites"))} format={pct} sansPct hint="Comptes créés sur visites" chart={<DayLine title={`Taux d'inscription ${parSite}`} series={arrivees} valeur="taux" label="Taux d'inscription" days={pasSite} format={pct} />} />
-            <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={heures ? <DayLine title={`Robots ${parSite}`} series={robots} valeur="robots" label="Robots" days={pasSite} /> : <DayBars title={`Robots ${parSite}`} series={robots} keys={["robots"]} labels={["Robots"]} days={pasSite} />} />
+            <Tile label="Robots" value={sumBy(robotsSplit.current, "robots")} prev={sumBy(robotsSplit.previous, "robots")} sub={`${pctOf(sumBy(robotsSplit.current, "robots"), sumBy(robotsSplit.current, "robots") + (sumBy(arriveesSplit.current, "visites") || 0)) ?? 0} % des passages`} hint="Passages de robots sur le site : moteurs de recherche, aperçus de lien, agents IA, scripts" chart={<DayLine title={`Robots ${parSite}`} series={robots} valeur="robots" label="Robots" days={pasSite} />} />
           </TileChart>
         ) : (
           nonLu("PostHog", data.posthog?.raison)
@@ -475,10 +475,10 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="referencement" right={demo ? null : <RefreshSeo />}>
         {gsc || ph ? (
           <TileChart>
-            {gsc ? <Tile label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" chart={<DayBars title="Clics par jour" series={gscSeries} keys={["clics"]} labels={["Clics"]} days={jours} />} /> : null}
-            {gsc ? <Tile label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" chart={<DayBars title="Impressions par jour" series={gscSeries} keys={["impressions"]} labels={["Impressions"]} days={jours} />} /> : null}
+            {gsc ? <Tile label="Clics depuis Google" value={sumBy(gscSplit.current, "clics")} prev={sumBy(gscSplit.previous, "clics")} hint="Search Console, données décalées de deux à trois jours" chart={<DayLine title="Clics par jour" series={gscSeries} valeur="clics" label="Clics" days={jours} />} /> : null}
+            {gsc ? <Tile label="Impressions" value={sumBy(gscSplit.current, "impressions")} prev={sumBy(gscSplit.previous, "impressions")} hint="Fois où une page de Merry est apparue dans les résultats" chart={<DayLine title="Impressions par jour" series={gscSeries} valeur="impressions" label="Impressions" days={jours} />} /> : null}
             {gsc ? <Tile label="Position moyenne" value={avgPos(gscSplit.current)} prev={avgPos(gscSplit.previous)} format={(v) => Number(v).toLocaleString("fr-FR")} inverse hint="Pondérée par les impressions ; plus petit est mieux" chart={<DayLine title="Position moyenne par jour" series={gscPosition} valeur="position" label="Position" days={jours} format={(v) => Number(v).toLocaleString("fr-FR")} />} /> : null}
-            {ph ? <Tile label="Visites d'agents IA" value={sumBy(agentsSplit.current, "visites")} prev={sumBy(agentsSplit.previous, "visites")} hint="Pages lues par des agents qui ne chargent pas le JavaScript (GPTBot, ClaudeBot, PerplexityBot…), reconnus à leur User-Agent" chart={agentsHeures ? <DayLine title={`Visites d'agents ${parAgents}`} series={seriesAgents} valeur="visites" label="Visites" days={joursAgents} /> : <DayBars title="Visites d'agents par jour" series={agentsSeries} keys={["visites"]} labels={["Visites"]} days={jours} />} /> : null}
+            {ph ? <Tile label="Visites d'agents IA" value={sumBy(agentsSplit.current, "visites")} prev={sumBy(agentsSplit.previous, "visites")} hint="Pages lues par des agents qui ne chargent pas le JavaScript (GPTBot, ClaudeBot, PerplexityBot…), reconnus à leur User-Agent" chart={<DayLine title={`Visites d'agents ${parAgents}`} series={seriesAgents} valeur="visites" label="Visites" days={joursAgents} />} /> : null}
           </TileChart>
         ) : (
           nonLu("Search Console", data.google?.raison)
@@ -489,8 +489,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       <Section id="sante" right={demo ? null : <SendBrief />}>
         {ph || vc ? (
           <TileChart>
-            {ph ? <Tile label="Erreurs JavaScript" value={sumBy(bugsSplit.current, "exceptions")} prev={sumBy(bugsSplit.previous, "exceptions")} inverse chart={bugsHeures ? <DayLine title={`Erreurs ${parBugs}`} series={seriesBugs} valeur="exceptions" label="Erreurs" days={joursBugs} /> : <DayBars title="Erreurs par jour" series={bugs} keys={["exceptions"]} labels={["Erreurs"]} days={jours} />} /> : null}
-            {ph ? <Tile label="Clics de rage" value={sumBy(bugsSplit.current, "rage")} prev={sumBy(bugsSplit.previous, "rage")} inverse chart={bugsHeures ? <DayLine title={`Clics de rage ${parBugs}`} series={seriesBugs} valeur="rage" label="Clics de rage" days={joursBugs} /> : <DayBars title="Clics de rage par jour" series={bugs} keys={["rage"]} labels={["Clics de rage"]} days={jours} />} /> : null}
+            {ph ? <Tile label="Erreurs JavaScript" value={sumBy(bugsSplit.current, "exceptions")} prev={sumBy(bugsSplit.previous, "exceptions")} inverse chart={<DayLine title={`Erreurs ${parBugs}`} series={seriesBugs} valeur="exceptions" label="Erreurs" days={joursBugs} />} /> : null}
+            {ph ? <Tile label="Clics de rage" value={sumBy(bugsSplit.current, "rage")} prev={sumBy(bugsSplit.previous, "rage")} inverse chart={<DayLine title={`Clics de rage ${parBugs}`} series={seriesBugs} valeur="rage" label="Clics de rage" days={joursBugs} />} /> : null}
             {ph ? <Tile label="Bugs vus en replay" value={ph.bugs.replays?.bugs || 0} sub={`sur ${fmtInt(ph.bugs.replays?.analysees || 0)} session(s) analysée(s)`} inverse /> : null}
             {vc ? <Tile label="Déploiements en échec" value={vc.erreurs} sub={`sur ${fmtInt(vc.total)} déploiement(s)`} inverse /> : null}
           </TileChart>
