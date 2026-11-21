@@ -489,7 +489,7 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         ) : (
           nonLu("Search Console", data.google?.raison)
         )}
-        {ph ? <GoogleAds entonnoir={ph.site?.entonnoir} sources={data.utilisateurs?.sources} /> : null}
+        <GoogleAds ads={data.googleAds} entonnoir={ph?.site?.entonnoir} sources={data.utilisateurs?.sources} utilisateurs={data.utilisateurs?.utilisateurs} joursList={joursList} jours={jours} />
       </Section>
 
       <Section id="sante" right={demo ? null : <SendBrief />}>
