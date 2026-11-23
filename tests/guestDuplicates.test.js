@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findDuplicates, mergePlan, normEmail, pairKey, scorePair } from "@/lib/dash/guestDuplicates";
+import { findCoupleRows, findDuplicates, mergePlan, normEmail, pairKey, scorePair, splitCouple } from "@/lib/dash/guestDuplicates";
 
 const g = (id, first_name, last_name, extra = {}) => ({ id, first_name, last_name, created_at: `2026-11-0${id.length}T10:00:00Z`, position: 0, ...extra });
 const oui = (guest_id, event_id = "e1") => ({ guest_id, event_id, status: "oui" });
@@ -79,5 +79,48 @@ describe("doublons : grande liste", () => {
     const t = Date.now();
     findDuplicates(list, []);
     expect(Date.now() - t).toBeLessThan(5000);
+  });
+});
+
+describe("doublons : réponse en couple sur une ligne", () => {
+  it("découpe les noms de couple comme la base, laisse un nom seul", () => {
+    expect(splitCouple("Lucie et Hugo", "Lambert")).toEqual([
+      { first_name: "Lucie", last_name: "Lambert" },
+      { first_name: "Hugo", last_name: "Lambert" },
+    ]);
+    expect(splitCouple("Lucie Lambert, Hugo", "Lambert")[0]).toEqual({ first_name: "Lucie", last_name: "Lambert" });
+    expect(splitCouple("Lucie", "Lambert et Hugo Lambert")[1]).toEqual({ first_name: "Hugo", last_name: "Lambert" });
+    expect(splitCouple("Paul & Julie", "Martin / Durand")).toEqual([
+      { first_name: "Paul", last_name: "Martin" },
+      { first_name: "Julie", last_name: "Durand" },
+    ]);
+    expect(splitCouple("Claire", "et Pierre Morel")).toEqual([
+      { first_name: "Claire", last_name: "Morel" },
+      { first_name: "Pierre", last_name: "Morel" },
+    ]);
+    expect(splitCouple("Pierre", "Etienne")).toBeNull();
+    expect(splitCouple("Jean-Baptiste", "Saint-Exupéry")).toBeNull();
+    expect(splitCouple("Bernadette", "Etienne")).toBeNull();
+  });
+  it("propose de reporter la ligne du couple sur les deux fiches, prénom abrégé compris", () => {
+    const list = [
+      g("a", "Lucie", "Lambert"),
+      g("b", "Hugo", "Lambert"),
+      g("c", "Inès", "Lambert"),
+      g("d", "Maximilien", "du Plessis"),
+      g("e", "Anais", "du Plessis"),
+      g("x", "Lucie et Hugo", "Lambert"),
+      g("y", "Max et Anaïs", "du Plessis"),
+    ];
+    expect(findCoupleRows(list)).toEqual([
+      { keepId: "a", alsoKeepId: "b", dropId: "x", score: 1, reason: "couple" },
+      { keepId: "d", alsoKeepId: "e", dropId: "y", score: 1, reason: "couple" },
+    ]);
+    expect(findCoupleRows(list, [pairKey("a", "x")]).map((s) => s.dropId)).toEqual(["y"]);
+  });
+  it("ne propose rien si l'une des deux personnes manque ou est ambiguë", () => {
+    expect(findCoupleRows([g("a", "Jean", "Perrin"), g("x", "Marie-Anne et Jean", "Perrin")])).toEqual([]);
+    const twins = [g("a", "Maximilien", "Roux"), g("b", "Stéphane", "Roux"), g("c", "Anne", "Roux"), g("x", "St et Anne", "Roux")];
+    expect(findCoupleRows(twins)).toEqual([]);
   });
 });

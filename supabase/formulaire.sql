@@ -304,6 +304,84 @@ end;
 $$;
 revoke all on function public.merry_find_guest(uuid, text, text) from public, anon, authenticated;
 
+-- Réponse en couple : « Lucie et Hugo » / « Lambert », « Max & Anaïs », « Lucie Lambert, Hugo
+-- Lambert » ou « Lucie » / « Lambert et Hugo Lambert » donnent deux personnes ; tout autre nom en
+-- donne une seule, tel quel.
+create or replace function public.merry_split_couple(v_first text, v_last text)
+returns table (first_name text, last_name text)
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  sep constant text := '\s+(et|and)\s+|\s*[&+/,]\s*';
+  fp text[] := regexp_split_to_array(btrim(coalesce(v_first, '')), sep, 'i');
+  lp text[] := regexp_split_to_array(btrim(coalesce(v_last, '')), sep, 'i');
+  a text;
+  b text;
+  rest text;
+begin
+  if array_length(fp, 1) = 2 and btrim(fp[1]) <> '' and btrim(fp[2]) <> '' then
+    if array_length(lp, 1) = 2 and btrim(lp[1]) <> '' and btrim(lp[2]) <> '' then
+      first_name := btrim(fp[1]); last_name := btrim(lp[1]); return next;
+      first_name := btrim(fp[2]); last_name := btrim(lp[2]); return next;
+      return;
+    end if;
+    -- « Lucie Lambert et Hugo » / « Lambert » : le nom répété après le premier prénom est retiré
+    a := btrim(fp[1]);
+    b := btrim(fp[2]);
+    if btrim(v_last) <> '' and lower(a) like '% ' || lower(btrim(v_last)) then
+      a := btrim(left(a, length(a) - length(btrim(v_last))));
+    end if;
+    first_name := a; last_name := btrim(v_last); return next;
+    first_name := b; last_name := btrim(v_last); return next;
+    return;
+  end if;
+  -- « Claire » / « et Pierre Morel » (nom saisi sur une seule ligne) : le nom de famille vient de la fin
+  rest := regexp_replace(btrim(coalesce(v_last, '')), '^((et|and)\s+|[&+]\s*)', '', 'i');
+  if array_length(fp, 1) = 1 and btrim(fp[1]) <> '' and rest <> btrim(coalesce(v_last, '')) and position(' ' in rest) > 0 then
+    first_name := btrim(v_first); last_name := btrim(substr(rest, position(' ' in rest) + 1)); return next;
+    first_name := split_part(rest, ' ', 1); last_name := btrim(substr(rest, position(' ' in rest) + 1)); return next;
+    return;
+  end if;
+  if array_length(fp, 1) = 1 and array_length(lp, 1) = 2 and btrim(lp[1]) <> '' and position(' ' in btrim(lp[2])) > 0 then
+    rest := btrim(lp[2]);
+    first_name := btrim(v_first); last_name := btrim(lp[1]); return next;
+    first_name := split_part(rest, ' ', 1); last_name := btrim(substr(rest, position(' ' in rest) + 1)); return next;
+    return;
+  end if;
+  first_name := btrim(coalesce(v_first, '')); last_name := btrim(coalesce(v_last, '')); return next;
+end;
+$$;
+revoke all on function public.merry_split_couple(text, text) from public, anon, authenticated;
+
+-- Une personne d'un couple : son nom (fautes tolérées, merry_find_guest), sinon un prénom abrégé porté par
+-- une seule fiche du même nom (« Max » pour « Maximilien du Plessis ») ; jamais une fiche déjà prise.
+create or replace function public.merry_find_couple_guest(w uuid, v_first text, v_last text, taken uuid[])
+returns uuid
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  nf text := public.merry_norm_compact(v_first);
+  nl text := public.merry_norm_compact(v_last);
+  found_id uuid := public.merry_find_guest(w, v_first, v_last);
+  busy uuid[] := array_remove(coalesce(taken, '{}'), null);
+  n integer;
+begin
+  if found_id is not null and not (found_id = any(busy)) then return found_id; end if;
+  if length(nf) < 3 or nl = '' then return null; end if;
+  select count(*), min(id::text)::uuid into n, found_id from public.guests
+   where wedding_id = w and plus_one_of is null and not (id = any(busy))
+     and public.merry_norm_compact(last_name) = nl
+     and (public.merry_norm_compact(first_name) like nf || '%' or nf like public.merry_norm_compact(first_name) || '%')
+     and public.merry_norm_compact(first_name) <> '';
+  return case when n = 1 then found_id else null end;
+end;
+$$;
+revoke all on function public.merry_find_couple_guest(uuid, text, text, uuid[]) from public, anon, authenticated;
+
 create or replace function public.merry_form_submit(form_slug text, payload jsonb)
 returns jsonb
 language plpgsql
@@ -321,6 +399,10 @@ declare
   v_last     text;
   main_id    uuid;
   plus_id    uuid;
+  who        uuid[] := '{}';         -- fiches que la réponse remplit (deux pour un couple)
+  person     record;
+  one_id     uuid;
+  k          integer;
   pos        integer;
   custom_out jsonb := '{}'::jsonb;
   field_id   uuid;
@@ -429,24 +511,41 @@ begin
       case when public.merry_clip(payload ->> 'allergies', 200) is not null then 'allergies : ' || public.merry_clip(payload ->> 'allergies', 200) end), '') end;
   addr := case when coalesce(modes ->> 'adresse', 'off') = 'off' then null else public.merry_clip(payload ->> 'address', 300) end;
 
-  -- Invité principal : reconnu par son nom (fautes de frappe tolérées), sinon ajouté en fin de liste
-  main_id := public.merry_find_guest(w, v_first, v_last);
-  if main_id is null then
-    select coalesce(max(position) + 1, 0) into pos from public.guests where wedding_id = w;
-    insert into public.guests (wedding_id, first_name, last_name, position)
-    values (w, v_first, v_last, pos) returning id into main_id;
-  end if;
+  -- Invité principal : reconnu par son nom (fautes de frappe tolérées), sinon ajouté en fin de liste.
+  -- Une réponse en couple (« Lucie et Hugo Lambert ») remplit la fiche de chacun au lieu d'ajouter une
+  -- ligne au nom du couple ; une personne absente de la liste y est ajoutée, dans le groupe de l'autre.
+  for person in select * from public.merry_split_couple(v_first, v_last) loop
+    if (select count(*) from public.merry_split_couple(v_first, v_last)) > 1 then
+      one_id := public.merry_find_couple_guest(w, person.first_name, person.last_name, who);
+    else
+      one_id := public.merry_find_guest(w, person.first_name, person.last_name);
+    end if;
+    who := who || one_id;
+  end loop;
+  for k in 1 .. array_length(who, 1) loop
+    if who[k] is null then
+      select coalesce(max(position) + 1, 0) into pos from public.guests where wedding_id = w;
+      select first_name, last_name into person from public.merry_split_couple(v_first, v_last) offset k - 1 limit 1;
+      insert into public.guests (wedding_id, group_id, first_name, last_name, position)
+      values (w, (select group_id from public.guests where id = any(who) and id is not null limit 1),
+              public.merry_clip(person.first_name, 80), public.merry_clip(person.last_name, 80), pos)
+      returning id into one_id;
+      who[k] := one_id;
+    end if;
+  end loop;
+  main_id := who[1];
   -- La réponse de l'invité fait foi : ce qu'il renseigne remplace ce que la liste contenait ;
-  -- un champ laissé vide ou non demandé garde sa valeur.
+  -- un champ laissé vide ou non demandé garde sa valeur. Le mail et le téléphone d'un couple vont à la
+  -- première personne nommée.
   update public.guests
      set last_name = case when btrim(last_name) = '' then v_last else last_name end,
-         email   = coalesce(public.merry_clip(payload ->> 'email', 200), email),
-         phone   = case when coalesce(modes ->> 'tel', 'off') = 'off' then phone
+         email   = case when id = main_id then coalesce(public.merry_clip(payload ->> 'email', 200), email) else email end,
+         phone   = case when id <> main_id or coalesce(modes ->> 'tel', 'off') = 'off' then phone
                         else coalesce(public.merry_clip(payload ->> 'phone', 40), phone) end,
          address = coalesce(addr, address),
          diet    = coalesce(diet_txt, diet),
          custom  = custom || custom_out
-   where id = main_id;
+   where id = any(who);
 
   -- Réponses aux moments affichés
   if coalesce(modes ->> 'presence', 'off') <> 'off' then
@@ -454,7 +553,7 @@ begin
       st := payload -> 'answers' ->> ev::text;
       if st in ('oui', 'non') then
         insert into public.guest_responses (wedding_id, guest_id, event_id, status, updated_at)
-        values (w, main_id, ev, st, now())
+        select w, g, ev, st, now() from unnest(who) as g
         on conflict (guest_id, event_id) do update set status = excluded.status, updated_at = now();
       end if;
     end loop;
