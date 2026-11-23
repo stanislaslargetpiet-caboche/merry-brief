@@ -73,7 +73,7 @@ function ProchainEnvoi({ data, demo, onChange }) {
   const send = async () => {
     const count = state.restants.length;
     const plural = `${count} personne${count > 1 ? "s" : ""}`;
-    if (!window.confirm(state.depart ? `Programmer « Du nouveau sur Merry » pour ${at(state.depart)}, à ${plural} ?` : `Envoyer « Du nouveau sur Merry » à ${plural} ?`)) return;
+    if (!window.confirm(state.depart ? `Programmer « ${state.objet} » pour ${at(state.depart)}, à ${plural} ?` : `Envoyer « ${state.objet} » à ${plural} ?`)) return;
     setBusy(true);
     setNote(null);
     try {

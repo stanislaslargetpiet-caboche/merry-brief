@@ -11,6 +11,7 @@ import { rsvpFromCell } from "@/lib/dash/importParse";
 import { Icon } from "@/components/dash/icons";
 import { Avatar, Btn, Field, GroupChip, InlineEdit, KpiBar, LongTextCell, Modal, Popover, RsvpMenu, useIsPhone } from "@/components/dash/ui";
 import InvitesHeader from "@/components/dash/InvitesTabs";
+import AppStoreCard from "@/components/dash/AppStoreCard";
 import InvitesMobile from "@/components/dash/InvitesMobile";
 import MomentsModal from "@/components/dash/MomentsModal";
 import GroupsModal from "@/components/dash/GroupsModal";
@@ -1209,6 +1210,8 @@ export default function Invites() {
           </span>
         }
       />
+
+      <AppStoreCard />
 
       <div className="d-desk-only">
         <KpiBar items={stats} plusHref="/dashboard/indicateurs/invites" />

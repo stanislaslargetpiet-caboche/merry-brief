@@ -68,6 +68,7 @@ describe("campagnes emails", () => {
 
   it("reconnaît l'objet du mail du samedi", () => {
     expect(isCampagne(SUBJECT)).toBe(true);
+    expect(isCampagne("Merry est sur l’App Store.")).toBe(true);
     expect(isCampagne("Bienvenue sur Merry")).toBe(false);
   });
 });

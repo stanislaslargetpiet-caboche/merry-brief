@@ -2,7 +2,8 @@ import { existsSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readUnsubLink, unsubLink } from "../lib/server/mailOptouts.js";
 import { departAt, INCLUS, issueState, sendIssue, sendTest } from "../lib/server/nouveautes.js";
-import { latestIssue, NOUVEAUTES, nouveautesMail } from "../lib/server/nouveautesMail.js";
+import { latestIssue, NOUVEAUTES, nouveautesMail, SUJETS } from "../lib/server/nouveautesMail.js";
+import { APP_STORE_URL } from "../lib/appStore.js";
 
 const ORIGIN = "https://app.withmerry.com";
 const issue = NOUVEAUTES[0];
@@ -62,11 +63,25 @@ describe("mail du samedi", () => {
     expect(text).toContain(issue.promesse);
   });
 
-  it("propose le dernier numéro, avec son image, à 8 h le samedi suivant", () => {
+  it("propose le dernier numéro, avec son image, à 8 h le jour prévu", () => {
     const dernier = latestIssue();
     expect(dernier.numero).toBe(NOUVEAUTES.length);
     expect(existsSync(`public/mail/nouveautes/${dernier.image}`)).toBe(true);
-    expect(departAt(dernier, new Date("2026-11-06T20:00:00Z")).toISOString()).toBe("2026-11-14T07:00:00.000Z");
+    expect(departAt(dernier, new Date("2026-11-23T20:00:00Z")).toISOString()).toBe("2026-11-25T07:00:00.000Z");
+  });
+
+  it("annonce l'App Store avec son objet, un lien vers la fiche et sans lignes Avant / Après (V69)", () => {
+    const annonce = NOUVEAUTES.find((n) => n.numero === 3);
+    const { subject, html, text } = nouveautesMail({ issue: annonce, origin: ORIGIN, unsub: "https://x/d" });
+    expect(subject).toBe("Merry est sur l’App Store.");
+    expect(html).toContain(`href="${APP_STORE_URL}"`);
+    expect(text).toContain(`Télécharger sur l’App Store : ${APP_STORE_URL}`);
+    expect(html).not.toContain(">Avant<");
+    expect(html).not.toContain("etincelle.png");
+    expect(html).toContain("Sur Android, Merry reste sur app.withmerry.com.");
+    expect(html).toContain(annonce.apercu);
+    expect(text).not.toContain("À samedi prochain");
+    expect(SUJETS).toEqual(["Du nouveau sur Merry", "Merry est sur l’App Store."]);
   });
 
   it("signe le lien pour les nouveautés seulement", () => {
