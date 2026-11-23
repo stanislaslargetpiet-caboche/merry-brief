@@ -195,4 +195,24 @@ describe("inscriptions par source", () => {
     expect(r.sources.find((s) => s.label === "Sans source")).toMatchObject({ n: 1, total: 1 });
     expect(r.utilisateurs.find((u) => u.id === "u1").source).toBe("meta-a");
   });
+  it("donne à chaque mariage la source du brief dont il est né, sinon celle de la personne qui l'a créé", () => {
+    const users = [{ id: "u1", email: "a@x.fr", created_at: "2026-11-07T10:00:00Z" }, { id: "u2", email: "b@x.fr", created_at: "2026-11-01T10:00:00Z" }, { id: "u3", email: "c@x.fr", created_at: "2026-10-20T10:00:00Z" }];
+    const briefs = [
+      { id: "b1", user_id: "u1", source: "?gclid=Cj0KCQiA", created_at: "2026-11-07T10:00:00Z" },
+      { id: "b2", user_id: "u1", source: "?source=seo", created_at: "2026-11-08T10:00:00Z" },
+      { id: "b3", user_id: "u2", source: null, created_at: "2026-11-01T10:00:00Z" },
+    ];
+    const weddings = [
+      { id: "w1", created_at: "2026-11-07T10:00:00Z", created_by: "u1", brief_id: "b1", partner1: "Léo", partner2: "Léa" },
+      { id: "w2", created_at: "2026-11-08T10:00:00Z", created_by: "u1", brief_id: null, partner1: "Emma", partner2: "Hugo" },
+      { id: "w3", created_at: "2026-11-01T10:00:00Z", created_by: "u2", brief_id: "b3", partner1: "Ali", partner2: "Louis" },
+      { id: "w4", created_at: "2026-10-20T10:00:00Z", created_by: "u3", brief_id: null, partner1: "Clem", partner2: "Théo" },
+    ];
+    const r = buildUtilisateurs({ users, briefs, weddings }, 24 * 3600 * 1000, Date.parse("2026-11-09T12:00:00Z"));
+    const source = (id) => r.mariages.find((m) => m.id === id).source;
+    expect(source("w1")).toBe("google-ads");
+    expect(source("w2")).toBe("seo");
+    expect(source("w3")).toBe("Sans source");
+    expect(source("w4")).toBeNull();
+  });
 });
