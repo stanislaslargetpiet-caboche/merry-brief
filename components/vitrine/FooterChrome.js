@@ -3,6 +3,7 @@
 // Bouton flottant mobile et pied de page du site vitrine. Extrait de Frame.js pour pouvoir lire
 // la langue (useLang) sans rendre tout Frame.js client (SeoLinks y reste serveur, asynchrone).
 
+import AppStoreBadge from "./AppStoreBadge";
 import { useLang } from "@/lib/lang";
 import { LINKS, SIGNUP } from "@/lib/vitrine/routes";
 import { FRAME_TEXT, FOOTER_LINKS_TEXT } from "@/lib/i18n/vitrine-frame";
@@ -30,6 +31,7 @@ export default function FooterChrome({ current }) {
         <div className="wv-stack" style={{ gap: 12 }}>
           <span className="wv-h2">Merry</span>
           <p className="wv-lead">{t.footerTag}</p>
+          <AppStoreBadge lang={lang} track="footer_app_store" />
         </div>
         <div>
           <p className="wv-quote">"Never miss a party… good for the nerves - like celery."</p>

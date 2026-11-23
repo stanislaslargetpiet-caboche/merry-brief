@@ -1,3 +1,4 @@
+import { APP_STORE_BANNER } from "@/lib/appStore";
 import { SHARE_IMAGE } from "@/lib/site";
 import Track from "@/components/vitrine/Track";
 import GoogleTag from "@/components/vitrine/GoogleTag";
@@ -21,6 +22,8 @@ export const metadata = {
   // Aperçu des liens partagés (WhatsApp, iMessage, réseaux) : photo du haut de l'accueil
   openGraph: { siteName: "Merry", locale: "fr_FR", type: "website", url: "/", images: [{ url: SHARE_IMAGE, width: 1200, height: 630 }] },
   twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
+  // Sur iPhone, Safari propose l'appli en haut de page ; la page des prestataires s'en passe (son espace n'y est pas)
+  itunes: APP_STORE_BANNER,
 };
 
 // Barre du navigateur sur téléphone : pistache comme le reste du site (D-235), l'appli garde le citron

@@ -75,6 +75,20 @@
 .wv-proof-line { margin: 0; font-size: 15px; line-height: 1.5; color: #3d3c38; }
 .wv-proof-hl { background: #bfe9a6; padding: 0 4px; }
 
+/* Merry sur l'App Store (canvas « 11 - Application iOS ») : le badge officiel d'Apple, à la hauteur des boutons,
+   et le bloc « Ton mariage dans ta poche. » avec le téléphone coupé par le bas de son panneau */
+.wv-asb { display: inline-flex; flex: none; align-self: flex-start; }
+.wv-asb img { display: block; height: 52px; width: auto; }
+.wv-foot .wv-asb { margin-top: 12px; }
+.wv-app-p { max-width: 520px; }
+.wv-app-get { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 28px; }
+.wv-app-qr { display: flex; align-items: center; gap: 12px; font-size: 14px; line-height: 1.4; }
+.wv-app-qr img { display: block; width: 84px; height: 84px; }
+.wv-app-qr span { max-width: 130px; }
+.wv-app-panel { background: #bfe9a6; border-radius: 20px; height: 560px; overflow: hidden; display: flex; justify-content: center; padding-top: 56px; box-sizing: border-box; }
+.wv-app-phone { flex: none; width: 300px; height: 666px; border: 7px solid #1c1c1a; border-radius: 48px; overflow: hidden; background: #ffffff; box-sizing: border-box; }
+.wv-app-phone img { display: block; width: 100%; height: auto; }
+
 /* Comment ça marche : trois étapes, un écran du tableau de bord chacune */
 
 /* Téléphone : bouton principal fixé en bas */
@@ -226,6 +240,9 @@
   .wv-faq .wv-photo { display: none; }
   .wv-about .wv-photo { min-height: 360px; position: static; }
   .wv-foot { padding: 40px 16px 96px; }
+  .wv-app-qr { display: none; }
+  .wv-app-panel { height: 420px; padding-top: 40px; }
+  .wv-app-phone { width: 230px; height: 514px; border-radius: 37px; }
   .wv-ph1, .wv-ph2 { display: none; }
   .wv-ph3 { left: 4%; top: 4%; width: 40%; height: 18%; }
   .wv-ph4 { left: 56%; top: 78%; width: 40%; height: 18%; }

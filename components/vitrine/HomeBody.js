@@ -4,6 +4,7 @@
 // chargement des chiffres du catalogue (getProof) reste côté serveur dans app/vitrine/page.js.
 
 import Image from "next/image";
+import AppStoreBadge from "./AppStoreBadge";
 import Block from "./Block";
 import Carrousel from "./Carrousel";
 import { SIGNUP } from "@/lib/vitrine/routes";
@@ -29,9 +30,12 @@ export default function HomeBody({ links, proof: rawProof }) {
             {t.leadPost}
           </p>
           <div className="wv-cta">
-            <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="hero_organise">
-              {t.organise}
-            </a>
+            <span className="wv-btns">
+              <a href={SIGNUP} className="wv-btn wv-btn-dark" data-track="hero_organise">
+                {t.organise}
+              </a>
+              <AppStoreBadge lang={lang} track="hero_app_store" />
+            </span>
             <a href={links.pro} className="wv-textlink" data-track="hero_prestataire">
               {t.proLink}
             </a>
@@ -70,6 +74,28 @@ export default function HomeBody({ links, proof: rawProof }) {
             <a href={links.pro} className="wv-btn wv-btn-line" data-track="gratuit_modele">
               {t.model}
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Merry sur l'App Store (canvas « 11 - Application iOS ») : le QR code ne sert que sur ordinateur */}
+      <section className="wv-sec wv-split" aria-labelledby="wv-app-t">
+        <div className="wv-stack" style={{ gap: 24 }}>
+          <h2 id="wv-app-t" className="wv-h3">
+            {t.appTitle}
+          </h2>
+          <p className="wv-p wv-app-p">{t.appBody}</p>
+          <div className="wv-app-get">
+            <AppStoreBadge lang={lang} track="bloc_app_store" />
+            <div className="wv-app-qr">
+              <img src="/vitrine/app-store-qr.svg" alt={t.appQrAlt} width={84} height={84} decoding="async" />
+              <span>{t.appQr}</span>
+            </div>
+          </div>
+        </div>
+        <div className="wv-app-panel">
+          <div className="wv-app-phone">
+            <Image src="/vitrine/app-invites.webp" alt={t.appShotAlt} width={600} height={1304} sizes="(max-width: 760px) 216px, 286px" />
           </div>
         </div>
       </section>
