@@ -23,7 +23,7 @@ import { readView, rememberView, writeView } from "@/lib/dash/guestView";
 import ViewsMenu from "@/components/dash/ViewsMenu";
 import TeamChanges from "@/components/dash/TeamChanges";
 import Doublons from "@/components/dash/Doublons";
-import { findDuplicates, mergePlan, pairKey } from "@/lib/dash/guestDuplicates";
+import { findCoupleRows, findDuplicates, mergePlan, pairKey } from "@/lib/dash/guestDuplicates";
 
 // Valeurs qu'on peut proposer pour filtrer par une colonne : les réponses prédéfinies
 // si elle en a, sinon les valeurs déjà saisies par les organisateurs (2 à 20, comme pour les groupes)
@@ -698,7 +698,11 @@ export default function Invites() {
       setRejected(JSON.parse(localStorage.getItem(rejectKey) || "[]"));
     } catch {}
   }, [rejectKey]);
-  const duplicates = useMemo(() => findDuplicates(guests, data.responses, rejected), [guests, data.responses, rejected]);
+  // Lignes au nom d'un couple (« Lucie et Hugo ») d'abord, puis les doublons d'une même personne
+  const duplicates = useMemo(
+    () => [...findCoupleRows(guests, rejected), ...findDuplicates(guests, data.responses, rejected)],
+    [guests, data.responses, rejected],
+  );
   function rejectDuplicate(s) {
     const next = [...rejected, pairKey(s.keepId, s.dropId)];
     setRejected(next);
@@ -707,32 +711,43 @@ export default function Invites() {
     } catch {}
   }
   // Fusion : la ligne du couple reste (son nom, son groupe), l'invité y reporte réponses, coordonnées et
-  // place à table ; l'autre ligne part. « Annuler » remet les deux lignes comme avant.
+  // place à table ; l'autre ligne part. Une ligne au nom d'un couple (s.alsoKeepId) se reporte sur les deux
+  // fiches, le mail et le téléphone sur la première seulement. « Annuler » remet les lignes comme avant.
   async function mergeDuplicate(s) {
-    const keep = byId.get(s.keepId);
     const drop = byId.get(s.dropId);
-    if (!keep || !drop) return;
-    const plan = mergePlan(keep, drop, { responses: data.responses, seating: data.seating || [] });
+    const keeps = [byId.get(s.keepId), s.alsoKeepId ? byId.get(s.alsoKeepId) : null].filter(Boolean);
+    if (!drop || !keeps.length || (s.alsoKeepId && keeps.length < 2)) return;
     const dropAnswers = data.responses.filter((r) => r.guest_id === drop.id);
     const dropSeats = (data.seating || []).filter((x) => x.guest_id === drop.id);
-    const keepWas = Object.fromEntries(Object.keys(plan.patch).map((k) => [k, keep[k] ?? null]));
-    const keepAnswers = new Map(data.responses.filter((r) => r.guest_id === keep.id).map((r) => [r.event_id, r.status]));
-    if (Object.keys(plan.patch).length) await dash.updateGuests([keep.id], plan.patch);
-    for (const r of plan.carried) await dash.setResponses([keep.id], r.event_id, r.status);
-    for (const x of plan.seats) await dash.seatGuests([keep.id], x.event_id, x.table_id);
+    const done = [];
+    for (const [i, keep] of keeps.entries()) {
+      const from = i === 0 ? drop : { ...drop, email: null, phone: null };
+      // Une seule place à table pour deux personnes : elle va à la première
+      const plan = mergePlan(keep, from, { responses: data.responses, seating: i === 0 ? data.seating || [] : [] });
+      const keepWas = Object.fromEntries(Object.keys(plan.patch).map((k) => [k, keep[k] ?? null]));
+      const keepAnswers = new Map(data.responses.filter((r) => r.guest_id === keep.id).map((r) => [r.event_id, r.status]));
+      if (Object.keys(plan.patch).length) await dash.updateGuests([keep.id], plan.patch);
+      for (const r of plan.carried) await dash.setResponses([keep.id], r.event_id, r.status);
+      for (const x of plan.seats) await dash.seatGuests([keep.id], x.event_id, x.table_id);
+      done.push({ keep, plan, keepWas, keepAnswers });
+    }
+    const keep = keeps[0];
     // Les accompagnants de la ligne qui part passent à la ligne gardée plutôt que de disparaître
     const followers = guests.filter((x) => x.plus_one_of === drop.id);
     if (followers.length) await dash.updateGuests(followers.map((x) => x.id), { plus_one_of: keep.id });
     if (!(await dash.removeGuests([drop.id]))) return;
-    const label = `${guestLabel(drop, byId)} fusionné avec ${guestLabel(keep, byId)}.`;
+    const into = keeps.map((k) => guestLabel(k, byId)).join(" et ");
+    const label = keeps.length > 1 ? `Réponse de ${guestLabel(drop, byId)} reportée sur ${into}.` : `${guestLabel(drop, byId)} fusionné avec ${into}.`;
     const step = pushStep({
       n: 1,
       undo: async () => {
         await dash.restoreGuests([drop], dropAnswers);
         if (followers.length) await dash.updateGuests(followers.map((x) => x.id), { plus_one_of: drop.id });
-        if (Object.keys(keepWas).length) await dash.updateGuests([keep.id], keepWas);
-        for (const r of plan.carried) await dash.setResponses([keep.id], r.event_id, keepAnswers.get(r.event_id) || "attente");
-        for (const x of plan.seats) await dash.seatGuests([keep.id], x.event_id, null);
+        for (const { keep: k, plan, keepWas, keepAnswers } of done) {
+          if (Object.keys(keepWas).length) await dash.updateGuests([k.id], keepWas);
+          for (const r of plan.carried) await dash.setResponses([k.id], r.event_id, keepAnswers.get(r.event_id) || "attente");
+          for (const x of plan.seats) await dash.seatGuests([k.id], x.event_id, null);
+        }
         for (const x of dropSeats) await dash.seatGuests([drop.id], x.event_id, x.table_id);
       },
       redo: () => mergeDuplicate(s),

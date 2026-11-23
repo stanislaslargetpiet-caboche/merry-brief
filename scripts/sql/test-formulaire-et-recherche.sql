@@ -59,6 +59,61 @@ end $$;
 \echo '--- form: new guest -> created with its contact'
 select public.merry_form_submit('alice-ben-form1', '{"first_name":"Paul","last_name":"Martin","email":"paul@example.com","answers":{}}');
 select first_name, email from public.guests where wedding_id = '11111111-1111-1111-1111-111111111111' order by position;
+\echo '--- couple: names split into two people'
+select * from public.merry_split_couple('Lucie et Hugo', 'Lambert');
+select * from public.merry_split_couple('Max & Anaïs', 'du Plessis');
+select * from public.merry_split_couple('Lucie Lambert, Hugo', 'Lambert');
+select * from public.merry_split_couple('Lucie', 'Lambert et Hugo Lambert');
+select * from public.merry_split_couple('Jean-Baptiste', 'Saint-Exupéry');
+do $$ begin
+  if (select string_agg(first_name || '|' || last_name, ';') from public.merry_split_couple('Claire', 'et Pierre Morel')) <> 'Claire|Morel;Pierre|Morel' then
+    raise exception 'one-line couple not split';
+  end if;
+end $$;
+do $$ begin
+  if (select count(*) from public.merry_split_couple('Jean-Baptiste', 'Saint-Exupéry')) <> 1 then raise exception 'single name was split'; end if;
+  if (select string_agg(first_name || '|' || last_name, ';') from public.merry_split_couple('Lucie Lambert, Hugo', 'Lambert')) <> 'Lucie|Lambert;Hugo|Lambert' then
+    raise exception 'repeated last name not stripped';
+  end if;
+end $$;
+insert into public.guests (id, wedding_id, first_name, last_name, position) values
+  ('66666666-6666-6666-6666-666666666661', '11111111-1111-1111-1111-111111111111', 'Lucie', 'Lambert', 10),
+  ('66666666-6666-6666-6666-666666666662', '11111111-1111-1111-1111-111111111111', 'Hugo', 'Lambert', 11),
+  ('66666666-6666-6666-6666-666666666663', '11111111-1111-1111-1111-111111111111', 'Inès', 'Lambert', 12),
+  ('77777777-7777-7777-7777-777777777771', '11111111-1111-1111-1111-111111111111', 'Maximilien', 'du Plessis', 13),
+  ('77777777-7777-7777-7777-777777777772', '11111111-1111-1111-1111-111111111111', 'Anais', 'du Plessis', 14);
+\echo '--- couple: one answer fills both rows of the list, no third row'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Lucie et Hugo","last_name":"Lambert","email":"lucie@example.com","phone":"0611111111","answers":{"33333333-3333-3333-3333-333333333333":"oui"}}');
+do $$ begin
+  if exists (select 1 from public.guests where first_name ilike '%et%' and last_name = 'Lambert') then raise exception 'couple row created'; end if;
+  if (select count(*) from public.guest_responses where guest_id in ('66666666-6666-6666-6666-666666666661', '66666666-6666-6666-6666-666666666662') and status = 'oui') <> 2 then
+    raise exception 'both people did not get the answer';
+  end if;
+  if exists (select 1 from public.guest_responses where guest_id = '66666666-6666-6666-6666-666666666663') then raise exception 'sister got the answer'; end if;
+  if (select email from public.guests where id = '66666666-6666-6666-6666-666666666661') <> 'lucie@example.com'
+     or (select email from public.guests where id = '66666666-6666-6666-6666-666666666662') is not null then
+    raise exception 'email must go to the first person only';
+  end if;
+end $$;
+\echo '--- couple: a shortened first name (Max for Maximilien) is found under the same last name'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Max et Anaïs","last_name":"du Plessis","answers":{"33333333-3333-3333-3333-333333333333":"non"}}');
+do $$ begin
+  if (select count(*) from public.guests where last_name = 'du Plessis') <> 2 then raise exception 'du Plessis row added'; end if;
+  if (select count(*) from public.guest_responses where guest_id in ('77777777-7777-7777-7777-777777777771', '77777777-7777-7777-7777-777777777772') and status = 'non') <> 2 then
+    raise exception 'Max and Anaïs did not both get the answer';
+  end if;
+end $$;
+\echo '--- couple: unknown to the list -> two rows in the same group, each with the answer'
+select public.merry_form_submit('alice-ben-form1', '{"first_name":"Marie-Anne et Jean","last_name":"Perrin","answers":{"33333333-3333-3333-3333-333333333333":"oui"}}');
+do $$ begin
+  if (select count(*) from public.guests where last_name = 'Perrin' and first_name in ('Marie-Anne', 'Jean')) <> 2
+     or exists (select 1 from public.guests where last_name = 'Perrin' and first_name like '% et %') then
+    raise exception 'unknown couple not split into two rows';
+  end if;
+  if (select count(*) from public.guest_responses r join public.guests g on g.id = r.guest_id where g.last_name = 'Perrin' and r.status = 'oui') <> 2 then
+    raise exception 'unknown couple did not both get the answer';
+  end if;
+end $$;
 \echo '--- form: throttle at 200/h'
 update public.guest_forms set rate_window_count = 200, rate_window_start = now() where slug = 'alice-ben-form1';
 do $$ begin
