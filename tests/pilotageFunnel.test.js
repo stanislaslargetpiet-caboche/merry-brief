@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFunnel, signaux, stade } from "@/lib/pilotage/funnel";
+import { buildFunnel, signaux, sourceLisible, stade } from "@/lib/pilotage/funnel";
 import { resolvePage } from "@/lib/pilotage/nav";
 import { buildUtilisateurs } from "@/lib/server/pilotage/utilisateurs";
 
@@ -72,6 +72,21 @@ describe("buildFunnel", () => {
   });
   it("range les plus avancés d'abord, les tests en bas", () => {
     expect(lignes.map((m) => m.id)).toEqual(["d", "c", "b", "a", "t"]);
+  });
+});
+
+describe("sourceLisible", () => {
+  it("nomme une annonce Google et le référencement, garde les autres liens tels quels", () => {
+    expect(sourceLisible("google-ads")).toBe("Google Ads");
+    expect(sourceLisible("gads-21001")).toBe("Google Ads");
+    expect(sourceLisible("seo")).toBe("Référencement");
+    expect(sourceLisible("meta-a")).toBe("meta-a");
+    expect(sourceLisible("Autre lien")).toBe("Autre lien");
+  });
+  it("ne dit rien quand le brief n'a pas de source", () => {
+    expect(sourceLisible("Sans source")).toBeNull();
+    expect(sourceLisible(null)).toBeNull();
+    expect(sourceLisible(undefined)).toBeNull();
   });
 });
 

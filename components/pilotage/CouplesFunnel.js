@@ -2,7 +2,8 @@
 
 // Page « Couples › Funnel » du pilotage : l'entonnoir des couples (lib/pilotage/funnel.js), puis un mariage par
 // ligne avec son étape et ce qui le rend peut-être hors sujet. Un clic sur une étape ne garde que les couples arrêtés
-// là, un clic sur un intitulé classe le tableau sur cette colonne (tests toujours en bas). Mêmes données que Par
+// là, un clic sur un intitulé classe le tableau sur cette colonne (tests toujours en bas). Colonne Source : d'où vient
+// le couple, lu sur son brief (annonce Google, page de référencement, lien de publicité). Mêmes données que Par
 // couple (clé `utilisateurs` de /api/interne/pilotage). Colonne Mails (D-289) : un
 // interrupteur sort le couple des mails de démarrage ou l'y remet, « Voir les mails » ouvre son planning (mails à
 // venir, à lire ou à retirer un à un, et mails déjà partis), servi par /api/interne/pilotage/demarrage. La flèche
@@ -14,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Funnel, Pill, PilotDots, Section, Table } from "@/components/pilotage/ui";
 import { dateCouple, fmtDay, visiteCell, visiteTs } from "@/components/pilotage/Utilisateurs";
-import { ETAPES, buildFunnel } from "@/lib/pilotage/funnel";
+import { ETAPES, buildFunnel, sourceLisible } from "@/lib/pilotage/funnel";
 import { demoMails } from "@/lib/server/pilotage/demo";
 import { fmtInt } from "@/lib/server/pilotage/shape";
 
@@ -447,6 +448,7 @@ export default function CouplesFunnel({ data, demo = false }) {
               { key: "couple", label: "Couple", render: (r) => coupleCell(r, <Fleche ouvert={deplies.has(r.id)} couple={r.couple} onClick={() => deplier(r.id)} />), sort: (r) => r.couple },
               { key: "stade", label: "Étape", render: stadeCell, sort: (r) => r.stade },
               { key: "cree", label: "Inscrit", render: (r) => (r.cree ? fmtDay(r.cree) : "–"), sort: (r) => (r.cree ? Date.parse(r.cree) : null) },
+              { key: "source", label: "Source", render: (r) => sourceLisible(r.source) || muted("–"), sort: (r) => sourceLisible(r.source) },
               { key: "visite", label: "Dernière visite", render: visiteCell, sort: visiteTs },
               { key: "invites", group: "Avancement", label: "Invités", num: true, render: (r) => num(r.invites), sort: (r) => r.invites },
               { key: "reponses", group: "Avancement", label: "Réponses", num: true, render: (r) => num(r.reponses_formulaire), sort: (r) => r.reponses_formulaire },
