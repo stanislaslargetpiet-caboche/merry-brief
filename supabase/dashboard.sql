@@ -434,7 +434,8 @@ $$;
 revoke all on function public.merry_leave(uuid) from public, anon;
 grant execute on function public.merry_leave(uuid) to authenticated;
 
--- Compte un appel à l'IA ; refuse les comptes sans mariage. Renvoie le nombre d'appels du jour.
+-- Compte un appel à l'IA ; refuse les comptes sans mariage ni fiche de prestataire (supabase/ia-prestataires.sql,
+-- pro_members est créée plus loin par espace-prestataire.sql). Renvoie le nombre d'appels du jour.
 create or replace function public.merry_ai_tick()
 returns integer
 language plpgsql
@@ -444,8 +445,10 @@ as $$
 declare
   n integer;
 begin
-  if auth.uid() is null or not exists (select 1 from public.wedding_members where user_id = auth.uid()) then
-    raise exception 'Réservé aux organisateurs';
+  if auth.uid() is null
+     or (not exists (select 1 from public.wedding_members where user_id = auth.uid())
+         and not exists (select 1 from public.pro_members where user_id = auth.uid())) then
+    raise exception 'Réservé aux organisateurs et aux prestataires';
   end if;
   insert into public.ai_usage (user_id, day, calls) values (auth.uid(), current_date, 1)
   on conflict (user_id, day) do update set calls = public.ai_usage.calls + 1
