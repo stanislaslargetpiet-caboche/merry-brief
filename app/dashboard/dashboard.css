@@ -1682,6 +1682,8 @@ button.d-rsvp:hover {
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
+  /* Sans largeur explicite, left: 50% limite le bandeau à la moitié de l'écran : un texte long s'y tassait sur cinq lignes */
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 12px 18px;
   border-radius: 14px;
@@ -2758,6 +2760,11 @@ button.d-rsvp:hover {
 
   .d-toast {
     bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  /* Barre « Ma sélection » posée au-dessus des onglets : le bandeau passe au-dessus d'elle au lieu de la couvrir */
+  body:has(.d-pr-bar, .d-pr-compactbar) .d-toast {
+    bottom: calc(156px + env(safe-area-inset-bottom));
   }
 
   .d-loading {

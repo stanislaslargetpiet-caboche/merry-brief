@@ -2,6 +2,7 @@ import "./globals.css";
 import { LangProvider } from "@/lib/lang";
 import PostHogProvider from "@/components/PostHogProvider";
 import CookieBanner from "@/components/CookieBanner";
+import IosSansZoomChamps from "@/components/IosSansZoomChamps";
 
 export const metadata = {
   title: "Merry · Raconte-nous ton mariage",
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
           <LangProvider>
             {children}
             <CookieBanner />
+            <IosSansZoomChamps />
           </LangProvider>
         </PostHogProvider>
       </body>
