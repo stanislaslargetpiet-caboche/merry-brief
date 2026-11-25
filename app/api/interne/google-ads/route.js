@@ -2,7 +2,7 @@
 // (scripts/google-ads/merry-depense.js) envoie chaque heure dépense, impressions et clics des derniers jours, par
 // campagne, mot-clé et recherche tapée. Jeton à part (GOOGLE_ADS_SCRIPT_SECRET) : il vit dans le compte Google Ads et
 // n'ouvre rien d'autre que cette route.
-import { validerEnvoi } from "@/lib/server/pilotage/googleAds";
+import { NIVEAUX_DEPENSE, validerEnvoi } from "@/lib/server/pilotage/googleAds";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -25,9 +25,12 @@ export async function POST(req) {
   if (!url || !service) return Response.json({ error: "indisponible" }, { status: 501, headers: NO_STORE });
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const maj = new Date().toISOString();
-  const { error } = await admin
-    .from("google_ads_jours")
-    .upsert(v.lignes.map((l) => ({ ...l, maj })), { onConflict: "jour,niveau,campagne_id,groupe,terme,correspondance" });
+  const ecrire = (lignes) => admin.from("google_ads_jours").upsert(lignes.map((l) => ({ ...l, maj })), { onConflict: "jour,niveau,campagne_id,groupe,terme,correspondance" });
+  let { error } = await ecrire(v.lignes);
+  // Table d'avant la persona (supabase/google-ads-persona.sql pas encore collé) : on garde au moins la dépense
+  if (error?.code === "23514" && v.lignes.some((l) => !NIVEAUX_DEPENSE.includes(l.niveau))) {
+    ({ error } = await ecrire(v.lignes.filter((l) => NIVEAUX_DEPENSE.includes(l.niveau))));
+  }
   if (error) return Response.json({ error: "ecriture", message: error.message.slice(0, 200) }, { status: 500, headers: NO_STORE });
   return Response.json({ ok: true, lignes: v.lignes.length }, { headers: NO_STORE });
 }
