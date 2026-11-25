@@ -127,6 +127,9 @@
 
 .pl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 22px; min-width: 0; }
 .pl-card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 700; line-height: 1.25; }
+/* Acquisition › Persona : les quatre répartitions deux par deux */
+.pl-persona { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+@media (max-width: 1180px) { .pl-persona { grid-template-columns: minmax(0, 1fr); } }
 
 /* Menus déroulants : une carte, une ligne par menu */
 .pl-folds { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 22px; min-width: 0; }

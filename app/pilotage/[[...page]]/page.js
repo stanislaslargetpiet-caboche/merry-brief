@@ -15,6 +15,7 @@ import PrestatairesFunnel from "@/components/pilotage/PrestatairesFunnel";
 import Demandes from "@/components/pilotage/Demandes";
 import Publicites from "@/components/pilotage/Publicites";
 import GoogleAds from "@/components/pilotage/GoogleAds";
+import Persona from "@/components/pilotage/Persona";
 import Robots from "@/components/pilotage/Robots";
 import Sources from "@/components/pilotage/Sources";
 import Erreurs from "@/components/pilotage/Erreurs";
@@ -490,6 +491,8 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
         )}
         <GoogleAds ads={data.googleAds} entonnoir={ph?.site?.entonnoir} sources={data.utilisateurs?.sources} utilisateurs={data.utilisateurs?.utilisateurs} joursList={joursList} jours={jours} />
       </Section>
+
+      <Persona ads={data.googleAds} mariages={data.utilisateurs?.mariages} joursList={joursList} jours={jours} />
 
       <Section id="sante" right={demo ? null : <SendBrief />}>
         {ph || vc ? (
