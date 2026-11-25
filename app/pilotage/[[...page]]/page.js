@@ -13,7 +13,6 @@ import Utilisateurs from "@/components/pilotage/Utilisateurs";
 import CouplesFunnel from "@/components/pilotage/CouplesFunnel";
 import PrestatairesFunnel from "@/components/pilotage/PrestatairesFunnel";
 import Demandes from "@/components/pilotage/Demandes";
-import Campagnes from "@/components/pilotage/Campagnes";
 import Publicites from "@/components/pilotage/Publicites";
 import GoogleAds from "@/components/pilotage/GoogleAds";
 import Robots from "@/components/pilotage/Robots";
@@ -477,7 +476,6 @@ function Board({ data, jours, reload, liste, today, search, langue }) {
       </Section>
 
       <Publicites entonnoir={ph?.site?.entonnoir} sources={data.utilisateurs?.sources} />
-      <Campagnes data={data.campagnes} visites={ph?.mails} joursList={joursList} jours={jours} demo={demo} onChange={reload} />
 
       <Section id="referencement" right={demo ? null : <RefreshSeo />}>
         {gsc || ph ? (
