@@ -130,6 +130,39 @@
 /* Acquisition › Persona : les quatre répartitions deux par deux */
 .pl-persona { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 @media (max-width: 1180px) { .pl-persona { grid-template-columns: minmax(0, 1fr); } }
+.pl-anneaux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pl-anneau { margin: 0; min-width: 0; }
+.pl-anneau figcaption { margin-bottom: 8px; color: var(--ink-muted); font-size: 13px; font-weight: 600; }
+.pl-anneau-corps { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.pl-anneau svg { flex: none; }
+.pl-anneau-fond { fill: none; stroke: var(--sunken); stroke-width: 20; }
+.pl-anneau-arc { fill: none; stroke-width: 20; }
+.pl-anneau-centre { fill: var(--ink); font-size: 24px; font-weight: 700; }
+.pl-anneau-sous { fill: var(--ink-muted); font-size: 12px; }
+.pl-legende { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.pl-legende li { display: grid; grid-template-columns: 10px auto auto; align-items: baseline; column-gap: 8px; }
+.pl-legende i, .pl-legende-ligne i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.pl-legende strong { font-variant-numeric: tabular-nums; }
+.pl-legende small { grid-column: 2 / 4; color: var(--ink-muted); font-size: 12px; }
+.pl-colonnes { display: flex; align-items: flex-end; gap: 10px; height: 200px; padding-top: 4px; }
+.pl-colonne { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pl-colonne strong { font-size: 13px; font-variant-numeric: tabular-nums; }
+.pl-colonne small { color: var(--ink-muted); font-size: 12px; white-space: nowrap; }
+.pl-colonne-piste { flex: 1; width: 100%; max-width: 44px; display: flex; align-items: flex-end; }
+.pl-colonne-piste span { display: block; width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; }
+.pl-legende-ligne { display: flex; gap: 16px; margin-bottom: 10px; color: var(--ink-muted); font-size: 13px; }
+.pl-legende-ligne span { display: inline-flex; align-items: center; gap: 6px; }
+.pl-barres { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pl-barres li { display: grid; grid-template-columns: minmax(0, 14em) minmax(0, 1fr); gap: 12px; align-items: center; font-size: 14px; }
+.pl-barres-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-barres-valeurs { display: grid; gap: 3px; }
+.pl-barre { display: grid; grid-template-columns: minmax(0, 1fr) 3.2em; gap: 8px; align-items: center; }
+.pl-barre-piste span { display: block; height: 10px; min-width: 2px; border-radius: 0 4px 4px 0; }
+.pl-barre em { font-style: normal; font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+  .pl-anneaux { grid-template-columns: minmax(0, 1fr); }
+  .pl-barres li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
 
 /* Menus déroulants : une carte, une ligne par menu */
 .pl-folds { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 22px; min-width: 0; }
