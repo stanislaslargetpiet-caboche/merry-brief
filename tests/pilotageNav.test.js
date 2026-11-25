@@ -24,7 +24,7 @@ describe("resolvePage", () => {
     };
     expect(vers("/pilotage/croissance/site")).toBe("acquisition/site");
     expect(vers("/pilotage/croissance/agents")).toBe("acquisition/referencement");
-    expect(vers("/pilotage/croissance/samedi")).toBe("acquisition/campagnes");
+    expect(vers("/pilotage/croissance/samedi")).toBe("acquisition/site");
     expect(vers("/pilotage/croissance")).toBe("acquisition/site");
     expect(vers("/pilotage/utilisateurs/comptes")).toBe("couples/comptes");
     expect(vers("/pilotage/utilisateurs/appli")).toBe("couples/activite");
@@ -43,7 +43,7 @@ describe("pathFromHash", () => {
     const anciens = ["sante", "utilisateurs", "demandes", "nouveautes", "couts", "site", "referencement", "appli", "produit", "prestataires", "mails", "bugs"];
     for (const id of anciens) expect(pathFromHash(`#${id}`)).toMatch(/^\/pilotage\/[a-z]+\/[a-z]+$/);
     expect(pathFromHash("#demandes")).toBe(pilotagePath("prestataires", "demandes"));
-    expect(pathFromHash("#nouveautes")).toBe(pilotagePath("acquisition", "campagnes"));
+    expect(pathFromHash("#nouveautes")).toBe(pilotagePath("acquisition", "site"));
     expect(pathFromHash("#bugs")).toBe(pilotagePath("coulisses", "sante"));
   });
   it("sans ancre connue, rien", () => {
